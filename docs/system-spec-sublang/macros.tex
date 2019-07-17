@@ -1,0 +1,71 @@
+\usepackage{longtable}
+\usepackage{textcomp}
+\usepackage{array}
+\usepackage{todonotes}
+
+
+% Grammar definition helpers
+\newenvironment{grammar}{%
+  \global\def\grammarVertAdjustment{0mm}
+  \newcommand{\gline}{\hline \\[-0.5em]}
+  \newcommand{\gcont}{\\ & &}
+  \newcommand{\gor}{\ensuremath{\mid}}
+  \newcommand{\gcomment}[1]{(\ensuremath{\textit{##1}})}
+  \newcommand{\grule}[4][0mm]{##2 & ::= & ##3 & \gcomment{##4} \\[##1] }
+  \begin{center}
+  \begin{longtable}{>{$}r<{$} >{$}c<{$} >{$}l<{$} >{$}r<{$}}
+}{%
+  \end{longtable}
+  \end{center}
+}
+
+\newcommand{\glist}[1]{\ensuremath{\mathop{\{ #1 \}}}}
+
+\newcommand{\glistnonempty}[1]{\ensuremath{\mathop{\{ #1 \}^+}}}
+
+\newcommand{\gopt}[1]{\ensuremath{\mathop{[ #1 ]}}}
+
+\newcommand{\gntn}[1]{\ensuremath{\mathop{\textrm{#1}}}\,}
+
+\newcommand{\gtkw}[1]{\ensuremath{\mathop{\texttt{"#1"}}}\,}
+\newcommand{\gtkc}[1]{\ensuremath{\mathop{\texttt{\textquotesingle #1\textquotesingle}}}\,}
+
+\newcommand{\gtregex}[1]{\ensuremath{\mathop{?\, \textrm{\scriptsize /#1/} \,?}}}
+
+% Terminals and non-terminals
+\newcommand{\gnident}{\gntn{identifier}}
+\newcommand{\gnstring}{\gntn{string}}
+\newcommand{\gnstringlist}{\gntn{string-list}}
+\newcommand{\gntext}{\gntn{text}}
+
+\newcommand{\gnlando}{\gntn{lando-source}}
+\newcommand{\gnspecelem}{\gntn{spec-element}}
+\newcommand{\gninformalchart}{\gntn{informal-chart}}
+\newcommand{\gnclassdict}{\gntn{class-dictionary}}
+
+\newcommand{\gnsystemchart}{\gntn{system-chart}}
+\newcommand{\gnclusterchart}{\gntn{cluster-chart}}
+\newcommand{\gnclasschart}{\gntn{class-chart}}
+\newcommand{\gneventchart}{\gntn{event-chart}}
+\newcommand{\gnscenariochart}{\gntn{scenario-chart}}
+\newcommand{\gnrequirementschart}{\gntn{requirements-chart}}
+\newcommand{\gncreationchart}{\gntn{creation-chart}}
+
+\newcommand{\gnname}{\gntn{name}}
+\newcommand{\gnnamelist}{\gntn{name-list}}
+\newcommand{\gnclassdictentry}{\gntn{dictionary-entry}}
+
+
+\newcommand{\gnclusterentry}{\gntn{cluster-entry}}
+\newcommand{\gnclassentry}{\gntn{class-entry}}
+
+\newcommand{\gnevententry}{\gntn{event-entry}}
+\newcommand{\gneventdirection}{\gntn{event-direction}}
+
+\newcommand{\gnscenarioentry}{\gntn{scenario-entry}}
+
+\newcommand{\gncreationentry}{\gntn{creation-entry}}
+
+\newcommand{\gnrequirementsentry}{\gntn{requirements-entry}}
+
+\newcommand{\gnindexing}{\gntn{indexing}}

@@ -1,0 +1,166 @@
+\documentclass{article}
+
+\input{macros}
+
+\begin{document}
+
+\section{Notation}
+
+The grammar for the Lando System Specification Sublanguage is written in the EBNF notation. The main elements of the notation that we utilize are:
+\begin{itemize}
+  \item Terminals are represented with double or single quotes; e.g. $\gtkw{explanation}$.
+  \item Optional bits are represented with squared brackets; e.g. $\gopt{\gtkw{explanation} \gntext}$.
+  \item Repetition is represented with curly braces; e.g. $\glist{\gnident}$
+  \item We use a slightly enhanced notation - $\glistnonempty{a}$ to indicate \emph{non-zero} repetitions. This is simply equivalent to: $a \glist{a}$.
+  \item For defining terminals, we use the EBNF special form to declare an extended regular expression - for example: $\gtregex{\textbackslash w\\+}$
+\end{itemize}
+
+\section{Grammar}
+
+\begin{grammar}
+  \grule{\gnlando}{
+    \glist{\gnspecelem}
+  }{Lando source}
+  
+  \grule{\gnspecelem}{
+    \gninformalchart \gor \gnclassdict
+  }{Specification Elements}
+
+  \grule{\gninformalchart}{
+    \gnsystemchart \gor \gnclusterchart \gor \gnclasschart \gcont
+    \gor \gneventchart \gor \gnscenariochart \gor \gnrequirementschart \gcont
+    \gor \gncreationchart
+  }{Informal Charts}
+
+  \grule{\gnclassdict}{
+    \gtkw{dictionary} \gnname 
+    \glistnonempty{\gnclassdictentry} 
+    \gtkw{end} %TODO
+  }{Class Dictionary}
+
+  \grule[0.5em]{\gnclassdictentry}{
+    \gtkw{class} \gnname 
+    \gtkw{description} \gntext %TODO: What is the last string?
+  }{Class Dictionary Entry}
+
+  \gline
+
+  \grule{\gnsystemchart}{
+    \gtkw{system\_chart} \gnname \gcont
+    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
+    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \; \glist{\gnclusterentry} \gcont
+    \gtkw{end}
+  }{System Chart}
+
+  \grule[0.5em]{\gnclusterentry}{
+    \gtkw{cluster} \gnname \gtkw{description} \gntext
+  }{Cluster Entry}
+
+  \gline
+
+  \grule{\gnclusterchart}{
+    \gtkw{cluster\_chart} \gnname \gcont
+    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
+    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \; \glist{\gnclassentry} \gcont
+    \; \glist{\gnclusterentry} \gcont
+    \gtkw{end}
+  }{Cluster Chart}
+
+  \grule[0.5em]{\gnclassentry}{
+    \gtkw{class} \gnname \gtkw{description} \gntext
+  }{Class Entry}
+
+  \gline
+
+  \grule[0.5em]{\gnclasschart}{
+    \gtkw{class\_chart} \gnname \gcont
+    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
+    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \; \gopt{\gtkw{inherit} \gnnamelist} \gcont
+    \; \gopt{\gtkw{query} \gnstringlist} \gcont
+    \; \gopt{\gtkw{command} \gnstringlist} \gcont
+    \; \gopt{\gtkw{constraint} \gnstringlist} \gcont
+    \gtkw{end}
+  }{Class Chart}
+
+  \gline
+
+  \grule{\gneventchart}{
+    \gtkw{event\_chart} \gnname \gcont
+    \; \gopt{\gneventdirection} \gcont
+    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
+    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \; \glist{\gnevententry} \gcont
+    \gtkw{end}
+  }{Class Chart}
+
+  \grule{\gnevententry}{
+    \gtkw{event} \gnstring \gtkw{involves} \gnnamelist
+  }{Event Entry}
+
+  \grule[0.5em]{\gneventdirection}{
+    \gtkw{incoming} \gor \gtkw{outgoing}
+  }{Event Direction}
+
+  \gline
+
+  \grule{\gnscenariochart}{
+    \gtkw{scenario\_chart} \gnname \gcont
+    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
+    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \; \glist{\gnscenarioentry} \gcont
+    \gtkw{end}
+  }{Scenario Chart}
+
+  \grule[0.5em]{\gnscenarioentry}{
+    \gtkw{scenario} \gnname \gtkw{description} \gntext
+  }{Scenario Entry}
+
+  \gline
+
+  \grule{\gncreationchart}{
+    \gtkw{creation\_chart} \gnname \gcont
+    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
+    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \; \glist{\gncreationentry} \gcont
+    \gtkw{end}
+  }{creation Chart}
+
+  \grule[0.5em]{\gncreationentry}{
+    \gtkw{creator} \gnname \gtkw{creates} \gnnamelist
+  }{creation Entry}
+
+  \gline
+
+  % \grule{\gnrequirementschart}{
+  %   \gtkw{requirements\_chart} \gnname \gcont
+  %   \; \gopt{\gtkw{indexing} \gnindexing} \gcont
+  %   \; \gopt{\gtkw{explanation} \gntext} \gcont
+  %   \; \glist{\gnrequirementsentry} \gcont
+  %   \gtkw{end}
+  % }{requirements Chart}
+
+  % \grule[0.5em]{\gnrequirementsentry}{
+  %   \gtkw{requirements} \gnname 
+
+  % \gline
+  
+  \grule[0.5em]{\gnindexing}{
+    \glist{\gnident \gtkc{:} \gnstringlist}
+  }{Index List}
+
+  \gline
+
+  \grule{\gnname}{\gnident}{Name}
+  \grule{\gnnamelist}{\gnname \glist{\gtkc{,} \gnname}}{Name List}
+  \grule{\gnstring}{\gtkc{"} \gtregex{.*} \gtkc{"}}{String}
+  \grule{\gnstringlist}{\gnstring \glist{\gtkc{,} \gnstring}}{String List}
+  \grule{\gntext}{\gnstring \glist{\gtkc{\textbackslash n} \gnstring}}{Multi-line Text}
+  \grule{\gnident}{}{Identifier}
+\end{grammar}
+
+
+\end{document}
+
