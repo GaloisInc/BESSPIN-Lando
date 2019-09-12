@@ -9,10 +9,10 @@
 The grammar for the Lando System Specification Sublanguage is written in the EBNF notation. The main elements of the notation that we utilize are:
 \begin{itemize}
   \item Terminals are represented with double or single quotes; e.g. $\gtkw{explanation}$.
-  \item Optional bits are represented with squared brackets; e.g. $\gopt{\gtkw{explanation} \gntext}$.
+  \item Optional bits are represented with squared brackets; e.g. $\gopt{\gtkw{explanation} \gnparagraph}$.
   \item Repetition is represented with curly braces; e.g. $\glist{\gnident}$
   \item We use a slightly enhanced notation - $\glistnonempty{a}$ to indicate \emph{non-zero} repetitions. This is simply equivalent to: $a \glist{a}$.
-  \item For defining terminals, we use the EBNF special form to declare an extended regular expression - for example: $\gtregex{\textbackslash w\\+}$
+  \item For defining terminals, we would like to use the EBNF special form to declare an extended regular expression - for example: $\gtregexfull{\textbackslash w\\+}$. However since this is rather verbose, we will simply use $\gtregex{\textrm{\textbackslash w\\+}}$ for convenience.
 \end{itemize}
 
 \section{Grammar}
@@ -40,44 +40,42 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
   \grule[0.5em]{\gnclassdictentry}{
     \gtkw{class} \gnname 
-    \gtkw{description} \gntext %TODO: What is the last string?
+    \gtkw{description} \gnparagraph %TODO: What is the last string?
   }{Class Dictionary Entry}
 
   \gline
 
   \grule{\gnsystemchart}{
-    \gtkw{system\_chart} \gnname \gcont
-    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
-    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \gtkw{subsystem} \gnname \gnnl \gcont
+    \; \gnexplanation \gcont
+    \; \gopt{\gtkw{indexing} \gnindexing \gnnl} \gcont
     \; \glist{\gnclusterentry} \gcont
     \gtkw{end}
   }{System Chart}
 
   \grule[0.5em]{\gnclusterentry}{
-    \gtkw{cluster} \gnname \gtkw{description} \gntext
+    \gtkw{cluster} \gnname \gnnl \gnexplanation
   }{Cluster Entry}
 
   \gline
 
   \grule{\gnclusterchart}{
     \gtkw{cluster\_chart} \gnname \gcont
-    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
-    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \; \gnexplanation \gcont
     \; \glist{\gnclassentry} \gcont
     \; \glist{\gnclusterentry} \gcont
     \gtkw{end}
   }{Cluster Chart}
 
   \grule[0.5em]{\gnclassentry}{
-    \gtkw{class} \gnname \gtkw{description} \gntext
+    \gtkw{class} \gnname \gnnl \gnexplanation
   }{Class Entry}
 
   \gline
 
   \grule[0.5em]{\gnclasschart}{
     \gtkw{class\_chart} \gnname \gcont
-    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
-    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \; \gopt{\gtkw{explanation} \gnparagraph} \gcont
     \; \gopt{\gtkw{inherit} \gnnamelist} \gcont
     \; \gopt{\gtkw{query} \gnstringlist} \gcont
     \; \gopt{\gtkw{command} \gnstringlist} \gcont
@@ -90,14 +88,13 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gneventchart}{
     \gtkw{event\_chart} \gnname \gcont
     \; \gopt{\gneventdirection} \gcont
-    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
-    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \; \gopt{\gtkw{explanation} \gnparagraph} \gcont
     \; \glist{\gnevententry} \gcont
     \gtkw{end}
   }{Class Chart}
 
   \grule{\gnevententry}{
-    \gtkw{event} \gnstring \gtkw{involves} \gnnamelist
+    \gtkw{event} \gnsentence \gtkw{involves} \gnnamelist
   }{Event Entry}
 
   \grule[0.5em]{\gneventdirection}{
@@ -108,22 +105,20 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
   \grule{\gnscenariochart}{
     \gtkw{scenario\_chart} \gnname \gcont
-    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
-    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \; \gopt{\gtkw{explanation} \gnparagraph} \gcont
     \; \glist{\gnscenarioentry} \gcont
     \gtkw{end}
   }{Scenario Chart}
 
   \grule[0.5em]{\gnscenarioentry}{
-    \gtkw{scenario} \gnname \gtkw{description} \gntext
+    \gtkw{scenario} \gnname \gtkw{description} \gnparagraph
   }{Scenario Entry}
 
   \gline
 
   \grule{\gncreationchart}{
     \gtkw{creation\_chart} \gnname \gcont
-    \; \gopt{\gtkw{indexing} \gnindexing} \gcont
-    \; \gopt{\gtkw{explanation} \gntext} \gcont
+    \; \gopt{\gtkw{explanation} \gnparagraph} \gcont
     \; \glist{\gncreationentry} \gcont
     \gtkw{end}
   }{creation Chart}
@@ -137,7 +132,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   % \grule{\gnrequirementschart}{
   %   \gtkw{requirements\_chart} \gnname \gcont
   %   \; \gopt{\gtkw{indexing} \gnindexing} \gcont
-  %   \; \gopt{\gtkw{explanation} \gntext} \gcont
+  %   \; \gopt{\gtkw{explanation} \gnparagraph} \gcont
   %   \; \glist{\gnrequirementsentry} \gcont
   %   \gtkw{end}
   % }{requirements Chart}
@@ -147,18 +142,28 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
   % \gline
   
-  \grule[0.5em]{\gnindexing}{
-    \glist{\gnident \gtkc{:} \gnstringlist}
+  \grule{\gnindexing}{
+    \glist{\gnindexentry}
+  }{Index List}
+
+  
+  \grule[0.5em]{\gnindexentry}{
+    \gnident \gtkc{:} \gnstringlist \gnnl
   }{Index List}
 
   \gline
 
   \grule{\gnname}{\gnident}{Name}
   \grule{\gnnamelist}{\gnname \glist{\gtkc{,} \gnname}}{Name List}
-  \grule{\gnstring}{\gtkc{"} \gtregex{.*} \gtkc{"}}{String}
-  \grule{\gnstringlist}{\gnstring \glist{\gtkc{,} \gnstring}}{String List}
-  \grule{\gntext}{\gnstring \glist{\gtkc{\textbackslash n} \gnstring}}{Multi-line Text}
+  \grule{\gnstring}{\gtregex{[\textasciicircum,]\txss{+}?}}{String}
+  \grule{\gnstringlist}{\gnstring \glist{, \gnstring}}{List of Strings}
+  \grule{\gnsentence}{\gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}? [.?!]}}{Sentence}
+  \grule{\gnsentencelist}{\gnsentence \glist{\gtkc{,} \gnsentence}}{String List}
+  \grule{\gnparagraph}{\gnsentence^+ \gtregex{(?= (\gnnl \gnkeyword | \gneof))}}{Paragraph}
+  \grule{\gnexplanation}{\gnparagraph}{Explanation}
+  \grule{\gnkeyword}{<all keywords>}{All\ Keywords}
   \grule{\gnident}{}{Identifier}
+  \grule{\gnnl}{}{New Line}
 \end{grammar}
 
 

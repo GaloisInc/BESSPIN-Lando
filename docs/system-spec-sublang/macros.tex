@@ -1,7 +1,9 @@
+\usepackage[T1]{fontenc}
 \usepackage{longtable}
 \usepackage{textcomp}
 \usepackage{array}
 \usepackage{todonotes}
+\usepackage{mathtools}
 
 
 % Grammar definition helpers
@@ -19,31 +21,39 @@
   \end{center}
 }
 
-\newcommand{\glist}[1]{\ensuremath{\mathop{\{ #1 \}}}}
+\newcommand{\txss}[1]{\textsuperscript{#1}}
 
-\newcommand{\glistnonempty}[1]{\ensuremath{\mathop{\{ #1 \}^+}}}
+\newcommand{\glist}[1]{\ensuremath{\mathop{\operatorname{\{} #1 \operatorname{\}}}}}
 
-\newcommand{\gopt}[1]{\ensuremath{\mathop{[ #1 ]}}}
+\newcommand{\glistnonempty}[1]{\ensuremath{\mathop{\operatorname{\{} #1 \operatorname{\}}^+}}}
+
+\newcommand{\gopt}[1]{\ensuremath{\mathop{\operatorname{[} #1 \operatorname{]}}}}
 
 \newcommand{\gntn}[1]{\ensuremath{\mathop{\textrm{#1}}}\,}
 
 \newcommand{\gtkw}[1]{\ensuremath{\mathop{\texttt{"#1"}}}\,}
 \newcommand{\gtkc}[1]{\ensuremath{\mathop{\texttt{\textquotesingle #1\textquotesingle}}}\,}
 
-\newcommand{\gtregex}[1]{\ensuremath{\mathop{?\, \textrm{\scriptsize /#1/} \,?}}}
+\newcommand{\gtregexfull}[2][]{\ensuremath{\mathop{?\, \textrm{\scriptsize /#2/#1} \,?}}}
+\newcommand{\gtregex}[2][]{\ensuremath{\textrm{\scriptsize /#2/#1}}}
 
 % Terminals and non-terminals
+\newcommand{\gnnl}{\gntn{new-line}}
+\newcommand{\gneof}{\gntn{eof}}
+\newcommand{\gnkeyword}{\gntn{keyword}}
 \newcommand{\gnident}{\gntn{identifier}}
+\newcommand{\gnsentence}{\gntn{sentence}}
+\newcommand{\gnsentencelist}{\gntn{sentence-list}}
+\newcommand{\gnparagraph}{\gntn{paragraph}}
 \newcommand{\gnstring}{\gntn{string}}
 \newcommand{\gnstringlist}{\gntn{string-list}}
-\newcommand{\gntext}{\gntn{text}}
 
 \newcommand{\gnlando}{\gntn{lando-source}}
 \newcommand{\gnspecelem}{\gntn{spec-element}}
 \newcommand{\gninformalchart}{\gntn{informal-chart}}
 \newcommand{\gnclassdict}{\gntn{class-dictionary}}
 
-\newcommand{\gnsystemchart}{\gntn{system-chart}}
+\newcommand{\gnsystemchart}{\gntn{subsystem}}
 \newcommand{\gnclusterchart}{\gntn{cluster-chart}}
 \newcommand{\gnclasschart}{\gntn{class-chart}}
 \newcommand{\gneventchart}{\gntn{event-chart}}
@@ -52,6 +62,7 @@
 \newcommand{\gncreationchart}{\gntn{creation-chart}}
 
 \newcommand{\gnname}{\gntn{name}}
+\newcommand{\gnexplanation}{\gntn{explanation}}
 \newcommand{\gnnamelist}{\gntn{name-list}}
 \newcommand{\gnclassdictentry}{\gntn{dictionary-entry}}
 
@@ -69,3 +80,4 @@
 \newcommand{\gnrequirementsentry}{\gntn{requirements-entry}}
 
 \newcommand{\gnindexing}{\gntn{indexing}}
+\newcommand{\gnindexentry}{\gntn{index-entry}}
