@@ -12,8 +12,8 @@
   \newcommand{\gline}{\hline \\[-0.5em]}
   \newcommand{\gcont}{\\ & &}
   \newcommand{\gor}{\ensuremath{\mid}}
-  \newcommand{\gcomment}[1]{(\ensuremath{\textit{##1}})}
-  \newcommand{\grule}[4][0mm]{##2 & ::= & ##3 & \gcomment{##4} \\[##1] }
+  \newcommand{\grule}[4][0mm]{##2 & ::= & ##3 & \mbox{\footnotesize $\textit{##4}$} \\[##1] }
+  \small
   \begin{center}
   \begin{longtable}{>{$}r<{$} >{$}c<{$} >{$}l<{$} >{$}r<{$}}
 }{%
@@ -37,10 +37,13 @@
 \newcommand{\gtregexfull}[2][]{\ensuremath{\mathop{?\, \textrm{\scriptsize /#2/#1} \,?}}}
 \newcommand{\gtregex}[2][]{\ensuremath{\textrm{\scriptsize /#2/#1}}}
 
+\newcommand{\gseplist}[2]{#2 \glist{#1 #2}\txss{+}}
+
 % Terminals and non-terminals
 \newcommand{\gnnl}{\gntn{new-line}}
 \newcommand{\gneof}{\gntn{eof}}
 \newcommand{\gnkeyword}{\gntn{keyword}}
+\newcommand{\gnnlkeyword}{\gntn{nl-keyword}}
 \newcommand{\gnident}{\gntn{identifier}}
 \newcommand{\gnsentence}{\gntn{sentence}}
 \newcommand{\gnsentencelist}{\gntn{sentence-list}}
@@ -50,25 +53,29 @@
 
 \newcommand{\gnlando}{\gntn{lando-source}}
 \newcommand{\gnspecelem}{\gntn{spec-element}}
-\newcommand{\gninformalchart}{\gntn{informal-chart}}
 \newcommand{\gnclassdict}{\gntn{class-dictionary}}
 
-\newcommand{\gnsystemchart}{\gntn{subsystem}}
-\newcommand{\gnclusterchart}{\gntn{cluster-chart}}
-\newcommand{\gnclasschart}{\gntn{class-chart}}
-\newcommand{\gneventchart}{\gntn{event-chart}}
-\newcommand{\gnscenariochart}{\gntn{scenario-chart}}
-\newcommand{\gnrequirementschart}{\gntn{requirements-chart}}
-\newcommand{\gncreationchart}{\gntn{creation-chart}}
+\newcommand{\gnsystem}{\gntn{system}}
+\newcommand{\gnsubsystem}{\gntn{subsystem}}
+
+\newcommand{\gncomponent}{\gntn{component}}
+\newcommand{\gncomponentpart}{\gntn{component-part}}
+\newcommand{\gnconstraint}{\gntn{constraint}}
+\newcommand{\gnquery}{\gntn{query}}
+\newcommand{\gncommand}{\gntn{constraint}}
+
+\newcommand{\gnevent}{\gntn{event}}
+\newcommand{\gnscenario}{\gntn{scenario}}
+\newcommand{\gnrequirements}{\gntn{requirement}}
 
 \newcommand{\gnname}{\gntn{name}}
-\newcommand{\gnexplanation}{\gntn{explanation}}
+\newcommand{\gnnamephrase}{\gntn{name-phrase}}
+\newcommand{\gnnamephraserel}{\gntn{name-phrase-rel}}
 \newcommand{\gnnamelist}{\gntn{name-list}}
+\newcommand{\gnexplanation}{\gntn{explanation}}
+\newcommand{\gnnamephraselist}{\gntn{name-phrase-list}}
 \newcommand{\gnclassdictentry}{\gntn{dictionary-entry}}
 
-
-\newcommand{\gnclusterentry}{\gntn{cluster-entry}}
-\newcommand{\gnclassentry}{\gntn{class-entry}}
 
 \newcommand{\gnevententry}{\gntn{event-entry}}
 \newcommand{\gneventdirection}{\gntn{event-direction}}
@@ -81,3 +88,9 @@
 
 \newcommand{\gnindexing}{\gntn{indexing}}
 \newcommand{\gnindexentry}{\gntn{index-entry}}
+\newcommand{\gnindexkey}{\gntn{index-key}}
+\newcommand{\gnindexvallist}{\gntn{index-val-list}}
+\newcommand{\gnindexval}{\gntn{index-val}}
+
+\newcommand{\gnrelkeyword}{\gntn{rel-keyword}}
+

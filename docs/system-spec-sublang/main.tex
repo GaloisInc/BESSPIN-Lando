@@ -2,6 +2,10 @@
 
 \input{macros}
 
+\usepackage{cmbright}
+%\usepackage[varg]{txfonts}
+%\usepackage{pxfonts}
+
 \begin{document}
 
 \section{Notation}
@@ -23,119 +27,97 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   }{Lando source}
   
   \grule{\gnspecelem}{
-    \gninformalchart \gor \gnclassdict
+    \gnsystem \gor \gnsubsystem \gor \gncomponent \gor \gnevent \gcont 
+    \gor \gnscenario \gor \gnrequirements
   }{Specification Elements}
 
-  \grule{\gninformalchart}{
-    \gnsystemchart \gor \gnclusterchart \gor \gnclasschart \gcont
-    \gor \gneventchart \gor \gnscenariochart \gor \gnrequirementschart \gcont
-    \gor \gncreationchart
-  }{Informal Charts}
+  %\grule{\gnclassdict}{
+    %\gtkw{dictionary} \gnname 
+    %\glistnonempty{\gnclassdictentry} 
+    %\gtkw{end} %TODO
+  %}{Class Dictionary}
 
-  \grule{\gnclassdict}{
-    \gtkw{dictionary} \gnname 
-    \glistnonempty{\gnclassdictentry} 
-    \gtkw{end} %TODO
-  }{Class Dictionary}
-
-  \grule[0.5em]{\gnclassdictentry}{
-    \gtkw{class} \gnname 
-    \gtkw{description} \gnparagraph %TODO: What is the last string?
-  }{Class Dictionary Entry}
+  %\grule[0.5em]{\gnclassdictentry}{
+    %\gtkw{class} \gnname 
+    %\gtkw{description} \gnparagraph %TODO: What is the last string?
+  %}{Class Dictionary Entry}
 
   \gline
 
-  \grule{\gnsystemchart}{
-    \gtkw{subsystem} \gnname \gnnl \gcont
-    \; \gnexplanation \gcont
-    \; \gopt{\gtkw{indexing} \gnindexing \gnnl} \gcont
-    \; \glist{\gnclusterentry} \gcont
-    \gtkw{end}
-  }{System Chart}
-
-  \grule[0.5em]{\gnclusterentry}{
-    \gtkw{cluster} \gnname \gnnl \gnexplanation
-  }{Cluster Entry}
+  \grule{\gnsystem}{
+    \gtkw{system} \gnnamephraserel \gopt{\gnrelkeyword \gnnamephrase} \gnnl \gcont
+    \; \gnexplanation \gnnl \gcont
+    \; \gopt{\gtkw{indexing} \gnnl \gnindexing \gnnl} \gcont
+    \; \gseplist{\gnnl}{\gnsubsystem}
+  }{System}
 
   \gline
 
-  \grule{\gnclusterchart}{
-    \gtkw{cluster\_chart} \gnname \gcont
-    \; \gnexplanation \gcont
-    \; \glist{\gnclassentry} \gcont
-    \; \glist{\gnclusterentry} \gcont
-    \gtkw{end}
-  }{Cluster Chart}
-
-  \grule[0.5em]{\gnclassentry}{
-    \gtkw{class} \gnname \gnnl \gnexplanation
-  }{Class Entry}
+  \grule{\gnsubsystem}{
+    \gtkw{subsystem} \gnnamephraserel \gopt{\gnrelkeyword \gnnamephrase} \gnnl \gcont
+    \; \gnexplanation \gnnl \gcont
+    \; \gopt{\gtkw{indexing} \gnnl \gnindexing \gnnl} \gcont
+    \; \gseplist{\gnnl}{\gncomponent}
+  }{Cluster}
 
   \gline
 
-  \grule[0.5em]{\gnclasschart}{
-    \gtkw{class\_chart} \gnname \gcont
-    \; \gopt{\gtkw{explanation} \gnparagraph} \gcont
-    \; \gopt{\gtkw{inherit} \gnnamelist} \gcont
-    \; \gopt{\gtkw{query} \gnstringlist} \gcont
-    \; \gopt{\gtkw{command} \gnstringlist} \gcont
-    \; \gopt{\gtkw{constraint} \gnstringlist} \gcont
-    \gtkw{end}
-  }{Class Chart}
+  \grule{\gncomponent}{
+    \gtkw{component\_} \gnnamephraserel \gopt{\gnrelkeyword \gnnamephrase} \gnnl \gcont
+    \gseplist{\gnnl}{\gncomponentpart} \gcont
+    \gtregex{(?= \gnnlkeyword | \gneof)}
+  }{Class}
+
+  \grule{\gncomponentpart}{
+    \gnconstraint | \gncommand | \gnquery
+  }{Component Parts}
+
+  \grule{\gnconstraint}{
+    \gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}?\,\textbackslash.]}
+  }{Constraint}
+
+  \grule{\gnquery}{
+    \gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}?\,\textbackslash?]}
+  }{Query}
+
+  \grule[0.5em]{\gncommand}{
+    \gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}?\,!]}
+  }{Command}
 
   \gline
 
-  \grule{\gneventchart}{
-    \gtkw{event\_chart} \gnname \gcont
-    \; \gopt{\gneventdirection} \gcont
-    \; \gopt{\gtkw{explanation} \gnparagraph} \gcont
-    \; \glist{\gnevententry} \gcont
-    \gtkw{end}
-  }{Class Chart}
+  \grule{\gnevent}{
+    \gtkw{events} \gnnamephrase \gnnl \gcont
+    \gseplist{\gnnl}{\gnevententry} 
+    \gtregex{(?= \gnnlkeyword | \gneof)}
+  }{Events}
 
   \grule{\gnevententry}{
-    \gtkw{event} \gnsentence \gtkw{involves} \gnnamelist
+    \gtkw{event} \gnident \gnsentence
   }{Event Entry}
-
-  \grule[0.5em]{\gneventdirection}{
-    \gtkw{incoming} \gor \gtkw{outgoing}
-  }{Event Direction}
 
   \gline
 
-  \grule{\gnscenariochart}{
-    \gtkw{scenario\_chart} \gnname \gcont
-    \; \gopt{\gtkw{explanation} \gnparagraph} \gcont
-    \; \glist{\gnscenarioentry} \gcont
-    \gtkw{end}
-  }{Scenario Chart}
+  \grule{\gnscenario}{
+    \gtkw{scenarios} \gnnamephrase \gnnl \gcont
+    \gseplist{\gnnl}{\gnevententry} 
+    \gtregex{(?= \gnnlkeyword | \gneof)}
+  }{Scenario}
 
-  \grule[0.5em]{\gnscenarioentry}{
-    \gtkw{scenario} \gnname \gtkw{description} \gnparagraph
+  \grule{\gnscenarioentry}{
+    \gtkw{scenario} \gnident \gnsentence
   }{Scenario Entry}
 
   \gline
 
-  \grule{\gncreationchart}{
-    \gtkw{creation\_chart} \gnname \gcont
-    \; \gopt{\gtkw{explanation} \gnparagraph} \gcont
-    \; \glist{\gncreationentry} \gcont
-    \gtkw{end}
-  }{creation Chart}
 
-  \grule[0.5em]{\gncreationentry}{
-    \gtkw{creator} \gnname \gtkw{creates} \gnnamelist
-  }{creation Entry}
-
-  \gline
-
-  % \grule{\gnrequirementschart}{
-  %   \gtkw{requirements\_chart} \gnname \gcont
+  % \grule{\gnrequirements}{
+  %   \gtkw{requirements\_} \gnname \gcont
   %   \; \gopt{\gtkw{indexing} \gnindexing} \gcont
   %   \; \gopt{\gtkw{explanation} \gnparagraph} \gcont
   %   \; \glist{\gnrequirementsentry} \gcont
   %   \gtkw{end}
-  % }{requirements Chart}
+  % }{requirements }
 
   % \grule[0.5em]{\gnrequirementsentry}{
   %   \gtkw{requirements} \gnname 
@@ -143,17 +125,34 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   % \gline
   
   \grule{\gnindexing}{
-    \glist{\gnindexentry}
+    \gseplist{\gnnl}{\gnindexentry}
   }{Index List}
 
   
-  \grule[0.5em]{\gnindexentry}{
-    \gnident \gtkc{:} \gnstringlist \gnnl
+  \grule{\gnindexentry}{
+    \gnindexkey \gtkc{:} \gnindexvallist \gnnl
   }{Index List}
+
+  \grule{\gnindexkey}{
+    \gtregex{[\text{\textasciicircum:}]\txss{+}}
+  }{Index Key}
+
+  \grule{\gnindexvallist}{
+    \gseplist{\gnnl}{\gnindexval} \gcont
+    \,\, \gtregex{(?= \gneof | \gnnlkeyword | \gnnl \gnindexkey )}
+  }{Index Value List}
+
+  \grule[0.5em]{\gnindexval}{
+    \gtregex{[\text{\textasciicircum:}]\txss{+}}
+  }{Index Value}
+  
 
   \gline
 
   \grule{\gnname}{\gnident}{Name}
+  \grule{\gnnamephraserel}{
+    \gtregex{\textbackslash{}w[\textbackslash{}w\textbackslash{}s]*\,(?= \gnrelkeyword | \gnnl)}
+  }{Name-Phrase}
   \grule{\gnnamelist}{\gnname \glist{\gtkc{,} \gnname}}{Name List}
   \grule{\gnstring}{\gtregex{[\textasciicircum,]\txss{+}?}}{String}
   \grule{\gnstringlist}{\gnstring \glist{, \gnstring}}{List of Strings}
@@ -162,7 +161,9 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gnparagraph}{\gnsentence^+ \gtregex{(?= (\gnnl \gnkeyword | \gneof))}}{Paragraph}
   \grule{\gnexplanation}{\gnparagraph}{Explanation}
   \grule{\gnkeyword}{<all keywords>}{All\ Keywords}
-  \grule{\gnident}{}{Identifier}
+  \grule{\gnnlkeyword}{\gnnl \, \gnkeyword}{Keyword on new line}
+  \grule{\gnrelkeyword}{\gtkw{inherit}}{Relation keywords}
+  \grule{\gnident}{\gtregex{\textrm{\textbackslash w+}}}{Identifier}
   \grule{\gnnl}{}{New Line}
 \end{grammar}
 
