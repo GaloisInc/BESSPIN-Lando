@@ -37,13 +37,15 @@
 \newcommand{\gtregexfull}[2][]{\ensuremath{\mathop{?\, \textrm{\scriptsize /#2/#1} \,?}}}
 \newcommand{\gtregex}[2][]{\ensuremath{\textrm{\scriptsize /#2/#1}}}
 
-\newcommand{\gseplist}[2]{#2 \glist{#1 #2}\txss{+}}
+\newcommand{\gseplist}[2]{#2 \glist{#1 #2}\!\txss{*}}
 
 % Terminals and non-terminals
 \newcommand{\gnnl}{\gntn{new-line}}
 \newcommand{\gneof}{\gntn{eof}}
 \newcommand{\gnkeyword}{\gntn{keyword}}
 \newcommand{\gnnlkeyword}{\gntn{nl-keyword}}
+\newcommand{\gnnlsystemkeyword}{\gntn{nl-sys-keyword}}
+\newcommand{\gnnlsubsystemkeyword}{\gntn{nl-subsys-keyword}}
 \newcommand{\gnident}{\gntn{identifier}}
 \newcommand{\gnsentence}{\gntn{sentence}}
 \newcommand{\gnsentencelist}{\gntn{sentence-list}}
@@ -84,7 +86,7 @@
 
 \newcommand{\gncreationentry}{\gntn{creation-entry}}
 
-\newcommand{\gnrequirementsentry}{\gntn{requirements-entry}}
+\newcommand{\gnrequirementsentry}{\gntn{req-entry}}
 
 \newcommand{\gnindexing}{\gntn{indexing}}
 \newcommand{\gnindexentry}{\gntn{index-entry}}
