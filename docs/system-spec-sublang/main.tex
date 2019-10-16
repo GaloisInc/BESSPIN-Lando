@@ -50,7 +50,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \; \gnexplanation \gnnl \gcont
     \; \gopt{\gtkw{indexing} \gnnl \gnindexing \gnnl} \gcont
     \; \gseplist{\gnnl}{\gnsubsystem} \gcont
-    \; \gtregex{(?= \gnnlsystemkeyword | \gneof)}
+    \; \gtregex{(?= \gnnlsystemkeyword | \gneof)} \gnblockend
   }{System}
 
   \gline
@@ -60,7 +60,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \; \gnexplanation \gnnl \gcont
     \; \gopt{\gtkw{indexing} \gnnl \gnindexing \gnnl} \gcont
     \; \gseplist{\gnnl}{\gncomponent} \gcont
-    \; \gtregex{(?= \gnnlsubsystemkeyword | \gneof)}
+    \; \gtregex{(?= \gnnlsubsystemkeyword | \gneof)} \gnblockend
   }{Cluster}
 
   \gline
@@ -68,7 +68,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gncomponent}{
     \gtkw{component} \gnnamephraserel \gopt{\gnrelkeyword \gnnamephrase} \gnnl \gcont
     \; \gseplist{\gnnl}{\gncomponentpart} \gcont
-    \; \gtregex{(?= \gnnlkeyword | \gneof)}
+    \; \gtregex{(?= \gnnlkeyword | \gneof)} \gnblockend
   }{Class}
 
   \grule{\gncomponentpart}{
@@ -92,11 +92,11 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gnevent}{
     \gtkw{events} \gnnamephrase \gnnl \gcont
     \; \gseplist{\gnnl}{\gnevententry} \gcont
-    \; \gtregex{(?= \gnnlkeyword | \gneof)}
+    \; \gtregex{(?= \gnnlkeyword | \gneof)} \gnblockend
   }{Events}
 
   \grule{\gnevententry}{
-    \gtkw{event} \gnident \gnsentence
+    \gnident \gnnl \gnsentence
   }{Event Entry}
 
   \gline
@@ -104,11 +104,11 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gnscenario}{
     \gtkw{scenarios} \gnnamephrase \gnnl \gcont
     \; \gseplist{\gnnl}{\gnevententry} \gcont
-    \; \gtregex{(?= \gnnlkeyword | \gneof)}
+    \; \gtregex{(?= \gnnlkeyword | \gneof)} \gnblockend
   }{Scenario}
 
   \grule{\gnscenarioentry}{
-    \gtkw{scenario} \gnident \gnsentence
+    \gnident \gnnl \gnsentence
   }{Scenario Entry}
 
   \gline
@@ -117,11 +117,11 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gnrequirements}{
     \gtkw{requirements} \gnnamephrase \gnnl \gcont
     \; \gseplist{\gnnl}{\gnrequirementsentry} \gcont
-    \; \gtregex{(?= \gnnlkeyword | \gneof)}
+    \; \gtregex{(?= \gnnlkeyword | \gneof)} \gnblockend
   }{Requirements}
 
   \grule{\gnrequirementsentry}{
-    \gnident \gnsentence
+    \gnident \gnnl \gnsentence
   }{Requirements Entry}
 
   \gline
@@ -132,7 +132,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
   
   \grule{\gnindexentry}{
-    \gnindexkey \gtkc{:} \gnindexvallist \gnnl
+    \gnindexkey \gtkc{:} \gnindexvallist
   }{Index List}
 
   \grule{\gnindexkey}{
@@ -166,7 +166,8 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gnnlkeyword}{\gnnl \, \gnkeyword}{Keyword on new line}
   \grule{\gnnlsystemkeyword}{\gnnl \, \gtkw{system}}{}
   \grule{\gnnlsubsystemkeyword}{\gnnl \, (\gtkw{subsystem} | \gtkw{system})}{}
-  \grule{\gnrelkeyword}{\gtkw{inherit} | \gtkw{client}}{Relation keywords}
+  \grule{\gnrelkeyword}{\gtkw{inherit} | \gtkw{client} | \gtkw{contains}}{Relation keywords}
+  \grule{\gnblockend}{\gnnl | \gneof}{Block End}
   \grule{\gnident}{\gtregex{\textrm{\textbackslash w+}}}{Identifier}
   \grule{\gnnl}{}{New Line}
 \end{grammar}
