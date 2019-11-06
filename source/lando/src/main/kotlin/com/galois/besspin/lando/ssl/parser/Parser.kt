@@ -32,23 +32,25 @@ fun parseText(text: String): SSL {
 
 fun SSLParser.SslContext.toAst(): SSL {
     val elements = this.element().map {
-        when(it) {
-            is SSLParser.SystemContext -> it.toAst()
-            is SSLParser.SubsystemContext -> it.toAst()
-            is SSLParser.ComponentContext -> it.toAst()
-            is SSLParser.EventsContext -> it.toAst()
-            is SSLParser.ScenariosContext -> it.toAst()
-            is SSLParser.RequirementsContext -> it.toAst()
+
+         when(it) {
+            is SSLParser.SystemElementContext -> it.system().toAst()
+            is SSLParser.SubsystemElementContext -> it.subsystem().toAst()
+            is SSLParser.ComponentElementContext -> it.component().toAst()
+            is SSLParser.EventsElementContext -> it.events().toAst()
+            is SSLParser.ScenariosElementContext -> it.scenarios().toAst()
+            is SSLParser.RequirementsElementContext -> it.requirements().toAst()
             else -> throw UnsupportedOperationException(it.toString())
         }
     }
     return SSL(elements);
 }
 
+
 fun SSLParser.SystemContext.toAst(): System {
     val name = this.sysname.toAst();
-    val reltype = this.RELKEYWORD().symbol.text ;
-    val relname = this.relname.toAst();
+    val reltype = this.RELKEYWORD()?.symbol?.text ;
+    val relname = this.relname?.toAst();
 
     val description = this.paragraph().toAst()
 
@@ -56,7 +58,7 @@ fun SSLParser.SystemContext.toAst(): System {
     //the resolution to a later stage. So we have to store this information
     //somewhere for later use. This may mean some state threading :(
     val inherits = when(reltype) {
-        "inherit" -> arrayListOf<String>(relname)
+        "inherit" -> arrayListOf<String>(relname!!)
         else -> arrayListOf()
     }
 
@@ -65,8 +67,8 @@ fun SSLParser.SystemContext.toAst(): System {
 
 fun SSLParser.SubsystemContext.toAst(): Subsystem {
     val name = this.subsysname.toAst();
-    val reltype = this.RELKEYWORD().symbol.text ;
-    val relname = this.relname.toAst();
+    val reltype = this.RELKEYWORD()?.symbol?.text ;
+    val relname = this.relname?.toAst();
 
     val description = this.paragraph().toAst()
 
@@ -74,7 +76,7 @@ fun SSLParser.SubsystemContext.toAst(): Subsystem {
     //the resolution to a later stage. So we have to store this information
     //somewhere for later use. This may mean some state threading :(
     val inherits = when(reltype) {
-        "inherit" -> arrayListOf<String>(relname)
+        "inherit" -> arrayListOf<String>(relname!!)
         else -> arrayListOf()
     }
 
@@ -83,18 +85,18 @@ fun SSLParser.SubsystemContext.toAst(): Subsystem {
 
 fun SSLParser.ComponentContext.toAst(): Component {
     val name = this.compname.toAst();
-    val reltype = this.RELKEYWORD().symbol.text ;
-    val relname = this.relname.toAst();
+    val reltype = this.RELKEYWORD()?.symbol?.text ;
+    val relname = this.relname?.toAst();
 
     //TODO: Handle other relationships. Generally we have to push
     //the resolution to a later stage. So we have to store this information
     //somewhere for later use. This may mean some state threading :(
     val inherits = when(reltype) {
-        "inherit" -> arrayListOf<String>(relname)
+        "inherit" -> arrayListOf<String>(relname!!)
         else -> arrayListOf()
     }
 
-    val parts = this.componentParts().toAst()
+    val parts = this.componentParts()?.toAst() ?: arrayListOf()
 
     return Component(name = name, inherits = inherits, parts = parts)
 }
@@ -102,9 +104,9 @@ fun SSLParser.ComponentContext.toAst(): Component {
 fun SSLParser.ComponentPartsContext.toAst(): List<ComponentPart> {
     val componentParts = this.componentPart().map {
         when (it) {
-            is SSLParser.QueryContext -> it.toAst()
-            is SSLParser.CommandContext -> it.toAst()
-            is SSLParser.ConstraintContext -> it.toAst()
+            is SSLParser.QueryPartContext -> it.query().toAst()
+            is SSLParser.CommandPartContext -> it.command().toAst()
+            is SSLParser.ConstraintPartContext -> it.constraint().toAst()
             else -> throw UnsupportedOperationException(it.toString())
         }
     }.toMutableList()

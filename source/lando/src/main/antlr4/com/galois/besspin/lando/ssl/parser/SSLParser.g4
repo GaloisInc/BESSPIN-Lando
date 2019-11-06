@@ -8,7 +8,12 @@ options { tokenVocab = SSLLexer; }
 
 ssl        : lineseps? element* lineseps? EOF;
 
-element    : system | subsystem | component | events ;
+element    : system           #systemElement
+           | subsystem        #subsystemElement
+           | component        #componentElement
+           | events           #eventsElement
+           | scenarios        #scenariosElement
+           | requirements     #requirementsElement ;
 
 system     : SYSTEM sysname=name (RELKEYWORD relname=name)? lineseps paragraph blockend ;
 
@@ -20,7 +25,9 @@ component       : COMPONENT compname=name (RELKEYWORD relname=name)? (lineseps c
 
 componentParts : componentPart (lineseps componentPart)* ;
 
-componentPart  : command | constraint | query ;
+componentPart  : command          #commandPart
+               | constraint       #constraintPart
+               | query            #queryPart ;
 
 command         : COMMAND ;
 
