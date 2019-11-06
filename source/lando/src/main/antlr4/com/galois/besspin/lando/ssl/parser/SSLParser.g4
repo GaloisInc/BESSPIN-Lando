@@ -10,17 +10,17 @@ ssl        : lineseps? element* lineseps? EOF;
 
 element    : system | subsystem | component | events ;
 
-system     : SYSTEM name (RELKEYWORD name)? lineseps paragraph blockend ;
+system     : SYSTEM sysname=name (RELKEYWORD relname=name)? lineseps paragraph blockend ;
 
-subsystem  : SUBSYSTEM name (RELKEYWORD name)? lineseps paragraph blockend ;
+subsystem  : SUBSYSTEM subsysname=name (RELKEYWORD relname=name)? lineseps paragraph blockend ;
 
 
 
-component       : COMPONENT name (RELKEYWORD name)? (lineseps component_parts)? blockend ;
+component       : COMPONENT compname=name (RELKEYWORD relname=name)? (lineseps componentParts)? blockend ;
 
-component_parts : component_part (lineseps component_part)* ;
+componentParts : componentPart (lineseps componentPart)* ;
 
-component_part  : command | constraint | query ;
+componentPart  : command | constraint | query ;
 
 command         : COMMAND ;
 
@@ -29,25 +29,25 @@ query           : QUERY ;
 constraint      : CONSTRAINT ;
 
 
-events          : EVENTS name (lineseps event_entries)? blockend ;
+events          : EVENTS name (lineseps eventEntries)? blockend ;
 
-event_entries   : event_entry (lineseps event_entry)* ;
+eventEntries   : eventEntry (lineseps eventEntry)* ;
 
-event_entry     : name lineseps SENTENCE ;
-
-
-scenarios          : SCENARIOS name (lineseps scenario_entries)? blockend ;
-
-scenario_entries   : scenario_entry (lineseps scenario_entry)* ;
-
-scenario_entry     : name lineseps SENTENCE ;
+eventEntry     : name lineseps SENTENCE ;
 
 
-requirements          : REQUIREMENTS name (lineseps requirement_entries)? blockend ;
+scenarios          : SCENARIOS name (lineseps scenarioEntries)? blockend ;
 
-requirement_entries   : requirement_entry (lineseps requirement_entry)* ;
+scenarioEntries   : scenarioEntry (lineseps scenarioEntry)* ;
 
-requirement_entry     : name lineseps SENTENCE ;
+scenarioEntry     : name lineseps SENTENCE ;
+
+
+requirements          : REQUIREMENTS name (lineseps requirementEntries)? blockend ;
+
+requirementEntries   : requirementEntry (lineseps requirementEntry)* ;
+
+requirementEntry     : name lineseps SENTENCE ;
 
 
 //Helpers
