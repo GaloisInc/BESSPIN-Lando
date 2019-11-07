@@ -2,6 +2,8 @@ package com.galois.besspin.lando.ssl.parser
 
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
+import java.lang.IllegalStateException
+import java.text.ParseException
 import kotlin.UnsupportedOperationException
 
 
@@ -14,6 +16,10 @@ fun parseFile(fileName: String): SSL {
     val parsed = SSLParser(tokenStream)
     val ssl = parsed.ssl()
 
+    if(parsed.numberOfSyntaxErrors != 0) {
+        throw IllegalStateException("Parser Failed")
+    }
+
     return ssl.toAst()
 }
 
@@ -25,7 +31,11 @@ fun parseText(text: String): SSL {
 
     val parsed = SSLParser(tokenStream)
     val ssl = parsed.ssl()
-    
+
+    if(parsed.numberOfSyntaxErrors != 0) {
+        throw IllegalStateException("Parser Failed")
+    }
+
     return ssl.toAst()
 }
 
@@ -163,7 +173,8 @@ fun SSLParser.ParagraphContext.toAst(): String =
 
 fun cleanSentence(text : String): String {
     //TODO: More cleanup required
-    return text.trim();
+    //return Regex("\\s*[\\r\\n]", RegexOption.MULTILINE).replace(text, " ").trim();
+    return text;
 }
 
 fun cleanParagraph(text : String): String {
