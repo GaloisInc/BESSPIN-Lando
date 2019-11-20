@@ -64,6 +64,8 @@ fun SSLParser.SystemContext.toAst(): System {
 
     val description = this.paragraph().toAst()
 
+    val index = this.index()?.toAst() ?: mapOf()
+
     //TODO: Handle other relationships. Generally we have to push
     //the resolution to a later stage. So we have to store this information
     //somewhere for later use. This may mean some state threading :(
@@ -72,7 +74,12 @@ fun SSLParser.SystemContext.toAst(): System {
         else -> arrayListOf()
     }
 
-    return System(name = name, description = description, inherits = inherits)
+    return System(
+        name = name,
+        description = description,
+        inherits = inherits,
+        indexing = index
+    )
 }
 
 fun SSLParser.SubsystemContext.toAst(): Subsystem {
@@ -82,6 +89,8 @@ fun SSLParser.SubsystemContext.toAst(): Subsystem {
 
     val description = this.paragraph().toAst()
 
+    val index = this.index()?.toAst() ?: mapOf()
+
     //TODO: Handle other relationships. Generally we have to push
     //the resolution to a later stage. So we have to store this information
     //somewhere for later use. This may mean some state threading :(
@@ -90,7 +99,12 @@ fun SSLParser.SubsystemContext.toAst(): Subsystem {
         else -> arrayListOf()
     }
 
-    return Subsystem(name = name, description = description, inherits = inherits)
+    return Subsystem(
+        name = name,
+        description = description,
+        inherits = inherits,
+        indexing = index
+    )
 }
 
 fun SSLParser.ComponentContext.toAst(): Component {
@@ -164,6 +178,25 @@ fun SSLParser.RequirementEntryContext.toAst(): Requirement =
     Requirement(id = this.name().toAst(), text = cleanSentence(this.SENTENCE().text))
 
 
+fun SSLParser.IndexContext.toAst(): Map<String, List<String>> =
+    this.indexEntries().toAst()
+
+fun SSLParser.IndexEntriesContext.toAst(): Map<String, List<String>> =
+    this.indexEntry().map { it.toAst() }.toMap()
+
+fun SSLParser.IndexEntryContext.toAst(): Pair<String, List<String>> =
+    Pair(this.indexKey().toAst(), this.indexValue().toAst())
+
+fun SSLParser.IndexKeyContext.toAst(): String =
+    this.indexString().toAst()
+
+fun SSLParser.IndexValueContext.toAst(): List<String> =
+    this.indexString().map { it.toAst() }
+
+fun SSLParser.IndexStringContext.toAst(): String =
+    this.INDEXCHAR().map { it.symbol.text }.joinToString(separator = "").trim()
+
+
 fun SSLParser.NameContext.toAst(): String =
     this.NAMECHAR().map { it.symbol.text }.joinToString(separator = "").trim()
 
@@ -171,13 +204,16 @@ fun SSLParser.ParagraphContext.toAst(): String =
     cleanParagraph(this.PARAGRAPH().text)
 
 
-fun cleanSentence(text : String): String {
-    //TODO: More cleanup required
-    //return Regex("\\s*[\\r\\n]", RegexOption.MULTILINE).replace(text, " ").trim();
-    return text;
+fun cleanSentence(text: String): String {
+    //TODO: Give this more thought
+    return Regex("\\s*[\\r\\n]\\s*", RegexOption.MULTILINE).replace(text, " ").trim();
 }
 
-fun cleanParagraph(text : String): String {
-    //TODO: More cleanup required
+fun cleanParagraph(text: String): String {
+    //TODO: Give this more thought
+    return Regex("\\s*[\\r\\n]\\s*", RegexOption.MULTILINE).replace(text, " ").trim();
+}
+
+fun cleanIndexKeyValue(text: String): String {
     return text.trim();
 }

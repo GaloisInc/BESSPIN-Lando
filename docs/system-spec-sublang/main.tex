@@ -155,11 +155,11 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gnnamephraserel}{
     \gtregex{\textbackslash{}w[\textbackslash{}w\textbackslash{}s]*\,(?= \gnrelkeyword | \gnnl)}
   }{Name-Phrase}
-  \grule{\gnnamelist}{\gnname \glist{\gtkc{,} \gnname}}{Name List}
-  \grule{\gnstring}{\gtregex{[\textasciicircum,]\txss{+}?}}{String}
-  \grule{\gnstringlist}{\gnstring \glist{, \gnstring}}{List of Strings}
+  % \grule{\gnnamelist}{\gnname \glist{\gtkc{,} \gnname}}{Name List}
+  % \grule{\gnstring}{\gtregex{[\textasciicircum,]\txss{+}?}}{String}
+  % \grule{\gnstringlist}{\gnstring \glist{, \gnstring}}{List of Strings}
   \grule{\gnsentence}{\gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}? [.?!]}}{Sentence}
-  \grule{\gnsentencelist}{\gnsentence \glist{\gtkc{,} \gnsentence}}{String List}
+  % \grule{\gnsentencelist}{\gnsentence \glist{\gtkc{,} \gnsentence}}{String List}
   \grule{\gnparagraph}{\gnsentence^+ \gtregex{(?= (\gnnl \gnkeyword | \gneof))}}{Paragraph}
   \grule{\gnexplanation}{\gnparagraph}{Explanation}
   \grule{\gnkeyword}{<all keywords>}{All\ Keywords}

@@ -15,10 +15,9 @@ element    : system           #systemElement
            | scenarios        #scenariosElement
            | requirements     #requirementsElement ;
 
-system     : SYSTEM sysname=name (RELKEYWORD relname=name)? lineseps paragraph blockend ;
+system     : SYSTEM sysname=name (RELKEYWORD relname=name)? lineseps paragraph (lineseps index)? blockend ;
 
-subsystem  : SUBSYSTEM subsysname=name (RELKEYWORD relname=name)? lineseps paragraph blockend ;
-
+subsystem  : SUBSYSTEM subsysname=name (RELKEYWORD relname=name)? lineseps paragraph (lineseps index)? blockend ;
 
 
 component       : COMPONENT compname=name (RELKEYWORD relname=name)? (lineseps componentParts)? blockend ;
@@ -55,6 +54,19 @@ requirements          : REQUIREMENTS name (lineseps requirementEntries)? blocken
 requirementEntries   : requirementEntry (lineseps requirementEntry)* ;
 
 requirementEntry     : name lineseps SENTENCE ;
+
+
+index             : INDEXING (lineseps indexEntries)? ;
+
+indexEntries      : indexEntry (lineseps indexEntry)* ;
+
+indexEntry        : indexKey INDEXSEP indexValue ;
+
+indexString       :  INDEXCHAR+ ;
+
+indexKey          : indexString ;
+
+indexValue        : indexString (lineseps indexString)* ;
 
 
 //Helpers

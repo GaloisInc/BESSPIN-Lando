@@ -77,6 +77,7 @@ data class Subsystem(
     override var name: String = "",
     var description: String = "",
     var inherits: List<String> = arrayListOf(),
+    var indexing: Map<String, List<String>> = mapOf(),
     var components: List<Component> = arrayListOf()
 ) : Element
 
@@ -85,6 +86,7 @@ data class System(
     override var name: String = "",
     var description: String = "",
     var inherits: List<String> = arrayListOf(),
+    var indexing: Map<String, List<String>> = mapOf(),
     var subsystems: List<Subsystem> = arrayListOf()
 ) : Element
 

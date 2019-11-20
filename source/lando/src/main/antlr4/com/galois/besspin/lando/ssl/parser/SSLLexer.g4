@@ -64,6 +64,9 @@ fragment F_KEYWORD_SEP  : F_WHITESPACE | F_LINESEP ;
 
 fragment F_RELKEYWORD   : 'inherit' | 'client' | 'contains' ;
 
+fragment F_INDEXING     : 'indexing' ;
+fragment F_DICTSEP      : ':' ;
+
 fragment F_SENTENCESTART : ~ [ \t\r\n] ;
 fragment F_SENTENCECHAR  : ~ [.!?] ;
 fragment F_SENTENCEEND   : [.!?] ;
@@ -90,6 +93,9 @@ EVENTS       : F_EVENTS -> pushMode(MODE_IDENT_LINE), pushMode(MODE_EMPTY_LINE),
 SCENARIOS    : F_SCENARIOS -> pushMode(MODE_IDENT_LINE), pushMode(MODE_EMPTY_LINE), pushMode(MODE_NAMEPHRASE) ;
 
 REQUIREMENTS : F_REQUIREMENTS -> pushMode(MODE_IDENT_LINE), pushMode(MODE_EMPTY_LINE), pushMode(MODE_NAMEPHRASE) ;
+
+INDEXING     : F_INDEXING -> pushMode(MODE_INDEXING) ;
+
 
 //Name-phrase-rel lexing
 //Essentially: Word characters _including_ spaces. Terminated by either a relation key word or end of line
@@ -162,3 +168,16 @@ mode MODE_EMPTY_LINE ;
 ELS_EMPTY_LINE  : F_WHITESPACE* F_LINESEP -> type(LINESEP) ;
 
 ELS_ANYCHAR     : . -> type(SPECIAL_REWIND), popMode ;
+
+
+mode MODE_INDEXING ;
+
+INDEXSEP         : F_DICTSEP ;
+
+IND_LINESEP      : F_LINESEP -> type(LINESEP) ;
+
+IND_EMPTYLINE    : F_EMPTYLINE -> type(LINESEP) ;
+
+IND_ALL_KEYWORDS : F_ALL_KEYWORDS F_KEYWORD_SEP (F_SENTENCECHAR+ F_SENTENCEEND)? -> popMode, type(SPECIAL_REWIND) ;
+
+INDEXCHAR        : . ;
