@@ -1,14 +1,15 @@
 package com.galois.besspin.lando.ssl.parser
 
+import com.galois.besspin.lando.ssl.ast.*
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
+import java.io.File
 import java.lang.IllegalStateException
-import java.text.ParseException
 import kotlin.UnsupportedOperationException
 
 
-fun parseFile(fileName: String): SSL {
-    val stream = CharStreams.fromFileName(fileName)
+fun parseFile(file: File): SSL {
+    val stream = CharStreams.fromPath(file.toPath())
 
     val lexer = SSLLexer(stream)
     val tokenStream = CommonTokenStream(lexer)
@@ -122,7 +123,11 @@ fun SSLParser.ComponentContext.toAst(): Component {
 
     val parts = this.componentParts()?.toAst() ?: arrayListOf()
 
-    return Component(name = name, inherits = inherits, parts = parts)
+    return Component(
+        name = name,
+        inherits = inherits,
+        parts = parts
+    )
 }
 
 fun SSLParser.ComponentPartsContext.toAst(): List<ComponentPart> {
@@ -149,33 +154,51 @@ fun SSLParser.ConstraintContext.toAst(): Constraint =
 
 
 fun SSLParser.EventsContext.toAst(): Events =
-    Events(name = this.name().toAst(), events = this.eventEntries().toAst())
+    Events(
+        name = this.name().toAst(),
+        events = this.eventEntries().toAst()
+    )
 
 fun SSLParser.EventEntriesContext.toAst(): List<Event> =
     this.eventEntry().map { it.toAst() }
 
 fun SSLParser.EventEntryContext.toAst(): Event =
-    Event(id = this.name().toAst(), text = cleanSentence(this.SENTENCE().text))
+    Event(
+        id = this.name().toAst(),
+        text = cleanSentence(this.SENTENCE().text)
+    )
 
 
 fun SSLParser.ScenariosContext.toAst(): Scenarios =
-    Scenarios(name = this.name().toAst(), scenarios = this.scenarioEntries().toAst())
+    Scenarios(
+        name = this.name().toAst(),
+        scenarios = this.scenarioEntries().toAst()
+    )
 
 fun SSLParser.ScenarioEntriesContext.toAst(): List<Scenario> =
     this.scenarioEntry().map { it.toAst() }
 
 fun SSLParser.ScenarioEntryContext.toAst(): Scenario =
-    Scenario(id = this.name().toAst(), text = cleanSentence(this.SENTENCE().text))
+    Scenario(
+        id = this.name().toAst(),
+        text = cleanSentence(this.SENTENCE().text)
+    )
 
 
 fun SSLParser.RequirementsContext.toAst(): Requirements =
-    Requirements(name = this.name().toAst(), requirements = this.requirementEntries().toAst())
+    Requirements(
+        name = this.name().toAst(),
+        requirements = this.requirementEntries().toAst()
+    )
 
 fun SSLParser.RequirementEntriesContext.toAst(): List<Requirement> =
     this.requirementEntry().map { it.toAst() }
 
 fun SSLParser.RequirementEntryContext.toAst(): Requirement =
-    Requirement(id = this.name().toAst(), text = cleanSentence(this.SENTENCE().text))
+    Requirement(
+        id = this.name().toAst(),
+        text = cleanSentence(this.SENTENCE().text)
+    )
 
 
 fun SSLParser.IndexContext.toAst(): Map<String, List<String>> =

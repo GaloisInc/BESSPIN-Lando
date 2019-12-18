@@ -1,55 +1,57 @@
 package com.galois.besspin.lando
 
-import com.galois.besspin.lando.ssl.parser.*
+import com.galois.besspin.lando.ssl.ast.toJSON
+import com.galois.besspin.lando.ssl.parser.parseFile
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
-import kotlinx.serialization.modules.SerializersModule
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.NoRunCliktCommand
+import com.github.ajalt.clikt.core.subcommands
+import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.types.choice
+import com.github.ajalt.clikt.parameters.types.file
+import kotlinx.io.PrintWriter
+import java.io.File
+
 import java.lang.System
 
-typealias LSystem = com.galois.besspin.lando.ssl.parser.System
+typealias LSystem = com.galois.besspin.lando.ssl.ast.System
+
+
+class CommandLine: NoRunCliktCommand(printHelpOnEmptyArgs = true) {
+    override fun run() {
+    }
+}
+
+class Convert: CliktCommand(help = "Read a lando SOURCE, convert it to the specified format and write to DEST") {
+    val format by option("-t", "--to").choice("json").required()
+    val source by argument("SOURCE").file(exists = true)
+    val dest by argument().file()
+
+    override fun run() {
+        when (format) {
+            "json" -> toJSON(source, dest)
+            else -> println("Unable to convert to format: $format")
+        }
+    }
+
+    fun toJSON(src: File, dst: File) {
+        try {
+            val ssl = parseFile(source)
+            val str = ssl.toJSON()
+
+            val writer = PrintWriter(dest)
+            writer.print(str)
+            writer.close()
+        } catch (ex: Exception) {
+            println("Unable to convert  file to JSON: " + ex.message)
+            ex.printStackTrace()
+        }
+    }
+}
 
 fun main(args: Array<String>) {
-    if (args.size == 0) {
-        println("Usage: Lando <file>")
-        System.exit(2)
-    }
-    try {
-        val ssl = parseFile(args[0])
-
-        //val gson = GsonBuilder().setPrettyPrinting().create()
-        //val str = gson.toJson(ssl)
-
-
-        val sslModule = SerializersModule {
-            polymorphic(Element::class) {
-                LSystem::class with LSystem.serializer()
-                Subsystem::class with Subsystem.serializer()
-                Component::class with Component.serializer()
-                Events::class with Events.serializer()
-                Scenarios::class with Scenarios.serializer()
-                Requirements::class with Requirements.serializer()
-            }
-
-            polymorphic(ComponentPart::class) {
-                Query::class with Query.serializer()
-                Constraint::class with Constraint.serializer()
-                Command::class with Command.serializer()
-            }
-        }
-
-        val config = JsonConfiguration(prettyPrint = true)
-        val json = Json(context = sslModule, configuration = config)
-
-        val str = json.stringify(SSL.serializer(), ssl)
-        println(str)
-    } catch (ex: Exception) {
-        println("Failed to parse file: ${args[0]}")
-        ex.printStackTrace();
-        System.exit(1)
-    }
-
-    //println("Successfully parsed file: ${args[0]}")
-    System.exit(0)
+    CommandLine().subcommands(Convert()).main(args)
 }
 

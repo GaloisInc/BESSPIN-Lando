@@ -1,6 +1,9 @@
-package com.galois.besspin.lando.ssl.parser
+package com.galois.besspin.lando.ssl.ast
 
 import kotlinx.serialization.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
+import kotlinx.serialization.modules.SerializersModule
 
 enum class RelationType {
     INHERIT, CLIENT, CONTAINS
@@ -17,24 +20,24 @@ interface ComponentPart {
 @Serializable
 data class Query(
     override var text: String = ""
-) : ComponentPart ;
+) : ComponentPart;
 
 @Serializable
 data class Constraint(
     override var text: String = ""
-) : ComponentPart ;
+) : ComponentPart;
 
 @Serializable
 data class Command(
     override var text: String = ""
-) : ComponentPart  ;
+) : ComponentPart;
 
 @Serializable
 data class Component(
     override var name: String = "",
     var inherits: List<String> = arrayListOf(),
     var parts: List<ComponentPart> = arrayListOf()
-) : Element ;
+) : Element;
 
 @Serializable
 data class Events(
@@ -94,3 +97,28 @@ data class System(
 data class SSL(
     var elements: List<Element> = arrayListOf()
 )
+
+
+fun SSL.toJSON(): String {
+    val sslModule = SerializersModule {
+        polymorphic(Element::class) {
+            System::class with System.serializer()
+            Subsystem::class with Subsystem.serializer()
+            Component::class with Component.serializer()
+            Events::class with Events.serializer()
+            Scenarios::class with Scenarios.serializer()
+            Requirements::class with Requirements.serializer()
+        }
+
+        polymorphic(ComponentPart::class) {
+            Query::class with Query.serializer()
+            Constraint::class with Constraint.serializer()
+            Command::class with Command.serializer()
+        }
+    }
+
+    val config = JsonConfiguration(prettyPrint = true)
+    val json = Json(context = sslModule, configuration = config)
+
+    return json.stringify(SSL.serializer(), this)
+}
