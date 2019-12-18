@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.NoRunCliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
@@ -19,12 +20,15 @@ import java.lang.System
 typealias LSystem = com.galois.besspin.lando.ssl.ast.System
 
 
-class CommandLine: NoRunCliktCommand(printHelpOnEmptyArgs = true) {
+class CommandLine : NoRunCliktCommand(printHelpOnEmptyArgs = true) {
     override fun run() {
     }
 }
 
-class Convert: CliktCommand(help = "Read a lando SOURCE, convert it to the specified format and write to DEST") {
+class Convert : CliktCommand(
+    printHelpOnEmptyArgs = true,
+    help = "Read a lando SOURCE, convert it to the specified format and write to DEST"
+) {
     val format by option("-t", "--to").choice("json").required()
     val source by argument("SOURCE").file(exists = true)
     val dest by argument().file()
@@ -45,13 +49,31 @@ class Convert: CliktCommand(help = "Read a lando SOURCE, convert it to the speci
             writer.print(str)
             writer.close()
         } catch (ex: Exception) {
-            println("Unable to convert  file to JSON: " + ex.message)
-            ex.printStackTrace()
+            println("Unable to convert  file to JSON. " + ex.message)
+            System.exit(1)
         }
     }
 }
 
+class Validate : CliktCommand(
+    printHelpOnEmptyArgs = true,
+    help = "Read a lando SOURCE and check whether it is syntactically valid"
+) {
+    val source by argument("SOURCE").file(exists = true)
+
+    override fun run() {
+        try {
+            parseFile(source)
+        } catch (ex: Exception) {
+            println("$source appears to have syntax errors. " + ex.message)
+            System.exit(1)
+        }
+
+        println("$source appears to be valid")
+    }
+}
+
 fun main(args: Array<String>) {
-    CommandLine().subcommands(Convert()).main(args)
+    CommandLine().subcommands(Convert(), Validate()).main(args)
 }
 

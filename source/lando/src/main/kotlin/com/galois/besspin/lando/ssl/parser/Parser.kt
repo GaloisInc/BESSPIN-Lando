@@ -6,38 +6,86 @@ import org.antlr.v4.runtime.CommonTokenStream
 import java.io.File
 import java.lang.IllegalStateException
 import kotlin.UnsupportedOperationException
+import org.antlr.v4.runtime.misc.ParseCancellationException
+import org.antlr.v4.runtime.RecognitionException
+import org.antlr.v4.runtime.Recognizer
+import org.antlr.v4.runtime.BaseErrorListener
 
+data class SyntaxError(
+    val offendingSymbol: Any?,
+    val line: Int,
+    val column: Int,
+    val message: String
+)
+{
+    fun formatError(): String = "Line: $line, Column: $column. $message"
+}
+
+class CollectingErrorListener : BaseErrorListener() {
+
+    var errors: MutableList<SyntaxError> = arrayListOf() ;
+
+    @Throws(ParseCancellationException::class)
+    override fun syntaxError(
+        recognizer: Recognizer<*, *>?,
+        offendingSymbol: Any?,
+        line: Int,
+        charPositionInLine: Int,
+        msg: String?,
+        e: RecognitionException?
+    ) {
+        errors.add(SyntaxError(offendingSymbol, line, charPositionInLine, msg ?: ""))
+    }
+
+    fun formatErrors(): String = errors.map { e -> e.formatError() }.joinToString(separator = "\n")
+}
 
 fun parseFile(file: File): SSL {
+    val errorListener = CollectingErrorListener()
+
     val stream = CharStreams.fromPath(file.toPath())
 
     val lexer = SSLLexer(stream)
+    lexer.removeErrorListeners();
+    lexer.addErrorListener(errorListener)
+
     val tokenStream = CommonTokenStream(lexer)
 
-    val parsed = SSLParser(tokenStream)
-    val ssl = parsed.ssl()
+    val parser = SSLParser(tokenStream)
+    parser.removeErrorListeners()
+    parser.addErrorListener(errorListener)
 
-    if(parsed.numberOfSyntaxErrors != 0) {
-        throw IllegalStateException("Parser Failed")
+    val ssl = parser.ssl()
+
+    if(errorListener.errors.size != 0) {
+        throw IllegalStateException("Parser Failed due to the following errors:\n${errorListener.formatErrors()}\n")
+    } else {
+        return ssl.toAst()
     }
-
-    return ssl.toAst()
 }
 
 fun parseText(text: String): SSL {
+    val errorListener = CollectingErrorListener()
+
     val stream = CharStreams.fromString(text)
 
     val lexer = SSLLexer(stream)
+    lexer.removeErrorListeners();
+    lexer.addErrorListener(errorListener)
+
     val tokenStream = CommonTokenStream(lexer)
 
-    val parsed = SSLParser(tokenStream)
-    val ssl = parsed.ssl()
+    val parser = SSLParser(tokenStream)
+    parser.removeErrorListeners()
+    parser.addErrorListener(errorListener)
 
-    if(parsed.numberOfSyntaxErrors != 0) {
-        throw IllegalStateException("Parser Failed")
+    val ssl = parser.ssl()
+
+    if(errorListener.errors.size != 0) {
+        throw IllegalStateException("Parser Failed due to the following errors:\n${errorListener.formatErrors()}\n")
+    } else {
+        return ssl.toAst()
     }
-
-    return ssl.toAst()
 }
 
 
