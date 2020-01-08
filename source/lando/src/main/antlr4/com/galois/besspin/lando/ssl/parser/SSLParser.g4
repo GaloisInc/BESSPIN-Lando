@@ -6,7 +6,7 @@ parser grammar SSLParser;
 
 options { tokenVocab = SSLLexer; }
 
-ssl        : lineseps? element* lineseps? EOF;
+ssl        : lineseps? element* lineseps? lineComments? lineseps? EOF;
 
 element    : system           #systemElement
            | subsystem        #subsystemElement
@@ -15,12 +15,25 @@ element    : system           #systemElement
            | scenarios        #scenariosElement
            | requirements     #requirementsElement ;
 
-system     : SYSTEM sysname=name (RELKEYWORD relname=name)? lineseps paragraph (lineseps index)? blockend ;
+system     : lineComments?
+             SYSTEM
+             sysname=name (RELKEYWORD relname=name)? comment? lineseps
+             paragraph
+             (lineseps index)?
+             blockend ;
 
-subsystem  : SUBSYSTEM subsysname=name (RELKEYWORD relname=name)? lineseps paragraph (lineseps index)? blockend ;
+subsystem  : lineComments?
+             SUBSYSTEM
+             subsysname=name (RELKEYWORD relname=name)? comment? lineseps
+             paragraph
+             (lineseps index)?
+             blockend ;
 
-
-component       : COMPONENT compname=name (RELKEYWORD relname=name)? (lineseps componentParts)? blockend ;
+component  : lineComments?
+             COMPONENT
+             compname=name (RELKEYWORD relname=name)? comment?
+             (lineseps componentParts)?
+             blockend ;
 
 componentParts : componentPart (lineseps componentPart)* ;
 
@@ -28,32 +41,44 @@ componentPart  : command          #commandPart
                | constraint       #constraintPart
                | query            #queryPart ;
 
-command         : COMMAND ;
+command         : lineComments? COMMAND comment? ;
 
-query           : QUERY ;
+query           : lineComments? QUERY comment? ;
 
-constraint      : CONSTRAINT ;
-
-
-events          : EVENTS name (lineseps eventEntries)? blockend ;
-
-eventEntries   : eventEntry (lineseps eventEntry)* ;
-
-eventEntry     : name lineseps SENTENCE ;
+constraint      : lineComments? CONSTRAINT comment? ;
 
 
-scenarios          : SCENARIOS name (lineseps scenarioEntries)? blockend ;
+events          : lineComments?
+                  EVENTS
+                  name comment?
+                  (lineseps eventEntries)?
+                  blockend ;
 
-scenarioEntries   : scenarioEntry (lineseps scenarioEntry)* ;
+eventEntries    : eventEntry (lineseps eventEntry)* ;
 
-scenarioEntry     : name lineseps SENTENCE ;
+eventEntry      : lineComments? name nameComment=comment? lineseps SENTENCE sentenceComment=comment? ;
 
 
-requirements          : REQUIREMENTS name (lineseps requirementEntries)? blockend ;
+scenarios       : lineComments?
+                  SCENARIOS
+                  name comment?
+                  (lineseps scenarioEntries)?
+                  blockend ;
 
-requirementEntries   : requirementEntry (lineseps requirementEntry)* ;
+scenarioEntries : scenarioEntry (lineseps scenarioEntry)* ;
 
-requirementEntry     : name lineseps SENTENCE ;
+scenarioEntry   : lineComments? name nameComment=comment? lineseps SENTENCE sentenceComment=comment? ;
+
+
+requirements       : lineComments?
+                     REQUIREMENTS
+                     name comment?
+                     (lineseps requirementEntries)?
+                     blockend ;
+
+requirementEntries : requirementEntry (lineseps requirementEntry)* ;
+
+requirementEntry   : lineComments? name nameComment=comment? lineseps SENTENCE sentenceComment=comment? ;
 
 
 index             : INDEXING (lineseps indexEntries)? ;
@@ -66,7 +91,16 @@ indexString       :  INDEXCHAR+ ;
 
 indexKey          : indexString ;
 
-indexValue        : indexString (lineseps indexString)* ;
+indexValuePart    : indexString comment? ;
+
+indexValue        : indexValuePart (lineseps indexValuePart)* ;
+
+
+comment      : COMMENT COMMENTCHAR* ;
+
+comments     : comment (lineseps comment)* ;
+
+lineComments : comments lineseps ;
 
 
 //Helpers

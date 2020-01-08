@@ -71,7 +71,7 @@ fragment F_RELKEYWORD   : 'inherit' | 'client' | 'contains' ;
 fragment F_INDEXING     : 'indexing' ;
 fragment F_DICTSEP      : ':' ;
 
-fragment F_SENTENCESTART : ~ [ \t\r\n\\] ;
+fragment F_SENTENCESTART : [a-zA-Z0-9] ; // Sentences currently start with an alpha numeric character. It used to be (~ [ \t\r\n/]) ;
 fragment F_SENTENCECHAR  : ~ [.!?] ;
 fragment F_SENTENCEEND   : [.!?] ;
 fragment F_SENTENCE      : F_SENTENCESTART F_SENTENCECHAR*? F_SENTENCEEND  ;
@@ -102,7 +102,7 @@ REQUIREMENTS : F_REQUIREMENTS -> pushMode(MODE_IDENT_LINE), pushMode(MODE_EMPTY_
 
 INDEXING     : F_INDEXING -> pushMode(MODE_INDEXING) ;
 
-COMMENT      : F_LINECOMMENTSTART -> channel(COMMENTS), pushMode(MODE_COMMENTS) ;
+COMMENT      : F_LINECOMMENTSTART -> pushMode(MODE_COMMENTS) ;
 
 
 //Name-phrase-rel lexing
@@ -115,7 +115,7 @@ RELKEYWORD   : F_WHITESPACES F_RELKEYWORD F_WHITESPACES -> popMode, pushMode(MOD
 
 NMR_NAMECHAR : . -> type(NAMECHAR) ;
 
-NMR_COMMENT  : F_LINECOMMENTSTART -> channel(COMMENTS), type(COMMENT), pushMode(MODE_COMMENTS) ;
+NMR_COMMENT  : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
 
 //Name-phrase lexing
@@ -126,7 +126,7 @@ NM_LINESEP   : F_LINESEP -> type(LINESEP), popMode ;
 
 NM_NAMECHAR  : . -> type(NAMECHAR) ;
 
-NM_COMMENT   : F_LINECOMMENTSTART -> channel(COMMENTS), type(COMMENT), pushMode(MODE_COMMENTS) ;
+NM_COMMENT   : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
 
 //Paragraph
@@ -154,7 +154,7 @@ COMMAND         : F_COMMAND ;
 
 QUERY           : F_QUERY ;
 
-CP_COMMENT      : F_LINECOMMENTSTART -> channel(COMMENTS), type(COMMENT), pushMode(MODE_COMMENTS) ;
+CP_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
 //The start line of a specific event, requirement or scenario
 mode MODE_IDENT_LINE ;
@@ -165,7 +165,7 @@ IL_LINESEP     : F_LINESEP -> type(LINESEP), popMode, pushMode(MODE_SINGLE_SENTE
 
 IL_NAMECHAR    : . -> type(NAMECHAR) ;
 
-IL_COMMENT     : F_LINECOMMENTSTART -> channel(COMMENTS), type(COMMENT), pushMode(MODE_COMMENTS) ;
+IL_COMMENT     : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
 //The content of a specific event, requirement or scenario
 mode MODE_SINGLE_SENTENCE ;
@@ -178,7 +178,7 @@ SS_ALL_KEYWORDS : F_ALL_KEYWORDS F_KEYWORD_SEP (F_SENTENCECHAR+ F_SENTENCEEND)? 
 
 SS_SENTENCE     : F_SENTENCE -> type(SENTENCE) ;
 
-SS_COMMENT      : F_LINECOMMENTSTART -> channel(COMMENTS), type(COMMENT), pushMode(MODE_COMMENTS) ;
+SS_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
 
 mode MODE_EMPTY_LINE ;
@@ -187,7 +187,7 @@ ELS_EMPTY_LINE  : F_WHITESPACE* F_LINESEP -> type(LINESEP) ;
 
 ELS_ANYCHAR     : . -> type(SPECIAL_REWIND), popMode ;
 
-ELS_COMMENT      : F_LINECOMMENTSTART -> channel(COMMENTS), type(COMMENT), pushMode(MODE_COMMENTS) ;
+ELS_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
 
 mode MODE_INDEXING ;
@@ -202,11 +202,11 @@ IND_ALL_KEYWORDS : F_ALL_KEYWORDS F_KEYWORD_SEP (F_SENTENCECHAR+ F_SENTENCEEND)?
 
 INDEXCHAR        : . ;
 
-IND_COMMENT      : F_LINECOMMENTSTART -> channel(COMMENTS), type(COMMENT), pushMode(MODE_COMMENTS) ;
+IND_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
 
 mode MODE_COMMENTS ;
 
 CMT_LINESEP      : F_LINESEP -> popMode, type(SPECIAL_REWIND) ;
 
-COMMENTCHAR      : . -> channel(COMMENTS) ;
+COMMENTCHAR      : . ;
