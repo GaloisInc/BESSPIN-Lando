@@ -10,168 +10,168 @@ enum class RelationType {
 }
 
 @Serializable
-data class Comment(
+data class RawComment(
     var text: String
 )
 
-interface Element {
+interface RawElement {
     val uid: Int
     var name: String
 }
 
-interface ComponentPart {
+interface RawComponentPart {
     var text: String
 }
 
 @Serializable
-data class Query(
+data class RawQuery(
     override var text: String,
-    var comments: List<Comment>
-) : ComponentPart
+    var comments: List<RawComment>
+) : RawComponentPart
 
 @Serializable
-data class Constraint(
+data class RawConstraint(
     override var text: String,
-    var comments: List<Comment>
-) : ComponentPart;
+    var comments: List<RawComment>
+) : RawComponentPart;
 
 @Serializable
-data class Command(
+data class RawCommand(
     override var text: String,
-    var comments: List<Comment>
-) : ComponentPart;
+    var comments: List<RawComment>
+) : RawComponentPart;
 
 @Serializable
-data class Component(
+data class RawComponent(
     override val uid: Int,
     override var name: String,
-    var parts: List<ComponentPart> = arrayListOf(),
-    var comments: List<Comment>
-) : Element;
+    var parts: List<RawComponentPart> = arrayListOf(),
+    var comments: List<RawComment>
+) : RawElement;
 
 @Serializable
-data class Events(
+data class RawEvents(
     override val uid: Int,
     override var name: String,
-    var events: List<Event> = arrayListOf(),
-    var comments: List<Comment>
-) : Element
+    var events: List<RawEvent> = arrayListOf(),
+    var comments: List<RawComment>
+) : RawElement
 
 @Serializable
-data class Event(
+data class RawEvent(
     var id: String,
     var text: String,
-    var comments: List<Comment>
+    var comments: List<RawComment>
 )
 
 @Serializable
-data class Scenarios(
+data class RawScenarios(
     override val uid: Int,
     override var name: String,
-    var scenarios: List<Scenario> = arrayListOf(),
-    var comments: List<Comment>
-) : Element
+    var scenarios: List<RawScenario> = arrayListOf(),
+    var comments: List<RawComment>
+) : RawElement
 
 @Serializable
-data class Scenario(
+data class RawScenario(
     var id: String,
     var text: String,
-    var comments: List<Comment>
+    var comments: List<RawComment>
 )
 
 @Serializable
-data class Requirements(
+data class RawRequirements(
     override val uid: Int,
     override var name: String,
-    var requirements: List<Requirement>,
-    var comments: List<Comment>
-) : Element
+    var requirements: List<RawRequirement>,
+    var comments: List<RawComment>
+) : RawElement
 
 @Serializable
-data class Requirement(
+data class RawRequirement(
     var id: String,
     var text: String,
-    var comments: List<Comment>
+    var comments: List<RawComment>
 )
 
 @Serializable
-data class IndexEntry(
+data class RawIndexEntry(
     var key: String,
     var values: List<String>,
-    var comments: List<Comment>
+    var comments: List<RawComment>
 )
 
 @Serializable
-data class Subsystem(
+data class RawSubsystem(
     override val uid: Int,
     override var name: String,
     var description: String,
-    var indexing: List<IndexEntry>,
-    var comments: List<Comment>
-) : Element
+    var indexing: List<RawIndexEntry>,
+    var comments: List<RawComment>
+) : RawElement
 
 @Serializable
-data class System(
+data class RawSystem(
     override val uid: Int,
     override var name: String,
     var description: String,
-    var indexing: List<IndexEntry>,
-    var comments: List<Comment>
-) : Element
+    var indexing: List<RawIndexEntry>,
+    var comments: List<RawComment>
+) : RawElement
 
 @Serializable
-data class SSL(
+data class RawSSL(
     var uid: Int,
-    var elements: List<Element>,
-    var relationShips: Relationships,
-    var comments: List<Comment>
+    var elements: List<RawElement>,
+    var relationShips: RawRelationships,
+    var comments: List<RawComment>
 )
 
 @Serializable
-sealed class Relation
+sealed class RawRelation
 
 @Serializable
-data class InheritRelation(
+data class RawInheritRelation(
     var name: String = "",
     var base: String = ""
-): Relation()
+): RawRelation()
 
 @Serializable
-data class ContainsRelation(
+data class RawContainsRelation(
     var name: String = "",
     var parent: String = ""
-): Relation()
+): RawRelation()
 
 @Serializable
-data class ClientRelation(
+data class RawClientRelation(
     var name: String,
     var client: String
-): Relation()
+): RawRelation()
 
 
 @Serializable
-data class Relationships(
-    private var _inheritRelations: MutableList<InheritRelation> = mutableListOf(),
-    private var _containsRelations: MutableList<ContainsRelation> = mutableListOf(),
-    private var _clientRelations: MutableList<ClientRelation> = mutableListOf()
+data class RawRelationships(
+    private var _inheritRelations: MutableList<RawInheritRelation> = mutableListOf(),
+    private var _containsRelations: MutableList<RawContainsRelation> = mutableListOf(),
+    private var _clientRelations: MutableList<RawClientRelation> = mutableListOf()
 ) {
-    val inheritRelations: List<InheritRelation>
+    val inheritRelations: List<RawInheritRelation>
         get() = _inheritRelations
 
-    val containsRelations: List<ContainsRelation>
+    val containsRelations: List<RawContainsRelation>
         get() = _containsRelations
 
-    val clientRelations: List<ClientRelation>
+    val clientRelations: List<RawClientRelation>
         get() = _clientRelations
 
     companion object {
-        fun fromRelationList(relations: List<Relation>): Relationships {
-            val result = Relationships()
+        fun fromRelationList(relations: List<RawRelation>): RawRelationships {
+            val result = RawRelationships()
             for (relation in relations) {
                 when(relation) {
-                    is InheritRelation -> result._inheritRelations.add(relation)
-                    is ContainsRelation -> result._containsRelations.add(relation)
-                    is ClientRelation -> result._clientRelations.add(relation)
+                    is RawInheritRelation -> result._inheritRelations.add(relation)
+                    is RawContainsRelation -> result._containsRelations.add(relation)
+                    is RawClientRelation -> result._clientRelations.add(relation)
                 }
             }
             return result
@@ -180,26 +180,26 @@ data class Relationships(
 }
 
 
-fun SSL.toJSON(): String {
+fun RawSSL.toJSON(): String {
     val sslModule = SerializersModule {
-        polymorphic(Element::class) {
-            System::class with System.serializer()
-            Subsystem::class with Subsystem.serializer()
-            Component::class with Component.serializer()
-            Events::class with Events.serializer()
-            Scenarios::class with Scenarios.serializer()
-            Requirements::class with Requirements.serializer()
+        polymorphic(RawElement::class) {
+            RawSystem::class with RawSystem.serializer()
+            RawSubsystem::class with RawSubsystem.serializer()
+            RawComponent::class with RawComponent.serializer()
+            RawEvents::class with RawEvents.serializer()
+            RawScenarios::class with RawScenarios.serializer()
+            RawRequirements::class with RawRequirements.serializer()
         }
 
-        polymorphic(ComponentPart::class) {
-            Query::class with Query.serializer()
-            Constraint::class with Constraint.serializer()
-            Command::class with Command.serializer()
+        polymorphic(RawComponentPart::class) {
+            RawQuery::class with RawQuery.serializer()
+            RawConstraint::class with RawConstraint.serializer()
+            RawCommand::class with RawCommand.serializer()
         }
     }
 
     val config = JsonConfiguration(prettyPrint = true)
     val json = Json(context = sslModule, configuration = config)
 
-    return json.stringify(SSL.serializer(), this)
+    return json.stringify(RawSSL.serializer(), this)
 }

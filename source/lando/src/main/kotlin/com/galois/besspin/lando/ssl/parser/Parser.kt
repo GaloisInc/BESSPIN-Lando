@@ -5,7 +5,6 @@ import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import java.io.File
 import java.lang.IllegalStateException
-import kotlin.UnsupportedOperationException
 import org.antlr.v4.runtime.misc.ParseCancellationException
 import org.antlr.v4.runtime.RecognitionException
 import org.antlr.v4.runtime.Recognizer
@@ -40,7 +39,7 @@ private class CollectingErrorListener : BaseErrorListener() {
     fun formatErrors(): String = errors.map { e -> e.formatError() }.joinToString(separator = "\n")
 }
 
-fun parseFile(file: File): SSL {
+fun parseFile(file: File): RawSSL {
     val errorListener = CollectingErrorListener()
 
     val stream = CharStreams.fromPath(file.toPath())
@@ -64,7 +63,7 @@ fun parseFile(file: File): SSL {
     }
 }
 
-fun parseText(text: String): SSL {
+fun parseText(text: String): RawSSL {
     val errorListener = CollectingErrorListener()
 
     val stream = CharStreams.fromString(text)

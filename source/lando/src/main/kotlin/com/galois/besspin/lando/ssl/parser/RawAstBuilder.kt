@@ -4,18 +4,18 @@ import com.galois.besspin.lando.ssl.ast.*
 
 class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
 
-    private var inheritRelations: MutableList<InheritRelation> = arrayListOf()
-    private var containsRelations: MutableList<ContainsRelation> = arrayListOf()
-    private var clientRelations: MutableList<ClientRelation> = arrayListOf()
+    private var inheritRelations: MutableList<RawInheritRelation> = arrayListOf()
+    private var containsRelations: MutableList<RawContainsRelation> = arrayListOf()
+    private var clientRelations: MutableList<RawClientRelation> = arrayListOf()
 
     private var lastUid = 1
 
     private var lastSystem: String? = null
     private var lastSubsystem: String? = null
 
-    fun build(): SSL = toAst(sslCxt)
+    fun build(): RawSSL = toAst(sslCxt)
 
-    private fun toAst(sslCxt: SSLParser.SslContext): SSL {
+    private fun toAst(sslCxt: SSLParser.SslContext): RawSSL {
         val (elements, relationsListOfLists) = sslCxt.element().map {
             when(it) {
                 is SSLParser.SystemElementContext -> toAst(it.system())
@@ -28,16 +28,16 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
             }
         }.unzip()
 
-        val relationship = Relationships.fromRelationList(relationsListOfLists.flatten())
-        return SSL(nextUid(), elements, relationship, listOf());
+        val relationship = RawRelationships.fromRelationList(relationsListOfLists.flatten())
+        return RawSSL(nextUid(), elements, relationship, listOf());
     }
 
-    private fun toAst(sysCxt: SSLParser.SystemContext): Pair<System, List<Relation>> {
+    private fun toAst(sysCxt: SSLParser.SystemContext): Pair<RawSystem, List<RawRelation>> {
         val name = toAst(sysCxt.sysname)
         val description = toAst(sysCxt.paragraph())
         val index = toAstOptional(sysCxt.index())
         val comments = collectComments(sysCxt.lineComments(), sysCxt.comment())
-        val system = System(nextUid(), name, description, index, comments)
+        val system = RawSystem(nextUid(), name, description, index, comments)
 
         val reltype = sysCxt.RELKEYWORD()?.symbol?.text?.trim()
         val relname = toAstOptional(sysCxt.relname)
@@ -48,12 +48,12 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
         return Pair(system, if (relation != null) listOf(relation) else listOf())
     }
 
-    private fun toAst(subsysCxt: SSLParser.SubsystemContext): Pair<Subsystem, List<Relation>> {
+    private fun toAst(subsysCxt: SSLParser.SubsystemContext): Pair<RawSubsystem, List<RawRelation>> {
         val name = toAst(subsysCxt.subsysname)
         val description = toAst(subsysCxt.paragraph())
         val index = toAstOptional(subsysCxt.index())
         val comments = collectComments(subsysCxt.lineComments(), subsysCxt.comment())
-        val subsystem = Subsystem(nextUid(), name, description, index, comments)
+        val subsystem = RawSubsystem(nextUid(), name, description, index, comments)
 
         val reltype = subsysCxt.RELKEYWORD()?.symbol?.text?.trim() ;
         val relname = toAstOptional(subsysCxt.relname)
@@ -61,7 +61,7 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
 
         lastSubsystem = name
 
-        val possibleRelations: MutableList<Relation?> = arrayListOf(relation)
+        val possibleRelations: MutableList<RawRelation?> = arrayListOf(relation)
         if (lastSystem != null) {
             possibleRelations.add(createRelation("contains", name, lastSystem))
         }
@@ -69,17 +69,17 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
         return Pair(subsystem, possibleRelations.filterNotNull())
     }
 
-    private fun toAst(cmpCxt: SSLParser.ComponentContext): Pair<Component, List<Relation>> {
+    private fun toAst(cmpCxt: SSLParser.ComponentContext): Pair<RawComponent, List<RawRelation>> {
         val name = toAst(cmpCxt.compname)
         val parts = if (cmpCxt.componentParts() != null) toAst(cmpCxt.componentParts()) else arrayListOf()
         val comments = collectComments(cmpCxt.lineComments(), cmpCxt.comment())
-        val component = Component(nextUid(), name, parts, comments)
+        val component = RawComponent(nextUid(), name, parts, comments)
 
         val reltype = cmpCxt.RELKEYWORD()?.symbol?.text?.trim() ;
         val relname = toAstOptional(cmpCxt.relname)
         val relation = createRelation(reltype, name, relname)
 
-        val possibleRelations: MutableList<Relation?> = arrayListOf(relation)
+        val possibleRelations: MutableList<RawRelation?> = arrayListOf(relation)
         if (lastSubsystem != null) {
             possibleRelations.add(createRelation("contains", name, lastSubsystem))
         }
@@ -87,7 +87,7 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
         return Pair(component, possibleRelations.filterNotNull())
     }
 
-    private fun toAst(cmpPartCxt: SSLParser.ComponentPartsContext): List<ComponentPart> {
+    private fun toAst(cmpPartCxt: SSLParser.ComponentPartsContext): List<RawComponentPart> {
         val componentParts = cmpPartCxt.componentPart().map {
             when (it) {
                 is SSLParser.QueryPartContext -> toAst(it.query())
@@ -100,120 +100,120 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
         return componentParts
     }
 
-    private fun toAst(queryCxt: SSLParser.QueryContext): Query =
-        Query(
+    private fun toAst(queryCxt: SSLParser.QueryContext): RawQuery =
+        RawQuery(
             cleanSentence(queryCxt.QUERY().text),
             collectComments(queryCxt.lineComments(), queryCxt.comment())
         )
 
-    private fun toAst(cmdCxt: SSLParser.CommandContext): Command =
-        Command(
+    private fun toAst(cmdCxt: SSLParser.CommandContext): RawCommand =
+        RawCommand(
             cleanSentence(cmdCxt.COMMAND().text),
             collectComments(cmdCxt.lineComments(), cmdCxt.comment())
         )
 
-    private fun toAst(constraintCxt: SSLParser.ConstraintContext): Constraint =
-        Constraint(
+    private fun toAst(constraintCxt: SSLParser.ConstraintContext): RawConstraint =
+        RawConstraint(
             cleanSentence(constraintCxt.CONSTRAINT().text),
             collectComments(constraintCxt.lineComments(), constraintCxt.comment())
         )
 
 
-    private fun toAst(eventsCxt: SSLParser.EventsContext): Pair<Events, List<Relation>> {
+    private fun toAst(eventsCxt: SSLParser.EventsContext): Pair<RawEvents, List<RawRelation>> {
         val name = toAst(eventsCxt.name())
         val events = toAst(eventsCxt.eventEntries())
         val comments = collectComments(eventsCxt.lineComments(), eventsCxt.comment())
 
-        val possibleRelations = mutableListOf<Relation?>()
+        val possibleRelations = mutableListOf<RawRelation?>()
         if (lastSubsystem != null) {
             possibleRelations.add(createRelation("contains", name, lastSubsystem))
         }
 
-        return Pair(Events(nextUid(), name, events, comments), possibleRelations.filterNotNull())
+        return Pair(RawEvents(nextUid(), name, events, comments), possibleRelations.filterNotNull())
     }
 
-    private fun toAst(eventEntriesCxt: SSLParser.EventEntriesContext): List<Event> =
+    private fun toAst(eventEntriesCxt: SSLParser.EventEntriesContext): List<RawEvent> =
         eventEntriesCxt.eventEntry().map { toAst(it) }
 
-    private fun toAst(eventCxt: SSLParser.EventEntryContext): Event =
-        Event(
+    private fun toAst(eventCxt: SSLParser.EventEntryContext): RawEvent =
+        RawEvent(
             id = toAst(eventCxt.name()),
             text = cleanSentence(eventCxt.SENTENCE().text),
             comments = collectComments(eventCxt.lineComments(), eventCxt.nameComment, eventCxt.sentenceComment)
         )
 
 
-    private fun toAst(scenariosCxt: SSLParser.ScenariosContext): Pair<Scenarios, List<Relation>> {
+    private fun toAst(scenariosCxt: SSLParser.ScenariosContext): Pair<RawScenarios, List<RawRelation>> {
         val name = toAst(scenariosCxt.name())
         val scenarios = toAst(scenariosCxt.scenarioEntries())
 
-        val comments = arrayListOf<Comment>()
+        val comments = arrayListOf<RawComment>()
 
-        val possibleRelations = mutableListOf<Relation?>()
+        val possibleRelations = mutableListOf<RawRelation?>()
         if (lastSubsystem != null) {
             possibleRelations.add(createRelation("contains", name, lastSubsystem))
         }
 
-        return Pair(Scenarios(nextUid(), name, scenarios, comments), possibleRelations.filterNotNull())
+        return Pair(RawScenarios(nextUid(), name, scenarios, comments), possibleRelations.filterNotNull())
     }
 
-    private fun toAst(scenarioEntriesCxt: SSLParser.ScenarioEntriesContext): List<Scenario> =
+    private fun toAst(scenarioEntriesCxt: SSLParser.ScenarioEntriesContext): List<RawScenario> =
         scenarioEntriesCxt.scenarioEntry().map { toAst(it) }
 
-    private fun toAst(scenarioCxt: SSLParser.ScenarioEntryContext): Scenario =
-        Scenario(
+    private fun toAst(scenarioCxt: SSLParser.ScenarioEntryContext): RawScenario =
+        RawScenario(
             id = toAst(scenarioCxt.name()),
             text = cleanSentence(scenarioCxt.SENTENCE().text),
             comments = collectComments(scenarioCxt.lineComments(), scenarioCxt.nameComment, scenarioCxt.sentenceComment)
         )
 
 
-    private fun toAst(requirementsCxt: SSLParser.RequirementsContext): Pair<Requirements, List<Relation>> {
+    private fun toAst(requirementsCxt: SSLParser.RequirementsContext): Pair<RawRequirements, List<RawRelation>> {
         val name = toAst(requirementsCxt.name())
         val requirements = toAst(requirementsCxt.requirementEntries())
 
-        val comments = arrayListOf<Comment>()
+        val comments = arrayListOf<RawComment>()
 
-        val possibleRelations = mutableListOf<Relation?>()
+        val possibleRelations = mutableListOf<RawRelation?>()
         if (lastSubsystem != null) {
             possibleRelations.add(createRelation("contains", name, lastSubsystem))
         }
 
-        return Pair(Requirements(nextUid(), name, requirements, comments), possibleRelations.filterNotNull())
+        return Pair(RawRequirements(nextUid(), name, requirements, comments), possibleRelations.filterNotNull())
     }
 
-    private fun toAst(requirementEntriesCxt: SSLParser.RequirementEntriesContext): List<Requirement> =
+    private fun toAst(requirementEntriesCxt: SSLParser.RequirementEntriesContext): List<RawRequirement> =
         requirementEntriesCxt.requirementEntry().map { toAst(it) }
 
-    private fun toAst(requirementCxt: SSLParser.RequirementEntryContext): Requirement =
-        Requirement(
+    private fun toAst(requirementCxt: SSLParser.RequirementEntryContext): RawRequirement =
+        RawRequirement(
             id = toAst(requirementCxt.name()),
             text = cleanSentence(requirementCxt.SENTENCE().text),
             comments = collectComments(requirementCxt.lineComments(), requirementCxt.nameComment, requirementCxt.sentenceComment)
         )
 
 
-    private fun toAstOptional(indexCxt: SSLParser.IndexContext?): List<IndexEntry> =
+    private fun toAstOptional(indexCxt: SSLParser.IndexContext?): List<RawIndexEntry> =
         if (indexCxt != null) toAst(indexCxt.indexEntries()) else listOf()
 
-    private fun toAst(indexEntriesCxt: SSLParser.IndexEntriesContext): List<IndexEntry> =
+    private fun toAst(indexEntriesCxt: SSLParser.IndexEntriesContext): List<RawIndexEntry> =
         indexEntriesCxt.indexEntry().map { toAst(it) }
 
-    private fun toAst(indexEntryCxt: SSLParser.IndexEntryContext): IndexEntry {
+    private fun toAst(indexEntryCxt: SSLParser.IndexEntryContext): RawIndexEntry {
         val key = toAst(indexEntryCxt.indexKey())
         val (values, comments) = toAst(indexEntryCxt.indexValue())
-        return IndexEntry(key, values, comments)
+        return RawIndexEntry(key, values, comments)
     }
 
     private fun toAst(indexKeyCxt: SSLParser.IndexKeyContext): String =
         toAst(indexKeyCxt.indexString())
 
-    private fun toAst(indexValueCxt: SSLParser.IndexValueContext): Pair<List<String>, List<Comment>> {
+    private fun toAst(indexValueCxt: SSLParser.IndexValueContext): Pair<List<String>, List<RawComment>> {
         val (values, maybeComments) = indexValueCxt.indexValuePart().map { toAst(it) }.unzip()
         return Pair(values, maybeComments.filterNotNull())
     }
 
-    private fun toAst(indexValuePartCxt: SSLParser.IndexValuePartContext): Pair<String, Comment?> {
+    private fun toAst(indexValuePartCxt: SSLParser.IndexValuePartContext): Pair<String, RawComment?> {
         return Pair(toAst(indexValuePartCxt.indexString()), toAst(indexValuePartCxt.comment()))
     }
 
@@ -230,16 +230,16 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
     private fun toAst(paragraphCxt: SSLParser.ParagraphContext): String =
         cleanParagraph(paragraphCxt.PARAGRAPH().text)
 
-    private fun toAst(commentCxt: SSLParser.CommentContext?): Comment? {
+    private fun toAst(commentCxt: SSLParser.CommentContext?): RawComment? {
         if (commentCxt != null) {
             val text = commentCxt.COMMENTCHAR().map { it.symbol.text }.joinToString(separator = "").trim()
-            return Comment(text)
+            return RawComment(text)
         } else {
             return null
         }
     }
 
-    private fun toAst(lineCommentCxt: SSLParser.LineCommentsContext?): List<Comment> {
+    private fun toAst(lineCommentCxt: SSLParser.LineCommentsContext?): List<RawComment> {
         if (lineCommentCxt != null) {
             return lineCommentCxt.comments().comment().map { toAst(it) }.filterNotNull()
         } else {
@@ -247,11 +247,11 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
         }
     }
 
-    private fun createRelation(reltype: String?, left: String, right: String?): Relation? {
+    private fun createRelation(reltype: String?, left: String, right: String?): RawRelation? {
         return when(reltype) {
-            "inherit" -> InheritRelation(left, right!!)
-            "contains" -> ContainsRelation(left, right!!)
-            "client" -> ClientRelation(left, right!!)
+            "inherit" -> RawInheritRelation(left, right!!)
+            "contains" -> RawContainsRelation(left, right!!)
+            "client" -> RawClientRelation(left, right!!)
             else -> null
         }
     }
@@ -273,7 +273,7 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
     private fun collectComments(
         lineCommentsCxt: SSLParser.LineCommentsContext?,
         commentCxt: SSLParser.CommentContext?
-    ): List<Comment> {
+    ): List<RawComment> {
         val comments = toAst(lineCommentsCxt) + toAst(commentCxt)
         return comments.filterNotNull()
     }
@@ -282,7 +282,7 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
         lineCommentsCxt: SSLParser.LineCommentsContext?,
         commentCxt1: SSLParser.CommentContext?,
         commentCxt2: SSLParser.CommentContext?
-    ): List<Comment> {
+    ): List<RawComment> {
         val comments = toAst(lineCommentsCxt) + toAst(commentCxt1) + toAst(commentCxt2)
         return comments.filterNotNull()
     }

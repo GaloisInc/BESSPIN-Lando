@@ -7,7 +7,6 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.NoRunCliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
-import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
@@ -17,7 +16,7 @@ import java.io.File
 
 import java.lang.System
 
-typealias LSystem = com.galois.besspin.lando.ssl.ast.System
+typealias LSystem = com.galois.besspin.lando.ssl.ast.RawSystem
 
 
 class CommandLine : NoRunCliktCommand(printHelpOnEmptyArgs = true) {
