@@ -1,0 +1,86 @@
+\usepackage{xparse}
+\usepackage{mathpartir}
+\usepackage{amssymb}
+
+\input{macros}
+
+% Grammar macros
+\newcommand{\bbrule}[4][]{\inferrule*[lab={\sc #2},#1]{#3}{#4}}
+\newcommand{\bbrulename}[1]{{\sc #1}}
+
+% General
+\newcommand{\note}[1]{\todo[inline,color=green!40]{#1}}
+
+\newcommand{\listof}[2][]{[#2]^{#1}}
+\newcommand{\setof}[2][]{\{#2\}^{#1}}
+\newcommand{\mapof}[3][]{\{#2 \mapsto #3\}^{#1}}
+
+\newcommand{\defeq}{\dot{=}}
+
+\newcommand{\fn}[1]{\ensuremath{\text{\sc #1}}}
+
+\newcommand{\tiff}{\mathop{\text{iff}}}
+\newcommand{\tand}{\mathop{\text{and}}}
+
+\newcommand{\true}{\ensuremath{\textrm{True}}}
+\newcommand{\false}{\ensuremath{\textrm{False}}}
+
+% Terms
+\newcommand{\system}{\mathbb{S}}
+\newcommand{\subsystem}[1][S]{\gntn{#1}}
+\newcommand{\component}[1][C]{\gntn{#1}}
+\newcommand{\subsystemparent}[1][SP]{\gntn{#1}}
+
+\newcommand{\explanation}[1][E]{\gntn{#1}}
+\newcommand{\query}[1][q]{\gntn{#1}}
+\newcommand{\command}[1][c]{\gntn{#1}}
+\newcommand{\constraint}[1][i]{\gntn{#1}}
+\newcommand{\feature}[1][f]{\gntn{#1}}
+
+\newcommand{\intro}{\leftarrow}
+
+% Types
+\newcommand{\type}{\tau}
+\newcommand{\sub}{\mathrel{<:}}
+\newcommand{\timpl}{\vdash}
+
+\newcommand{\tbool}{\mathcal{B}}
+\newcommand{\tint}{\mathcal{Z}}
+\newcommand{\tnat}{\mathcal{N}}
+% TODO: More types
+
+\newcommand{\tsystem}{\ensuremath{System}}
+\newcommand{\tsubsystem}{\ensuremath{Subsystem}}
+\newcommand{\tcomponent}{\ensuremath{Component}}
+
+\newcommand{\tp}{\hat{\type}}
+\newcommand{\tv}{\breve{\type}}
+
+\newcommand{\hastype}{\mathop{:}}
+
+% Type Environment
+\newcommand{\cimap}{\mathbb{CI}}
+\newcommand{\ctmap}{\mathbb{CT}}
+\newcommand{\cdmap}{\mathbb{CD}}
+\newcommand{\cdmapval}[3]{\langle #1, #2, #3 \rangle}
+\newcommand{\cdmapvaldef}{\cdmapval{\subsystem}{\explanation}{\setof{\feature}}} 
+\newcommand{\constraints}{\mathbb{T}}
+
+\newcommand{\stmap}{\mathbb{ST}}
+\newcommand{\sdmap}{\mathbb{SD}}
+\newcommand{\sdmapval}[4]{\langle #1, #2, #3, #4 \rangle}
+\newcommand{\sdmapvaldef}{\sdmapval{\subsystemparent}{\explanation}{\setof{\subsystem}}{\setof{\component}}} 
+
+\newcommand{\tenv}{\Gamma}
+\newcommand{\tenvex}[6]{\langle #1, #2, #3, #4, #5, #6 \rangle}
+\newcommand{\tenvexdef}{\tenvex{\cimap}{\ctmap}{\cdmap}{\constraints}{\stmap}{\sdmap}}
+
+\newcommand{\tcimap}{\cimap^{\tenv}}
+\newcommand{\tctmap}{\ctmap^{\tenv}}
+\newcommand{\tcdmap}{\cdmap^{\tenv}}
+\newcommand{\tconstraints}{\constraints^{\tenv}}
+\newcommand{\tstmap}{\stmap^{\tenv}}
+\newcommand{\tsdmap}{\sdmap^{\tenv}}
+
+% Type rule helper functions
+\newcommand{\noncircular}{\fn{NCI}}

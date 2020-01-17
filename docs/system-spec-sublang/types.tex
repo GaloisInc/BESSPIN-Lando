@@ -1,0 +1,163 @@
+\documentclass{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{utopia}
+
+\input{macros_types}
+
+\begin{document}
+
+\section{Grammar}
+
+\begin{grammar}
+  \gruleplain{\system}{System}
+  \gruleplain{\subsystem}{Subsystem Name}
+  \gruleplain{\explanation}{Explanation}
+  \gruleplain{\component}{Component Name}
+  \gruleplain{\query}{Query}
+  \gruleplain{\command}{Command}
+  \gruleplain{\constraint}{Constraint}
+  \gline
+  \gruleplain{\subsystem \intro \explanation}{Subsystem Explanation}
+  \gruleplain{\subsystem \intro \subsystem}{Subsystem Containment}
+  \gruleplain{\component \intro \explanation}{Intro Explanation}
+  \gruleplain{\component \intro \subsystem}{Intro Containment}
+\end{grammar}
+
+\section{Type System}
+
+\subsection{Type Grammar}
+
+\begin{grammar}
+  \grule{\type}{\tp \gor \tv}{Type}
+  \grule{\tp}{\tbool \gor \tint \gor \tnat \gor \tsystem \gor \tsubsystem \gor \tcomponent}{Primitive Type (TODO: More!)}
+  \grule{\tv}{\tv_1, \tv_2, \cdots}{Derived Type}
+\end{grammar}
+
+\subsection{Type Environment}
+
+In order to define the type system, we must first introduce a few auxilliary structures:
+
+\begin{grammar}
+  \grule{\cimap}{\mapof{\component}{\component}}{Component Inheritance Map}
+  \grule{\ctmap}{\mapof{\component}{\tv}}{Component Type Map}
+  \grule{\cdmap}{\mapof{\tv}{\cdmapvaldef}}{Component Data Map}
+  \grule{\feature}{\query \gor \command \gor \constraint}{Feature}
+  \gline
+  \grule{\stmap}{\mapof{\subsystem}{\tv}}{Subsystem Type Map}
+  \grule{\sdmap}{\mapof{\tv}{\sdmapvaldef}}{Subsystem Data Map}
+  \grule{\subsystemparent}{\system \gor \subsystem}{Parent of Subsystem}
+  \gline
+  \grule{\tenv}{\tenvexdef}{Type Environment}
+\end{grammar}
+
+\note{We will need more than this in the type environment. This is to get started!}
+
+The type environment consists of a number of distinct elements required by our type system definition. For simplifying the rules, we define a short-hand notation for each of them.
+
+\begin{math}
+  \begin{array}{l l l l}
+    \tcimap & \defeq & \cimap & \text{ where } \tenv = \tenvexdef \\ 
+    \tctmap & \defeq & \ctmap & \text{ where } \tenv = \tenvexdef \\ 
+    \tcdmap & \defeq & \cdmap & \text{ where } \tenv = \tenvexdef \\ 
+    \tconstraints & \defeq & \constraints & \text{ where } \tenv = \tenvexdef \\ 
+    \tstmap & \defeq & \stmap & \text{ where } \tenv = \tenvexdef \\ 
+    \tsdmap & \defeq & \sdmap & \text{ where } \tenv = \tenvexdef \\ 
+  \end{array}
+\end{math}
+
+\subsection{Rules}
+
+\note{Currently all rules have the form: $e : \tv$. This is not strictly necessary; for example many rules can be relations that does not necessarily involve types at all (e.g. Intro explanation). All we have to ensure is that the set of rules are inductive in the right way. But since I haven't worked out all the rules, I am keeping the rules consistent and always including a type for the time being. That can be fixed later.}
+
+\begin{mathparpagebreakable}
+
+  \bbrule{System Introduction}{
+  }{
+    \system \hastype \tsystem
+  }
+
+  \bbrule{Subsystem Introduction}{
+    \tv \sub \tsubsystem
+  }{
+    \subsystem \hastype \tv
+  }
+
+  \bbrule{Subsystem Explanation Introduction}{
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \mapsto \sdmapvaldef \in \tsdmap \\
+    \explanation = \explanation' \\
+  }{
+    \subsystem \intro \explanation' \hastype \tv 
+  }
+
+  \bbrule{Subsystem Containment}{
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \mapsto \sdmapvaldef \in \tsdmap \\
+    \subsystemparent = \subsystem' \\
+  }{
+    \subsystem \intro \subsystem' \hastype \tv 
+  }
+  
+  \bbrule{Component Introduction}{
+    \component \mapsto \tv \in \tctmap \\
+  }{
+    \tenv \timpl \component \hastype \tv
+  }
+
+  \bbrule{Component Subtyping}{
+    \component \mapsto \tv \in \tctmap \\
+    \component \mapsto \component' \in \tcimap \\
+    \component' \mapsto \tv' \in \tctmap \\
+    \noncircular(\tcimap, \component, \component') \\
+    \tv \sub \tv' \in \tconstraints \\
+  }{
+    \tenv \timpl \component \hastype \tv
+  }
+
+  \bbrule{Component Implicit Subtyping}{
+    \component \mapsto \tv \in \tctmap \\
+    \nexists \component'. \component \mapsto \component' \in \tcimap \\
+    \tv \sub \tcomponent \in \tconstraints \\
+  }{
+    \tenv \timpl \component \hastype \tv
+  }
+
+  \bbrule{Component Explanation Introduction}{
+    \component \mapsto \tv \in \tctmap \\
+    \tv \mapsto \cdmapvaldef \in \tcdmap \\
+    \explanation = \explanation' \\
+  }{
+    \component \intro \explanation' \hastype \tv 
+  }
+
+  \bbrule{Component Containment}{
+    \component \mapsto \tv \in \tctmap \\
+    \tv \mapsto \cdmapvaldef \in \tcdmap \\
+    \subsystem = \subsystem' \\
+    \subsystem' \mapsto \tv' \in \tstmap \\
+    \tv' \mapsto \sdmapvaldef \in \tsdmap \\
+    \component \in \setof{\component} \\
+  }{
+    \component \intro \subsystem' \hastype \tv 
+  }
+
+\end{mathparpagebreakable}
+
+\subsection{Auxiliary Functions and Relations}
+
+Non-circular-Inheritance indicates that a component's inheritance chain does not have a cycle. Note that the particular relation only checks for circles that includes the specific component. However since this relation must be satisfied by every component, any cycle in the chain will be detected at some point. Formally non-cicularity is a ternary relation defined inductively as below:
+
+\begin{math}
+  \noncircular(\tcimap, \component, \component') =
+  % \begin{array}{|l l l}
+  \begin{cases}
+    \text{undefined} \tiff \component = \component' \\ 
+    \text{undefined} \tiff \noncircular(\tcimap, \component, \component'')
+      \text{ where } \component' \mapsto \component'' \in \tcimap \\ 
+    \text{defined} \; \textrm{otherwise}  
+  \end{cases}
+\end{math}
+
+\end{document}
