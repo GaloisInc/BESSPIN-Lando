@@ -100,6 +100,9 @@ The type environment consists of a number of distinct elements required by our t
     \subsystem \mapsto \tv \in \tstmap \\
     \tv \mapsto \sdmapvaldef \in \tsdmap \\
     \subsystemparent = \subsystem' \\
+    \subsystem' \mapsto \tv' \in \tstmap \\
+    \tv' \mapsto \sdmapval{\_}{\_}{\setof{\subsystem'}}{\_} \in \tsdmap \\
+    \subsystem \in \setof{\subsystem'} \\
   }{
     \subsystem \intro \subsystem' \hastype \tv 
   }
