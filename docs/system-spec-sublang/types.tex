@@ -23,6 +23,10 @@
   \gruleplain{\subsystem \intro \subsystem}{Subsystem Containment}
   \gruleplain{\component \intro \explanation}{Intro Explanation}
   \gruleplain{\component \intro \subsystem}{Intro Containment}
+  \gline
+  \gruleplain{\component \intro \query}{Query Introduction}
+  \gruleplain{\component \intro \command}{Command Introduction}
+  \gruleplain{\component \intro \constraint}{Constraint Introduction}
 \end{grammar}
 
 \section{Type System}
@@ -112,6 +116,9 @@ The type environment consists of a number of distinct elements required by our t
     \component' \mapsto \tv' \in \tctmap \\
     \noncircular(\tcimap, \component, \component') \\
     \tv \sub \tv' \in \tconstraints \\
+    \tv \mapsto \cdmapval{\_}{\_}{\setof{\feature}} \in \tcdmap \\
+    \tv' \mapsto \cdmapval{\_}{\_}{\setof{\feature'}} \in \tcdmap \\
+    \setof{\feature} \subset \setof{\feature'} \\
   }{
     \tenv \timpl \component \hastype \tv
   }
@@ -141,6 +148,30 @@ The type environment consists of a number of distinct elements required by our t
     \component \in \setof{\component} \\
   }{
     \component \intro \subsystem' \hastype \tv 
+  }
+  
+  \bbrule{Query Introduction}{
+    \component \mapsto \tv \in \tctmap \\
+    \tv \mapsto \cdmapvaldef \in \tcdmap \\
+    \query \in \setof{\feature}
+  }{
+    \component \intro \query \hastype \tv
+  }
+ 
+  \bbrule{Command Introduction}{
+    \component \mapsto \tv \in \tctmap \\
+    \tv \mapsto \cdmapvaldef \in \tcdmap \\
+    \command \in \setof{\feature}
+  }{
+    \component \intro \command \hastype \tv
+  }
+  
+  \bbrule{Constraint Introduction}{
+    \component \mapsto \tv \in \tctmap \\
+    \tv \mapsto \cdmapvaldef \in \tcdmap \\
+    \constraint \in \setof{\feature}
+  }{
+    \component \intro \constraint \hastype \tv
   }
 
 \end{mathparpagebreakable}
