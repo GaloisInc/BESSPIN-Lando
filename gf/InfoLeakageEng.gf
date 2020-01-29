@@ -9,8 +9,11 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
   oper
     timing_information : NP =
       mkNP (mkCN (mkN "timing") (mkNP (mkN "information")));
-    instruction_N : N = mkN "instruction";
 
+    -- The generic "instruction" noun
+    instruction : N = mkN "instruction";
+
+    mk_all_NP : CN -> NP = \cn -> mkNP all_Predet (mkNP aPl_Det cn);
 
   lin
 
@@ -26,9 +29,8 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     -- Instruction Specifications
     ----------------------------------------------------------------------
 
-    AllInstructions = mkNP all_Predet (mkNP aPl_Det instruction_N);
-    ArithInstructions =
-      mkNP (mkCN (mkN "arithmetic") (mkNP instruction_N));
+    AllInstructions = mk_all_NP instruction;
+    ArithInstructions = mk_all_NP (mkCN (mkN "arithmetic" instruction));
     -- NamedInstruction str =
     --   mkNP (mkCN (mkN str.s) (mkNP instruction_N));
 
