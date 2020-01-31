@@ -5,7 +5,7 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     LeaksAssertion = S;
     InstSpec = NP;
     InstClass = N;
-    NamedInst = N;
+    NamedInst = CN;
     NamedInstOfProc = CN;
     InstClassOfProc = CN;
     ProcessorSpec = NP;
@@ -78,11 +78,13 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     BitwiseOp = mkN "bitwise" operation;
     ProcessorFence = mkN "processor" (mkN "fence");
 
-    NamedInstHasProc inst proc = mkCN (mkN2 inst part_Prep) proc;
-    NamedInstNoProc inst = mkCN inst;
+    NamedInstHasProc inst proc =
+      mkCN inst (SyntaxEng.mkAdv on_Prep proc);
+    NamedInstNoProc inst = inst;
 
-    IntegerMultiplyOp_NamedInst = mkN "integer-multiplication" operation;
-    Fmsub_s_NamedInst = mkN "Fmsub_s" instruction;
+    IntegerMultiplyOp_NamedInst = mkCN (mkN "integer-multiplication" operation);
+    Fmsub_s_NamedInst = mkCN (mkN "Fmsub_s" instruction);
+    Rev_Fmsub_s_NamedInst = mkCN (mkN "instruction") (mkNP (mkN "Fmsub_s"));
 
 
     ----------------------------------------------------------------------

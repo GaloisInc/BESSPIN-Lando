@@ -81,9 +81,12 @@ abstract InfoLeakageAbs = {
     NamedInstHasProc : NamedInst -> ProcessorSpec -> NamedInstOfProc;
     NamedInstNoProc : NamedInst -> NamedInstOfProc;
 
-    -- Named instructions
+    -- Named instructions; the "Rev_" prefix indicates that the order of name
+    -- and "instruction" are reversed, as in "instruction I" instead of "I
+    -- instruction"; this only makes sense for certain named instructions
     IntegerMultiplyOp_NamedInst : NamedInst;
     Fmsub_s_NamedInst : NamedInst;
+    Rev_Fmsub_s_NamedInst : NamedInst;
 
 
     ----------------------------------------------------------------------
