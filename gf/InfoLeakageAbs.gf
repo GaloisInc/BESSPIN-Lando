@@ -4,7 +4,9 @@ abstract InfoLeakageAbs = {
   cat
     LeaksAssertion; InstSpec; InstClass; InstClassOfProc;
     NamedInst; NamedInstOfProc;
-    ProcessorSpec; NamedProcessor; Bool;
+    ProcessorSpec; NamedProcessor;
+    LeakSpec; InfoSpec; ChannelSpec;
+    Bool;
     -- ComponentSpec; OperationSpec; LeakSpec;
 
   fun
@@ -13,14 +15,15 @@ abstract InfoLeakageAbs = {
     -- Assertions About Leakage
     ----------------------------------------------------------------------
 
-    -- A timing leaks phrase asserts that an instruction or set of instructions
-    -- does or does not leak timing information. Timing leaks phrases contain:
+    -- An instruction leaks phrase asserts that an instruction or set of
+    -- instructions does or does not leak some information. These contain:
     --
-    -- * a Boolean (does or doesn't); and
+    -- * a Boolean (does or doesn't);
     -- * a specification of what instructions do or do not leak timing
-    --   information
+    --   information; and
+    -- * what is being leaked through what channel.
     --
-    TimingLeaksAssertion : Bool -> InstSpec -> LeaksAssertion;
+    InstLeakAssertion : Bool -> InstSpec -> LeakSpec -> LeaksAssertion;
 
     -- A digital leaks phrase contains:
     -- * a Boolean (does or doesn't);
@@ -48,6 +51,9 @@ abstract InfoLeakageAbs = {
 
     -- A specific named instruction
     TheNamedISpec : NamedInstOfProc -> InstSpec;
+
+    -- A named instruction and no others
+    OnlyNamedISpec : NamedInstOfProc -> InstSpec;
 
     -- An InstClassOfProc is an instruction class of an optional processor
     InstClassHasProc : InstClass -> ProcessorSpec -> InstClassOfProc;
@@ -85,6 +91,24 @@ abstract InfoLeakageAbs = {
 
     -- Specificy named processors
     Rocket_NamedProcessor : NamedProcessor;
+
+
+    ----------------------------------------------------------------------
+    -- Specification of Sorts of Information Leakage
+    ----------------------------------------------------------------------
+
+    -- A leak specification states what sort of information is being leaked and
+    -- optionall what sort of channel leaks that information
+    LeakSpecWithChannel : InfoSpec -> ChannelSpec -> LeakSpec;
+    LeakSpecNoChannel : InfoSpec -> LeakSpec;
+
+    -- The sorts of information that can be leaked
+    TimingInfo : InfoSpec;
+    InputOperandValues : InfoSpec;
+
+    -- The sorts of channels through which information can be leaked
+    TimingSideChannel : ChannelSpec;
+    InformationFlowChannel : ChannelSpec;
 
 
     ----------------------------------------------------------------------
