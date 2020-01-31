@@ -4,10 +4,8 @@ abstract InfoLeakageAbs = {
   cat
     LeaksAssertion; InstSpec; InstClass; InstClassOfProc;
     NamedInst; NamedInstOfProc;
-    ProcessorSpec; NamedProcessor;
-    LeakSpec; InfoSpec; ChannelSpec;
+    ProcessorSpec; NamedProcessor; InfoSpec; ChannelSpec;
     Bool;
-    -- ComponentSpec; OperationSpec; LeakSpec;
 
   fun
 
@@ -15,21 +13,31 @@ abstract InfoLeakageAbs = {
     -- Assertions About Leakage
     ----------------------------------------------------------------------
 
-    -- An instruction leaks phrase asserts that an instruction or set of
-    -- instructions does or does not leak some information. These contain:
+    -- A leakage assertion contains a number of parts, some of which are
+    -- optional. To indicate which parts occur in what order in each constructor
+    -- below, we assign letters to each of these parts. The parts are:
     --
-    -- * a Boolean (does or doesn't);
-    -- * a specification of what instructions do or do not leak timing
-    --   information; and
-    -- * what is being leaked through what channel.
+    -- * The instruction or operation that causes the leak (I);
+    -- * The processor containing that operation (P);
+    -- * The information that is leaked (L);
+    -- * The channel by which the information is leaked (C).
     --
-    InstLeakAssertion : Bool -> InstSpec -> LeakSpec -> LeaksAssertion;
+    -- Leakage assertions also contain a Boolean modifier to indicate if the
+    -- statement is negative, e.g., "does not leak" instead of "leaks".
+    LeakAssertionIL : Bool -> InstSpec -> InfoSpec -> LeaksAssertion;
+    LeakAssertionILP :
+      Bool -> InstSpec -> InfoSpec -> ProcessorSpec -> LeaksAssertion;
+    LeakAssertionILC :
+      Bool -> InstSpec -> InfoSpec -> ChannelSpec -> LeaksAssertion;
+    LeakAssertionILCP :
+      Bool -> InstSpec -> InfoSpec -> ChannelSpec -> ProcessorSpec ->
+      LeaksAssertion;
+    LeakAssertionPILC :
+      Bool -> ProcessorSpec -> InstSpec -> InfoSpec -> ChannelSpec ->
+      LeaksAssertion;
 
-    -- A digital leaks phrase contains:
-    -- * a Boolean (does or doesn't);
-    -- * a specification of what components do or do not leak; and
-    -- * a specification of what digital information is or is not leaked
-    -- DigitalLeaksAssertion : Bool -> ComponentSpec -> LeakSpec -> LeaksAssertion;
+    -- FIXME: use dependent types to be sure that an InstSpec does not give a
+    -- processor if the processor occurs later in the sentence
 
 
     ----------------------------------------------------------------------
@@ -91,6 +99,7 @@ abstract InfoLeakageAbs = {
 
     -- Specificy named processors
     Rocket_NamedProcessor : NamedProcessor;
+    P3_NamedProcessor : NamedProcessor;
 
 
     ----------------------------------------------------------------------
@@ -99,8 +108,8 @@ abstract InfoLeakageAbs = {
 
     -- A leak specification states what sort of information is being leaked and
     -- optionall what sort of channel leaks that information
-    LeakSpecWithChannel : InfoSpec -> ChannelSpec -> LeakSpec;
-    LeakSpecNoChannel : InfoSpec -> LeakSpec;
+    -- LeakSpecWithChannel : InfoSpec -> ChannelSpec -> LeakSpec;
+    -- LeakSpecNoChannel : InfoSpec -> LeakSpec;
 
     -- The sorts of information that can be leaked
     TimingInfo : InfoSpec;

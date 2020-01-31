@@ -5,12 +5,11 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     LeaksAssertion = S;
     InstSpec = NP;
     InstClass = N;
-    InstClassOfProc = CN;
     NamedInst = N;
     NamedInstOfProc = CN;
+    InstClassOfProc = CN;
     ProcessorSpec = NP;
     NamedProcessor = N;
-    LeakSpec = VP;
     InfoSpec = NP;
     ChannelSpec = NP;
     Bool = Pol;
@@ -31,8 +30,29 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     -- Assertions About Leakage
     ----------------------------------------------------------------------
 
-    InstLeakAssertion pol ispec leak_spec =
-      mkS presentTense simultaneousAnt pol (mkCl ispec leak_spec);
+    LeakAssertionIL pol ispec info =
+      mkS presentTense simultaneousAnt pol
+      (mkCl ispec (mkV2 (mkV "leak")) info);
+    LeakAssertionILC pol ispec info chan =
+      mkS presentTense simultaneousAnt pol
+      (mkCl ispec (mkV3 (mkV "leak") noPrep through_Prep) info chan);
+    LeakAssertionILP pol ispec info proc =
+      mkS presentTense simultaneousAnt pol
+      (mkCl ispec
+       (mkVP
+        (mkVP (mkV2 (mkV "leak")) info)
+        (SyntaxEng.mkAdv in_Prep proc)));
+    LeakAssertionILCP pol ispec info chan proc =
+      mkS presentTense simultaneousAnt pol
+      (mkCl ispec
+       (mkVP
+        (mkVP (mkV3 (mkV "leak") noPrep through_Prep) info chan)
+        (SyntaxEng.mkAdv in_Prep proc)));
+    LeakAssertionPILC pol proc ispec info chan =
+      mkS
+      (SyntaxEng.mkAdv on_Prep proc)
+      (mkS presentTense simultaneousAnt pol
+       (mkCl ispec (mkV3 (mkV "leak") noPrep through_Prep) info chan));
 
 
     ----------------------------------------------------------------------
@@ -74,16 +94,17 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
 
     -- Specificy named processors
     Rocket_NamedProcessor = mkN "Rocket" processor;
+    P3_NamedProcessor = mkN "P3" processor;
 
 
     ----------------------------------------------------------------------
     -- Specification of Sorts of Timing Leakage
     ----------------------------------------------------------------------
 
-    LeakSpecWithChannel info chan =
-      -- mkVP (mkVP (mkV2 (mkV "leak")) info) (mkAdv through_Prep chan);
-      mkVP (mkV3 (mkV "leak") noPrep through_Prep) info chan;
-    LeakSpecNoChannel info = mkVP (mkV2 (mkV "leak")) info;
+    -- LeakSpecWithChannel info chan =
+    --   -- mkVP (mkVP (mkV2 (mkV "leak")) info) (mkAdv through_Prep chan);
+    --   mkVP (mkV3 (mkV "leak") noPrep through_Prep) info chan;
+    -- LeakSpecNoChannel info = mkVP (mkV2 (mkV "leak")) info;
 
     TimingInfo = mkNP (mkN "timing" (mkN "information"));
     InputOperandValues = mkNP aPl_Det (mkN "input-operand" (mkN "value"));
