@@ -2,7 +2,9 @@ abstract InfoLeakageAbs = {
   flags startcat = LeaksAssertion ;
 
   cat
-    LeaksAssertion; InstSpec; InstClass; Bool;
+    LeaksAssertion; InstSpec; InstClass; InstClassOfProc;
+    NamedInst; NamedInstOfProc;
+    ProcessorSpec; NamedProcessor; Bool;
     -- ComponentSpec; OperationSpec; LeakSpec;
 
   fun
@@ -28,21 +30,28 @@ abstract InfoLeakageAbs = {
 
 
     ----------------------------------------------------------------------
-    -- Instruction Specifications
+    -- Specifications of Sets of Instructions / Operations
     ----------------------------------------------------------------------
 
-    -- Different ways of saying all instructions in some class
-    AllISpec : InstClass -> InstSpec;
-    EveryISpec : InstClass -> InstSpec;
-    TheISpec : InstClass -> InstSpec;
-    NoQuantISpec : InstClass -> InstSpec;
+    -- Different ways of saying all instructions in some class of some processor
+    AllISpec : InstClassOfProc -> InstSpec;
+    EveryISpec : InstClassOfProc -> InstSpec;
+    TheISpec : InstClassOfProc -> InstSpec;
 
     -- Only instructions in some class; i.e., instructions in this class and
     -- also not instructions not in this class
-    OnlyISpec : InstClass -> InstSpec;
+    OnlyISpec : InstClassOfProc -> InstSpec;
 
     -- No instructions in some class
-    NoISpec : InstClass -> InstSpec;
+    NoISpec : InstClassOfProc -> InstSpec;
+    NoPluralISpec : InstClassOfProc -> InstSpec;
+
+    -- A specific named instruction
+    TheNamedISpec : NamedInstOfProc -> InstSpec;
+
+    -- An InstClassOfProc is an instruction class of an optional processor
+    InstClassHasProc : InstClass -> ProcessorSpec -> InstClassOfProc;
+    InstClassNoProc : InstClass -> InstClassOfProc;
 
     -- The class of instructions in general
     AnyInst : InstClass;
@@ -54,8 +63,28 @@ abstract InfoLeakageAbs = {
     BitwiseOp : InstClass;
     ProcessorFence : InstClass;
 
-    -- Named instruction
-    -- NamedInstruction : String -> InstSpec;
+    -- A NamedInstOfProc is a named instruction of an optional processor
+    NamedInstHasProc : NamedInst -> ProcessorSpec -> NamedInstOfProc;
+    NamedInstNoProc : NamedInst -> NamedInstOfProc;
+
+    -- Named instructions
+    IntegerMultiplyOp_NamedInst : NamedInst;
+    Fmsub_s_NamedInst : NamedInst;
+
+
+    ----------------------------------------------------------------------
+    -- Specifications of Processors
+    ----------------------------------------------------------------------
+
+    -- The processor is left implicit, i.e., not mentioned
+    -- ImplicitPSpec : ProcessorSpec;
+
+    -- Ways of referring to a specific named processor
+    TheNamedPSpec : NamedProcessor -> ProcessorSpec;
+    MyNamedPSpec : NamedProcessor -> ProcessorSpec;
+
+    -- Specificy named processors
+    Rocket_NamedProcessor : NamedProcessor;
 
 
     ----------------------------------------------------------------------
