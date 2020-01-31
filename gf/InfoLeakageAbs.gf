@@ -115,6 +115,11 @@ abstract InfoLeakageAbs = {
     TimingInfo : InfoSpec;
     InputOperandValues : InfoSpec;
 
+    -- The negations of information specifications
+    -- FIXME: make sure to disallow double-negation!
+    NoTimingInfo : InfoSpec;
+    NoInputOperandValues : InfoSpec;
+
     -- The sorts of channels through which information can be leaked
     TimingSideChannel : ChannelSpec;
     InformationFlowChannel : ChannelSpec;

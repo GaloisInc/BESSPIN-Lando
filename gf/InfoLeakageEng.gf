@@ -108,6 +108,9 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
 
     TimingInfo = mkNP (mkN "timing" (mkN "information"));
     InputOperandValues = mkNP aPl_Det (mkN "input-operand" (mkN "value"));
+    NoTimingInfo = mkNP no_Quant (mkN "timing" (mkN "information"));
+    NoInputOperandValues =
+      mkNP no_Quant pluralNum (mkN "input-operand" (mkN "value"));
 
     TimingSideChannel = mkNP aSg_Det (mkN "timing" (mkN "side-channel"));
     InformationFlowChannel =
