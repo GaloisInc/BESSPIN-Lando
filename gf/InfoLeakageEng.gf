@@ -63,6 +63,14 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     EveryISpec iclass = mkNP every_Det iclass;
     TheISpec iclass = mkNP thePl_Det iclass;
     OnlyISpec iclass = mkNP only_Predet (mkNP aPl_Det iclass);
+    OnlyOutOfISpec iclass1 iclass2 =
+      mkNP (mkNP only_Predet (mkNP thePl_Det iclass1))
+           (SyntaxEng.mkAdv (mkPrep "out of")
+            (mkNP all_Predet (mkNP thePl_Det iclass2)));
+    OnlyNamedOutOfISpec inst iclass =
+      mkNP (mkNP only_Predet (mkNP theSg_Det inst))
+           (SyntaxEng.mkAdv (mkPrep "out of")
+            (mkNP all_Predet (mkNP thePl_Det iclass)));
     NoISpec iclass = mkNP no_Quant iclass;
     NoPluralISpec iclass = mkNP no_Quant pluralNum iclass;
     TheNamedISpec inst = mkNP theSg_Det inst;

@@ -53,6 +53,11 @@ abstract InfoLeakageAbs = {
     -- also not instructions not in this class
     OnlyISpec : InstClassOfProc -> InstSpec;
 
+    -- Only instructions in some class out of some larger class; i.e.,
+    -- instructions in the first class and also not in the second class
+    OnlyOutOfISpec : InstClass -> InstClass -> InstSpec;
+    OnlyNamedOutOfISpec : NamedInst -> InstClass -> InstSpec;
+
     -- No instructions in some class
     NoISpec : InstClassOfProc -> InstSpec;
     NoPluralISpec : InstClassOfProc -> InstSpec;
