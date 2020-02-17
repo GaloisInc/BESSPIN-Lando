@@ -100,6 +100,7 @@ abstract InfoLeakageAbs = {
     -- Ways of referring to a specific named processor
     TheNamedPSpec : NamedProcessor -> ProcessorSpec;
     MyNamedPSpec : NamedProcessor -> ProcessorSpec;
+    OurNamedPSpec : NamedProcessor -> ProcessorSpec;
 
     -- Specific named processors
     A_NamedProcessor : String -> NamedProcessor;

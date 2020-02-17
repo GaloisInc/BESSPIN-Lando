@@ -100,6 +100,7 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
 
     TheNamedPSpec named_p = mkNP theSg_Det named_p;
     MyNamedPSpec named_p = mkNP i_Pron named_p;
+    OurNamedPSpec named_p = mkNP we_Pron named_p;
 
     -- Specificy named processors
     A_NamedProcessor str = mkN str.s processor;
