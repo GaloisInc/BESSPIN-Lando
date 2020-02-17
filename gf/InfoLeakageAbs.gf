@@ -2,8 +2,7 @@ abstract InfoLeakageAbs = {
   flags startcat = LeaksAssertion ;
 
   cat
-    LeaksAssertion; InstSpec; InstClass; InstClassOfProc;
-    NamedInst; NamedInstOfProc;
+    LeaksAssertion; InstSpec; InstClass; NamedInst;
     ProcessorSpec; NamedProcessor; InfoSpec; ChannelSpec;
     Bool;
 
@@ -25,10 +24,15 @@ abstract InfoLeakageAbs = {
     -- Leakage assertions also contain a Boolean modifier to indicate if the
     -- statement is negative, e.g., "does not leak" instead of "leaks".
     LeakAssertionIL : Bool -> InstSpec -> InfoSpec -> LeaksAssertion;
+    LeakAssertionIPL :
+      Bool -> InstSpec -> ProcessorSpec -> InfoSpec -> LeaksAssertion;
     LeakAssertionILP :
       Bool -> InstSpec -> InfoSpec -> ProcessorSpec -> LeaksAssertion;
     LeakAssertionILC :
       Bool -> InstSpec -> InfoSpec -> ChannelSpec -> LeaksAssertion;
+    LeakAssertionIPLC :
+      Bool -> InstSpec -> ProcessorSpec -> InfoSpec -> ChannelSpec ->
+      LeaksAssertion;
     LeakAssertionILCP :
       Bool -> InstSpec -> InfoSpec -> ChannelSpec -> ProcessorSpec ->
       LeaksAssertion;
@@ -36,22 +40,19 @@ abstract InfoLeakageAbs = {
       Bool -> ProcessorSpec -> InstSpec -> InfoSpec -> ChannelSpec ->
       LeaksAssertion;
 
-    -- FIXME: use dependent types to be sure that an InstSpec does not give a
-    -- processor if the processor occurs later in the sentence
-
 
     ----------------------------------------------------------------------
     -- Specifications of Sets of Instructions / Operations
     ----------------------------------------------------------------------
 
     -- Different ways of saying all instructions in some class of some processor
-    AllISpec : InstClassOfProc -> InstSpec;
-    EveryISpec : InstClassOfProc -> InstSpec;
-    TheISpec : InstClassOfProc -> InstSpec;
+    AllISpec : InstClass -> InstSpec;
+    EveryISpec : InstClass -> InstSpec;
+    TheISpec : InstClass -> InstSpec;
 
     -- Only instructions in some class; i.e., instructions in this class and
     -- also not instructions not in this class
-    OnlyISpec : InstClassOfProc -> InstSpec;
+    OnlyISpec : InstClass -> InstSpec;
 
     -- Only instructions in some class out of some larger class; i.e.,
     -- instructions in the first class and also not in the second class
@@ -59,18 +60,14 @@ abstract InfoLeakageAbs = {
     OnlyNamedOutOfISpec : NamedInst -> InstClass -> InstSpec;
 
     -- No instructions in some class
-    NoISpec : InstClassOfProc -> InstSpec;
-    NoPluralISpec : InstClassOfProc -> InstSpec;
+    NoISpec : InstClass -> InstSpec;
+    NoPluralISpec : InstClass -> InstSpec;
 
     -- A specific named instruction
-    TheNamedISpec : NamedInstOfProc -> InstSpec;
+    TheNamedISpec : NamedInst -> InstSpec;
 
     -- A named instruction and no others
-    OnlyNamedISpec : NamedInstOfProc -> InstSpec;
-
-    -- An InstClassOfProc is an instruction class of an optional processor
-    InstClassHasProc : InstClass -> ProcessorSpec -> InstClassOfProc;
-    InstClassNoProc : InstClass -> InstClassOfProc;
+    OnlyNamedISpec : NamedInst -> InstSpec;
 
     -- The class of instructions in general
     AnyInst : InstClass;
@@ -81,10 +78,6 @@ abstract InfoLeakageAbs = {
     FloatingPointOp : InstClass;
     BitwiseOp : InstClass;
     ProcessorFence : InstClass;
-
-    -- A NamedInstOfProc is a named instruction of an optional processor
-    NamedInstHasProc : NamedInst -> ProcessorSpec -> NamedInstOfProc;
-    NamedInstNoProc : NamedInst -> NamedInstOfProc;
 
     A_NamedInst : String -> NamedInst;
     A_NamedOp : String -> NamedInst;

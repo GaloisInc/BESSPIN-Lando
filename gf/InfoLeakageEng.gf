@@ -6,8 +6,6 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     InstSpec = NP;
     InstClass = N;
     NamedInst = CN;
-    NamedInstOfProc = CN;
-    InstClassOfProc = CN;
     ProcessorSpec = NP;
     NamedProcessor = N;
     InfoSpec = NP;
@@ -33,9 +31,17 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     LeakAssertionIL pol ispec info =
       mkS presentTense simultaneousAnt pol
       (mkCl ispec (mkV2 (mkV "leak")) info);
+    LeakAssertionIPL pol ispec proc info =
+      mkS presentTense simultaneousAnt pol
+      (mkCl (mkNP ispec (SyntaxEng.mkAdv part_Prep proc))
+            (mkV2 (mkV "leak")) info);
     LeakAssertionILC pol ispec info chan =
       mkS presentTense simultaneousAnt pol
       (mkCl ispec (mkV3 (mkV "leak") noPrep through_Prep) info chan);
+    LeakAssertionIPLC pol ispec proc info chan =
+      mkS presentTense simultaneousAnt pol
+      (mkCl (mkNP ispec (SyntaxEng.mkAdv part_Prep proc))
+            (mkV3 (mkV "leak") noPrep through_Prep) info chan);
     LeakAssertionILP pol ispec info proc =
       mkS presentTense simultaneousAnt pol
       (mkCl ispec
@@ -76,19 +82,12 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     TheNamedISpec inst = mkNP theSg_Det inst;
     OnlyNamedISpec inst = mkNP only_Predet (mkNP theSg_Det inst);
 
-    InstClassHasProc iclass proc = mkCN (mkN2 iclass part_Prep) proc;
-    InstClassNoProc iclass = mkCN iclass;
-
     AnyInst = instruction;
     ArithInst = mkN "arithmetic" instruction;
     IntegerOp = mkN "integer" operation;
     FloatingPointOp = mkN "floating" (mkN "point" operation);
     BitwiseOp = mkN "bitwise" operation;
     ProcessorFence = mkN "processor" (mkN "fence");
-
-    NamedInstHasProc inst proc =
-      mkCN inst (SyntaxEng.mkAdv part_Prep proc);
-    NamedInstNoProc inst = inst;
 
     A_NamedInst str = mkCN (mkN str.s instruction);
     A_NamedOp str = mkCN (mkN str.s operation);
