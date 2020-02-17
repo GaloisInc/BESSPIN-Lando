@@ -4,6 +4,7 @@ abstract InfoLeakageAbs = {
   cat
     LeaksAssertion; InstSpec; InstClass; NamedInst;
     ProcessorSpec; NamedProcessor; InfoSpec; ChannelSpec;
+    DataSpec; NamedDatum; ModuleSpec; NamedModule;
     Bool;
 
   fun
@@ -12,9 +13,11 @@ abstract InfoLeakageAbs = {
     -- Assertions About Leakage
     ----------------------------------------------------------------------
 
-    -- A leakage assertion contains a number of parts, some of which are
-    -- optional. To indicate which parts occur in what order in each constructor
-    -- below, we assign letters to each of these parts. The parts are:
+    -- An instruction leakage assertion states that an instruction or operation
+    -- on a processor does or does not cause information to be leaked. These
+    -- assertions contain a number of parts, some of which are optional. To
+    -- indicate which parts occur in what order in each constructor below, we
+    -- assign letters to each of these parts. The parts are:
     --
     -- * The instruction or operation that causes the leak (I);
     -- * The processor containing that operation (P);
@@ -23,21 +26,41 @@ abstract InfoLeakageAbs = {
     --
     -- Leakage assertions also contain a Boolean modifier to indicate if the
     -- statement is negative, e.g., "does not leak" instead of "leaks".
-    LeakAssertionIL : Bool -> InstSpec -> InfoSpec -> LeaksAssertion;
-    LeakAssertionIPL :
+    ILeakAssertionIL : Bool -> InstSpec -> InfoSpec -> LeaksAssertion;
+    ILeakAssertionIPL :
       Bool -> InstSpec -> ProcessorSpec -> InfoSpec -> LeaksAssertion;
-    LeakAssertionILP :
+    ILeakAssertionILP :
       Bool -> InstSpec -> InfoSpec -> ProcessorSpec -> LeaksAssertion;
-    LeakAssertionILC :
+    ILeakAssertionILC :
       Bool -> InstSpec -> InfoSpec -> ChannelSpec -> LeaksAssertion;
-    LeakAssertionIPLC :
+    ILeakAssertionIPLC :
       Bool -> InstSpec -> ProcessorSpec -> InfoSpec -> ChannelSpec ->
       LeaksAssertion;
-    LeakAssertionILCP :
+    ILeakAssertionILCP :
       Bool -> InstSpec -> InfoSpec -> ChannelSpec -> ProcessorSpec ->
       LeaksAssertion;
-    LeakAssertionPILC :
+    ILeakAssertionPILC :
       Bool -> ProcessorSpec -> InstSpec -> InfoSpec -> ChannelSpec ->
+      LeaksAssertion;
+
+
+    -- A data leakage assertion states that some signal or register in a
+    -- functional unit of a processor is or is not leaked. These assertions are
+    -- in passive voice, e.g., "The X signal of the Y module is leaked through
+    -- Z". The parts of data leakage assertions are:
+    --
+    -- * The datum, e.g., a named signal or register (D);
+    -- * The module or block containing that datum (M);
+    -- * The processor containing the functional unit (P);
+    -- * The channel by which the information is leaked (C); and
+    -- * The functional unit boundary past which the information is leaked (B).
+    --
+    -- Note that an assertion cannot have both C andB, because a boundary
+    -- implies the set of all channels out of a given functional unit.
+    DLeakAssertionDMC :
+      Bool -> DataSpec -> ModuleSpec -> ChannelSpec -> LeaksAssertion;
+    DLeakAssertionDMPC :
+      Bool -> DataSpec -> ModuleSpec -> ProcessorSpec -> ChannelSpec ->
       LeaksAssertion;
 
 
@@ -120,6 +143,20 @@ abstract InfoLeakageAbs = {
     -- The sorts of channels through which information can be leaked
     TimingSideChannel : ChannelSpec;
     InformationFlowChannel : ChannelSpec;
+
+
+    ----------------------------------------------------------------------
+    -- Specification of Data and Modules
+    ----------------------------------------------------------------------
+
+    TheNamedDatum : NamedDatum -> DataSpec;
+    NamedRegister : String -> NamedDatum;
+    NamedSignal : String -> NamedDatum;
+
+    TheNamedModule : NamedModule -> ModuleSpec;
+    MyNamedModule : NamedModule -> ModuleSpec;
+    NamedVerilogModule : String -> NamedModule;
+    NamedBlockModule : String -> NamedModule;
 
 
     ----------------------------------------------------------------------

@@ -10,6 +10,10 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     NamedProcessor = N;
     InfoSpec = NP;
     ChannelSpec = NP;
+    DataSpec = NP;
+    NamedDatum = N;
+    ModuleSpec = NP;
+    NamedModule = N;
     Bool = Pol;
 
   oper
@@ -21,6 +25,12 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     operation : N = mkN "operation";
     processor : N = mkN "processor";
 
+    -- The transitive form of the very "to leak"
+    leak_V2 : V2 = mkV2 (mkV "leak");
+
+    -- The transitive form of the very "to leak" with a "through" clause
+    leak_through : V3 = mkV3 (mkV "leak") noPrep through_Prep;
+
 
   lin
 
@@ -28,37 +38,49 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     -- Assertions About Leakage
     ----------------------------------------------------------------------
 
-    LeakAssertionIL pol ispec info =
+    ILeakAssertionIL pol ispec info =
       mkS presentTense simultaneousAnt pol
-      (mkCl ispec (mkV2 (mkV "leak")) info);
-    LeakAssertionIPL pol ispec proc info =
-      mkS presentTense simultaneousAnt pol
-      (mkCl (mkNP ispec (SyntaxEng.mkAdv part_Prep proc))
-            (mkV2 (mkV "leak")) info);
-    LeakAssertionILC pol ispec info chan =
-      mkS presentTense simultaneousAnt pol
-      (mkCl ispec (mkV3 (mkV "leak") noPrep through_Prep) info chan);
-    LeakAssertionIPLC pol ispec proc info chan =
+      (mkCl ispec leak_V2 info);
+    ILeakAssertionIPL pol ispec proc info =
       mkS presentTense simultaneousAnt pol
       (mkCl (mkNP ispec (SyntaxEng.mkAdv part_Prep proc))
-            (mkV3 (mkV "leak") noPrep through_Prep) info chan);
-    LeakAssertionILP pol ispec info proc =
+            leak_V2 info);
+    ILeakAssertionILC pol ispec info chan =
+      mkS presentTense simultaneousAnt pol
+      (mkCl ispec leak_through info chan);
+    ILeakAssertionIPLC pol ispec proc info chan =
+      mkS presentTense simultaneousAnt pol
+      (mkCl (mkNP ispec (SyntaxEng.mkAdv part_Prep proc))
+            leak_through info chan);
+    ILeakAssertionILP pol ispec info proc =
       mkS presentTense simultaneousAnt pol
       (mkCl ispec
        (mkVP
-        (mkVP (mkV2 (mkV "leak")) info)
+        (mkVP leak_V2 info)
         (SyntaxEng.mkAdv in_Prep proc)));
-    LeakAssertionILCP pol ispec info chan proc =
+    ILeakAssertionILCP pol ispec info chan proc =
       mkS presentTense simultaneousAnt pol
       (mkCl ispec
        (mkVP
-        (mkVP (mkV3 (mkV "leak") noPrep through_Prep) info chan)
+        (mkVP leak_through info chan)
         (SyntaxEng.mkAdv in_Prep proc)));
-    LeakAssertionPILC pol proc ispec info chan =
+    ILeakAssertionPILC pol proc ispec info chan =
       mkS
       (SyntaxEng.mkAdv on_Prep proc)
       (mkS presentTense simultaneousAnt pol
-       (mkCl ispec (mkV3 (mkV "leak") noPrep through_Prep) info chan));
+       (mkCl ispec leak_through info chan));
+
+    DLeakAssertionDMC pol d mod chan =
+      mkS presentTense simultaneousAnt pol
+      (mkCl (mkNP d (SyntaxEng.mkAdv part_Prep mod))
+            (mkVP (passiveVP leak_V2)
+                  (SyntaxEng.mkAdv through_Prep chan)));
+    DLeakAssertionDMPC pol d mod proc chan =
+      mkS presentTense simultaneousAnt pol
+      (mkCl (mkNP (mkNP d (SyntaxEng.mkAdv part_Prep mod))
+                  (SyntaxEng.mkAdv part_Prep proc))
+            (mkVP (passiveVP leak_V2)
+                  (SyntaxEng.mkAdv through_Prep chan)));
 
 
     ----------------------------------------------------------------------
@@ -110,9 +132,9 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     ----------------------------------------------------------------------
 
     -- LeakSpecWithChannel info chan =
-    --   -- mkVP (mkVP (mkV2 (mkV "leak")) info) (mkAdv through_Prep chan);
-    --   mkVP (mkV3 (mkV "leak") noPrep through_Prep) info chan;
-    -- LeakSpecNoChannel info = mkVP (mkV2 (mkV "leak")) info;
+    --   -- mkVP (mkVP leak_V2 info) (mkAdv through_Prep chan);
+    --   mkVP leak_through info chan;
+    -- LeakSpecNoChannel info = mkVP leak_V2 info;
 
     TimingInfo = mkNP (mkN "timing" (mkN "information"));
     InputOperandValues = mkNP aPl_Det (mkN "input-operand" (mkN "value"));
@@ -123,6 +145,20 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     TimingSideChannel = mkNP aSg_Det (mkN "timing" (mkN "side-channel"));
     InformationFlowChannel =
       mkNP aSg_Det (mkN "information-flow" (mkN "channel"));
+
+
+    ----------------------------------------------------------------------
+    -- Specification of Data and Modules
+    ----------------------------------------------------------------------
+
+    TheNamedDatum d = mkNP theSg_Det d;
+    NamedRegister str = mkN str.s (mkN "register");
+    NamedSignal str = mkN str.s (mkN "signal");
+
+    TheNamedModule m = mkNP theSg_Det m;
+    MyNamedModule m = mkNP i_Pron m;
+    NamedVerilogModule str = mkN str.s (mkN "Verilog" (mkN "module"));
+    NamedBlockModule str = mkN str.s (mkN "block");
 
 
     ----------------------------------------------------------------------
