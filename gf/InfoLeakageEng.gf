@@ -14,6 +14,7 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     NamedDatum = N;
     ModuleSpec = NP;
     NamedModule = N;
+    BoundarySpec = NP;
     Bool = Pol;
 
   oper
@@ -24,6 +25,7 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     instruction : N = mkN "instruction";
     operation : N = mkN "operation";
     processor : N = mkN "processor";
+    cert_boundary : N = mkN "certification" (mkN "boundary");
 
     -- The transitive form of the very "to leak"
     leak_V2 : V2 = mkV2 (mkV "leak");
@@ -81,6 +83,17 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
                   (SyntaxEng.mkAdv part_Prep proc))
             (mkVP (passiveVP leak_V2)
                   (SyntaxEng.mkAdv through_Prep chan)));
+    DLeakAssertionDMB pol d mod bound =
+      mkS presentTense simultaneousAnt pol
+      (mkCl (mkNP d (SyntaxEng.mkAdv part_Prep mod))
+            (mkVP (passiveVP leak_V2)
+                  (SyntaxEng.mkAdv (mkPrep "outside of") bound)));
+    DLeakAssertionDMPB pol d mod proc bound =
+      mkS presentTense simultaneousAnt pol
+      (mkCl (mkNP (mkNP d (SyntaxEng.mkAdv part_Prep mod))
+                  (SyntaxEng.mkAdv part_Prep proc))
+            (mkVP (passiveVP leak_V2)
+                  (SyntaxEng.mkAdv (mkPrep "outside of") bound)));
 
 
     ----------------------------------------------------------------------
@@ -132,7 +145,7 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     ----------------------------------------------------------------------
 
     -- LeakSpecWithChannel info chan =
-    --   -- mkVP (mkVP leak_V2 info) (mkAdv through_Prep chan);
+    --   -- mkVP (mkVP leak_V2 info) (SyntaxEng.mkAdv through_Prep chan);
     --   mkVP leak_through info chan;
     -- LeakSpecNoChannel info = mkVP leak_V2 info;
 
@@ -145,6 +158,8 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     TimingSideChannel = mkNP aSg_Det (mkN "timing" (mkN "side-channel"));
     InformationFlowChannel =
       mkNP aSg_Det (mkN "information-flow" (mkN "channel"));
+    NamedOutputChannel str =
+      mkNP theSg_Det (mkN str.s (mkN "output" (mkN "channel")));
 
 
     ----------------------------------------------------------------------
@@ -157,8 +172,16 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
 
     TheNamedModule m = mkNP theSg_Det m;
     MyNamedModule m = mkNP i_Pron m;
+    ANamedModule str = mkN str.s (mkN "module");
     NamedVerilogModule str = mkN str.s (mkN "Verilog" (mkN "module"));
-    NamedBlockModule str = mkN str.s (mkN "block");
+    NamedBlock str = mkN str.s (mkN "block");
+
+    TheModuleCertBoundary mod =
+      mkNP (mkNP theSg_Det cert_boundary)
+           (SyntaxEng.mkAdv possess_Prep mod);
+    MyModuleCertBoundary mod =
+      mkNP (mkNP i_Pron cert_boundary)
+           (SyntaxEng.mkAdv possess_Prep mod);
 
 
     ----------------------------------------------------------------------

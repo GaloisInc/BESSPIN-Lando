@@ -4,7 +4,7 @@ abstract InfoLeakageAbs = {
   cat
     LeaksAssertion; InstSpec; InstClass; NamedInst;
     ProcessorSpec; NamedProcessor; InfoSpec; ChannelSpec;
-    DataSpec; NamedDatum; ModuleSpec; NamedModule;
+    DataSpec; NamedDatum; ModuleSpec; NamedModule; BoundarySpec;
     Bool;
 
   fun
@@ -61,6 +61,11 @@ abstract InfoLeakageAbs = {
       Bool -> DataSpec -> ModuleSpec -> ChannelSpec -> LeaksAssertion;
     DLeakAssertionDMPC :
       Bool -> DataSpec -> ModuleSpec -> ProcessorSpec -> ChannelSpec ->
+      LeaksAssertion;
+    DLeakAssertionDMB :
+      Bool -> DataSpec -> ModuleSpec -> BoundarySpec -> LeaksAssertion;
+    DLeakAssertionDMPB :
+      Bool -> DataSpec -> ModuleSpec -> ProcessorSpec -> BoundarySpec ->
       LeaksAssertion;
 
 
@@ -126,11 +131,6 @@ abstract InfoLeakageAbs = {
     -- Specification of Sorts of Information Leakage
     ----------------------------------------------------------------------
 
-    -- A leak specification states what sort of information is being leaked and
-    -- optionall what sort of channel leaks that information
-    -- LeakSpecWithChannel : InfoSpec -> ChannelSpec -> LeakSpec;
-    -- LeakSpecNoChannel : InfoSpec -> LeakSpec;
-
     -- The sorts of information that can be leaked
     TimingInfo : InfoSpec;
     InputOperandValues : InfoSpec;
@@ -143,10 +143,11 @@ abstract InfoLeakageAbs = {
     -- The sorts of channels through which information can be leaked
     TimingSideChannel : ChannelSpec;
     InformationFlowChannel : ChannelSpec;
+    NamedOutputChannel : String -> ChannelSpec;
 
 
     ----------------------------------------------------------------------
-    -- Specification of Data and Modules
+    -- Specification of Data, Modules, and Boundaries
     ----------------------------------------------------------------------
 
     TheNamedDatum : NamedDatum -> DataSpec;
@@ -155,8 +156,12 @@ abstract InfoLeakageAbs = {
 
     TheNamedModule : NamedModule -> ModuleSpec;
     MyNamedModule : NamedModule -> ModuleSpec;
+    ANamedModule : String -> NamedModule;
     NamedVerilogModule : String -> NamedModule;
-    NamedBlockModule : String -> NamedModule;
+    NamedBlock : String -> NamedModule;
+
+    TheModuleCertBoundary : ModuleSpec -> BoundarySpec;
+    MyModuleCertBoundary : ModuleSpec -> BoundarySpec;
 
 
     ----------------------------------------------------------------------
