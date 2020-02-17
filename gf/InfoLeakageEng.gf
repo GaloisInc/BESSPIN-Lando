@@ -79,12 +79,11 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     ProcessorFence = mkN "processor" (mkN "fence");
 
     NamedInstHasProc inst proc =
-      mkCN inst (SyntaxEng.mkAdv on_Prep proc);
+      mkCN inst (SyntaxEng.mkAdv part_Prep proc);
     NamedInstNoProc inst = inst;
 
-    IntegerMultiplyOp_NamedInst = mkCN (mkN "integer-multiplication" operation);
-    Fmsub_s_NamedInst = mkCN (mkN "Fmsub_s" instruction);
-    Rev_Fmsub_s_NamedInst = mkCN (mkN "instruction") (mkNP (mkN "Fmsub_s"));
+    A_NamedInst str = mkCN (mkN str.s instruction);
+    A_NamedOp str = mkCN (mkN str.s operation);
 
 
     ----------------------------------------------------------------------
@@ -95,8 +94,7 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     MyNamedPSpec named_p = mkNP i_Pron named_p;
 
     -- Specificy named processors
-    Rocket_NamedProcessor = mkN "Rocket" processor;
-    P3_NamedProcessor = mkN "P3" processor;
+    A_NamedProcessor str = mkN str.s processor;
 
 
     ----------------------------------------------------------------------
