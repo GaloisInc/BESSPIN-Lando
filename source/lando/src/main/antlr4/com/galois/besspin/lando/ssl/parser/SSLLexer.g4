@@ -62,7 +62,8 @@ fragment F_COMPONENT    : 'component' ;
 fragment F_EVENTS       : 'events' ;
 fragment F_SCENARIOS    : 'scenarios' ;
 fragment F_REQUIREMENTS : 'requirements' ;
-fragment F_ALL_KEYWORDS : F_SYSTEM | F_SUBSYSTEM | F_COMPONENT | F_EVENTS | F_SCENARIOS | F_REQUIREMENTS ;
+fragment F_RELATION     : 'relation' ;
+fragment F_ALL_KEYWORDS : F_SYSTEM | F_SUBSYSTEM | F_COMPONENT | F_EVENTS | F_SCENARIOS | F_REQUIREMENTS | F_RELATION ;
 
 fragment F_KEYWORD_SEP  : F_WHITESPACE | F_LINESEP ;
 
@@ -99,6 +100,8 @@ EVENTS       : F_EVENTS -> pushMode(MODE_IDENT_LINE), pushMode(MODE_EMPTY_LINE),
 SCENARIOS    : F_SCENARIOS -> pushMode(MODE_IDENT_LINE), pushMode(MODE_EMPTY_LINE), pushMode(MODE_NAMEPHRASE) ;
 
 REQUIREMENTS : F_REQUIREMENTS -> pushMode(MODE_IDENT_LINE), pushMode(MODE_EMPTY_LINE), pushMode(MODE_NAMEPHRASE) ;
+
+RELATION     : F_RELATION -> pushMode(MODE_NAMEPHRASEREL) ;
 
 INDEXING     : F_INDEXING -> pushMode(MODE_INDEXING) ;
 

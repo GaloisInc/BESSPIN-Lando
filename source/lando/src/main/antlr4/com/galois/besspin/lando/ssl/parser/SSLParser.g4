@@ -81,6 +81,9 @@ requirementEntries : requirementEntry (lineseps requirementEntry)* ;
 requirementEntry   : lineComments? name nameComment=comment? lineseps SENTENCE sentenceComment=comment? ;
 
 
+relation          : lineComments? RELATION compname=name (RELKEYWORD relname=name)? comment? blockend ;
+
+
 index             : INDEXING (lineseps indexEntries)? ;
 
 indexEntries      : indexEntry (lineseps indexEntry)* ;
