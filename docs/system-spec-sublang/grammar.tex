@@ -49,7 +49,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gnsubsystem}{
     \gnlinecomments \gtkw{subsystem} \gnnamephraserel \gopt{\gnrelkeyword \gnnamephrase} \gncomment \gnnl \gcont
     \; \gnexplanation \gnnl \gcont
-    \; \gopt{\gnnl \gtkw{indexing} \gopt{\gnnl \gnindexing}} \gcont
+    \; \gopt{\gnnl \gtkw{indexing} \gnindexing} \gcont
     \; \glist{\gnnl \gncomponent} \gcont
     \; \gtregex{(?= \gnnlsubsystemkeyword | \gneof)} \gcont
     \; \gnblockend
@@ -156,7 +156,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \gline
 
   \grule{\gnnamephraserel}{
-    \gtregex{\textbackslash{}w[\textbackslash{}w\textbackslash{}s]*\,(?= \gnrelkeyword | \gnnl)}
+    \gtregex{\textbackslash{}w.*\,(?= \gnrelkeyword | \gnnl)}
   }{Name-Phrase}
   \grule{\gnsentence}{\gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}? [.?!]}}{Sentence}
   \grule{\gnparagraph}{\gnsentence^+ \gtregex{(?= (\gnnl \gnkeyword | \gneof))}}{Paragraph}
