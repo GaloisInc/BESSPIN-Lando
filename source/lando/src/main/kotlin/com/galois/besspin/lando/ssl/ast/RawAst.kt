@@ -132,14 +132,20 @@ sealed class RawRelation
 
 @Serializable
 data class RawInheritRelation(
-    var name: String = "",
-    var base: String = ""
+    var name: String,
+    var base: String
 ): RawRelation()
 
 @Serializable
 data class RawContainsRelation(
-    var name: String = "",
-    var parent: String = ""
+    var name: String,
+    var parent: String
+): RawRelation()
+
+@Serializable
+data class RawImplicitContainsRelation(
+    var uid: Int,
+    var parentUid: Int
 ): RawRelation()
 
 @Serializable
@@ -153,6 +159,7 @@ data class RawClientRelation(
 data class RawRelationships(
     private var _inheritRelations: MutableList<RawInheritRelation> = mutableListOf(),
     private var _containsRelations: MutableList<RawContainsRelation> = mutableListOf(),
+    private var _implicitContainsRelations: MutableList<RawImplicitContainsRelation> = mutableListOf(),
     private var _clientRelations: MutableList<RawClientRelation> = mutableListOf()
 ) {
     val inheritRelations: List<RawInheritRelation>
@@ -164,6 +171,9 @@ data class RawRelationships(
     val clientRelations: List<RawClientRelation>
         get() = _clientRelations
 
+    val implicitContainsRelation: List<RawImplicitContainsRelation>
+        get() = _implicitContainsRelations
+
     companion object {
         fun fromRelationList(relations: List<RawRelation>): RawRelationships {
             val result = RawRelationships()
@@ -171,6 +181,7 @@ data class RawRelationships(
                 when(relation) {
                     is RawInheritRelation -> result._inheritRelations.add(relation)
                     is RawContainsRelation -> result._containsRelations.add(relation)
+                    is RawImplicitContainsRelation -> result._implicitContainsRelations.add(relation)
                     is RawClientRelation -> result._clientRelations.add(relation)
                 }
             }
