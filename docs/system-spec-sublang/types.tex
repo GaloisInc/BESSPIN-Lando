@@ -11,21 +11,37 @@
 \section{Grammar}
 
 \begin{grammar}
-  \gruleplain{\system}{System}
+  \gruleplain{\system}{System Name}
   \gruleplain{\subsystem}{Subsystem Name}
   \gruleplain{\explanation}{Explanation}
   \gruleplain{\component}{Component Name}
+  \gruleplain{\semprops}{Semantic Properties}
+  \gruleplain{\indexing}{Indexed Semantic Properties}
+  \gline
+  \gruleplain{\feature}{Feature}
   \gruleplain{\query}{Query}
   \gruleplain{\command}{Command}
   \gruleplain{\constraint}{Constraint}
   \gline
-  \gruleplain{\subsystem \intro \explanation}{Subsystem Explanation}
+  \gruleplain{\subsystem \intro \explanation}{Explanation Introduction 1}
+  \gruleplain{\component \intro \explanation}{Explanation Introduction 2}
+  \gline  
   \gruleplain{\subsystem \intro \subsystem}{Subsystem Containment}
-  \gruleplain{\component \intro \explanation}{Intro Explanation}
-  \gruleplain{\component \intro \subsystem}{Intro Containment}
+  \gruleplain{\subsystem \intro \component}{Containment Introduction}
+  \gline    
+  \gruleplain{\system    \intro \indexing}{Indexing Introduction 1}
+  \gruleplain{\subsystem \intro \indexing}{Indexing Introduction 2}
+  \gruleplain{\component \intro \indexing}{Indexing Introduction 3}
+  \gruleplain{\term      \intro \indexing}{Indexing Introduction 4}
   \gline
+  \gruleplain{\indexing  \intro \semprop}{Semantic Property Introduction 1}
+  \gruleplain{\system    \intro \semprop}{Semantic Property Introduction 2}
+  \gruleplain{\subsystem \intro \semprop}{Semantic Property Introduction 3}
+  \gruleplain{\component \intro \semprop}{Semantic Property Introduction 4}  
   \gruleplain{\component \intro \query}{Query Introduction}
   \gruleplain{\component \intro \command}{Command Introduction}
+  \gruleplain{\component \intro \constraint}{Constraint Introduction}
+  \gline
   \gruleplain{\component \intro \constraint}{Constraint Introduction}
 \end{grammar}
 
@@ -41,7 +57,8 @@
 
 \subsection{Type Environment}
 
-In order to define the type system, we must first introduce a few auxilliary structures:
+In order to define the type system, we must first introduce a few
+auxilliary structures:
 
 \begin{grammar}
   \grule{\cimap}{\mapof{\component}{\component}}{Component Inheritance Map}
@@ -56,9 +73,12 @@ In order to define the type system, we must first introduce a few auxilliary str
   \grule{\tenv}{\tenvexdef}{Type Environment}
 \end{grammar}
 
-\note{We will need more than this in the type environment. This is to get started!}
+\note{We will need more than this in the type environment. This is to
+  get started!}
 
-The type environment consists of a number of distinct elements required by our type system definition. For simplifying the rules, we define a short-hand notation for each of them.
+The type environment consists of a number of distinct elements
+required by our type system definition. For simplifying the rules, we
+define a short-hand notation for each of them.
 
 \begin{math}
   \begin{array}{l l l l}
@@ -73,7 +93,13 @@ The type environment consists of a number of distinct elements required by our t
 
 \subsection{Rules}
 
-\note{Currently all rules have the form: $e : \tv$. This is not strictly necessary; for example many rules can be relations that does not necessarily involve types at all (e.g. Intro explanation). All we have to ensure is that the set of rules are inductive in the right way. But since I haven't worked out all the rules, I am keeping the rules consistent and always including a type for the time being. That can be fixed later.}
+\note{Currently all rules have the form: $e : \tv$. This is not
+  strictly necessary; for example many rules can be relations that
+  does not necessarily involve types at all (e.g. Intro
+  explanation). All we have to ensure is that the set of rules are
+  inductive in the right way. But since I haven't worked out all the
+  rules, I am keeping the rules consistent and always including a type
+  for the time being. That can be fixed later.}
 
 \begin{mathparpagebreakable}
 
@@ -181,7 +207,12 @@ The type environment consists of a number of distinct elements required by our t
 
 \subsection{Auxiliary Functions and Relations}
 
-Non-circular-Inheritance indicates that a component's inheritance chain does not have a cycle. Note that the particular relation only checks for circles that includes the specific component. However since this relation must be satisfied by every component, any cycle in the chain will be detected at some point. Formally non-cicularity is a ternary relation defined inductively as below:
+Non-circular-Inheritance indicates that a component's inheritance
+chain does not have a cycle. Note that the particular relation only
+checks for circles that includes the specific component. However since
+this relation must be satisfied by every component, any cycle in the
+chain will be detected at some point. Formally non-cicularity is a
+ternary relation defined inductively as below:
 
 \begin{math}
   \noncircular(\tcimap, \component, \component') =
@@ -195,3 +226,7 @@ Non-circular-Inheritance indicates that a component's inheritance chain does not
 \end{math}
 
 \end{document}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
