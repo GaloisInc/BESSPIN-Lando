@@ -57,7 +57,9 @@
 
 \begin{grammar}
   \grule{\type}{\tp \gor \tv}{Type}
-  \grule{\tp}{\tbool \gor \tint \gor \tnat \gor \tsystem \gor \tsubsystem \gor \tcomponent}{Primitive Type (TODO: More!)}
+  \grule{\tp}{\tbool \gor \tint \gor \tnat 
+               \gor \tsystem \gor \tsubsystem \gor \tcomponent 
+               \gor \tevent \gor \tscenario \gor \trequirement}{Primitive Type}
   \grule{\tv}{\tv_1, \tv_2, \cdots}{Derived Type}
 \end{grammar}
 
