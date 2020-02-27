@@ -1,0 +1,186 @@
+\documentclass{article}
+
+\input{macros}
+
+\usepackage{cmbright}
+%\usepackage[varg]{txfonts}
+%\usepackage{pxfonts}
+
+\begin{document}
+
+\section{Notation}
+
+The grammar for the Lando System Specification Sublanguage is written in the EBNF notation. The main elements of the notation that we utilize are:
+\begin{itemize}
+  \item Terminals are represented with double or single quotes; e.g., $\gtkw{explanation}$.
+  \item Optional bits are represented with squared brackets; e.g., $\gopt{\gtkw{explanation} \gnparagraph}$.
+  \item Repetition is represented with curly braces; e.g., $\glist{\gnident}$
+  \item We use a slightly enhanced notation - $\glistnonempty{a}$ to indicate \emph{non-zero} repetitions. This is simply equivalent to: $a \glist{a}$.
+  \item For defining terminals, we would like to use the EBNF special  form to declare an extended regular expression. For example,  $\gtregexfull{\textbackslash w\\+}$. However since this is rather verbose, we will simply use $\gtregex{\textrm{\textbackslash w\\+}}$  for convenience.
+  \item Blocks in the language are typically delimited by keywords indicating the start of \emph{another} block. In defining the grammar this translates to lookaheads: (i.e., peeking at incoming tokens without consuming them). We use the perl regular expression format to indicate this. E.g., $\gtregex{?= (\gnnl \gtkw{system})}$.
+  \item Many constructs in the grammar include significant whitespaces (e.g., $\gnnamephrase$). However note that we only consider \emph{internal} whitespaces to be significant. For example, a index entry ``Email Address : foo <foo@example.com> '' is interpreted as the mapping - ``Email Address'' $\mapsto$ ``foo <foo@example.com>'' and not ``Email Address '' $\mapsto$ ``foo <foo@example.com> ''
+\end{itemize}
+
+\newpage
+
+\section{Grammar}
+
+\begin{grammar}
+  \grule{\gnlando}{
+    \glist{\gnspecelem}
+  }{Lando source}
+  
+  \grule{\gnspecelem}{
+    \gnsystem \gor \gnsubsystem \gor \gncomponent \gor \gnevent \gor \gcont 
+    \gnscenario \gor \gnrequirements \gor \gnrelation
+  }{Specification Elements}
+
+  \gline
+
+  \grule{\gnsystem}{
+    \gnlinecomments \gtkw{system} \gnnamephraserel \gopt{\gnrelkeyword \gnnamephrase} \gncomment \gnnl \gcont
+    \; \gnexplanation \gnnl \gcont
+    \; \gopt{\gnnl \gtkw{indexing} \gnindexing} \gcont
+    \; \glist{\gnnl \gnsubsystem} \gcont 
+    \; \gtregex{(?= \gnnlsystemkeyword | \gneof)} \gcont
+    \; \gnblockend
+  }{System}
+
+  \gline
+
+  \grule{\gnsubsystem}{
+    \gnlinecomments \gtkw{subsystem} \gnnamephraserel \gopt{\gtkc{(} \gnnameabbrev \gtkc{)}} \gcont
+    \; \gopt{\gnrelkeyword \gnnamephrase} \gncomment \gnnl \gcont
+    \; \gnexplanation \gnnl \gcont
+    \; \gopt{\gnnl \gtkw{indexing} \gnindexing} \gcont
+    \; \glist{\gnnl \gncomponent} \gcont
+    \; \gtregex{(?= \gnnlsubsystemkeyword | \gneof)} \gcont
+    \; \gnblockend
+  }{Subsystem}
+
+  \gline
+
+  \grule{\gncomponent}{
+    \gnlinecomments \gtkw{component} \gnnamephraserel \gopt{\gtkc{(} \gnnameabbrev \gtkc{)}} \gcont
+    \; \gopt{\gnrelkeyword \gnnamephrase} \gncomment \gcont
+    \; \glist{\gnnl \gncomponentpart} \gtregex{(?= \gnnlkeyword | \gneof)} \gcont
+    \; \gnblockend
+  }{Class}
+
+  \grule{\gncomponentpart}{
+    \gnconstraint | \gncommand | \gnquery
+  }{Component Parts}
+
+  \grule{\gnconstraint}{
+    \gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}?\,\textbackslash.]}
+  }{Constraint}
+
+  \grule{\gnquery}{
+    \gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}?\,\textbackslash?]}
+  }{Query}
+
+  \grule[0.5em]{\gncommand}{
+    \gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}?\,!]}
+  }{Command}
+
+  \gline
+
+  \grule{\gnevent}{
+    \gnlinecomments \gtkw{events} \gnnamephrase \gncomment \gcont
+    \; \glist{\gnnl \gnevententry} \gtregex{(?= \gnnlkeyword | \gneof)} \gcont
+    \; \gnblockend
+  }{Events}
+
+  \grule{\gnevententry}{
+    \gnnamephrase \gnnl \gnsentence
+  }{Event Entry}
+
+  \gline
+
+  \grule{\gnscenario}{
+    \gnlinecomments \gtkw{scenarios} \gnnamephrase \gncomment \gcont
+    \; \glist{\gnnl \gnscenarioentry} \gtregex{(?= \gnnlkeyword | \gneof)} \gcont
+    \; \gnblockend
+  }{Scenario}
+
+  \grule{\gnscenarioentry}{
+    \gnnamephrase \gnnl \gnsentence
+  }{Scenario Entry}
+
+  \gline
+
+  \grule{\gnrequirements}{
+    \gnlinecomments \gtkw{requirements} \gnnamephrase \gncomment \gcont
+    \; \glist{\gnnl \gnrequirementsentry} \gtregex{(?= \gnnlkeyword | \gneof)} \gcont
+    \; \gnblockend
+  }{Requirements}
+
+  \grule{\gnrequirementsentry}{
+    \gnnamephrase \gnnl \gnsentence
+  }{Requirements Entry}
+
+  \gline
+
+  \grule{\gnrelation}{
+    \gnlinecomments \gtkw{relation} \gnnamephraserel \gnrelkeyword \gnnamephrase \gncomment \gcont
+    \; \gtregex{(?= \gnnlkeyword | \gneof)} \gcont
+    \; \gnblockend
+  }{Relation Declaration}
+
+  \gline
+
+  \grule{\gnindexing}{
+    \glist{\gnnl \gnindexentry}
+  }{Index List}
+  
+  \grule{\gnindexentry}{
+    \gnindexkey \gtkc{:} \gnindexvallist
+  }{Index List}
+
+  \grule{\gnindexkey}{
+    \gtregex{[\text{\textasciicircum:}]\txss{+} (?= :)}
+  }{Index Key}
+
+  \grule{\gnindexvallist}{
+    \gseplist{\gnnl}{\gnindexval} \gcont
+    \; \gtregex{(?= \gneof | \gnnlkeyword | \gnnl \gnindexkey )}
+  }{Index Value List}
+
+  \grule[0.5em]{\gnindexval}{
+    \gtregex{[\text{\textasciicircum:}]\txss{+}}
+  }{Index Value}
+
+  \gline
+
+  \grule{\gnnamephrase}{
+    \gtregex{\textbackslash{}w.*\,(?= \gncomment | \gnnl | \gneof)}
+  }{Name-Phrase}
+  \grule{\gnnamephraserel}{
+    \gtregex{\textbackslash{}w.*\,(?= \gnrelkeyword | \gncomment | \gnnl | \gneof)}
+  }{Name-Phrase - Relation}
+  \grule{\gnnameabbrev}{
+    \gtregex{[A-Z]\txss{+}}
+  }{Name-Abbreviation}
+  \grule{\gnsentence}{\gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}? [.?!]}}{Sentence}
+  \grule{\gnparagraph}{\gnsentence^+ \gtregex{(?= (\gnnl \gnkeyword | \gneof))}}{Paragraph}
+  \grule{\gnexplanation}{\gnparagraph}{Explanation}
+  \grule{\gnkeyword}{
+    \gtkw{system} \gor \gtkw{subsystem} \gor \gtkw{component} \gor \gcont
+    \gtkw{events} \gor \gtkw{scenarios} \gor \gtkw{requirements} \gor \gtkw{relation}
+  }{All\ Keywords}
+  \grule{\gnnlkeyword}{\gnnl \, \gnkeyword}{Keyword on New Line}
+  \grule{\gnnlsystemkeyword}{\gnnl \, \gtkw{system}}{}
+  \grule{\gnnlsubsystemkeyword}{\gnnl \, (\gtkw{subsystem} | \gtkw{system})}{}
+  \grule{\gnrelkeyword}{\gtkw{inherit} | \gtkw{client} | \gtkw{contains}}{Relation Keywords}
+  \grule{\gnblockend}{\gnnl | \gneof}{Block End}
+  \grule{\gnnl}{\gtregex{(\textbackslash r?\textbackslash n) | \textbackslash r}}{New Line}
+  \grule{\gnlinecomments}{\glist{\gncomment \gnnl}}{Opt Line Comments}
+  \grule{\gncomment}{\gopt{\gncommentchar \gtregex{.*\,(?= (\gnnl | \gneof))}}}{Opt Comment}
+\end{grammar}
+
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% End:
