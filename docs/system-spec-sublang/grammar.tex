@@ -159,7 +159,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \gtregex{\textbackslash{}w.*\,(?= \gnrelkeyword | \gncomment | \gnnl | \gneof)}
   }{Name-Phrase - Relation}
   \grule{\gnnameabbrev}{
-    \gtregex{\textbackslash{}w.*}
+    \gtregex{[A-Z]\txss{+}}
   }{Name-Abbreviation}
   \grule{\gnsentence}{\gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}? [.?!]}}{Sentence}
   \grule{\gnparagraph}{\gnsentence^+ \gtregex{(?= (\gnnl \gnkeyword | \gneof))}}{Paragraph}
