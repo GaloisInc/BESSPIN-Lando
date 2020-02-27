@@ -10,35 +10,15 @@
 
 \section{Notation}
 
-The grammar for the Lando System Specification Sublanguage is written
-in the EBNF notation. The main elements of the notation that we
-utilize are:
+The grammar for the Lando System Specification Sublanguage is written in the EBNF notation. The main elements of the notation that we utilize are:
 \begin{itemize}
-\item Terminals are represented with double or single quotes;
-  e.g., $\gtkw{explanation}$.
-\item Optional bits are represented with squared brackets;
-  e.g., $\gopt{\gtkw{explanation} \gnparagraph}$.
-\item Repetition is represented with curly braces;
-  e.g., $\glist{\gnident}$
-\item We use a slightly enhanced notation - $\glistnonempty{a}$ to
-  indicate \emph{non-zero} repetitions. This is simply equivalent to:
-  $a \glist{a}$.
-\item For defining terminals, we would like to use the EBNF special
-  form to declare an extended regular expression. For example,
-  $\gtregexfull{\textbackslash w\\+}$. However since this is rather
-  verbose, we will simply use $\gtregex{\textrm{\textbackslash w\\+}}$
-  for convenience.
-\item Blocks in the language are typically delimited by keywords
-  indicating the start of \emph{another} block. In defining the
-  grammar this translates to lookaheads: (i.e., peeking at incoming
-  tokens without consuming them). We use the perl regular expression
-  format to indicate this. E.g., $\gtregex{?= (\gnnl \gtkw{system})}$.
-\item Many constructs in the grammar include significant whitespaces
-  (e.g., $\gnnamephrase$). However note that we only consider
-  \emph{internal} whitespaces to be significant. For example, a index
-  entry ``Email Address : foo <foo@example.com> '' is interpreted as
-  the mapping - ``Email Address'' $\mapsto$ ``foo <foo@example.com>''
-  and not ``Email Address '' $\mapsto$ ``foo <foo@example.com> ''
+  \item Terminals are represented with double or single quotes; e.g., $\gtkw{explanation}$.
+  \item Optional bits are represented with squared brackets; e.g., $\gopt{\gtkw{explanation} \gnparagraph}$.
+  \item Repetition is represented with curly braces; e.g., $\glist{\gnident}$
+  \item We use a slightly enhanced notation - $\glistnonempty{a}$ to indicate \emph{non-zero} repetitions. This is simply equivalent to: $a \glist{a}$.
+  \item For defining terminals, we would like to use the EBNF special  form to declare an extended regular expression. For example,  $\gtregexfull{\textbackslash w\\+}$. However since this is rather verbose, we will simply use $\gtregex{\textrm{\textbackslash w\\+}}$  for convenience.
+  \item Blocks in the language are typically delimited by keywords indicating the start of \emph{another} block. In defining the grammar this translates to lookaheads: (i.e., peeking at incoming tokens without consuming them). We use the perl regular expression format to indicate this. E.g., $\gtregex{?= (\gnnl \gtkw{system})}$.
+  \item Many constructs in the grammar include significant whitespaces (e.g., $\gnnamephrase$). However note that we only consider \emph{internal} whitespaces to be significant. For example, a index entry ``Email Address : foo <foo@example.com> '' is interpreted as the mapping - ``Email Address'' $\mapsto$ ``foo <foo@example.com>'' and not ``Email Address '' $\mapsto$ ``foo <foo@example.com> ''
 \end{itemize}
 
 \newpage
@@ -172,9 +152,12 @@ utilize are:
 
   \gline
 
-  \grule{\gnnamephraserel}{
-    \gtregex{\textbackslash{}w.*\,(?= \gnrelkeyword | \gnnl)}
+  \grule{\gnnamephrase}{
+    \gtregex{\textbackslash{}w.*\,(?= \gncomment | \gnnl | \gneof)}
   }{Name-Phrase}
+  \grule{\gnnamephraserel}{
+    \gtregex{\textbackslash{}w.*\,(?= \gnrelkeyword | \gncomment | \gnnl | \gneof)}
+  }{Name-Phrase - Relation}
   \grule{\gnnameabbrev}{
     \gtregex{\textbackslash{}W.+}
   }{Name-Abbreviation}
