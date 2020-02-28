@@ -25,14 +25,14 @@ system     : lineComments?
 
 subsystem  : lineComments?
              SUBSYSTEM
-             subsysname=name (RELKEYWORD relname=name)? comment? lineseps
+             subsysname=name ABBREV? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
              (lineseps index)?
              blockend ;
 
 component  : lineComments?
              COMPONENT
-             compname=name (RELKEYWORD relname=name)? comment?
+             compname=name ABBREV? (RELKEYWORD relname=name)? comment?
              (lineseps componentParts)?
              blockend ;
 

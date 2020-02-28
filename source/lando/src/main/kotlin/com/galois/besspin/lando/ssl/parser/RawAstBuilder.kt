@@ -51,10 +51,11 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
 
     private fun toAst(subsysCxt: SSLParser.SubsystemContext): Pair<RawSubsystem, List<RawRelation>> {
         val name = toAst(subsysCxt.subsysname)
+        val abbrevName = subsysCxt.ABBREV()?.symbol?.text?.trim()
         val description = toAst(subsysCxt.paragraph())
         val index = toAstOptional(subsysCxt.index())
         val comments = collectComments(subsysCxt.lineComments(), subsysCxt.comment())
-        val subsystem = RawSubsystem(nextUid(), name, description, index, comments)
+        val subsystem = RawSubsystem(nextUid(), name, abbrevName, description, index, comments)
 
         val reltype = subsysCxt.RELKEYWORD()?.symbol?.text?.trim() ;
         val relname = toAstOptional(subsysCxt.relname)
@@ -72,9 +73,10 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
 
     private fun toAst(cmpCxt: SSLParser.ComponentContext): Pair<RawComponent, List<RawRelation>> {
         val name = toAst(cmpCxt.compname)
+        val abbrevName = cmpCxt.ABBREV()?.symbol?.text?.trim() ;
         val parts = if (cmpCxt.componentParts() != null) toAst(cmpCxt.componentParts()) else arrayListOf()
         val comments = collectComments(cmpCxt.lineComments(), cmpCxt.comment())
-        val component = RawComponent(nextUid(), name, parts, comments)
+        val component = RawComponent(nextUid(), name, abbrevName, parts, comments)
 
         val reltype = cmpCxt.RELKEYWORD()?.symbol?.text?.trim() ;
         val relname = toAstOptional(cmpCxt.relname)

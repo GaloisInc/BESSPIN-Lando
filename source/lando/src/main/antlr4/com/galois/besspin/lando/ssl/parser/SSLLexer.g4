@@ -61,7 +61,8 @@ tokens {
     SPECIAL_REWIND,
     LINESEP,
     NAME, NAMECHAR,
-    SENTENCE
+    SENTENCE,
+    RELKEYWORD
 }
 
 //Common Fragments
@@ -82,6 +83,10 @@ fragment F_ALL_KEYWORDS : F_SYSTEM | F_SUBSYSTEM | F_COMPONENT | F_EVENTS | F_SC
 fragment F_KEYWORD_SEP  : F_WHITESPACE | F_LINESEP ;
 
 fragment F_RELKEYWORD   : 'inherit' | 'client' | 'contains' ;
+
+fragment F_ABBREVSTART  : '(' ;
+fragment F_ABBREVEND    : ')' ;
+fragment F_ABBREV       : [A-Z]+ ;
 
 fragment F_INDEXING     : 'indexing' ;
 fragment F_DICTSEP      : ':' ;
@@ -107,9 +112,9 @@ LINESEP      : F_LINESEP ;
 
 SYSTEM       : F_SYSTEM -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
 
-SUBSYSTEM    : F_SUBSYSTEM -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
+SUBSYSTEM    : F_SUBSYSTEM -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASERELABBREV) ;
 
-COMPONENT    : F_COMPONENT -> pushMode(MODE_COMPONENT_PARTS), pushMode(MODE_NAMEPHRASEREL) ;
+COMPONENT    : F_COMPONENT -> pushMode(MODE_COMPONENT_PARTS), pushMode(MODE_NAMEPHRASERELABBREV) ;
 
 EVENTS       : F_EVENTS -> pushMode(MODE_MAYBE_IDENT_LINE), pushMode(MODE_NAMEPHRASE) ;
 
@@ -128,13 +133,13 @@ COMMENT      : F_LINECOMMENTSTART -> pushMode(MODE_COMMENTS) ;
 //Essentially: Word characters _including_ spaces. Terminated by either a relation key word or end of line
 mode MODE_NAMEPHRASEREL;
 
-NMR_LINESEP  : F_LINESEP -> type(LINESEP), popMode ;
+NMR_LINESEP      : F_LINESEP -> type(LINESEP), popMode ;
 
-RELKEYWORD   : F_WHITESPACES F_RELKEYWORD F_WHITESPACES -> popMode, pushMode(MODE_NAMEPHRASE) ;
+NMR_RELKEYWORD   : F_WHITESPACES F_RELKEYWORD F_WHITESPACES -> type(RELKEYWORD), popMode, pushMode(MODE_NAMEPHRASE) ;
 
-NMR_NAMECHAR : . -> type(NAMECHAR) ;
+NMR_NAMECHAR     : . -> type(NAMECHAR) ;
 
-NMR_COMMENT  : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
+NMR_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
 
 //Name-phrase lexing
@@ -147,6 +152,44 @@ NM_NAMECHAR  : . -> type(NAMECHAR) ;
 
 NM_COMMENT   : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
+
+//Name-phrase-rel-abbrev lexing
+//Essentially: Word characters _including_ spaces and abbreviations. Terminated by one of - relation key word or end of line
+mode MODE_NAMEPHRASERELABBREV;
+
+NMRA_LINESEP      : F_LINESEP -> type(LINESEP), popMode ;
+
+NMRA_RELKEYWORD   : F_WHITESPACES F_RELKEYWORD F_WHITESPACES -> type(RELKEYWORD), popMode, pushMode(MODE_NAMEPHRASE) ;
+
+//Finding an abbrev is essentially a termination of the _name_ part of this mode. After this you can still get a RELKEYWORD
+//however. So switch to a different mode and let it do the necessary circus. Note: we could potentially inline the abbrev mode
+//entirely here, but then we had have to strip out the parenthesis in code.
+NMRA_ABBREVSTART  : F_ABBREVSTART -> skip, popMode, pushMode(MODE_ABBREV) ;
+
+NMRA_NAMECHAR     : . -> type(NAMECHAR) ;
+
+NMRA_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
+
+
+mode MODE_ABBREV ;
+
+ABB_WHITESPACE    : F_WHITESPACE -> skip ;
+
+ABBREV            : F_ABBREV ;
+
+//After abbreviations, we can have an optional RELKEYWORD
+ABB_ABBREVEND     : F_ABBREVEND -> skip, popMode, pushMode(MODE_MAYBE_RELKEYWORD) ;
+
+
+mode MODE_MAYBE_RELKEYWORD ;
+
+REL_LINESEP       : F_LINESEP -> type(LINESEP), popMode ;
+
+REL_WHITESPACE    : F_WHITESPACE -> skip ;
+
+REL_RELKEYWORD    : F_RELKEYWORD -> type(RELKEYWORD), popMode, pushMode(MODE_NAMEPHRASE) ;
+
+REL_COMMENT       : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
 //Paragraph
 mode MODE_PARAGRAPH;
