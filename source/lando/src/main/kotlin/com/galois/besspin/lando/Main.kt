@@ -19,7 +19,7 @@ import java.lang.System
 typealias LSystem = com.galois.besspin.lando.ssl.ast.RawSystem
 
 
-class CommandLine : NoRunCliktCommand(printHelpOnEmptyArgs = true) {
+class CommandLine : NoRunCliktCommand(printHelpOnEmptyArgs = true, name = "lando") {
     override fun run() {
     }
 }

@@ -150,8 +150,8 @@ data class RawImplicitContainsRelation(
 
 @Serializable
 data class RawClientRelation(
-    var name: String,
-    var client: String
+    var client: String,
+    var provider: String
 ): RawRelation()
 
 

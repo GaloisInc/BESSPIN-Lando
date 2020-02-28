@@ -13,7 +13,8 @@ element    : system           #systemElement
            | component        #componentElement
            | events           #eventsElement
            | scenarios        #scenariosElement
-           | requirements     #requirementsElement ;
+           | requirements     #requirementsElement
+           | relation         #relationElement ;
 
 system     : lineComments?
              SYSTEM
@@ -81,7 +82,7 @@ requirementEntries : requirementEntry (lineseps requirementEntry)* ;
 requirementEntry   : lineComments? name nameComment=comment? lineseps SENTENCE sentenceComment=comment? ;
 
 
-relation          : lineComments? RELATION compname=name (RELKEYWORD relname=name)? comment? blockend ;
+relation          : lineComments? RELATION left=name (RELKEYWORD right=name)? comment? blockend ;
 
 
 index             : INDEXING (lineseps indexEntries)? ;

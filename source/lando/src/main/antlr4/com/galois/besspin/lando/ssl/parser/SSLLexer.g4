@@ -19,16 +19,34 @@ lexer grammar SSLLexer;
 //}
 
 @members {
+    //We override nextToken() to handle a special rewind token which can
+    //be used to reset the input stream to the start of the current token; this
+    //is effectively a backtracking mechanism.
+    //The function has also been enhanced to give us some information about
+    //lexing, which is critical given our complicated usage of lexer modes. Just
+    //uncomment the print statement here to see what is being lexed as well
+    //as mode transitions and rewinding
     public Token nextToken() {
+        int incomingMode = this._mode ;
+        String text = "<null>";
+        String rewind = "No Rewind";
+
         while (true) {
             int mark = _input.mark();
             try {
                 int startIndex = _input.index();
                 Token token = super.nextToken();
                 if (token != null && token.getType() == SPECIAL_REWIND) {
+                    rewind = "Rewinded on \"" + token.getText() + "\"" ;
+
                     _input.seek(startIndex);
                     continue;
                 }
+
+                text = token.getText();
+
+                int outgoingMode = this._mode ;
+                //System.out.printf("%s | %d -> %d | %s \n", text, incomingMode, outgoingMode, rewind);
 
                 return token;
             }
@@ -37,10 +55,6 @@ lexer grammar SSLLexer;
             }
         }
     }
-}
-
-channels {
-    COMMENTS
 }
 
 tokens {
@@ -77,6 +91,8 @@ fragment F_SENTENCECHAR  : ~ [.!?] ;
 fragment F_SENTENCEEND   : [.!?] ;
 fragment F_SENTENCE      : F_SENTENCESTART F_SENTENCECHAR*? F_SENTENCEEND  ;
 
+fragment F_SENTENCEENDLOOKAHEAD : F_SENTENCEEND | EOF ;
+
 fragment F_COMMAND      : F_SENTENCESTART F_SENTENCECHAR* [!] ;
 fragment F_CONSTRAINT   : F_SENTENCESTART F_SENTENCECHAR* [.] ;
 fragment F_QUERY        : F_SENTENCESTART F_SENTENCECHAR* [?] ;
@@ -95,11 +111,11 @@ SUBSYSTEM    : F_SUBSYSTEM -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASE
 
 COMPONENT    : F_COMPONENT -> pushMode(MODE_COMPONENT_PARTS), pushMode(MODE_NAMEPHRASEREL) ;
 
-EVENTS       : F_EVENTS -> pushMode(MODE_IDENT_LINE), pushMode(MODE_EMPTY_LINE), pushMode(MODE_NAMEPHRASE) ;
+EVENTS       : F_EVENTS -> pushMode(MODE_MAYBE_IDENT_LINE), pushMode(MODE_NAMEPHRASE) ;
 
-SCENARIOS    : F_SCENARIOS -> pushMode(MODE_IDENT_LINE), pushMode(MODE_EMPTY_LINE), pushMode(MODE_NAMEPHRASE) ;
+SCENARIOS    : F_SCENARIOS -> pushMode(MODE_MAYBE_IDENT_LINE), pushMode(MODE_NAMEPHRASE) ;
 
-REQUIREMENTS : F_REQUIREMENTS -> pushMode(MODE_IDENT_LINE), pushMode(MODE_EMPTY_LINE), pushMode(MODE_NAMEPHRASE) ;
+REQUIREMENTS : F_REQUIREMENTS -> pushMode(MODE_MAYBE_IDENT_LINE), pushMode(MODE_NAMEPHRASE) ;
 
 RELATION     : F_RELATION -> pushMode(MODE_NAMEPHRASEREL) ;
 
@@ -162,8 +178,6 @@ CP_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 //The start line of a specific event, requirement or scenario
 mode MODE_IDENT_LINE ;
 
-IL_WHITESPACES : F_WHITESPACES -> skip ;
-
 IL_LINESEP     : F_LINESEP -> type(LINESEP), popMode, pushMode(MODE_SINGLE_SENTENCE) ;
 
 IL_NAMECHAR    : . -> type(NAMECHAR) ;
@@ -173,24 +187,24 @@ IL_COMMENT     : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 //The content of a specific event, requirement or scenario
 mode MODE_SINGLE_SENTENCE ;
 
-SS_WHITESPACES  : F_WHITESPACES -> skip ;
+SS_WHITESPACE   : F_WHITESPACE -> skip ;
 
-SS_LINESEP      : F_LINESEP -> type(LINESEP), popMode, pushMode(MODE_IDENT_LINE), pushMode(MODE_EMPTY_LINE) ;
+SS_LINESEP      : F_LINESEP -> type(LINESEP) ;
 
-SS_ALL_KEYWORDS : F_ALL_KEYWORDS F_KEYWORD_SEP (F_SENTENCECHAR+ F_SENTENCEEND)? -> popMode, type(SPECIAL_REWIND) ;
-
-SS_SENTENCE     : F_SENTENCE -> type(SENTENCE) ;
-
-SS_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
+SS_SENTENCE     : F_SENTENCE -> type(SENTENCE), popMode, pushMode(MODE_MAYBE_IDENT_LINE) ;
 
 
-mode MODE_EMPTY_LINE ;
+mode MODE_MAYBE_IDENT_LINE ;
 
-ELS_EMPTY_LINE  : F_WHITESPACE* F_LINESEP -> type(LINESEP) ;
+MRIL_WHITESPACE   : F_WHITESPACE -> skip ;
 
-ELS_ANYCHAR     : . -> type(SPECIAL_REWIND), popMode ;
+MRIL_LINESEP      : F_LINESEP -> type(LINESEP) ;
 
-ELS_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
+MRIL_ALL_KEYWORDS : F_ALL_KEYWORDS -> popMode, type(SPECIAL_REWIND) ;
+
+MRIL_ANYCHAR      : . -> type(SPECIAL_REWIND), popMode, pushMode(MODE_IDENT_LINE) ;
+
+MRIL_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
 
 mode MODE_INDEXING ;
