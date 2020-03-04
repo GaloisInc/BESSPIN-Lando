@@ -86,7 +86,7 @@ fragment F_RELKEYWORD   : 'inherit' | 'client' | 'contains' ;
 
 fragment F_ABBREVSTART  : '(' ;
 fragment F_ABBREVEND    : ')' ;
-fragment F_ABBREV       : [A-Z]+ ;
+fragment F_ABBREV       : [A-Za-z0-9_-]+ ;
 
 fragment F_INDEXING     : 'indexing' ;
 fragment F_DICTSEP      : ':' ;
