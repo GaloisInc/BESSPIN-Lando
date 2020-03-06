@@ -4,6 +4,22 @@
 
 \input{macros}
 
+% Grammar definition helpers
+\renewenvironment{grammar}{%
+  \global\def\grammarVertAdjustment{0mm}
+  \newcommand{\gline}{\hline \\[-0.5em]}
+  \newcommand{\gcont}{\\ & &}
+  \newcommand{\gor}{\ensuremath{\mid}}
+  \newcommand{\grule}[4][0mm]{##2 & ::= & ##3 & \mbox{\scriptsize $\textit{##4}$} \\[##1] }
+  \newcommand{\gruleplain}[3][0mm]{##2 & \hphantom{::=} & & \mbox{\scriptsize $\textit{##3}$} \\[##1] }
+  \small
+  \begin{center}
+  \begin{longtable}{>{$}l<{$} >{$}c<{$} >{$}l<{$} >{$}r<{$}}
+}{%
+  \end{longtable}
+  \end{center}
+}
+ 
 % Grammar macros
 \newcommand{\bbrule}[4][]{\inferrule*[lab={\sc #2},#1]{#3}{#4}}
 \newcommand{\bbrulename}[1]{{\sc #1}}
@@ -11,7 +27,7 @@
 % General
 \newcommand{\note}[1]{\todo[inline,color=green!40]{#1}}
 
-\newcommand{\listof}[2][]{[#2]^{#1}}
+\newcommand{\listof}[2][]{\ensuremath{[#2]^{#1}}}
 \newcommand{\setof}[2][]{\{#2\}^{#1}}
 \newcommand{\mapof}[3][]{\{#2 \mapsto #3\}^{#1}}
 
@@ -49,6 +65,11 @@
 \newcommand{\requirements}[1][R]{\gntn{#1}}
 \newcommand{\requirement}[1][r]{\gntn{#1}}
 
+\newcommand{\requirementparam}[1][pp]{\gntn{#1}}
+\newcommand{\requirementparams}[1][pp]{\setof{\requirementparam[#1]}}
+\newcommand{\earrow}[2]{#1 \rightarrow #2}
+\newcommand{\pbexpr}[1][b]{\gntn{#1}}
+
 \newcommand{\intro}{\leftarrow}
 
 % Types
@@ -61,17 +82,20 @@
 \newcommand{\tnat}{\mathcal{N}}
 \newcommand{\treal}{\mathcal{R}}
 \newcommand{\tdate}{\mathcal{D}}
+\newcommand{\tarrow}[2]{#1 \rightarrow #2}
 % TODO: More types
 
 \newcommand{\tsystem}{\ensuremath{System}}
 \newcommand{\tsubsystem}{\ensuremath{Subsystem}}
 \newcommand{\tcomponent}{\ensuremath{Component}}
 \newcommand{\tevent}{\ensuremath{Event}}
-\newcommand{\tscenario}{\ensuremath{Scenario}}
-\newcommand{\trequirement}{\ensuremath{Requirement}}
+%\newcommand{\tscenario}{\ensuremath{Scenario}}
+%\newcommand{\trequirement}{\ensuremath{Requirement}}
 
+\newcommand{\tl}{\vec{\type}}
 \newcommand{\tp}{\hat{\type}}
 \newcommand{\tv}{\breve{\type}}
+\newcommand{\tf}{\dot{\type}}
 
 \newcommand{\hastype}{\mathop{:}}
 
@@ -83,21 +107,107 @@
 \newcommand{\cdmapvaldef}{\cdmapval{\subsystem}{\explanation}{\setof{\feature}}} 
 \newcommand{\constraints}{\mathbb{T}}
 
+\newcommand{\sydata}{\mathbb{SY}}
+\newcommand{\sydataval}[5]{\langle #1, #2, #3, #4, #5 \rangle}
+\newcommand{\sydatavaldef}{
+  \sydataval{\setof{\subsystem}}{\setof{\events}}{\setof{\scenarios}}{\setof{\requirements}}{\indexing}
+} 
+
 \newcommand{\stmap}{\mathbb{ST}}
 \newcommand{\sdmap}{\mathbb{SD}}
-\newcommand{\sdmapval}[4]{\langle #1, #2, #3, #4 \rangle}
-\newcommand{\sdmapvaldef}{\sdmapval{\subsystemparent}{\explanation}{\setof{\subsystem}}{\setof{\component}}} 
+\newcommand{\sdmapval}[5]{\langle #1, #2, #3, #4, #5 \rangle}
+\newcommand{\sdmapvaldef}{
+  \sdmapval{\subsystemparent}{\explanation}{\setof{\subsystem}}{\setof{\component}}{\indexing}
+} 
+
+%\newcommand{\estmap}{\mathbb{EST}}
+\newcommand{\esdmap}{\mathbb{ESD}}
+\newcommand{\esdmapval}[2]{\langle #1, #2 \rangle}
+\newcommand{\esdmapvaldef}{\esdmapval{\system}{\setof{\event}}} 
+\newcommand{\etmap}{\mathbb{ET}}
+\newcommand{\edmap}{\mathbb{ED}}
+\newcommand{\edmapval}[1]{#1}
+\newcommand{\edmapvaldef}{\edmapval{\events}}
+\newcommand{\evi}{\mathbb{EI}}
+\newcommand{\evival}[3]{\langle #1, #2, #3 \rangle}
+\newcommand{\evivaldef}{\evival{\esdmap}{\etmap}{\edmap}}
+
+%\newcommand{\scstmap}{\mathbb{UST}}
+\newcommand{\scsdmap}{\mathbb{USD}}
+\newcommand{\scsdmapval}[2]{\langle #1, #2 \rangle}
+\newcommand{\scsdmapvaldef}{\scsdmapval{\system}{\setof{\scenario}}} 
+\newcommand{\sctmap}{\mathbb{UT}}
+\newcommand{\scdmap}{\mathbb{UD}}
+\newcommand{\scdmapval}[1]{#1}
+\newcommand{\scdmapvaldef}{\scdmapval{\scenarios}}
+\newcommand{\sci}{\mathbb{UI}}
+\newcommand{\scival}[3]{\langle #1, #2, #3 \rangle}
+\newcommand{\scivaldef}{\scival{\scsdmap}{\sctmap}{\scdmap}}
+
+
+%\newcommand{\rstmap}{\mathbb{RST}}
+\newcommand{\rsdmap}{\mathbb{RSD}}
+\newcommand{\rsdmapval}[2]{\langle #1, #2 \rangle}
+\newcommand{\rsdmapvaldef}{\rsdmapval{\system}{\setof{\requirement}}} 
+\newcommand{\rtmap}{\mathbb{RT}}
+\newcommand{\rdmap}{\mathbb{RD}}
+\newcommand{\rdmapval}[1]{#1}
+\newcommand{\rdmapvaldef}{\rdmapval{\requirements}}
+\newcommand{\ri}{\mathbb{RI}}
+\newcommand{\rival}[3]{\langle #1, #2, #3 \rangle}
+\newcommand{\rivaldef}{\rival{\rsdmap}{\rtmap}{\rdmap}}
+
+\newcommand{\indexmap}{\mathbb{I}}
+\newcommand{\indexmapval}[2]{\langle #1,#2 \rangle}
+\newcommand{\indexmapvaldef}{\indexmapval{\indexparent}{\setof{\semprop}}}
+\newcommand{\indexparent}{\mathbb{SS}}
 
 \newcommand{\tenv}{\Gamma}
-\newcommand{\tenvex}[6]{\langle #1, #2, #3, #4, #5, #6 \rangle}
-\newcommand{\tenvexdef}{\tenvex{\cimap}{\ctmap}{\cdmap}{\constraints}{\stmap}{\sdmap}}
+\newcommand{\tenvex}[9]{
+  \def\tempa{#1}%
+  \def\tempb{#2}%
+  \def\tempc{#3}%
+  \def\tempd{#4}%
+  \def\tempe{#5}%
+  \def\tempf{#6}%
+  \def\tempg{#7}%
+  \def\temph{#8}%
+  \def\tempi{#9}%
+  \tenvexcontinued
+}
+\newcommand{\tenvexcontinued}[2]{
+    \langle \tempa, \tempb, \tempc, \tempd, \tempe, \tempf, \tempg, \temph, \tempi, 
+             #1, #2
+    \rangle
+}
+\newcommand{\tenvexdef}{
+    \tenvex
+      {\cimap}{\ctmap}{\cdmap}{\constraints}{\sydata}{\stmap}{\sdmap}
+      {\indexmap}{\evi}{\sci}{\ri}
+}
 
 \newcommand{\tcimap}{\cimap^{\tenv}}
 \newcommand{\tctmap}{\ctmap^{\tenv}}
 \newcommand{\tcdmap}{\cdmap^{\tenv}}
 \newcommand{\tconstraints}{\constraints^{\tenv}}
+\newcommand{\tsydata}{\sydata^{\tenv}}
 \newcommand{\tstmap}{\stmap^{\tenv}}
 \newcommand{\tsdmap}{\sdmap^{\tenv}}
+\newcommand{\testmap}{\estmap^{\tenv}}
+\newcommand{\tesdmap}{\esdmap^{\tenv}}
+\newcommand{\tetmap}{\etmap^{\tenv}}
+\newcommand{\tedmap}{\edmap^{\tenv}}
+\newcommand{\tscstmap}{\scstmap^{\tenv}}
+\newcommand{\tscsdmap}{\scsdmap^{\tenv}}
+\newcommand{\tsctmap}{\sctmap^{\tenv}}
+\newcommand{\tscdmap}{\scdmap^{\tenv}}
+\newcommand{\trstmap}{\rstmap^{\tenv}}
+\newcommand{\trsdmap}{\rsdmap^{\tenv}}
+\newcommand{\trtmap}{\rtmap^{\tenv}}
+\newcommand{\trdmap}{\rdmap^{\tenv}}
+\newcommand{\tindexmap}{\indexmap^{\tenv}}
 
 % Type rule helper functions
 \newcommand{\noncircular}{\fn{NCI}}
+\newcommand{\typeof}{\fn{TypeOf}}
+
