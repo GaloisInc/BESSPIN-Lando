@@ -54,12 +54,12 @@ fun parseFile(file: File): RawSSL {
     parser.removeErrorListeners()
     parser.addErrorListener(errorListener)
 
-    val ssl = parser.ssl()
+    val landoSource = parser.landoSource()
 
     if(errorListener.errors.size != 0) {
         throw IllegalStateException("Parser Failed due to the following errors:\n${errorListener.formatErrors()}\n")
     } else {
-        return RawAstBuilder(ssl).build()
+        return RawAstBuilder(landoSource).build()
     }
 }
 
@@ -78,11 +78,11 @@ fun parseText(text: String): RawSSL {
     parser.removeErrorListeners()
     parser.addErrorListener(errorListener)
 
-    val ssl = parser.ssl()
+    val landoSource = parser.landoSource()
 
     if(errorListener.errors.size != 0) {
         throw IllegalStateException("Parser Failed due to the following errors:\n${errorListener.formatErrors()}\n")
     } else {
-        return RawAstBuilder(ssl).build()
+        return RawAstBuilder(landoSource).build()
     }
 }

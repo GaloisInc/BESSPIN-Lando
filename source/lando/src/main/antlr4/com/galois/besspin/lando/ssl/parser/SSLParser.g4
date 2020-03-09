@@ -6,28 +6,28 @@ parser grammar SSLParser;
 
 options { tokenVocab = SSLLexer; }
 
-ssl        : lineseps? element* lineseps? lineComments? lineseps? EOF;
+landoSource    : lineseps? specElement* lineseps? lineComments? lineseps? EOF;
 
-element    : system           #systemElement
-           | subsystem        #subsystemElement
-           | component        #componentElement
-           | events           #eventsElement
-           | scenarios        #scenariosElement
-           | requirements     #requirementsElement
-           | relation         #relationElement ;
+specElement    : system           #systemElement
+               | subsystem        #subsystemElement
+               | component        #componentElement
+               | events           #eventsElement
+               | scenarios        #scenariosElement
+               | requirements     #requirementsElement
+               | relation         #relationElement ;
 
 system     : lineComments?
              SYSTEM
              sysname=name (RELKEYWORD relname=name)? comment? lineseps
              paragraph
-             (lineseps index)?
+             (lineseps indexing)?
              blockend ;
 
 subsystem  : lineComments?
              SUBSYSTEM
              subsysname=name ABBREV? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
-             (lineseps index)?
+             (lineseps indexing)?
              blockend ;
 
 component  : lineComments?
@@ -85,19 +85,19 @@ requirementEntry   : lineComments? name nameComment=comment? lineseps SENTENCE s
 relation          : lineComments? RELATION left=name (RELKEYWORD right=name)? comment? blockend ;
 
 
-index             : INDEXING (lineseps indexEntries)? ;
+indexing          : INDEXING (lineseps indexEntries)? ;
 
 indexEntries      : indexEntry (lineseps indexEntry)* ;
 
-indexEntry        : indexKey INDEXSEP indexValue ;
+indexEntry        : indexKey INDEXSEP indexValueList ;
+
+indexValueList    : indexValuePart (lineseps indexValuePart)* ;
 
 indexString       :  INDEXCHAR+ ;
 
 indexKey          : indexString ;
 
 indexValuePart    : indexString comment? ;
-
-indexValue        : indexValuePart (lineseps indexValuePart)* ;
 
 
 comment      : COMMENT COMMENTCHAR* ;

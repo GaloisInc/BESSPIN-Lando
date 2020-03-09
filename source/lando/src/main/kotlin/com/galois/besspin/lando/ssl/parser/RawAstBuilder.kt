@@ -2,7 +2,7 @@ package com.galois.besspin.lando.ssl.parser
 
 import com.galois.besspin.lando.ssl.ast.*
 
-class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
+class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
 
     private var inheritRelations: MutableList<RawInheritRelation> = arrayListOf()
     private var containsRelations: MutableList<RawContainsRelation> = arrayListOf()
@@ -13,10 +13,10 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
     private var lastSystem: RawSystem? = null
     private var lastSubsystem: RawSubsystem? = null
 
-    fun build(): RawSSL = toAst(sslCxt)
+    fun build(): RawSSL = toAst(landoSourceContext)
 
-    private fun toAst(sslCxt: SSLParser.SslContext): RawSSL {
-        val (elements, relationsListOfLists) = sslCxt.element().map {
+    private fun toAst(landoSourceContext: SSLParser.LandoSourceContext): RawSSL {
+        val (elements, relationsListOfLists) = landoSourceContext.specElement().map {
             when(it) {
                 is SSLParser.SystemElementContext -> toAst(it.system())
                 is SSLParser.SubsystemElementContext -> toAst(it.subsystem())
@@ -36,7 +36,7 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
     private fun toAst(sysCxt: SSLParser.SystemContext): Pair<RawSystem, List<RawRelation>> {
         val name = toAst(sysCxt.sysname)
         val description = toAst(sysCxt.paragraph())
-        val index = toAstOptional(sysCxt.index())
+        val index = toAstOptional(sysCxt.indexing())
         val comments = collectComments(sysCxt.lineComments(), sysCxt.comment())
         val system = RawSystem(nextUid(), name, description, index, comments)
 
@@ -53,7 +53,7 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
         val name = toAst(subsysCxt.subsysname)
         val abbrevName = subsysCxt.ABBREV()?.symbol?.text?.trim()
         val description = toAst(subsysCxt.paragraph())
-        val index = toAstOptional(subsysCxt.index())
+        val index = toAstOptional(subsysCxt.indexing())
         val comments = collectComments(subsysCxt.lineComments(), subsysCxt.comment())
         val subsystem = RawSubsystem(nextUid(), name, abbrevName, description, index, comments)
 
@@ -201,7 +201,7 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
             createRelation(relationCxt.RELKEYWORD().symbol?.text?.trim(), toAst(relationCxt.left), toAst(relationCxt.right))
         ).filterNotNull()
 
-    private fun toAstOptional(indexCxt: SSLParser.IndexContext?): List<RawIndexEntry> =
+    private fun toAstOptional(indexCxt: SSLParser.IndexingContext?): List<RawIndexEntry> =
         if (indexCxt != null) toAst(indexCxt.indexEntries()) else listOf()
 
     private fun toAst(indexEntriesCxt: SSLParser.IndexEntriesContext): List<RawIndexEntry> =
@@ -209,14 +209,14 @@ class RawAstBuilder(var sslCxt: SSLParser.SslContext) {
 
     private fun toAst(indexEntryCxt: SSLParser.IndexEntryContext): RawIndexEntry {
         val key = toAst(indexEntryCxt.indexKey())
-        val (values, comments) = toAst(indexEntryCxt.indexValue())
+        val (values, comments) = toAst(indexEntryCxt.indexValueList())
         return RawIndexEntry(key, values, comments)
     }
 
     private fun toAst(indexKeyCxt: SSLParser.IndexKeyContext): String =
         toAst(indexKeyCxt.indexString())
 
-    private fun toAst(indexValueCxt: SSLParser.IndexValueContext): Pair<List<String>, List<RawComment>> {
+    private fun toAst(indexValueCxt: SSLParser.IndexValueListContext): Pair<List<String>, List<RawComment>> {
         val (values, maybeComments) = indexValueCxt.indexValuePart().map { toAst(it) }.unzip()
         return Pair(values, maybeComments.filterNotNull())
     }

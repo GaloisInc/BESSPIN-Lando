@@ -1,23 +1,5 @@
 lexer grammar SSLLexer;
 
-//@lexer::members {
-//    java.util.List tokens = new java.util.LinkedList();
-//
-//    public void emit(Token token) {
-//            tokens.add(token);
-//            super.emit(token);
-//    }
-//
-//    public Token nextToken() {
-//            super.nextToken();
-//            return (Token)tokens.remove(0);
-//    }
-//
-//    public Token getToken() {
-//        return (Token)tokens.remove(0);
-//    }
-//}
-
 @members {
     //We override nextToken() to handle a special rewind token which can
     //be used to reset the input stream to the start of the current token; this
@@ -60,7 +42,7 @@ lexer grammar SSLLexer;
 tokens {
     SPECIAL_REWIND,
     LINESEP,
-    NAME, NAMECHAR,
+    NAMECHAR,
     SENTENCE,
     RELKEYWORD
 }
@@ -78,7 +60,7 @@ fragment F_EVENTS       : 'events' ;
 fragment F_SCENARIOS    : 'scenarios' ;
 fragment F_REQUIREMENTS : 'requirements' ;
 fragment F_RELATION     : 'relation' ;
-fragment F_ALL_KEYWORDS : F_SYSTEM | F_SUBSYSTEM | F_COMPONENT | F_EVENTS | F_SCENARIOS | F_REQUIREMENTS | F_RELATION ;
+fragment F_BLOCK_KEYWORDS : F_SYSTEM | F_SUBSYSTEM | F_COMPONENT | F_EVENTS | F_SCENARIOS | F_REQUIREMENTS | F_RELATION ;
 
 fragment F_KEYWORD_SEP  : F_WHITESPACE | F_LINESEP ;
 
@@ -208,7 +190,7 @@ CP_WHITESPACES  : F_WHITESPACES -> skip ;
 
 CP_LINESEP      : F_LINESEP -> type(LINESEP) ;
 
-CP_ALL_KEYWORDS : F_ALL_KEYWORDS F_KEYWORD_SEP (F_SENTENCECHAR+ F_SENTENCEEND)? -> popMode, type(SPECIAL_REWIND) ;
+CP_ALL_KEYWORDS : F_BLOCK_KEYWORDS F_KEYWORD_SEP (F_SENTENCECHAR+ F_SENTENCEEND)? -> popMode, type(SPECIAL_REWIND) ;
 
 CONSTRAINT      : F_CONSTRAINT ;
 
@@ -243,7 +225,7 @@ MRIL_WHITESPACE   : F_WHITESPACE -> skip ;
 
 MRIL_LINESEP      : F_LINESEP -> type(LINESEP) ;
 
-MRIL_ALL_KEYWORDS : F_ALL_KEYWORDS -> popMode, type(SPECIAL_REWIND) ;
+MRIL_ALL_KEYWORDS : F_BLOCK_KEYWORDS -> popMode, type(SPECIAL_REWIND) ;
 
 MRIL_ANYCHAR      : . -> type(SPECIAL_REWIND), popMode, pushMode(MODE_IDENT_LINE) ;
 
@@ -258,7 +240,7 @@ IND_LINESEP      : F_LINESEP -> type(LINESEP) ;
 
 IND_EMPTYLINE    : F_EMPTYLINE -> type(LINESEP) ;
 
-IND_ALL_KEYWORDS : F_ALL_KEYWORDS F_KEYWORD_SEP (F_SENTENCECHAR+ F_SENTENCEEND)? -> popMode, type(SPECIAL_REWIND) ;
+IND_ALL_KEYWORDS : F_BLOCK_KEYWORDS F_KEYWORD_SEP (F_SENTENCECHAR+ F_SENTENCEEND)? -> popMode, type(SPECIAL_REWIND) ;
 
 INDEXCHAR        : . ;
 
