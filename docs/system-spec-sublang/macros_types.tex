@@ -58,6 +58,8 @@
 \newcommand{\constraint}[1][i]{\gntn{#1}}
 \newcommand{\feature}[1][f]{\gntn{#1}}
 
+\newcommand{\semkeyvalue}[2]{(#1,#2)}
+
 \newcommand{\events}[1][E]{\gntn{#1}}
 \newcommand{\event}[1][e]{\gntn{#1}}
 \newcommand{\scenarios}[1][U]{\gntn{#1}}
@@ -69,6 +71,7 @@
 \newcommand{\requirementparams}[1][pp]{\setof{\requirementparam[#1]}}
 \newcommand{\earrow}[2]{#1 \rightarrow #2}
 \newcommand{\pbexpr}[1][b]{\gntn{#1}}
+\newcommand{\pval}[1][v]{\gntn{#1}}
 
 \newcommand{\intro}{\leftarrow}
 
@@ -161,8 +164,10 @@
 
 \newcommand{\indexmap}{\mathbb{I}}
 \newcommand{\indexmapval}[2]{\langle #1,#2 \rangle}
-\newcommand{\indexmapvaldef}{\indexmapval{\indexparent}{\setof{\semprop}}}
+\newcommand{\indexmapvaldef}{\indexmapval{\indexparent}{\indexpropmapex}}
 \newcommand{\indexparent}{\mathbb{SS}}
+\newcommand{\indexpropmap}[2]{\{#1 \mapsto #2\}}
+\newcommand{\indexpropmapex}{\indexpropmap{\semprop}{\semvalue}}
 
 \newcommand{\tenv}{\Gamma}
 \newcommand{\tenvex}[9]{

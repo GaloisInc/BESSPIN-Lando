@@ -41,7 +41,7 @@
   \gruleplain{\system    \intro \indexing}{Indexing Introduction 1}
   \gruleplain{\subsystem \intro \indexing}{Indexing Introduction 2}
   \gline
-  \gruleplain{\indexing  \intro \semprop}{Semantic Property Introduction}
+  \gruleplain{\indexing  \intro \semkeyvalue{\semprop}{\semvalue}}{Semantic Property Introduction}
   \gline
   \gruleplain{\component \intro \query}{Query Introduction}
   \gruleplain{\component \intro \command}{Command Introduction}
@@ -283,10 +283,10 @@ Currently all rules have the form: $e : \type$. This is not strictly necessary; 
 
   \bbrule{Semantic Property Introduction}{
     \indexing \mapsto \indexmapvaldef \in \tindexmap \\
-    \semprop \in \setof{\semprop} \\
+    \semprop \mapsto \semvalue \in \indexpropmapex \\
     \tv \mapsto \typeof(\tenv, \indexparent) \\
   }{
-    \tenv \timpl \indexing  \intro \semprop \hastype \tv
+    \tenv \timpl \indexing  \intro \semkeyvalue{\semprop}{\semvalue} \hastype \tv
   }
 
   \bbrule{Event Set Introduction}{
