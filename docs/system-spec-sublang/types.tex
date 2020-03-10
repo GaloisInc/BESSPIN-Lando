@@ -47,11 +47,11 @@
   \gruleplain{\component \intro \command}{Command Introduction}
   \gruleplain{\component \intro \constraint}{Constraint Introduction}
   \gline
-  \gruleplain{\system \intro \events}{Event Set Introduction}
+  \gruleplain{\subsystem \intro \events}{Event Set Introduction}
   \gruleplain{\events \intro \event}{Event Introduction}
-  \gruleplain{\system \intro \scenarios}{Scenarios Set Introduction}
+  \gruleplain{\subsystem \intro \scenarios}{Scenarios Set Introduction}
   \gruleplain{\scenarios \intro \scenario}{Scenario Introduction}
-  \gruleplain{\system \intro \requirements}{Requirements Set Introduction}
+  \gruleplain{\subsystem \intro \requirements}{Requirements Set Introduction}
   \gruleplain{\requirements \intro \requirement}{Requirement Introduction}
   \gline
   \gruleplain{\scenario \mathop{::=} \glist{\event}}{Scenario as a List of Events} 
@@ -100,20 +100,20 @@ auxilliary structures:
   \grule{\indexparent}{\system \gor \subsystem}{Index Parent}
   \gline
   \grule{\evi}{\evivaldef}{Event Info}
-  %\grule{\estmap}{\mapof{\events}{\tv}}{Event Set Type Map}
-  \grule{\esdmap}{\mapof{\events}{\esdmapvaldef}}{Event Set Data Map}
+  \grule{\estmap}{\mapof{\events}{\tv}}{Event Set Type Map}
+  \grule{\esdmap}{\mapof{\tv}{\esdmapvaldef}}{Event Set Data Map}
   \grule{\etmap}{\mapof{\event}{\tv}}{Event Type Map}
   \grule{\edmap}{\mapof{\tv}{\edmapvaldef}}{Event Data Map}
   \gline
   \grule{\sci}{\scivaldef}{Scenario Info}
-  %\grule{\scstmap}{\mapof{\scenarios}{\tv}}{Scenario Set Type Map}
-  \grule{\scsdmap}{\mapof{\scenarios}{\scsdmapvaldef}}{Scenario Set Data Map}
+  \grule{\scstmap}{\mapof{\scenarios}{\tv}}{Scenario Set Type Map}
+  \grule{\scsdmap}{\mapof{\tv}{\scsdmapvaldef}}{Scenario Set Data Map}
   \grule{\sctmap}{\mapof{\scenario}{\tl}}{Scenario Type Map}
   \grule{\scdmap}{\mapof{\tl}{\scdmapvaldef}}{Scenario Data Map}
   \gline
   \grule{\ri}{\rivaldef}{Requirement Info}
-  %\grule{\rstmap}{\mapof{\requirements}{\tv}}{Requirement Set Type Map}
-  \grule{\rsdmap}{\mapof{\requirements}{\rsdmapvaldef}}{Requirement Set Data Map}
+  \grule{\rstmap}{\mapof{\requirements}{\tv}}{Requirement Set Type Map}
+  \grule{\rsdmap}{\mapof{\tv}{\rsdmapvaldef}}{Requirement Set Data Map}
   \grule{\rtmap}{\mapof{\requirement}{\tf}}{Requirement Type Map}
   \grule{\rdmap}{\mapof{\tf}{\rdmapvaldef}}{Requirement Data Map}
   \gline
@@ -136,15 +136,15 @@ Let $\tenv = \tenvexdef$, then:
     \tsdmap & \defeq & \sdmap \\ 
     \tsdmap & \defeq & \sdmap \\
     \tindexmap & \defeq & \indexmap \\
-    %\testmap & \defeq & \estmap & \text{where} & \evi = \evivaldef \\
+    \testmap & \defeq & \estmap & \text{where} & \evi = \evivaldef \\
     \tesdmap & \defeq & \esdmap & \text{where} & \evi = \evivaldef \\
     \tetmap & \defeq & \etmap & \text{where} & \evi = \evivaldef \\
     \tedmap & \defeq & \edmap & \text{where} & \evi = \evivaldef \\
-    %\tscstmap & \defeq & \scstmap & \text{where} & \sci = \scivaldef \\
+    \tscstmap & \defeq & \scstmap & \text{where} & \sci = \scivaldef \\
     \tscsdmap & \defeq & \scsdmap & \text{where} & \sci = \scivaldef \\
     \tsctmap & \defeq & \sctmap & \text{where} & \sci = \scivaldef \\
     \tscdmap & \defeq & \scdmap & \text{where} & \sci = \scivaldef \\
-    %\trstmap & \defeq & \rstmap & \text{where} & \ri = \rivaldef \\
+    \trstmap & \defeq & \rstmap & \text{where} & \ri = \rivaldef \\
     \trsdmap & \defeq & \rsdmap & \text{where} & \ri = \rivaldef \\
     \trtmap & \defeq & \rtmap & \text{where} & \ri = \rivaldef \\
     \trdmap & \defeq & \rdmap & \text{where} & \ri = \rivaldef \\
@@ -181,7 +181,7 @@ Currently all rules have the form: $e : \type$. This is not strictly necessary; 
     \tsydata = \sydatavaldef \\
     \subsystem \in \setof{\subsystem} \\
     \subsystem \mapsto \tv \in \tstmap \\
-    \tv \mapsto \sdmapval{\subsystemparent}{\_}{\_}{\_}{\_} \in \tsdmap \\
+    \tv \mapsto \sdmapval{\subsystemparent}{\_}{\_}{\_}{\_}{\_}{\_}{\_} \in \tsdmap \\
     \subsystemparent = \system \\
   }{
     \system \intro \subsystem \hastype \tsystem 
@@ -192,7 +192,7 @@ Currently all rules have the form: $e : \type$. This is not strictly necessary; 
     \tv \mapsto \sdmapvaldef \in \tsdmap \\
     \subsystem' \in \setof{\subsystem} \\
     \subsystem' \mapsto \tv' \in \tstmap \\
-    \tv' \mapsto \sdmapval{\subsystemparent}{\_}{\_}{\_}{\_} \in \tsdmap \\
+    \tv' \mapsto \sdmapval{\subsystemparent}{\_}{\_}{\_}{\_}{\_}{\_}{\_} \in \tsdmap \\
     \subsystemparent = \subsystem \\
   }{
     \tenv \timpl \subsystem \intro \subsystem' \hastype \tv 
@@ -290,34 +290,42 @@ Currently all rules have the form: $e : \type$. This is not strictly necessary; 
   }
 
   \bbrule{Event Set Introduction}{
-    \tsydata = \sydatavaldef \\
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \mapsto \sdmapvaldef \in \tsdmap \\
     \events \in \setof{\events} \\
-    \events \mapsto \esdmapval{\system}{\_} \in \tesdmap \\
+    \events \mapsto \tv' \in \testmap \\
+    \tv' \mapsto \esdmapval{\subsystem'}{\_} \in \tesdmap \\
+    \subsystem = \subsystem' \\
   }{
-    \tenv \timpl \system \intro \events \hastype \tsystem
+    \tenv \timpl \subsystem \intro \events \hastype \tv
   }
   
   \bbrule{Event Introduction}{
-    \events \mapsto \esdmapvaldef \in \tesdmap \\
+    \events \mapsto \tv \in \testmap \\
+    \tv \mapsto \esdmapvaldef \in \tesdmap \\
     \event \in \setof{\event} \\
-    \event \mapsto \tv \in \tetmap \\
-    \tv \mapsto \edmapval{\events'} \in \tedmap \\
+    \event \mapsto \tv' \in \tetmap \\
+    \tv' \mapsto \edmapval{\events'} \in \tedmap \\
     \events = \events' \\
-    \tv \sub \tevent \in \tconstraints \\
+    \tv' \sub \tevent \in \tconstraints \\
   }{
-    \tenv \timpl \events \intro \event \hastype \tsystem 
+    \tenv \timpl \events \intro \event \hastype \tv 
   }
 
   \bbrule{Scenario Set Introduction}{
-    \tsydata = \sydatavaldef \\
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \mapsto \sdmapvaldef \in \tsdmap \\
     \scenarios \in \setof{\scenarios} \\
-    \scenarios \mapsto \scsdmapval{\system}{\_} \in \tscsdmap \\
+    \scenarios \mapsto \tv' \in \tsctmap \\
+    \tv' \mapsto \scsdmapval{\subsystem'}{\_} \in \tscsdmap \\
+    \subsystem = \subsystem' \\
   }{
-    \system \intro \scenarios \hastype \tsystem
+    \tenv \timpl \subsystem \intro \scenarios \hastype \tv
   }
 
   \bbrule{Scenario Introduction}{
-    \scenarios \mapsto \scsdmapvaldef \in \tscsdmap \\
+    \scenarios \mapsto \tv \in \tsctmap \\
+    \tv \mapsto \scsdmapvaldef \in \tscsdmap \\
     \scenario \in \setof{\scenario} \\
     \scenario = \glist{\event} \\
     \tl = [\tv \mid \forall \event \in \glist{\event}. \, \event \mapsto \tv \in \tetmap ] \\
@@ -325,20 +333,23 @@ Currently all rules have the form: $e : \type$. This is not strictly necessary; 
     \tl \mapsto \scdmapval{\scenarios'} \in \tscdmap \\
     \scenarios = \scenarios' \\
   }{
-    \scenarios \intro \scenario \hastype \tsystem
+    \tenv \timpl \scenarios \intro \scenario \hastype \tv
   }
 
   \bbrule{Requirement Set Introduction}{
-    \tsydata = \sydatavaldef \\
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \mapsto \sdmapvaldef \in \tsdmap \\
     \requirements \in \setof{\requirements} \\
-    \requirements \mapsto \tv \in \trtmap \\
-    \tv \mapsto \scsdmapval{\system}{\_} \in \trsdmap \\
+    \requirements \mapsto \tv' \in \trtmap \\
+    \tv' \mapsto \scsdmapval{\subsystem}{\_} \in \trsdmap \\
+    \subsystem = \subsystem' \\
   }{
-    \system \intro \requirements \hastype \tsystem
+    \tenv \timpl \subsystem \intro \requirements \hastype \tv
   }
 
   \bbrule{Requirement Introduction}{
-    \requirements \mapsto \rsdmapvaldef \in \trsdmap \\
+    \requirements \mapsto \tv \in \trtmap \\
+    \tv \mapsto \rsdmapvaldef \in \trsdmap \\
     \requirement \in \setof{\requirement} \\
     \tl = [\tv \mid \forall \requirementparam \in \requirementparams. \, \typeof(\requirementparam) = \tv] \\
     \pbexpr \hastype \tbool \\
@@ -347,7 +358,7 @@ Currently all rules have the form: $e : \type$. This is not strictly necessary; 
     \tf \mapsto \rdmapval{\requirements'} \in \trdmap \\
     \requirements = \requirements' \\
   }{
-    \requirements \intro \requirement \hastype \tsystem
+    \tenv \timpl \requirements \intro \requirement \hastype \tv
   }
 
 \end{mathparpagebreakable}

@@ -108,54 +108,56 @@
 \newcommand{\constraints}{\mathbb{T}}
 
 \newcommand{\sydata}{\mathbb{SY}}
-\newcommand{\sydataval}[5]{\langle #1, #2, #3, #4, #5 \rangle}
+\newcommand{\sydataval}[2]{\langle #1, #2 \rangle}
 \newcommand{\sydatavaldef}{
-  \sydataval{\setof{\subsystem}}{\setof{\events}}{\setof{\scenarios}}{\setof{\requirements}}{\indexing}
+  \sydataval{\setof{\subsystem}}{\indexing}
 } 
 
 \newcommand{\stmap}{\mathbb{ST}}
 \newcommand{\sdmap}{\mathbb{SD}}
-\newcommand{\sdmapval}[5]{\langle #1, #2, #3, #4, #5 \rangle}
+\newcommand{\sdmapval}[8]{\langle #1, #2, #3, #4, #5, #6, #7, #8 \rangle}
 \newcommand{\sdmapvaldef}{
-  \sdmapval{\subsystemparent}{\explanation}{\setof{\subsystem}}{\setof{\component}}{\indexing}
+  \sdmapval{\subsystemparent}{\explanation}{\setof{\subsystem}}{\setof{\component}}
+    {\setof{\events}}{\setof{\scenarios}}{\setof{\requirements}}
+    {\indexing}
 } 
 
-%\newcommand{\estmap}{\mathbb{EST}}
+\newcommand{\estmap}{\mathbb{EST}}
 \newcommand{\esdmap}{\mathbb{ESD}}
 \newcommand{\esdmapval}[2]{\langle #1, #2 \rangle}
-\newcommand{\esdmapvaldef}{\esdmapval{\system}{\setof{\event}}} 
+\newcommand{\esdmapvaldef}{\esdmapval{\subsystem}{\setof{\event}}} 
 \newcommand{\etmap}{\mathbb{ET}}
 \newcommand{\edmap}{\mathbb{ED}}
 \newcommand{\edmapval}[1]{#1}
 \newcommand{\edmapvaldef}{\edmapval{\events}}
 \newcommand{\evi}{\mathbb{EI}}
-\newcommand{\evival}[3]{\langle #1, #2, #3 \rangle}
-\newcommand{\evivaldef}{\evival{\esdmap}{\etmap}{\edmap}}
+\newcommand{\evival}[4]{\langle #1, #2, #3, #4 \rangle}
+\newcommand{\evivaldef}{\evival{\estmap}{\esdmap}{\etmap}{\edmap}}
 
-%\newcommand{\scstmap}{\mathbb{UST}}
+\newcommand{\scstmap}{\mathbb{UST}}
 \newcommand{\scsdmap}{\mathbb{USD}}
 \newcommand{\scsdmapval}[2]{\langle #1, #2 \rangle}
-\newcommand{\scsdmapvaldef}{\scsdmapval{\system}{\setof{\scenario}}} 
+\newcommand{\scsdmapvaldef}{\scsdmapval{\subsystem}{\setof{\scenario}}} 
 \newcommand{\sctmap}{\mathbb{UT}}
 \newcommand{\scdmap}{\mathbb{UD}}
 \newcommand{\scdmapval}[1]{#1}
 \newcommand{\scdmapvaldef}{\scdmapval{\scenarios}}
 \newcommand{\sci}{\mathbb{UI}}
-\newcommand{\scival}[3]{\langle #1, #2, #3 \rangle}
-\newcommand{\scivaldef}{\scival{\scsdmap}{\sctmap}{\scdmap}}
+\newcommand{\scival}[4]{\langle #1, #2, #3, #4 \rangle}
+\newcommand{\scivaldef}{\scival{\scstmap}{\scsdmap}{\sctmap}{\scdmap}}
 
 
-%\newcommand{\rstmap}{\mathbb{RST}}
+\newcommand{\rstmap}{\mathbb{RST}}
 \newcommand{\rsdmap}{\mathbb{RSD}}
 \newcommand{\rsdmapval}[2]{\langle #1, #2 \rangle}
-\newcommand{\rsdmapvaldef}{\rsdmapval{\system}{\setof{\requirement}}} 
+\newcommand{\rsdmapvaldef}{\rsdmapval{\subsystem}{\setof{\requirement}}} 
 \newcommand{\rtmap}{\mathbb{RT}}
 \newcommand{\rdmap}{\mathbb{RD}}
 \newcommand{\rdmapval}[1]{#1}
 \newcommand{\rdmapvaldef}{\rdmapval{\requirements}}
 \newcommand{\ri}{\mathbb{RI}}
-\newcommand{\rival}[3]{\langle #1, #2, #3 \rangle}
-\newcommand{\rivaldef}{\rival{\rsdmap}{\rtmap}{\rdmap}}
+\newcommand{\rival}[4]{\langle #1, #2, #3, #4 \rangle}
+\newcommand{\rivaldef}{\rival{\rstmap}{\rsdmap}{\rtmap}{\rdmap}}
 
 \newcommand{\indexmap}{\mathbb{I}}
 \newcommand{\indexmapval}[2]{\langle #1,#2 \rangle}
