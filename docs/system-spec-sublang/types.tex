@@ -31,8 +31,9 @@
   \gruleplain{\semvalue}{Semantic Value}
   \gruleplain{\sempair}{Semantic Assertion}
   \gline
-  \gruleplain{\subsystem \intro \explanation}{Explanation Introduction 1}
-  \gruleplain{\component \intro \explanation}{Explanation Introduction 2}
+  \gruleplain{\system    \intro \explanation}{Explanation Introduction 1}
+  \gruleplain{\subsystem \intro \explanation}{Explanation Introduction 2}
+  \gruleplain{\component \intro \explanation}{Explanation Introduction 3}
   \gline  
   \gruleplain{\system    \intro \subsystem}{Subsystem Containment 1}
   \gruleplain{\subsystem \intro \subsystem}{Subsystem Containment 2}
@@ -133,7 +134,6 @@ Let $\tenv = \tenvexdef$, then:
     \tconstraints & \defeq & \constraints \\ 
     \tsydata & \defeq & \sydata  \\ 
     \tstmap & \defeq & \stmap \\ 
-    \tsdmap & \defeq & \sdmap \\ 
     \tsdmap & \defeq & \sdmap \\
     \tindexmap & \defeq & \indexmap \\
     \testmap & \defeq & \estmap & \text{where} & \evi = \evivaldef \\
@@ -157,7 +157,7 @@ Currently all rules have the form: $e : \type$. This is not strictly necessary; 
 
 \begin{mathparpagebreakable}
 
-  \bbrule{System Introduction}{
+  \bbrule{System Introduction}{\quad
   }{
     \tenv \timpl \system \hastype \tsystem
   }
@@ -170,6 +170,13 @@ Currently all rules have the form: $e : \type$. This is not strictly necessary; 
   }
 
   \bbrule{Explanation Introduction 1}{
+    \system \mapsto \sydataval{\_}{X}{\_} \in \tsydata \\
+    \explanation = \explanation' \\
+  }{
+    \tenv \timpl \system \intro \explanation' \hastype \tsystem
+  }
+
+  \bbrule{Explanation Introduction 2}{
     \subsystem \mapsto \tv \in \tstmap \\
     \tv \mapsto \sdmapvaldef \in \tsdmap \\
     \explanation = \explanation' \\
@@ -198,7 +205,7 @@ Currently all rules have the form: $e : \type$. This is not strictly necessary; 
     \tenv \timpl \subsystem \intro \subsystem' \hastype \tv 
   }
   
-  \bbrule{Explanation Introduction 2}{
+  \bbrule{Explanation Introduction 3}{
     \component \mapsto \tv \in \tctmap \\
     \tv \mapsto \cdmapvaldef \in \tcdmap \\
     \explanation = \explanation' \\

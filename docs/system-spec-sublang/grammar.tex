@@ -67,6 +67,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
   \grule{\gncomponent}{
     \gtkw{component} \gnnamephraserel \gopt{\gnrelkeyword \gnnamephrase} \gnnl \gcont
+    \; \gnexplanation \gnnl \gcont
     \; \gseplist{\gnnl}{\gncomponentpart} \gcont
     \; \gtregex{(?= \gnnlkeyword | \gneof)} \gnblockend
   }{Class}
