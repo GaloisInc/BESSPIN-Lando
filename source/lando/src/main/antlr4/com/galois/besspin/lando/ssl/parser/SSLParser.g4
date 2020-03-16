@@ -32,7 +32,8 @@ subsystem  : lineComments?
 
 component  : lineComments?
              COMPONENT
-             compname=name ABBREV? (RELKEYWORD relname=name)? comment?
+             compname=name ABBREV? (RELKEYWORD relname=name)? comment? lineseps
+             paragraph
              (lineseps componentParts)?
              blockend ;
 

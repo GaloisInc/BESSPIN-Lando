@@ -74,9 +74,10 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
     private fun toAst(cmpCxt: SSLParser.ComponentContext): Pair<RawComponent, List<RawRelation>> {
         val name = toAst(cmpCxt.compname)
         val abbrevName = cmpCxt.ABBREV()?.symbol?.text?.trim() ;
+        val description = toAst(cmpCxt.paragraph())
         val parts = if (cmpCxt.componentParts() != null) toAst(cmpCxt.componentParts()) else arrayListOf()
         val comments = collectComments(cmpCxt.lineComments(), cmpCxt.comment())
-        val component = RawComponent(nextUid(), name, abbrevName, parts, comments)
+        val component = RawComponent(nextUid(), name, abbrevName, description, parts, comments)
 
         val reltype = cmpCxt.RELKEYWORD()?.symbol?.text?.trim() ;
         val relname = toAstOptional(cmpCxt.relname)

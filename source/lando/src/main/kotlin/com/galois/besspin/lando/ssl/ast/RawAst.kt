@@ -46,6 +46,7 @@ data class RawComponent(
     override val uid: Int,
     override var name: String,
     var abbrevName: String?,
+    var explanation: String,
     var parts: List<RawComponentPart> = arrayListOf(),
     var comments: List<RawComment>
 ) : RawElement;
@@ -107,7 +108,7 @@ data class RawSubsystem(
     override val uid: Int,
     override var name: String,
     var abbrevName: String?,
-    var description: String,
+    var explanation: String,
     var indexing: List<RawIndexEntry>,
     var comments: List<RawComment>
 ) : RawElement
@@ -116,7 +117,7 @@ data class RawSubsystem(
 data class RawSystem(
     override val uid: Int,
     override var name: String,
-    var description: String,
+    var explanation: String,
     var indexing: List<RawIndexEntry>,
     var comments: List<RawComment>
 ) : RawElement
