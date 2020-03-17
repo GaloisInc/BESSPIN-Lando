@@ -15,7 +15,7 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     ModuleSpec = NP;
     NamedModule = N;
     BoundarySpec = NP;
-    Bool = Pol;
+    Boolean = Pol;
 
   oper
     timing_information : NP =

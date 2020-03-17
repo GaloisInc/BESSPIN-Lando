@@ -5,7 +5,7 @@ abstract InfoLeakageAbs = {
     LeaksAssertion; InstSpec; InstClass; NamedInst;
     ProcessorSpec; NamedProcessor; InfoSpec; ChannelSpec;
     DataSpec; NamedDatum; ModuleSpec; NamedModule; BoundarySpec;
-    Bool;
+    Boolean;
 
   fun
 
@@ -28,21 +28,21 @@ abstract InfoLeakageAbs = {
     -- statement is negative, e.g., "does not leak" instead of "leaks".
     --
     -- FIXME: I don't know if channels (C) make sense here...
-    ILeakAssertionIL : Bool -> InstSpec -> InfoSpec -> LeaksAssertion;
+    ILeakAssertionIL : Boolean -> InstSpec -> InfoSpec -> LeaksAssertion;
     ILeakAssertionIPL :
-      Bool -> InstSpec -> ProcessorSpec -> InfoSpec -> LeaksAssertion;
+      Boolean -> InstSpec -> ProcessorSpec -> InfoSpec -> LeaksAssertion;
     ILeakAssertionILP :
-      Bool -> InstSpec -> InfoSpec -> ProcessorSpec -> LeaksAssertion;
+      Boolean -> InstSpec -> InfoSpec -> ProcessorSpec -> LeaksAssertion;
     ILeakAssertionILC :
-      Bool -> InstSpec -> InfoSpec -> ChannelSpec -> LeaksAssertion;
+      Boolean -> InstSpec -> InfoSpec -> ChannelSpec -> LeaksAssertion;
     ILeakAssertionIPLC :
-      Bool -> InstSpec -> ProcessorSpec -> InfoSpec -> ChannelSpec ->
+      Boolean -> InstSpec -> ProcessorSpec -> InfoSpec -> ChannelSpec ->
       LeaksAssertion;
     ILeakAssertionILCP :
-      Bool -> InstSpec -> InfoSpec -> ChannelSpec -> ProcessorSpec ->
+      Boolean -> InstSpec -> InfoSpec -> ChannelSpec -> ProcessorSpec ->
       LeaksAssertion;
     ILeakAssertionPILC :
-      Bool -> ProcessorSpec -> InstSpec -> InfoSpec -> ChannelSpec ->
+      Boolean -> ProcessorSpec -> InstSpec -> InfoSpec -> ChannelSpec ->
       LeaksAssertion;
 
 
@@ -60,14 +60,14 @@ abstract InfoLeakageAbs = {
     -- Note that an assertion cannot have both C andB, because a boundary
     -- implies the set of all channels out of a given functional unit.
     DLeakAssertionDMC :
-      Bool -> DataSpec -> ModuleSpec -> ChannelSpec -> LeaksAssertion;
+      Boolean -> DataSpec -> ModuleSpec -> ChannelSpec -> LeaksAssertion;
     DLeakAssertionDMPC :
-      Bool -> DataSpec -> ModuleSpec -> ProcessorSpec -> ChannelSpec ->
+      Boolean -> DataSpec -> ModuleSpec -> ProcessorSpec -> ChannelSpec ->
       LeaksAssertion;
     DLeakAssertionDMB :
-      Bool -> DataSpec -> ModuleSpec -> BoundarySpec -> LeaksAssertion;
+      Boolean -> DataSpec -> ModuleSpec -> BoundarySpec -> LeaksAssertion;
     DLeakAssertionDMPB :
-      Bool -> DataSpec -> ModuleSpec -> ProcessorSpec -> BoundarySpec ->
+      Boolean -> DataSpec -> ModuleSpec -> ProcessorSpec -> BoundarySpec ->
       LeaksAssertion;
 
 
@@ -173,6 +173,6 @@ abstract InfoLeakageAbs = {
     ----------------------------------------------------------------------
 
     -- Booleans: either true or false
-    TrueBool : Bool;
-    FalseBool : Bool;
+    TrueBool : Boolean;
+    FalseBool : Boolean;
 }
