@@ -26,6 +26,8 @@ abstract InfoLeakageAbs = {
     --
     -- Leakage assertions also contain a Boolean modifier to indicate if the
     -- statement is negative, e.g., "does not leak" instead of "leaks".
+    --
+    -- FIXME: I don't know if channels (C) make sense here...
     ILeakAssertionIL : Bool -> InstSpec -> InfoSpec -> LeaksAssertion;
     ILeakAssertionIPL :
       Bool -> InstSpec -> ProcessorSpec -> InfoSpec -> LeaksAssertion;
