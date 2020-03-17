@@ -8,40 +8,82 @@
 
 \begin{document}
 
+\section{Notation}
+
+  We extend the use of the for-all notation to work over ordered seqeunces like lists. This is usually used in conjunction with a list-comprehension-like notation to indicate the construction of sequence: e.g. $[\tv \mid \forall e \in \listof{e}. \exists \tv. e \hastype \tv]$; this denotes the construction of a list of types that corresponds to the list of expressions $\listof{e}$.
+
 \section{Grammar}
 
 \begin{grammar}
-  \gruleplain{\system}{System}
+  \gruleplain{\system}{System Name}
   \gruleplain{\subsystem}{Subsystem Name}
   \gruleplain{\explanation}{Explanation}
   \gruleplain{\component}{Component Name}
+  \gruleplain{\indexing}{Indexed Semantic Properties}
+  \gruleplain{\semprops}{Semantic Property}
+  \gline
+  \gruleplain{\feature}{Feature}
   \gruleplain{\query}{Query}
   \gruleplain{\command}{Command}
   \gruleplain{\constraint}{Constraint}
   \gline
-  \gruleplain{\subsystem \intro \explanation}{Subsystem Explanation}
-  \gruleplain{\subsystem \intro \subsystem}{Subsystem Containment}
-  \gruleplain{\component \intro \explanation}{Intro Explanation}
-  \gruleplain{\component \intro \subsystem}{Intro Containment}
+  \gruleplain{\semprop}{Semantic Property}
+  \gruleplain{\semvalue}{Semantic Value}
+  \gruleplain{\sempair}{Semantic Assertion}
+  \gline
+  \gruleplain{\system    \intro \explanation}{Explanation Introduction 1}
+  \gruleplain{\subsystem \intro \explanation}{Explanation Introduction 2}
+  \gruleplain{\component \intro \explanation}{Explanation Introduction 3}
+  \gline  
+  \gruleplain{\system    \intro \subsystem}{Subsystem Containment 1}
+  \gruleplain{\subsystem \intro \subsystem}{Subsystem Containment 2}
+  \gruleplain{\subsystem \intro \component}{Component Containment}
+  \gline    
+  \gruleplain{\system    \intro \indexing}{Indexing Introduction 1}
+  \gruleplain{\subsystem \intro \indexing}{Indexing Introduction 2}
+  \gline
+  \gruleplain{\indexing  \intro \semkeyvalue{\semprop}{\semvalue}}{Semantic Property Introduction}
   \gline
   \gruleplain{\component \intro \query}{Query Introduction}
   \gruleplain{\component \intro \command}{Command Introduction}
   \gruleplain{\component \intro \constraint}{Constraint Introduction}
+  \gline
+  \gruleplain{\subsystem \intro \events}{Event Set Introduction}
+  \gruleplain{\events \intro \event}{Event Introduction}
+  \gruleplain{\subsystem \intro \scenarios}{Scenarios Set Introduction}
+  \gruleplain{\scenarios \intro \scenario}{Scenario Introduction}
+  \gruleplain{\subsystem \intro \requirements}{Requirements Set Introduction}
+  \gruleplain{\requirements \intro \requirement}{Requirement Introduction}
+  \gline
+  \gruleplain{\scenario \mathop{::=} \glist{\event}}{Scenario as a List of Events} 
+  \gruleplain{\requirement \mathop{::=} \earrow{\requirementparams}{\pbexpr}}{Requirement as a Predicate}
+  \gruleplain{\requirementparam \mathop{::=} \subsystem \gor \component}{Parameters}
+  \gruleplain{\pbexpr}{Boolean Expression (Uninterpreted)}
 \end{grammar}
+
+The grammar captures entities from the Lando SSL grammar in terms of their names and describes their various relations. The names are expected to be unique. There are two exceptions: scenarios are captured as a list of events and requirements are captured as an arbitrary, uninterpreted predicate over a list of subsytems and components.
+
+Further we required that a well-formed grammar have only a single System entity.
 
 \section{Type System}
 
 \subsection{Type Grammar}
 
 \begin{grammar}
-  \grule{\type}{\tp \gor \tv}{Type}
-  \grule{\tp}{\tbool \gor \tint \gor \tnat \gor \tsystem \gor \tsubsystem \gor \tcomponent}{Primitive Type (TODO: More!)}
-  \grule{\tv}{\tv_1, \tv_2, \cdots}{Derived Type}
+  \grule{\type}{\tp \gor \tv \gor \tl \gor \tf}{Type}
+  \grule{\tp}{%
+    \tbool \gor \tint \gor \tnat \gor \tsystem \gor \tsubsystem \gor \tcomponent \gor \tevent 
+    % \gor \tscenario \gor \trequirement 
+  }{Primitive Type}
+  \grule{\tl}{\listof{\type}}{List Type}
+  \grule{\tf}{\tarrow{\tl}{\tbool}}{Arrow Type}
+  \grule{\tv}{\tv_1, \tv_2, \ldots}{Derived Type}
 \end{grammar}
 
 \subsection{Type Environment}
 
-In order to define the type system, we must first introduce a few auxilliary structures:
+In order to define the type system, we must first introduce a few
+auxilliary structures:
 
 \begin{grammar}
   \grule{\cimap}{\mapof{\component}{\component}}{Component Inheritance Map}
@@ -49,68 +91,126 @@ In order to define the type system, we must first introduce a few auxilliary str
   \grule{\cdmap}{\mapof{\tv}{\cdmapvaldef}}{Component Data Map}
   \grule{\feature}{\query \gor \command \gor \constraint}{Feature}
   \gline
+  \grule{\sydata}{\sydatavaldef}{System Data}
+  \gline
   \grule{\stmap}{\mapof{\subsystem}{\tv}}{Subsystem Type Map}
   \grule{\sdmap}{\mapof{\tv}{\sdmapvaldef}}{Subsystem Data Map}
   \grule{\subsystemparent}{\system \gor \subsystem}{Parent of Subsystem}
   \gline
+  \grule{\indexmap}{\mapof{\indexing}{\indexmapvaldef}}{Indexing map}
+  \grule{\indexparent}{\system \gor \subsystem}{Index Parent}
+  \gline
+  \grule{\evi}{\evivaldef}{Event Info}
+  \grule{\estmap}{\mapof{\events}{\tv}}{Event Set Type Map}
+  \grule{\esdmap}{\mapof{\tv}{\esdmapvaldef}}{Event Set Data Map}
+  \grule{\etmap}{\mapof{\event}{\tv}}{Event Type Map}
+  \grule{\edmap}{\mapof{\tv}{\edmapvaldef}}{Event Data Map}
+  \gline
+  \grule{\sci}{\scivaldef}{Scenario Info}
+  \grule{\scstmap}{\mapof{\scenarios}{\tv}}{Scenario Set Type Map}
+  \grule{\scsdmap}{\mapof{\tv}{\scsdmapvaldef}}{Scenario Set Data Map}
+  \grule{\sctmap}{\mapof{\scenario}{\tl}}{Scenario Type Map}
+  \grule{\scdmap}{\mapof{\tl}{\scdmapvaldef}}{Scenario Data Map}
+  \gline
+  \grule{\ri}{\rivaldef}{Requirement Info}
+  \grule{\rstmap}{\mapof{\requirements}{\tv}}{Requirement Set Type Map}
+  \grule{\rsdmap}{\mapof{\tv}{\rsdmapvaldef}}{Requirement Set Data Map}
+  \grule{\rtmap}{\mapof{\requirement}{\tf}}{Requirement Type Map}
+  \grule{\rdmap}{\mapof{\tf}{\rdmapvaldef}}{Requirement Data Map}
+  \gline
   \grule{\tenv}{\tenvexdef}{Type Environment}
 \end{grammar}
 
-\note{We will need more than this in the type environment. This is to get started!}
+The type environment consists of a number of distinct elements
+required by our type system definition. For simplifying the rules, we
+define a short-hand notation for each of them.
 
-The type environment consists of a number of distinct elements required by our type system definition. For simplifying the rules, we define a short-hand notation for each of them.
-
-\begin{math}
-  \begin{array}{l l l l}
-    \tcimap & \defeq & \cimap & \text{ where } \tenv = \tenvexdef \\ 
-    \tctmap & \defeq & \ctmap & \text{ where } \tenv = \tenvexdef \\ 
-    \tcdmap & \defeq & \cdmap & \text{ where } \tenv = \tenvexdef \\ 
-    \tconstraints & \defeq & \constraints & \text{ where } \tenv = \tenvexdef \\ 
-    \tstmap & \defeq & \stmap & \text{ where } \tenv = \tenvexdef \\ 
-    \tsdmap & \defeq & \sdmap & \text{ where } \tenv = \tenvexdef \\ 
+Let $\tenv = \tenvexdef$, then:
+\begin{displaymath}
+  \begin{array}{l l l l l}
+    \tcimap & \defeq & \cimap \\ 
+    \tctmap & \defeq & \ctmap \\ 
+    \tcdmap & \defeq & \cdmap  \\ 
+    \tconstraints & \defeq & \constraints \\ 
+    \tsydata & \defeq & \sydata  \\ 
+    \tstmap & \defeq & \stmap \\ 
+    \tsdmap & \defeq & \sdmap \\
+    \tindexmap & \defeq & \indexmap \\
+    \testmap & \defeq & \estmap & \text{where} & \evi = \evivaldef \\
+    \tesdmap & \defeq & \esdmap & \text{where} & \evi = \evivaldef \\
+    \tetmap & \defeq & \etmap & \text{where} & \evi = \evivaldef \\
+    \tedmap & \defeq & \edmap & \text{where} & \evi = \evivaldef \\
+    \tscstmap & \defeq & \scstmap & \text{where} & \sci = \scivaldef \\
+    \tscsdmap & \defeq & \scsdmap & \text{where} & \sci = \scivaldef \\
+    \tsctmap & \defeq & \sctmap & \text{where} & \sci = \scivaldef \\
+    \tscdmap & \defeq & \scdmap & \text{where} & \sci = \scivaldef \\
+    \trstmap & \defeq & \rstmap & \text{where} & \ri = \rivaldef \\
+    \trsdmap & \defeq & \rsdmap & \text{where} & \ri = \rivaldef \\
+    \trtmap & \defeq & \rtmap & \text{where} & \ri = \rivaldef \\
+    \trdmap & \defeq & \rdmap & \text{where} & \ri = \rivaldef \\
   \end{array}
-\end{math}
+\end{displaymath}
 
 \subsection{Rules}
 
-\note{Currently all rules have the form: $e : \tv$. This is not strictly necessary; for example many rules can be relations that does not necessarily involve types at all (e.g. Intro explanation). All we have to ensure is that the set of rules are inductive in the right way. But since I haven't worked out all the rules, I am keeping the rules consistent and always including a type for the time being. That can be fixed later.}
+Currently all rules have the form: $e : \type$. This is not strictly necessary; for example many rules can be relations that does not necessarily involve types at all (e.g. Intro explanation); in such cases the types returned are somewhat artificial. In the long run, we can elide types for such rules as long as we can ensure that the set of rules are inductive in the right way. But since this is still the first phase of the type system, I am keeping the rules consistent and always including a type for the time being.
 
 \begin{mathparpagebreakable}
 
-  \bbrule{System Introduction}{
+  \bbrule{System Introduction}{\quad
   }{
-    \system \hastype \tsystem
+    \tenv \timpl \system \hastype \tsystem
   }
 
   \bbrule{Subsystem Introduction}{
-    \tv \sub \tsubsystem
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \sub \tsubsystem \in \constraints \\
   }{
-    \subsystem \hastype \tv
+    \tenv \timpl \subsystem \hastype \tv
   }
 
-  \bbrule{Subsystem Explanation Introduction}{
+  \bbrule{Explanation Introduction 1}{
+    \system \mapsto \sydataval{\_}{X}{\_} \in \tsydata \\
+    \explanation = \explanation' \\
+  }{
+    \tenv \timpl \system \intro \explanation' \hastype \tsystem
+  }
+
+  \bbrule{Explanation Introduction 2}{
     \subsystem \mapsto \tv \in \tstmap \\
     \tv \mapsto \sdmapvaldef \in \tsdmap \\
     \explanation = \explanation' \\
   }{
-    \subsystem \intro \explanation' \hastype \tv 
+    \tenv \timpl \subsystem \intro \explanation' \hastype \tv 
   }
 
-  \bbrule{Subsystem Containment}{
+  \bbrule{Subsystem Containment 1}{
+    \tsydata = \sydatavaldef \\
+    \subsystem \in \setof{\subsystem} \\
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \mapsto \sdmapval{\subsystemparent}{\_}{\_}{\_}{\_}{\_}{\_}{\_} \in \tsdmap \\
+    \subsystemparent = \system \\
+  }{
+    \system \intro \subsystem \hastype \tsystem 
+  }
+
+  \bbrule{Subsystem Containment 2}{
     \subsystem \mapsto \tv \in \tstmap \\
     \tv \mapsto \sdmapvaldef \in \tsdmap \\
-    \subsystemparent = \subsystem' \\
+    \subsystem' \in \setof{\subsystem} \\
     \subsystem' \mapsto \tv' \in \tstmap \\
-    \tv' \mapsto \sdmapval{\_}{\_}{\setof{\subsystem'}}{\_} \in \tsdmap \\
-    \subsystem \in \setof{\subsystem'} \\
+    \tv' \mapsto \sdmapval{\subsystemparent}{\_}{\_}{\_}{\_}{\_}{\_}{\_} \in \tsdmap \\
+    \subsystemparent = \subsystem \\
   }{
-    \subsystem \intro \subsystem' \hastype \tv 
+    \tenv \timpl \subsystem \intro \subsystem' \hastype \tv 
   }
   
-  \bbrule{Component Introduction}{
+  \bbrule{Explanation Introduction 3}{
     \component \mapsto \tv \in \tctmap \\
+    \tv \mapsto \cdmapvaldef \in \tcdmap \\
+    \explanation = \explanation' \\
   }{
-    \tenv \timpl \component \hastype \tv
+    \tenv \timpl \component \intro \explanation' \hastype \tv
   }
 
   \bbrule{Component Subtyping}{
@@ -121,7 +221,7 @@ The type environment consists of a number of distinct elements required by our t
     \tv \sub \tv' \in \tconstraints \\
     \tv \mapsto \cdmapval{\_}{\_}{\setof{\feature}} \in \tcdmap \\
     \tv' \mapsto \cdmapval{\_}{\_}{\setof{\feature'}} \in \tcdmap \\
-    \setof{\feature} \subset \setof{\feature'} \\
+    \setof{\feature'} \subset \setof{\feature} \\
   }{
     \tenv \timpl \component \hastype \tv
   }
@@ -134,23 +234,15 @@ The type environment consists of a number of distinct elements required by our t
     \tenv \timpl \component \hastype \tv
   }
 
-  \bbrule{Component Explanation Introduction}{
-    \component \mapsto \tv \in \tctmap \\
-    \tv \mapsto \cdmapvaldef \in \tcdmap \\
-    \explanation = \explanation' \\
-  }{
-    \component \intro \explanation' \hastype \tv 
-  }
-
   \bbrule{Component Containment}{
-    \component \mapsto \tv \in \tctmap \\
-    \tv \mapsto \cdmapvaldef \in \tcdmap \\
-    \subsystem = \subsystem' \\
-    \subsystem' \mapsto \tv' \in \tstmap \\
-    \tv' \mapsto \sdmapvaldef \in \tsdmap \\
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \mapsto \sdmapvaldef \in \tsdmap \\
     \component \in \setof{\component} \\
+    \component \mapsto \tv' \in \tctmap \\
+    \tv' \mapsto \cdmapval{\subsystem'}{\_}{\_} \in \tcdmap \\
+    \subsystem = \subsystem' \\
   }{
-    \component \intro \subsystem' \hastype \tv 
+    \tenv \timpl \subsystem \intro \component \hastype \tv' 
   }
   
   \bbrule{Query Introduction}{
@@ -158,7 +250,7 @@ The type environment consists of a number of distinct elements required by our t
     \tv \mapsto \cdmapvaldef \in \tcdmap \\
     \query \in \setof{\feature}
   }{
-    \component \intro \query \hastype \tv
+    \tenv \timpl \component \intro \query \hastype \tv
   }
  
   \bbrule{Command Introduction}{
@@ -166,7 +258,7 @@ The type environment consists of a number of distinct elements required by our t
     \tv \mapsto \cdmapvaldef \in \tcdmap \\
     \command \in \setof{\feature}
   }{
-    \component \intro \command \hastype \tv
+    \tenv \timpl \component \intro \command \hastype \tv
   }
   
   \bbrule{Constraint Introduction}{
@@ -174,24 +266,142 @@ The type environment consists of a number of distinct elements required by our t
     \tv \mapsto \cdmapvaldef \in \tcdmap \\
     \constraint \in \setof{\feature}
   }{
-    \component \intro \constraint \hastype \tv
+    \tenv \timpl \component \intro \constraint \hastype \tv
+  }
+
+  \bbrule{Indexing Introduction 1}{
+    \system \mapsto \sydatavaldef \in \tsydata \\
+    \indexing =\indexing' \\
+    \indexing \mapsto \indexmapval{\indexparent}{\_} \in \tindexmap \\
+    \indexparent = \system \\
+  }{
+    \tenv \timpl \system \intro \indexing' \hastype \tsystem
+  }
+
+  \bbrule{Indexing Introduction 2}{
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \mapsto \sdmapvaldef \in \tsdmap \\
+    \indexing = \indexing' \\
+    \indexing \mapsto \indexmapval{\indexparent}{\_} \in \tindexmap \\
+    \indexparent = \subsystem \\
+  }{
+    \tenv \timpl \subsystem \intro \indexing' \hastype \tv
+  }
+
+  \bbrule{Semantic Property Introduction}{
+    \indexing \mapsto \indexmapvaldef \in \tindexmap \\
+    \semprop \mapsto \semvalue \in \indexpropmapex \\
+    \tv \mapsto \typeof(\tenv, \indexparent) \\
+  }{
+    \tenv \timpl \indexing  \intro \semkeyvalue{\semprop}{\semvalue} \hastype \tv
+  }
+
+  \bbrule{Event Set Introduction}{
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \mapsto \sdmapvaldef \in \tsdmap \\
+    \events \in \setof{\events} \\
+    \events \mapsto \tv' \in \testmap \\
+    \tv' \mapsto \esdmapval{\subsystem'}{\_} \in \tesdmap \\
+    \subsystem = \subsystem' \\
+  }{
+    \tenv \timpl \subsystem \intro \events \hastype \tv
+  }
+  
+  \bbrule{Event Introduction}{
+    \events \mapsto \tv \in \testmap \\
+    \tv \mapsto \esdmapvaldef \in \tesdmap \\
+    \event \in \setof{\event} \\
+    \event \mapsto \tv' \in \tetmap \\
+    \tv' \mapsto \edmapval{\events'} \in \tedmap \\
+    \events = \events' \\
+    \tv' \sub \tevent \in \tconstraints \\
+  }{
+    \tenv \timpl \events \intro \event \hastype \tv 
+  }
+
+  \bbrule{Scenario Set Introduction}{
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \mapsto \sdmapvaldef \in \tsdmap \\
+    \scenarios \in \setof{\scenarios} \\
+    \scenarios \mapsto \tv' \in \tsctmap \\
+    \tv' \mapsto \scsdmapval{\subsystem'}{\_} \in \tscsdmap \\
+    \subsystem = \subsystem' \\
+  }{
+    \tenv \timpl \subsystem \intro \scenarios \hastype \tv
+  }
+
+  \bbrule{Scenario Introduction}{
+    \scenarios \mapsto \tv \in \tsctmap \\
+    \tv \mapsto \scsdmapvaldef \in \tscsdmap \\
+    \scenario \in \setof{\scenario} \\
+    \scenario = \glist{\event} \\
+    \tl = [\tv \mid \forall \event \in \glist{\event}. \, \event \mapsto \tv \in \tetmap ] \\
+    \scenario \mapsto \tl \in \tsctmap \\
+    \tl \mapsto \scdmapval{\scenarios'} \in \tscdmap \\
+    \scenarios = \scenarios' \\
+  }{
+    \tenv \timpl \scenarios \intro \scenario \hastype \tv
+  }
+
+  \bbrule{Requirement Set Introduction}{
+    \subsystem \mapsto \tv \in \tstmap \\
+    \tv \mapsto \sdmapvaldef \in \tsdmap \\
+    \requirements \in \setof{\requirements} \\
+    \requirements \mapsto \tv' \in \trtmap \\
+    \tv' \mapsto \scsdmapval{\subsystem}{\_} \in \trsdmap \\
+    \subsystem = \subsystem' \\
+  }{
+    \tenv \timpl \subsystem \intro \requirements \hastype \tv
+  }
+
+  \bbrule{Requirement Introduction}{
+    \requirements \mapsto \tv \in \trtmap \\
+    \tv \mapsto \rsdmapvaldef \in \trsdmap \\
+    \requirement \in \setof{\requirement} \\
+    \tl = [\tv \mid \forall \requirementparam \in \requirementparams. \, \typeof(\requirementparam) = \tv] \\
+    \pbexpr \hastype \tbool \\
+    \tf = \tarrow{\tl}{\tbool} \\
+    \requirement \mapsto \tf \in \trtmap \\
+    \tf \mapsto \rdmapval{\requirements'} \in \trdmap \\
+    \requirements = \requirements' \\
+  }{
+    \tenv \timpl \requirements \intro \requirement \hastype \tv
   }
 
 \end{mathparpagebreakable}
 
 \subsection{Auxiliary Functions and Relations}
 
-Non-circular-Inheritance indicates that a component's inheritance chain does not have a cycle. Note that the particular relation only checks for circles that includes the specific component. However since this relation must be satisfied by every component, any cycle in the chain will be detected at some point. Formally non-cicularity is a ternary relation defined inductively as below:
+Non-circular-Inheritance indicates that a component's inheritance
+chain does not have a cycle. Note that the particular relation only
+checks for circles that includes the specific component. However since
+this relation must be satisfied by every component, any cycle in the
+chain will be detected at some point. Formally non-cicularity is a
+ternary relation defined inductively as below:
 
 \begin{math}
   \noncircular(\tcimap, \component, \component') =
   % \begin{array}{|l l l}
   \begin{cases}
-    \text{undefined} \tiff \component = \component' \\ 
-    \text{undefined} \tiff \noncircular(\tcimap, \component, \component'')
-      \text{ where } \component' \mapsto \component'' \in \tcimap \\ 
-    \text{defined} \; \textrm{otherwise}  
+    \text{undefined} & \tiff \component = \component' \\ 
+    \text{undefined} &\tiff \noncircular(\tcimap, \component, \component'')
+      \tand \component' \mapsto \component'' \in \tcimap \\ 
+    \text{defined} & \textrm{otherwise}  
   \end{cases}
 \end{math}
 
+$\typeof$ is a simple function to extract the type associated with an entity in the environment
+\begin{displaymath}
+  \begin{array}{l l l}
+    \typeof(\tenv, \system) = \tsystem \\
+    \typeof(\tenv, \subsystem) = \tv & \tiff & \subsystem \mapsto \tv \in \tstmap \\ 
+    \typeof(\tenv, \component) = \tv & \tiff & \subsystem \mapsto \tv \in \tctmap \\ 
+  \end{array} 
+\end{displaymath}
+
 \end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

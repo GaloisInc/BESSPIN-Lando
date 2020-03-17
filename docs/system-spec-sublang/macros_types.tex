@@ -4,6 +4,22 @@
 
 \input{macros}
 
+% Grammar definition helpers
+\renewenvironment{grammar}{%
+  \global\def\grammarVertAdjustment{0mm}
+  \newcommand{\gline}{\hline \\[-0.5em]}
+  \newcommand{\gcont}{\\ & &}
+  \newcommand{\gor}{\ensuremath{\mid}}
+  \newcommand{\grule}[4][0mm]{##2 & ::= & ##3 & \mbox{\scriptsize $\textit{##4}$} \\[##1] }
+  \newcommand{\gruleplain}[3][0mm]{##2 & \hphantom{::=} & & \mbox{\scriptsize $\textit{##3}$} \\[##1] }
+  \small
+  \begin{center}
+  \begin{longtable}{>{$}l<{$} >{$}c<{$} >{$}l<{$} >{$}r<{$}}
+}{%
+  \end{longtable}
+  \end{center}
+}
+ 
 % Grammar macros
 \newcommand{\bbrule}[4][]{\inferrule*[lab={\sc #2},#1]{#3}{#4}}
 \newcommand{\bbrulename}[1]{{\sc #1}}
@@ -11,7 +27,7 @@
 % General
 \newcommand{\note}[1]{\todo[inline,color=green!40]{#1}}
 
-\newcommand{\listof}[2][]{[#2]^{#1}}
+\newcommand{\listof}[2][]{\ensuremath{[#2]^{#1}}}
 \newcommand{\setof}[2][]{\{#2\}^{#1}}
 \newcommand{\mapof}[3][]{\{#2 \mapsto #3\}^{#1}}
 
@@ -29,13 +45,33 @@
 \newcommand{\system}{\mathbb{S}}
 \newcommand{\subsystem}[1][S]{\gntn{#1}}
 \newcommand{\component}[1][C]{\gntn{#1}}
+\newcommand{\indexing}[1][I]{\gntn{#1}}
 \newcommand{\subsystemparent}[1][SP]{\gntn{#1}}
 
-\newcommand{\explanation}[1][E]{\gntn{#1}}
+\newcommand{\explanation}[1][X]{\gntn{#1}}
+\newcommand{\semprops}[1][A]{\gntn{#1}}
+\newcommand{\semprop}[1][p]{\gntn{#1}}
+\newcommand{\semvalue}[1][v]{\gntn{#1}}
+\newcommand{\sempair}[1][a]{\gntn{#1}}
 \newcommand{\query}[1][q]{\gntn{#1}}
 \newcommand{\command}[1][c]{\gntn{#1}}
 \newcommand{\constraint}[1][i]{\gntn{#1}}
 \newcommand{\feature}[1][f]{\gntn{#1}}
+
+\newcommand{\semkeyvalue}[2]{(#1,#2)}
+
+\newcommand{\events}[1][E]{\gntn{#1}}
+\newcommand{\event}[1][e]{\gntn{#1}}
+\newcommand{\scenarios}[1][U]{\gntn{#1}}
+\newcommand{\scenario}[1][u]{\gntn{#1}}
+\newcommand{\requirements}[1][R]{\gntn{#1}}
+\newcommand{\requirement}[1][r]{\gntn{#1}}
+
+\newcommand{\requirementparam}[1][pp]{\gntn{#1}}
+\newcommand{\requirementparams}[1][pp]{\setof{\requirementparam[#1]}}
+\newcommand{\earrow}[2]{#1 \rightarrow #2}
+\newcommand{\pbexpr}[1][b]{\gntn{#1}}
+\newcommand{\pval}[1][v]{\gntn{#1}}
 
 \newcommand{\intro}{\leftarrow}
 
@@ -47,14 +83,22 @@
 \newcommand{\tbool}{\mathcal{B}}
 \newcommand{\tint}{\mathcal{Z}}
 \newcommand{\tnat}{\mathcal{N}}
+\newcommand{\treal}{\mathcal{R}}
+\newcommand{\tdate}{\mathcal{D}}
+\newcommand{\tarrow}[2]{#1 \rightarrow #2}
 % TODO: More types
 
 \newcommand{\tsystem}{\ensuremath{System}}
 \newcommand{\tsubsystem}{\ensuremath{Subsystem}}
 \newcommand{\tcomponent}{\ensuremath{Component}}
+\newcommand{\tevent}{\ensuremath{Event}}
+%\newcommand{\tscenario}{\ensuremath{Scenario}}
+%\newcommand{\trequirement}{\ensuremath{Requirement}}
 
+\newcommand{\tl}{\vec{\type}}
 \newcommand{\tp}{\hat{\type}}
 \newcommand{\tv}{\breve{\type}}
+\newcommand{\tf}{\dot{\type}}
 
 \newcommand{\hastype}{\mathop{:}}
 
@@ -66,21 +110,111 @@
 \newcommand{\cdmapvaldef}{\cdmapval{\subsystem}{\explanation}{\setof{\feature}}} 
 \newcommand{\constraints}{\mathbb{T}}
 
+\newcommand{\sydata}{\mathbb{SY}}
+\newcommand{\sydataval}[3]{\langle #1, #2, #3 \rangle}
+\newcommand{\sydatavaldef}{
+  \sydataval{\setof{\subsystem}}{\explanation}{\indexing}
+} 
+
 \newcommand{\stmap}{\mathbb{ST}}
 \newcommand{\sdmap}{\mathbb{SD}}
-\newcommand{\sdmapval}[4]{\langle #1, #2, #3, #4 \rangle}
-\newcommand{\sdmapvaldef}{\sdmapval{\subsystemparent}{\explanation}{\setof{\subsystem}}{\setof{\component}}} 
+\newcommand{\sdmapval}[8]{\langle #1, #2, #3, #4, #5, #6, #7, #8 \rangle}
+\newcommand{\sdmapvaldef}{
+  \sdmapval{\subsystemparent}{\explanation}{\setof{\subsystem}}{\setof{\component}}
+    {\setof{\events}}{\setof{\scenarios}}{\setof{\requirements}}
+    {\indexing}
+} 
+
+\newcommand{\estmap}{\mathbb{EST}}
+\newcommand{\esdmap}{\mathbb{ESD}}
+\newcommand{\esdmapval}[2]{\langle #1, #2 \rangle}
+\newcommand{\esdmapvaldef}{\esdmapval{\subsystem}{\setof{\event}}} 
+\newcommand{\etmap}{\mathbb{ET}}
+\newcommand{\edmap}{\mathbb{ED}}
+\newcommand{\edmapval}[1]{#1}
+\newcommand{\edmapvaldef}{\edmapval{\events}}
+\newcommand{\evi}{\mathbb{EI}}
+\newcommand{\evival}[4]{\langle #1, #2, #3, #4 \rangle}
+\newcommand{\evivaldef}{\evival{\estmap}{\esdmap}{\etmap}{\edmap}}
+
+\newcommand{\scstmap}{\mathbb{UST}}
+\newcommand{\scsdmap}{\mathbb{USD}}
+\newcommand{\scsdmapval}[2]{\langle #1, #2 \rangle}
+\newcommand{\scsdmapvaldef}{\scsdmapval{\subsystem}{\setof{\scenario}}} 
+\newcommand{\sctmap}{\mathbb{UT}}
+\newcommand{\scdmap}{\mathbb{UD}}
+\newcommand{\scdmapval}[1]{#1}
+\newcommand{\scdmapvaldef}{\scdmapval{\scenarios}}
+\newcommand{\sci}{\mathbb{UI}}
+\newcommand{\scival}[4]{\langle #1, #2, #3, #4 \rangle}
+\newcommand{\scivaldef}{\scival{\scstmap}{\scsdmap}{\sctmap}{\scdmap}}
+
+
+\newcommand{\rstmap}{\mathbb{RST}}
+\newcommand{\rsdmap}{\mathbb{RSD}}
+\newcommand{\rsdmapval}[2]{\langle #1, #2 \rangle}
+\newcommand{\rsdmapvaldef}{\rsdmapval{\subsystem}{\setof{\requirement}}} 
+\newcommand{\rtmap}{\mathbb{RT}}
+\newcommand{\rdmap}{\mathbb{RD}}
+\newcommand{\rdmapval}[1]{#1}
+\newcommand{\rdmapvaldef}{\rdmapval{\requirements}}
+\newcommand{\ri}{\mathbb{RI}}
+\newcommand{\rival}[4]{\langle #1, #2, #3, #4 \rangle}
+\newcommand{\rivaldef}{\rival{\rstmap}{\rsdmap}{\rtmap}{\rdmap}}
+
+\newcommand{\indexmap}{\mathbb{I}}
+\newcommand{\indexmapval}[2]{\langle #1,#2 \rangle}
+\newcommand{\indexmapvaldef}{\indexmapval{\indexparent}{\indexpropmapex}}
+\newcommand{\indexparent}{\mathbb{SS}}
+\newcommand{\indexpropmap}[2]{\{#1 \mapsto #2\}}
+\newcommand{\indexpropmapex}{\indexpropmap{\semprop}{\semvalue}}
 
 \newcommand{\tenv}{\Gamma}
-\newcommand{\tenvex}[6]{\langle #1, #2, #3, #4, #5, #6 \rangle}
-\newcommand{\tenvexdef}{\tenvex{\cimap}{\ctmap}{\cdmap}{\constraints}{\stmap}{\sdmap}}
+\newcommand{\tenvex}[9]{
+  \def\tempa{#1}%
+  \def\tempb{#2}%
+  \def\tempc{#3}%
+  \def\tempd{#4}%
+  \def\tempe{#5}%
+  \def\tempf{#6}%
+  \def\tempg{#7}%
+  \def\temph{#8}%
+  \def\tempi{#9}%
+  \tenvexcontinued
+}
+\newcommand{\tenvexcontinued}[2]{
+    \langle \tempa, \tempb, \tempc, \tempd, \tempe, \tempf, \tempg, \temph, \tempi, 
+             #1, #2
+    \rangle
+}
+\newcommand{\tenvexdef}{
+    \tenvex
+      {\cimap}{\ctmap}{\cdmap}{\constraints}{\sydata}{\stmap}{\sdmap}
+      {\indexmap}{\evi}{\sci}{\ri}
+}
 
 \newcommand{\tcimap}{\cimap^{\tenv}}
 \newcommand{\tctmap}{\ctmap^{\tenv}}
 \newcommand{\tcdmap}{\cdmap^{\tenv}}
 \newcommand{\tconstraints}{\constraints^{\tenv}}
+\newcommand{\tsydata}{\sydata^{\tenv}}
 \newcommand{\tstmap}{\stmap^{\tenv}}
 \newcommand{\tsdmap}{\sdmap^{\tenv}}
+\newcommand{\testmap}{\estmap^{\tenv}}
+\newcommand{\tesdmap}{\esdmap^{\tenv}}
+\newcommand{\tetmap}{\etmap^{\tenv}}
+\newcommand{\tedmap}{\edmap^{\tenv}}
+\newcommand{\tscstmap}{\scstmap^{\tenv}}
+\newcommand{\tscsdmap}{\scsdmap^{\tenv}}
+\newcommand{\tsctmap}{\sctmap^{\tenv}}
+\newcommand{\tscdmap}{\scdmap^{\tenv}}
+\newcommand{\trstmap}{\rstmap^{\tenv}}
+\newcommand{\trsdmap}{\rsdmap^{\tenv}}
+\newcommand{\trtmap}{\rtmap^{\tenv}}
+\newcommand{\trdmap}{\rdmap^{\tenv}}
+\newcommand{\tindexmap}{\indexmap^{\tenv}}
 
 % Type rule helper functions
 \newcommand{\noncircular}{\fn{NCI}}
+\newcommand{\typeof}{\fn{TypeOf}}
+
