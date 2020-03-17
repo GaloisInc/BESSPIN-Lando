@@ -118,12 +118,8 @@ concrete InfoLeakageEng of InfoLeakageAbs = open SyntaxEng,ParadigmsEng in {
     OnlyNamedISpec inst = mkNP only_Predet (mkNP theSg_Det inst);
 
     AnyInst = instruction;
-    ArithInst = mkN "arithmetic" instruction;
-    IntegerOp = mkN "integer" operation;
-    FloatingPointOp = mkN "floating" (mkN "point" operation);
-    BitwiseOp = mkN "bitwise" operation;
-    ProcessorFence = mkN "processor" (mkN "fence");
-
+    Named_InstClass str = mkN str.s instruction;
+    Named_InstClass_Op str = mkN str.s operation;
     A_NamedInst str = mkCN (mkN str.s instruction);
     A_NamedOp str = mkCN (mkN str.s operation);
 

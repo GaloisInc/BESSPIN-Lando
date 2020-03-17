@@ -102,14 +102,16 @@ abstract InfoLeakageAbs = {
     -- The class of instructions in general
     AnyInst : InstClass;
 
-    -- Specific classes of instructions / operations
-    ArithInst : InstClass;
-    IntegerOp : InstClass;
-    FloatingPointOp : InstClass;
-    BitwiseOp : InstClass;
-    ProcessorFence : InstClass;
+    -- A named class of instructions
+    Named_InstClass : String -> InstClass;
 
+    -- A named class of instructions referred to as "operations"
+    Named_InstClass_Op : String -> InstClass;
+
+    -- A named instruction
     A_NamedInst : String -> NamedInst;
+
+    -- A named instruction referred to as an "operation"
     A_NamedOp : String -> NamedInst;
 
 
