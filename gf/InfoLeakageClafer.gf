@@ -22,7 +22,7 @@ concrete InfoLeakageClafer of InfoLeakageAbs = open Prelude, Predef, Maybe in {
     -- negated, as in "no timing information"
     InfoSpec = Bool;
 
-    ChannelSpec = Str;
+    ChannelSpec = MaybeS;
     DataSpec = Str;
     NamedDatum = Str;
     ModuleSpec = Str;
@@ -100,7 +100,7 @@ concrete InfoLeakageClafer of InfoLeakageAbs = open Prelude, Predef, Maybe in {
              (prefix_maybe ("destination.wire.mod" ++ "=" ++ src_mod ++ "&&" ++
                             "destination.wire.sig" ++ "=") maybe_dest)
              (and_maybes
-                (prefix_maybe ("boundary" ++ "=") maybe_boundary)
+                (prefix_maybe ("destination.boundary" ++ "=") maybe_boundary)
                 (JustS
                  (if_then_else Str b "leak" "!leak"))))
         ++ "]";
@@ -132,9 +132,9 @@ concrete InfoLeakageClafer of InfoLeakageAbs = open Prelude, Predef, Maybe in {
 
 
     DLeakAssertionDMC pol d mod chan =
-      mk_digital_leakage pol d mod (JustS mod) NothingS;
+      mk_digital_leakage pol d mod chan NothingS;
     DLeakAssertionDMPC pol d mod proc chan =
-      mk_digital_leakage pol d mod (JustS mod) NothingS;
+      mk_digital_leakage pol d mod chan NothingS;
     DLeakAssertionDMB pol d mod bound =
       mk_digital_leakage pol d mod NothingS (JustS bound);
     DLeakAssertionDMPB pol d mod proc bound =
@@ -192,9 +192,9 @@ concrete InfoLeakageClafer of InfoLeakageAbs = open Prelude, Predef, Maybe in {
     NoInputOperandValues = False;
 
     -- NOTE: channels are not yet used, so all of these are the empty string
-    TimingSideChannel = [];
-    InformationFlowChannel = [];
-    NamedOutputChannel str = [];
+    TimingSideChannel = NothingS;
+    InformationFlowChannel = NothingS;
+    NamedOutputChannel str = JustS str.s;
 
 
     ----------------------------------------------------------------------
