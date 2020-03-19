@@ -1,0 +1,178 @@
+\documentclass{article}
+
+\input{macros}
+
+\usepackage{cmbright}
+%\usepackage[varg]{txfonts}
+%\usepackage{pxfonts}
+
+\begin{document}
+
+\section{Notation}
+
+The grammar for the Lando System Specification Sublanguage is written in the EBNF notation. The main elements of the notation that we utilize are:
+\begin{itemize}
+  \item Terminals are represented with double or single quotes; e.g. $\gtkw{explanation}$.
+  \item Optional bits are represented with squared brackets; e.g. $\gopt{\gtkw{explanation} \gnparagraph}$.
+  \item Repetition is represented with curly braces; e.g. $\glist{\gnident}$
+  \item We use a slightly enhanced notation - $\glistnonempty{a}$ to indicate \emph{non-zero} repetitions. This is simply equivalent to: $a \glist{a}$.
+  \item For defining terminals, we would like to use the EBNF special form to declare an extended regular expression - for example: $\gtregexfull{\textbackslash w\\+}$. However since this is rather verbose, we will simply use $\gtregex{\textrm{\textbackslash w\\+}}$ for convenience.
+  \item Blocks in the language are typically delimited by keywords indicating the start of \emph{another} block. In defining the grammar this translates to lookaheads: (i.e. peeking at incoming tokens without consuming them). We use the perl regular expression format to indicate this. E.g. $\gtregex{?= (\gnnl \gtkw{system})}$.
+\end{itemize}
+
+\section{Grammar}
+
+\begin{grammar}
+  \grule{\gnlando}{
+    \glist{\gnspecelem}
+  }{Lando source}
+  
+  \grule{\gnspecelem}{
+    \gnsystem \gor \gnsubsystem \gor \gncomponent \gor \gnevent \gcont 
+    \gor \gnscenario \gor \gnrequirements
+  }{Specification Elements}
+
+  %\grule{\gnclassdict}{
+    %\gtkw{dictionary} \gnname 
+    %\glistnonempty{\gnclassdictentry} 
+    %\gtkw{end} %TODO
+  %}{Class Dictionary}
+
+  %\grule[0.5em]{\gnclassdictentry}{
+    %\gtkw{class} \gnname 
+    %\gtkw{description} \gnparagraph %TODO: What is the last string?
+  %}{Class Dictionary Entry}
+
+  \gline
+
+  \grule{\gnsystem}{
+    \gtkw{system} \gnnamephraserel \gopt{\gnrelkeyword \gnnamephrase} \gnnl \gcont
+    \; \gnexplanation \gnnl \gcont
+    \; \gopt{\gtkw{indexing} \gnnl \gnindexing \gnnl} \gcont
+    \; \gseplist{\gnnl}{\gnsubsystem} \gcont
+    \; \gtregex{(?= \gnnlsystemkeyword | \gneof)} \gnblockend
+  }{System}
+
+  \gline
+
+  \grule{\gnsubsystem}{
+    \gtkw{subsystem} \gnnamephraserel \gopt{\gnrelkeyword \gnnamephrase} \gnnl \gcont
+    \; \gnexplanation \gnnl \gcont
+    \; \gopt{\gtkw{indexing} \gnnl \gnindexing \gnnl} \gcont
+    \; \gseplist{\gnnl}{\gncomponent} \gcont
+    \; \gtregex{(?= \gnnlsubsystemkeyword | \gneof)} \gnblockend
+  }{Cluster}
+
+  \gline
+
+  \grule{\gncomponent}{
+    \gtkw{component} \gnnamephraserel \gopt{\gnrelkeyword \gnnamephrase} \gnnl \gcont
+    \; \gnexplanation \gnnl \gcont
+    \; \gseplist{\gnnl}{\gncomponentpart} \gcont
+    \; \gtregex{(?= \gnnlkeyword | \gneof)} \gnblockend
+  }{Class}
+
+  \grule{\gncomponentpart}{
+    \gnconstraint | \gncommand | \gnquery
+  }{Component Parts}
+
+  \grule{\gnconstraint}{
+    \gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}?\,\textbackslash.]}
+  }{Constraint}
+
+  \grule{\gnquery}{
+    \gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}?\,\textbackslash?]}
+  }{Query}
+
+  \grule[0.5em]{\gncommand}{
+    \gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}?\,!]}
+  }{Command}
+
+  \gline
+
+  \grule{\gnevent}{
+    \gtkw{events} \gnnamephrase \gnnl \gcont
+    \; \gseplist{\gnnl}{\gnevententry} \gcont
+    \; \gtregex{(?= \gnnlkeyword | \gneof)} \gnblockend
+  }{Events}
+
+  \grule{\gnevententry}{
+    \gnident \gnnl \gnsentence
+  }{Event Entry}
+
+  \gline
+
+  \grule{\gnscenario}{
+    \gtkw{scenarios} \gnnamephrase \gnnl \gcont
+    \; \gseplist{\gnnl}{\gnevententry} \gcont
+    \; \gtregex{(?= \gnnlkeyword | \gneof)} \gnblockend
+  }{Scenario}
+
+  \grule{\gnscenarioentry}{
+    \gnident \gnnl \gnsentence
+  }{Scenario Entry}
+
+  \gline
+
+
+  \grule{\gnrequirements}{
+    \gtkw{requirements} \gnnamephrase \gnnl \gcont
+    \; \gseplist{\gnnl}{\gnrequirementsentry} \gcont
+    \; \gtregex{(?= \gnnlkeyword | \gneof)} \gnblockend
+  }{Requirements}
+
+  \grule{\gnrequirementsentry}{
+    \gnident \gnnl \gnsentence
+  }{Requirements Entry}
+
+  \gline
+  
+  \grule{\gnindexing}{
+    \gseplist{\gnnl}{\gnindexentry}
+  }{Index List}
+
+  
+  \grule{\gnindexentry}{
+    \gnindexkey \gtkc{:} \gnindexvallist
+  }{Index List}
+
+  \grule{\gnindexkey}{
+    \gtregex{[\text{\textasciicircum:}]\txss{+}}
+  }{Index Key}
+
+  \grule{\gnindexvallist}{
+    \gseplist{\gnnl}{\gnindexval} \gcont
+    \; \gtregex{(?= \gneof | \gnnlkeyword | \gnnl \gnindexkey )}
+  }{Index Value List}
+
+  \grule[0.5em]{\gnindexval}{
+    \gtregex{[\text{\textasciicircum:}]\txss{+}}
+  }{Index Value}
+  
+
+  \gline
+
+  \grule{\gnname}{\gnident}{Name}
+  \grule{\gnnamephraserel}{
+    \gtregex{\textbackslash{}w[\textbackslash{}w\textbackslash{}s]*\,(?= \gnrelkeyword | \gnnl)}
+  }{Name-Phrase}
+  \grule{\gnnamelist}{\gnname \glist{\gtkc{,} \gnname}}{Name List}
+  \grule{\gnstring}{\gtregex{[\textasciicircum,]\txss{+}?}}{String}
+  \grule{\gnstringlist}{\gnstring \glist{, \gnstring}}{List of Strings}
+  \grule{\gnsentence}{\gtregex[m]{[\text{\textasciicircum}.?!]\txss{+}? [.?!]}}{Sentence}
+  \grule{\gnsentencelist}{\gnsentence \glist{\gtkc{,} \gnsentence}}{String List}
+  \grule{\gnparagraph}{\gnsentence^+ \gtregex{(?= (\gnnl \gnkeyword | \gneof))}}{Paragraph}
+  \grule{\gnexplanation}{\gnparagraph}{Explanation}
+  \grule{\gnkeyword}{<all keywords>}{All\ Keywords}
+  \grule{\gnnlkeyword}{\gnnl \, \gnkeyword}{Keyword on new line}
+  \grule{\gnnlsystemkeyword}{\gnnl \, \gtkw{system}}{}
+  \grule{\gnnlsubsystemkeyword}{\gnnl \, (\gtkw{subsystem} | \gtkw{system})}{}
+  \grule{\gnrelkeyword}{\gtkw{inherit} | \gtkw{client} | \gtkw{contains}}{Relation keywords}
+  \grule{\gnblockend}{\gnnl | \gneof}{Block End}
+  \grule{\gnident}{\gtregex{\textrm{\textbackslash w+}}}{Identifier}
+  \grule{\gnnl}{}{New Line}
+\end{grammar}
+
+
+\end{document}
+
