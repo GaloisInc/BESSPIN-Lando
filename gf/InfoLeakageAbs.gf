@@ -1,3 +1,9 @@
+{-
+Copyright (c) 2020, Galois, Inc.
+Author: Eddy Westbrook
+This file was built as part of the BESSPIN project.
+-}
+
 abstract InfoLeakageAbs = {
   flags startcat = LeaksAssertion ;
 
