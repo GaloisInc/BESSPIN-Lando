@@ -57,6 +57,14 @@ concrete InfoLeakageClafer of InfoLeakageAbs = open Prelude, Predef, Maybe in {
          (JustS (prefix ++ maybe_str.inner))
          NothingS;
 
+    -- Build the string prefix ++ str if the MaybeS input is Just
+    -- str. Otherwise, return a default
+    prefix_maybe_def : Str -> Str -> MaybeS -> MaybeS =
+      \prefix,def_str,maybe_str ->
+       if_then_else MaybeS maybe_str.exists
+         (JustS (prefix ++ maybe_str.inner))
+         (JustS def_str);
+
     -- Form the conjunction of two MaybeSs that represent constraints, where
     -- Nothing is the vacuously true constraint
     and_maybes : MaybeS -> MaybeS -> MaybeS =
@@ -81,10 +89,10 @@ concrete InfoLeakageClafer of InfoLeakageAbs = open Prelude, Predef, Maybe in {
         "timing_leakage" ++ "[" ++
         run_maybe
           (and_maybes
-             (prefix_maybe ("leaking_instructions" ++ "=")
+             (prefix_maybe_def ("leaking_instructions" ++ "=") ("#leaking_instructions = 0")
                            (inst_spec_pos pol ispec))
              (and_maybes
-                (prefix_maybe ("nonleaking_instructions" ++ "=")
+                (prefix_maybe_def ("nonleaking_instructions" ++ "=") ("#nonleaking_instructions = 0")
                               (inst_spec_neg pol ispec))
                 (prefix_maybe ("soc_under_test" ++ "=") maybe_proc)))
         ++ "]";
