@@ -108,7 +108,7 @@ concrete InfoLeakageClafer of InfoLeakageAbs = open Prelude, Predef, Maybe in {
              (prefix_maybe ("destination.wire.mod" ++ "=" ++ src_mod ++ "&&" ++
                             "destination.wire.sig" ++ "=") maybe_dest)
              (and_maybes
-                (prefix_maybe ("destination.boundary" ++ "=") maybe_boundary)
+                (prefix_maybe_def ("destination.boundary" ++ "=") "!destination.boundary" maybe_boundary)
                 (JustS
                  (if_then_else Str b "leak" "!leak"))))
         ++ "]";
