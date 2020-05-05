@@ -9,7 +9,7 @@ lexer grammar SSLLexer;
     //set the boolean debug to true below to see what is being lexed as well
     //as mode transitions and rewinding
     public Token nextToken() {
-        Boolean debug = true;
+        Boolean debug = false;
 
         int incomingMode = this._mode ;
         String mode_str = String.format("%s", incomingMode);
@@ -21,10 +21,12 @@ lexer grammar SSLLexer;
             try {
                 int startIndex = _input.index();
                 Token token = super.nextToken();
+                int tokenType = token.getType();
+
                 text = token.getText().replace("\n","\\n");
                 mode_str = String.format("%s -> %d", mode_str, this._mode);
 
-                if (token != null && token.getType() == SPECIAL_REWIND) {
+                if (token != null && tokenType == SPECIAL_REWIND) {
                     rewind = "Rewinded on \"" + text + "\"" ;
 
                     // since we're backtracking, we've no longer hit the EOF
@@ -36,8 +38,8 @@ lexer grammar SSLLexer;
 
                 if (debug) {
                     int endIndex = _input.index();
-                    System.out.printf("%-9s | mode %-11s | index %d -> %d | %s \n",
-                                      text, mode_str, startIndex, endIndex, rewind);
+                    System.out.printf("%-9s | %-2d | mode %-11s | idx %d -> %d | %s \n",
+                                      text, tokenType, mode_str, startIndex, endIndex, rewind);
                 }
 
                 return token;
@@ -58,7 +60,7 @@ tokens {
 }
 
 //Common Fragments
-fragment F_LINESEP      : ('\r'? '\n' | '\r') ;
+fragment F_LINESEP      : ('\r'? '\n' | '\r') | EOF ;
 fragment F_WHITESPACE   : [ \t] ;
 fragment F_WHITESPACES  : F_WHITESPACE+ ;
 fragment F_EMPTYLINE    : F_LINESEP F_WHITESPACE* F_LINESEP ; //NOTE: This consumes the second line
