@@ -6,10 +6,13 @@ lexer grammar SSLLexer;
     //is effectively a backtracking mechanism.
     //The function has also been enhanced to give us some information about
     //lexing, which is critical given our complicated usage of lexer modes. Just
-    //uncomment the print statement here to see what is being lexed as well
+    //set the boolean debug to true below to see what is being lexed as well
     //as mode transitions and rewinding
     public Token nextToken() {
+        Boolean debug = true;
+
         int incomingMode = this._mode ;
+        String mode_str = String.format("%s", incomingMode);
         String text = "<null>";
         String rewind = "No Rewind";
 
@@ -18,17 +21,21 @@ lexer grammar SSLLexer;
             try {
                 int startIndex = _input.index();
                 Token token = super.nextToken();
+                text = token.getText().replace("\n","\\n");
+                mode_str = String.format("%s -> %d", mode_str, this._mode);
+
                 if (token != null && token.getType() == SPECIAL_REWIND) {
-                    rewind = "Rewinded on \"" + token.getText() + "\"" ;
+                    rewind = "Rewinded on \"" + text + "\"" ;
 
                     _input.seek(startIndex);
                     continue;
                 }
 
-                text = token.getText();
-
-                int outgoingMode = this._mode ;
-                //System.out.printf("%s | %d -> %d | %s \n", text, incomingMode, outgoingMode, rewind);
+                if (debug) {
+                    int endIndex = _input.index();
+                    System.out.printf("%-9s | mode %-11s | index %d -> %d | %s \n",
+                                      text, mode_str, startIndex, endIndex, rewind);
+                }
 
                 return token;
             }
