@@ -27,6 +27,9 @@ lexer grammar SSLLexer;
                 if (token != null && token.getType() == SPECIAL_REWIND) {
                     rewind = "Rewinded on \"" + text + "\"" ;
 
+                    // since we're backtracking, we've no longer hit the EOF
+                    super._hitEOF = false;
+
                     _input.seek(startIndex);
                     continue;
                 }
