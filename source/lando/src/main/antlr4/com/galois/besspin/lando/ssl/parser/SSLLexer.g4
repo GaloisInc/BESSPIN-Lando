@@ -1,16 +1,16 @@
 lexer grammar SSLLexer;
 
 @members {
+    public Boolean debug = false;
+
     //We override nextToken() to handle a special rewind token which can
     //be used to reset the input stream to the start of the current token; this
     //is effectively a backtracking mechanism.
     //The function has also been enhanced to give us some information about
     //lexing, which is critical given our complicated usage of lexer modes. Just
-    //set the boolean debug to true below to see what is being lexed as well
+    //use the argument '-d' or '--debug' to see what is being lexed as well
     //as mode transitions and rewinding
     public Token nextToken() {
-        Boolean debug = false;
-
         int incomingMode = this._mode ;
         String mode_str = String.format("%s", incomingMode);
         String text = "<null>";

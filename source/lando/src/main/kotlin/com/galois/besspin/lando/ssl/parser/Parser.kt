@@ -39,12 +39,13 @@ private class CollectingErrorListener : BaseErrorListener() {
     fun formatErrors(): String = errors.map { e -> e.formatError() }.joinToString(separator = "\n")
 }
 
-fun parseFile(file: File): RawSSL {
+fun parseFile(file: File, debugLexer: Boolean = false): RawSSL {
     val errorListener = CollectingErrorListener()
 
     val stream = CharStreams.fromPath(file.toPath())
 
     val lexer = SSLLexer(stream)
+    lexer.debug = debugLexer;
     lexer.removeErrorListeners();
     lexer.addErrorListener(errorListener)
 
