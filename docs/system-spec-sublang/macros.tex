@@ -12,8 +12,8 @@
   \newcommand{\gline}{\hline \\[-0.5em]}
   \newcommand{\gcont}{\\ & &}
   \newcommand{\gor}{\ensuremath{\mid}}
-  \newcommand{\grule}[4][0mm]{##2 & ::= & ##3 & \mbox{\footnotesize $\textit{##4}$} \\[##1] }
-  \newcommand{\gruleplain}[3][0mm]{##2 & \hphantom{::=} & & \mbox{\footnotesize $\textit{##3}$} \\[##1] }
+  \newcommand{\grule}[4][0mm]{##2 & ::= & ##3 & \mbox{\scriptsize $\textit{##4}$} \\[##1] }
+  \newcommand{\gruleplain}[3][0mm]{##2 & \hphantom{::=} & & \mbox{\scriptsize $\textit{##3}$} \\[##1] }
   \small
   \begin{center}
   \begin{longtable}{>{$}r<{$} >{$}c<{$} >{$}l<{$} >{$}r<{$}}
@@ -55,6 +55,10 @@
 \newcommand{\gnstring}{\gntn{string}}
 \newcommand{\gnstringlist}{\gntn{string-list}}
 
+\newcommand{\gncommentchar}{\gtkw{//}}
+\newcommand{\gncomment}{\gntn{\ensuremath{\mathcal{C}}}}
+\newcommand{\gnlinecomments}{\gntn{\ensuremath{\mathcal{LC}}}}
+
 \newcommand{\gnlando}{\gntn{lando-source}}
 \newcommand{\gnspecelem}{\gntn{spec-element}}
 \newcommand{\gnclassdict}{\gntn{class-dictionary}}
@@ -66,7 +70,7 @@
 \newcommand{\gncomponentpart}{\gntn{component-part}}
 \newcommand{\gnconstraint}{\gntn{constraint}}
 \newcommand{\gnquery}{\gntn{query}}
-\newcommand{\gncommand}{\gntn{constraint}}
+\newcommand{\gncommand}{\gntn{command}}
 
 \newcommand{\gnevent}{\gntn{event}}
 \newcommand{\gnscenario}{\gntn{scenario}}
@@ -74,6 +78,7 @@
 
 \newcommand{\gnname}{\gntn{name}}
 \newcommand{\gnnamephrase}{\gntn{name-phrase}}
+\newcommand{\gnnameabbrev}{\gntn{name-abbreviation}}
 \newcommand{\gnnamephraserel}{\gntn{name-phrase-rel}}
 \newcommand{\gnnamelist}{\gntn{name-list}}
 \newcommand{\gnexplanation}{\gntn{explanation}}
@@ -98,4 +103,4 @@
 
 \newcommand{\gnrelkeyword}{\gntn{rel-keyword}}
 
-
+\newcommand{\gnrelation}{\gntn{relation}}
