@@ -9,6 +9,7 @@ import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
 import kotlinx.io.PrintWriter
@@ -30,18 +31,19 @@ class Convert : CliktCommand(
 ) {
     val format by option("-t", "--to").choice("json").required()
     val source by argument("SOURCE").file(exists = true)
-    val dest by argument().file()
+    val dest   by argument("DEST").file()
+    val debug  by option("-d", "--debug").flag()
 
     override fun run() {
         when (format) {
-            "json" -> toJSON(source, dest)
+            "json" -> toJSON(source, dest, debug)
             else -> println("Unable to convert to format: $format")
         }
     }
 
-    fun toJSON(src: File, dst: File) {
+    fun toJSON(source: File, dest: File, debug: Boolean) {
         try {
-            val ssl = parseFile(source)
+            val ssl = parseFile(source, debug)
             val str = ssl.toJSON()
 
             val writer = PrintWriter(dest)
@@ -59,10 +61,11 @@ class Validate : CliktCommand(
     help = "Read a lando SOURCE and check whether it is syntactically valid"
 ) {
     val source by argument("SOURCE").file(exists = true)
+    val debug  by option("-d", "--debug").flag()
 
     override fun run() {
         try {
-            parseFile(source)
+            parseFile(source, debug)
         } catch (ex: Exception) {
             println("$source appears to have syntax errors. " + ex.message)
             System.exit(1)

@@ -1,15 +1,18 @@
 lexer grammar SSLLexer;
 
 @members {
+    public Boolean debug = false;
+
     //We override nextToken() to handle a special rewind token which can
     //be used to reset the input stream to the start of the current token; this
     //is effectively a backtracking mechanism.
     //The function has also been enhanced to give us some information about
     //lexing, which is critical given our complicated usage of lexer modes. Just
-    //uncomment the print statement here to see what is being lexed as well
+    //use the argument '-d' or '--debug' to see what is being lexed as well
     //as mode transitions and rewinding
     public Token nextToken() {
         int incomingMode = this._mode ;
+        String mode_str = String.format("%s", incomingMode);
         String text = "<null>";
         String rewind = "No Rewind";
 
@@ -18,17 +21,26 @@ lexer grammar SSLLexer;
             try {
                 int startIndex = _input.index();
                 Token token = super.nextToken();
-                if (token != null && token.getType() == SPECIAL_REWIND) {
-                    rewind = "Rewinded on \"" + token.getText() + "\"" ;
+                int tokenType = token.getType();
+
+                text = token.getText().replace("\n","\\n");
+                mode_str = String.format("%s -> %d", mode_str, this._mode);
+
+                if (token != null && tokenType == SPECIAL_REWIND) {
+                    rewind = "Rewinded on \"" + text + "\"" ;
+
+                    // since we're backtracking, we've no longer hit the EOF
+                    super._hitEOF = false;
 
                     _input.seek(startIndex);
                     continue;
                 }
 
-                text = token.getText();
-
-                int outgoingMode = this._mode ;
-                //System.out.printf("%s | %d -> %d | %s \n", text, incomingMode, outgoingMode, rewind);
+                if (debug) {
+                    int endIndex = _input.index();
+                    System.out.printf("%-9s | %-2d | mode %-11s | idx %d -> %d | %s \n",
+                                      text, tokenType, mode_str, startIndex, endIndex, rewind);
+                }
 
                 return token;
             }
@@ -48,7 +60,7 @@ tokens {
 }
 
 //Common Fragments
-fragment F_LINESEP      : ('\r'? '\n' | '\r') ;
+fragment F_LINESEP      : ('\r'? '\n' | '\r') | EOF ;
 fragment F_WHITESPACE   : [ \t] ;
 fragment F_WHITESPACES  : F_WHITESPACE+ ;
 fragment F_EMPTYLINE    : F_LINESEP F_WHITESPACE* F_LINESEP ; //NOTE: This consumes the second line
