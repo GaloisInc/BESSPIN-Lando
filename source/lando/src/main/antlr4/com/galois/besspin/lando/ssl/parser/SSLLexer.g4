@@ -3,68 +3,62 @@ lexer grammar SSLLexer;
 @members {
     public Boolean debug = false;
 
-    //We override nextToken() to handle a special rewind token which can
-    //be used to reset the input stream to the start of the current token; this
-    //is effectively a backtracking mechanism.
-    //The function has also been enhanced to give us some information about
+    //We override nextToken() to give us some optional information about
     //lexing, which is critical given our complicated usage of lexer modes. Just
     //use the argument '-d' or '--debug' to see what is being lexed as well
-    //as mode transitions and rewinding
+    //as mode transitions and the top of the mode stack.
     public Token nextToken() {
         int incomingMode = this._mode ;
-        String mode_str = String.format("%s", incomingMode);
-        String text = "<null>";
-        String rewind = "No Rewind";
+        int startIndex = _input.index();
 
-        while (true) {
-            int mark = _input.mark();
-            try {
-                int startIndex = _input.index();
-                Token token = super.nextToken();
-                int tokenType = token.getType();
+        Token token = super.nextToken();
 
-                text = token.getText().replace("\n","\\n");
-                mode_str = String.format("%s -> %d", mode_str, this._mode);
+        if (debug) {
+            String text = token.getText().replace("\n","\\n");
+            int tokenType = token.getType();
+            int outgoingMode = this._mode;
+            int endIndex = _input.index();
 
-                if (token != null && tokenType == SPECIAL_REWIND) {
-                    rewind = "Rewinded on \"" + text + "\"" ;
-
-                    // since we're backtracking, we've no longer hit the EOF
-                    super._hitEOF = false;
-
-                    _input.seek(startIndex);
-                    continue;
-                }
-
-                if (debug) {
-                    int endIndex = _input.index();
-                    System.out.printf("%-9s | %-2d | mode %-11s | idx %d -> %d | %s \n",
-                                      text, tokenType, mode_str, startIndex, endIndex, rewind);
-                }
-
-                return token;
-            }
-            finally {
-                _input.release(mark);
-            }
+            System.out.printf("%-9s | %-2d | mode %d -> %d | peek %d | idx %d -> %d \n",
+                              text, tokenType, incomingMode, outgoingMode,
+                              this.peekMode(), startIndex, endIndex);
         }
+
+        return token;
+    }
+
+    //We override popMode() to default to mode 0 if the stack is empty
+    public int popMode() {
+    	if ( _modeStack.isEmpty() ) _modeStack.push(0);
+    	return super.popMode();
+    }
+
+    public int peekMode() {
+        if ( _modeStack.isEmpty() ) return 0;
+        return _modeStack.peek();
     }
 }
 
 tokens {
-    SPECIAL_REWIND,
-    LINESEP,
-    NAMECHAR,
-    SENTENCE,
-    RELKEYWORD
+    WORD, SPACE,
+    COMMANDTERM, CONSTRAINTTERM, QUERYTERM
 }
 
 //Common Fragments
 fragment F_LINESEP      : ('\r'? '\n' | '\r') | EOF ;
+fragment F_NONLINESEP   : ~ [\r\n];
 fragment F_WHITESPACE   : [ \t] ;
 fragment F_WHITESPACES  : F_WHITESPACE+ ;
 fragment F_EMPTYLINE    : F_LINESEP F_WHITESPACE* F_LINESEP ; //NOTE: This consumes the second line
 
+fragment F_WORDCHAR       : ~ [\r\n \t.!?] ;
+fragment F_NAME_WORDCHAR  : ~ [\r\n \t.!?()] ;
+fragment F_INDEX_WORDCHAR : ~ [\r\n \t:] ;
+fragment F_WORD           : F_WORDCHAR+ ;
+fragment F_NAME_WORD      : F_NAME_WORDCHAR+ ;
+fragment F_INDEX_WORD     : F_INDEX_WORDCHAR+ ;
+
+//Keywords
 fragment F_SYSTEM       : 'system' ;
 fragment F_SUBSYSTEM    : 'subsystem' ;
 fragment F_COMPONENT    : 'component' ;
@@ -72,176 +66,126 @@ fragment F_EVENTS       : 'events' ;
 fragment F_SCENARIOS    : 'scenarios' ;
 fragment F_REQUIREMENTS : 'requirements' ;
 fragment F_RELATION     : 'relation' ;
-fragment F_BLOCK_KEYWORDS : F_SYSTEM | F_SUBSYSTEM | F_COMPONENT | F_EVENTS | F_SCENARIOS | F_REQUIREMENTS | F_RELATION ;
-
-fragment F_KEYWORD_SEP  : F_WHITESPACE | F_LINESEP ;
-
-fragment F_RELKEYWORD   : 'inherit' | 'client' | 'contains' ;
-
-fragment F_ABBREVSTART  : '(' ;
-fragment F_ABBREVEND    : ')' ;
-fragment F_ABBREV       : [A-Za-z0-9_-]+ ;
-
 fragment F_INDEXING     : 'indexing' ;
-fragment F_DICTSEP      : ':' ;
+fragment F_INHERIT      : 'inherit' ;
+fragment F_CLIENT       : 'client' ;
+fragment F_CONTAINS     : 'contains' ;
 
-fragment F_SENTENCESTART : [a-zA-Z0-9] ; // Sentences currently start with an alpha numeric character. It used to be (~ [ \t\r\n/]) ;
-fragment F_SENTENCECHAR  : ~ [.!?] ;
-fragment F_SENTENCEEND   : [.!?] ;
-fragment F_SENTENCE      : F_SENTENCESTART F_SENTENCECHAR*? F_SENTENCEEND  ;
-
-fragment F_SENTENCEENDLOOKAHEAD : F_SENTENCEEND | EOF ;
-
-fragment F_COMMAND      : F_SENTENCESTART F_SENTENCECHAR* [!] ;
-fragment F_CONSTRAINT   : F_SENTENCESTART F_SENTENCECHAR* [.] ;
-fragment F_QUERY        : F_SENTENCESTART F_SENTENCECHAR* [?] ;
-
+fragment F_DICTSEP          : ':' ;
+fragment F_ABBREVSTART      : '(' ;
+fragment F_ABBREVEND        : ')' ;
+fragment F_COMMANDTERM      : '.' ;
+fragment F_CONSTRAINTTERM   : '!' ;
+fragment F_QUERYTERM        : '?' ;
 fragment F_LINECOMMENTSTART : '//' ;
 
-//Top-level (default) lexer
+
+//Top-level (default) lexer - mode 0
 
 WS           : F_WHITESPACES -> skip ;
 
 LINESEP      : F_LINESEP ;
 
-SYSTEM       : F_SYSTEM -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
+SYSTEM       : F_SYSTEM       F_WHITESPACES -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
+SUBSYSTEM    : F_SUBSYSTEM    F_WHITESPACES -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
+COMPONENT    : F_COMPONENT    F_WHITESPACES -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
 
-SUBSYSTEM    : F_SUBSYSTEM -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASERELABBREV) ;
+EVENTS       : F_EVENTS       F_WHITESPACES -> pushMode(MODE_IDENT_LINE), pushMode(0), pushMode(MODE_NAMEPHRASE) ;
+SCENARIOS    : F_SCENARIOS    F_WHITESPACES -> pushMode(MODE_IDENT_LINE), pushMode(0), pushMode(MODE_NAMEPHRASE) ;
+REQUIREMENTS : F_REQUIREMENTS F_WHITESPACES -> pushMode(MODE_IDENT_LINE), pushMode(0), pushMode(MODE_NAMEPHRASE) ;
 
-COMPONENT    : F_COMPONENT -> pushMode(MODE_COMPONENT_PARTS), pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASERELABBREV) ;
+RELATION     : F_RELATION     F_WHITESPACES -> pushMode(MODE_NAMEPHRASEREL) ;
 
-EVENTS       : F_EVENTS -> pushMode(MODE_MAYBE_IDENT_LINE), pushMode(MODE_NAMEPHRASE) ;
+INDEXING     : F_INDEXING F_WHITESPACES? F_LINESEP -> pushMode(MODE_INDEXING) ;
 
-SCENARIOS    : F_SCENARIOS -> pushMode(MODE_MAYBE_IDENT_LINE), pushMode(MODE_NAMEPHRASE) ;
+NON_KEYWORD  : F_WORD -> type(WORD), popMode;
+//[Note 1] Switches to the mode stored at the top of the stack, which if there isn't one, defaults to mode 0.
+//         This is used for continuing paragraphs after an empty line, continuing indexing after an empty
+//         line, and event/scenario/requirement entries.
 
-REQUIREMENTS : F_REQUIREMENTS -> pushMode(MODE_MAYBE_IDENT_LINE), pushMode(MODE_NAMEPHRASE) ;
-
-RELATION     : F_RELATION -> pushMode(MODE_NAMEPHRASEREL) ;
-
-INDEXING     : F_INDEXING -> pushMode(MODE_INDEXING) ;
-
-COMMENT      : F_LINECOMMENTSTART -> pushMode(MODE_COMMENTS) ;
-
-
-//Name-phrase-rel lexing
-//Essentially: Word characters _including_ spaces. Terminated by either a relation key word or end of line
-mode MODE_NAMEPHRASEREL;
-
-NMR_LINESEP      : F_LINESEP -> type(LINESEP), popMode ;
-
-NMR_RELKEYWORD   : F_WHITESPACES F_RELKEYWORD F_WHITESPACES -> type(RELKEYWORD), popMode, pushMode(MODE_NAMEPHRASE) ;
-
-NMR_NAMECHAR     : . -> type(NAMECHAR) ;
-
-NMR_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
+COMMENTSTART : F_LINECOMMENTSTART -> pushMode(MODE_COMMENT) ;
 
 
 //Name-phrase lexing
-//Essentially: Word characters _including_ spaces. Terminated by an end of line
 mode MODE_NAMEPHRASE;
 
-NM_LINESEP   : F_LINESEP -> type(LINESEP), popMode ;
+NP_LINESEP          : F_LINESEP     -> type(LINESEP), popMode ;
 
-NM_NAMECHAR  : . -> type(NAMECHAR) ;
+NP_NAMEPHRASE_WORD  : F_NAME_WORD   -> type(WORD) ;
 
-NM_COMMENT   : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
+NP_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
 
+NP_COMMENT          : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
 
-//Name-phrase-rel-abbrev lexing
-//Essentially: Word characters _including_ spaces and abbreviations. Terminated by one of - relation key word or end of line
-mode MODE_NAMEPHRASERELABBREV;
+//Name-phrase lexing with relation keywords and abbreviations
+mode MODE_NAMEPHRASEREL;
 
-NMRA_LINESEP      : F_LINESEP -> type(LINESEP), popMode ;
+NPR_LINESEP          : F_LINESEP     -> type(LINESEP), popMode ;
 
-NMRA_RELKEYWORD   : F_WHITESPACES F_RELKEYWORD F_WHITESPACES -> type(RELKEYWORD), popMode, pushMode(MODE_NAMEPHRASE) ;
+NPR_NAMEPHRASE_WORD  : F_NAME_WORD   -> type(WORD) ;
 
-//Finding an abbrev is essentially a termination of the _name_ part of this mode. After this you can still get a RELKEYWORD
-//however. So switch to a different mode and let it do the necessary circus. Note: we could potentially inline the abbrev mode
-//entirely here, but then we had have to strip out the parenthesis in code.
-NMRA_ABBREVSTART  : F_ABBREVSTART -> skip, popMode, pushMode(MODE_ABBREV) ;
+NPR_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
 
-NMRA_NAMECHAR     : . -> type(NAMECHAR) ;
+INHERIT              : F_WHITESPACES F_INHERIT  F_WHITESPACES ;
 
-NMRA_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
+CLIENT               : F_WHITESPACES F_CLIENT   F_WHITESPACES ;
 
+CONTAINS             : F_WHITESPACES F_CONTAINS F_WHITESPACES ;
 
-mode MODE_ABBREV ;
+ABBREVSTART          : F_WHITESPACES F_ABBREVSTART F_WHITESPACES? ;
 
-ABB_WHITESPACE    : F_WHITESPACE -> skip ;
+ABBREVEND            : F_WHITESPACES? F_ABBREVEND ;
 
-ABBREV            : F_ABBREV ;
-
-//After abbreviations, we can have an optional RELKEYWORD
-ABB_ABBREVEND     : F_ABBREVEND -> skip, popMode, pushMode(MODE_MAYBE_RELKEYWORD) ;
+NPR_COMMENT          : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
 
 
-mode MODE_MAYBE_RELKEYWORD ;
-
-REL_LINESEP       : F_LINESEP -> type(LINESEP), popMode ;
-
-REL_WHITESPACE    : F_WHITESPACE -> skip ;
-
-REL_RELKEYWORD    : F_RELKEYWORD -> type(RELKEYWORD), popMode, pushMode(MODE_NAMEPHRASE) ;
-
-REL_COMMENT       : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
-
-//Paragraph
+//Paragraphs, terminated by empty lines
 mode MODE_PARAGRAPH;
 
-PAR_WS         : F_WHITESPACES -> skip ;
+PAR_LINESEP    : F_LINESEP     -> skip ;
 
-PAR_EMPTYLINE  : F_EMPTYLINE -> type(LINESEP), popMode ;
+PAR_EMPTYLINE  : F_EMPTYLINE   -> type(LINESEP), pushMode(0) ;
+//[Note 2] We `pushMode(0)` instead of `popMode` here to store MODE_PARAGRAPH at
+//         the top of the stack. By [Note 1], this ensures the paragraph can
+//         continue if the next line does not start with a keyword.
 
-//PARAGRAPH      : (F_SENTENCE F_WHITESPACES?)+? F_WHITESPACES? F_LINESEP F_WHITESPACES? F_LINESEP F_WHITESPACES? -> popMode ;
-PARAGRAPH      : F_SENTENCE (F_WHITESPACES? F_SENTENCE)* ;
+PAR_WORD       : F_WORD        -> type(WORD) ;
 
-//Component Parts -- Queries, Commands, Constraints
-mode MODE_COMPONENT_PARTS ;
+PAR_SPACE      : F_WHITESPACES -> type(SPACE) ;
 
-CP_WHITESPACES  : F_WHITESPACES -> skip ;
+PAR_COMMANDTERM    : F_COMMANDTERM    -> type(COMMANDTERM) ;
+PAR_CONSTRAINTTERM : F_CONSTRAINTTERM -> type(CONSTRAINTTERM) ;
+PAR_QUERYTERM      : F_QUERYTERM      -> type(QUERYTERM) ;
 
-CP_LINESEP      : F_LINESEP -> type(LINESEP) ;
-
-CP_ALL_KEYWORDS : F_BLOCK_KEYWORDS F_KEYWORD_SEP (F_SENTENCECHAR+ F_SENTENCEEND)? -> popMode, type(SPECIAL_REWIND) ;
-
-CONSTRAINT      : F_CONSTRAINT ;
-
-COMMAND         : F_COMMAND ;
-
-QUERY           : F_QUERY ;
-
-CP_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
 
 //The start line of a specific event, requirement or scenario
 mode MODE_IDENT_LINE ;
 
-IL_LINESEP     : F_LINESEP -> type(LINESEP), popMode, pushMode(MODE_SINGLE_SENTENCE) ;
+IL_LINESEP          : F_LINESEP     -> type(LINESEP), popMode, pushMode(MODE_SINGLE_SENTENCE) ;
 
-IL_NAMECHAR    : . -> type(NAMECHAR) ;
+IL_NAMEPHRASE_WORD  : F_WORD        -> type(WORD) ;
 
-IL_COMMENT     : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
+IL_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
+
+IL_COMMENT          : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
 
 //The content of a specific event, requirement or scenario
+//Single sentences, terminated by empty lines or punctuation
 mode MODE_SINGLE_SENTENCE ;
 
-SS_WHITESPACE   : F_WHITESPACE -> skip ;
+SS_WHITESPACE   : F_WHITESPACE  -> skip ;
 
-SS_LINESEP      : F_LINESEP -> type(LINESEP) ;
+SS_LINESEP      : F_LINESEP     -> skip ;
 
-SS_SENTENCE     : F_SENTENCE -> type(SENTENCE), popMode, pushMode(MODE_MAYBE_IDENT_LINE) ;
+SS_WORD         : F_WORD        -> type(WORD) ;
 
+SS_SPACE        : F_WHITESPACES -> type(SPACE) ;
 
-mode MODE_MAYBE_IDENT_LINE ;
+SS_EMPTYLINE      : F_EMPTYLINE      -> type(LINESEP),        popMode, pushMode(MODE_IDENT_LINE), pushMode(0) ;
 
-MRIL_WHITESPACE   : F_WHITESPACE -> skip ;
-
-MRIL_LINESEP      : F_LINESEP -> type(LINESEP) ;
-
-MRIL_ALL_KEYWORDS : F_BLOCK_KEYWORDS -> popMode, type(SPECIAL_REWIND) ;
-
-MRIL_ANYCHAR      : . -> type(SPECIAL_REWIND), popMode, pushMode(MODE_IDENT_LINE) ;
-
-MRIL_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
+SS_COMMANDTERM    : F_COMMANDTERM    -> type(COMMANDTERM),    popMode, pushMode(MODE_IDENT_LINE), pushMode(0) ;
+SS_CONSTRAINTTERM : F_CONSTRAINTTERM -> type(CONSTRAINTTERM), popMode, pushMode(MODE_IDENT_LINE), pushMode(0) ;
+SS_QUERYTERM      : F_QUERYTERM      -> type(QUERYTERM),      popMode, pushMode(MODE_IDENT_LINE), pushMode(0) ;
 
 
 mode MODE_INDEXING ;
@@ -250,17 +194,17 @@ INDEXSEP         : F_DICTSEP ;
 
 IND_LINESEP      : F_LINESEP -> type(LINESEP) ;
 
-IND_EMPTYLINE    : F_EMPTYLINE -> type(LINESEP) ;
+IND_EMPTYLINE    : F_EMPTYLINE -> type(LINESEP), pushMode(0) ;
 
-IND_ALL_KEYWORDS : F_BLOCK_KEYWORDS F_KEYWORD_SEP (F_SENTENCECHAR+ F_SENTENCEEND)? -> popMode, type(SPECIAL_REWIND) ;
+IND_WORD         : F_INDEX_WORD -> type(WORD) ;
 
-INDEXCHAR        : . ;
+IND_SPACE        : F_WHITESPACES -> type(SPACE) ;
 
-IND_COMMENT      : F_LINECOMMENTSTART -> type(COMMENT), pushMode(MODE_COMMENTS) ;
+IND_COMMENT      : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
 
 
-mode MODE_COMMENTS ;
+mode MODE_COMMENT ;
 
-CMT_LINESEP      : F_LINESEP -> popMode, type(SPECIAL_REWIND) ;
+CMT_LINESEP : F_LINESEP -> type(LINESEP), popMode ;
 
-COMMENTCHAR      : . ;
+COMMENT     : F_NONLINESEP+ ;

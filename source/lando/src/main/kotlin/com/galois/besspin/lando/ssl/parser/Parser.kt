@@ -44,38 +44,14 @@ fun parseFile(file: File, debugLexer: Boolean = false): RawSSL {
 
     val stream = CharStreams.fromPath(file.toPath())
 
-    val lexer = SSLLexer(stream)
+    val lexer = SSLLexerOld(stream)
     lexer.debug = debugLexer;
     lexer.removeErrorListeners();
     lexer.addErrorListener(errorListener)
 
     val tokenStream = CommonTokenStream(lexer)
 
-    val parser = SSLParser(tokenStream)
-    parser.removeErrorListeners()
-    parser.addErrorListener(errorListener)
-
-    val landoSource = parser.landoSource()
-
-    if(errorListener.errors.size != 0) {
-        throw IllegalStateException("Parser Failed due to the following errors:\n${errorListener.formatErrors()}\n")
-    } else {
-        return RawAstBuilder(landoSource).build()
-    }
-}
-
-fun parseText(text: String): RawSSL {
-    val errorListener = CollectingErrorListener()
-
-    val stream = CharStreams.fromString(text)
-
-    val lexer = SSLLexer(stream)
-    lexer.removeErrorListeners();
-    lexer.addErrorListener(errorListener)
-
-    val tokenStream = CommonTokenStream(lexer)
-
-    val parser = SSLParser(tokenStream)
+    val parser = SSLParserOld(tokenStream)
     parser.removeErrorListeners()
     parser.addErrorListener(errorListener)
 

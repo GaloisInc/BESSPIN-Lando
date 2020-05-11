@@ -1,7 +1,7 @@
 package com.galois.besspin.lando
 
 import com.galois.besspin.lando.ssl.ast.toJSON
-import com.galois.besspin.lando.ssl.parser.parseFile
+import com.galois.besspin.lando.ssl.parser.*
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.NoRunCliktCommand
@@ -13,6 +13,8 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
 import kotlinx.io.PrintWriter
+import org.antlr.v4.runtime.CharStreams
+import org.antlr.v4.runtime.CommonTokenStream
 import java.io.File
 
 import java.lang.System
@@ -75,7 +77,28 @@ class Validate : CliktCommand(
     }
 }
 
+class New : CliktCommand(
+    printHelpOnEmptyArgs = true,
+    help = ""
+) {
+    val source by argument("SOURCE").file(exists = true)
+    val debug  by option("-d", "--debug").flag()
+
+    override fun run() {
+        val stream = CharStreams.fromPath(source.toPath())
+        val lexer = SSLLexer(stream)
+        lexer.debug = debug;
+        // while (!lexer._hitEOF) lexer.nextToken()
+        val tokenStream = CommonTokenStream(lexer)
+        val parser = SSLParser(tokenStream)
+        val landoSource = parser.landoSource()
+        println(landoSource.toStringTree())
+
+        println("$source appears to be valid")
+    }
+}
+
 fun main(args: Array<String>) {
-    CommandLine().subcommands(Convert(), Validate()).main(args)
+    CommandLine().subcommands(Convert(), Validate(), New()).main(args)
 }
 

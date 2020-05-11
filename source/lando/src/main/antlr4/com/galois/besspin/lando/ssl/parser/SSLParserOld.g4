@@ -1,10 +1,10 @@
-parser grammar SSLParser;
+parser grammar SSLParserOld;
 
 //@header {
 //    package com.galois.symmetries.compiler.frontend;
 //}
 
-options { tokenVocab = SSLLexer; }
+options { tokenVocab = SSLLexerOld; }
 
 landoSource    : lineseps? specElement* lineseps? lineComments? lineseps? EOF;
 
@@ -18,21 +18,21 @@ specElement    : system           #systemElement
 
 system     : lineComments?
              SYSTEM
-             sysname=name abbrev? (relkeyword relname=name)? comment? lineseps
+             sysname=name (RELKEYWORD relname=name)? comment? lineseps
              paragraph
              (lineseps indexing)?
              blockend ;
 
 subsystem  : lineComments?
              SUBSYSTEM
-             subsysname=name abbrev? (relkeyword relname=name)? comment? lineseps
+             subsysname=name ABBREV? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
              (lineseps indexing)?
              blockend ;
 
 component  : lineComments?
              COMPONENT
-             compname=name abbrev? (relkeyword relname=name)? comment? lineseps
+             compname=name ABBREV? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
              (lineseps componentParts)?
              blockend ;
@@ -43,11 +43,11 @@ componentPart  : command          #commandPart
                | constraint       #constraintPart
                | query            #queryPart ;
 
-command         : lineComments? sentenceBody COMMANDTERM comment? ;
+command         : lineComments? COMMAND comment? ;
 
-query           : lineComments? sentenceBody QUERYTERM comment? ;
+query           : lineComments? QUERY comment? ;
 
-constraint      : lineComments? sentenceBody CONSTRAINTTERM comment? ;
+constraint      : lineComments? CONSTRAINT comment? ;
 
 
 events          : lineComments?
@@ -58,7 +58,7 @@ events          : lineComments?
 
 eventEntries    : eventEntry (lineseps eventEntry)* ;
 
-eventEntry      : lineComments? name nameComment=comment? lineseps sentence sentenceComment=comment? ;
+eventEntry      : lineComments? name nameComment=comment? lineseps SENTENCE sentenceComment=comment? ;
 
 
 scenarios       : lineComments?
@@ -69,7 +69,7 @@ scenarios       : lineComments?
 
 scenarioEntries : scenarioEntry (lineseps scenarioEntry)* ;
 
-scenarioEntry   : lineComments? name nameComment=comment? lineseps sentence sentenceComment=comment? ;
+scenarioEntry   : lineComments? name nameComment=comment? lineseps SENTENCE sentenceComment=comment? ;
 
 
 requirements       : lineComments?
@@ -80,24 +80,28 @@ requirements       : lineComments?
 
 requirementEntries : requirementEntry (lineseps requirementEntry)* ;
 
-requirementEntry   : lineComments? name nameComment=comment? lineseps sentence sentenceComment=comment? ;
+requirementEntry   : lineComments? name nameComment=comment? lineseps SENTENCE sentenceComment=comment? ;
 
 
-relation          : lineComments? RELATION left=name (relkeyword right=name)? comment? blockend ;
+relation          : lineComments? RELATION left=name (RELKEYWORD right=name)? comment? blockend ;
 
 
 indexing          : INDEXING (lineseps indexEntries)? ;
 
 indexEntries      : indexEntry (lineseps indexEntry)* ;
 
-indexEntry        : words INDEXSEP indexValueList ;
+indexEntry        : indexKey INDEXSEP indexValueList ;
 
 indexValueList    : indexValuePart (lineseps indexValuePart)* ;
 
-indexValuePart    : words comment? ;
+indexString       :  INDEXCHAR+ ;
+
+indexKey          : indexString ;
+
+indexValuePart    : indexString comment? ;
 
 
-comment      : COMMENTSTART COMMENT ;
+comment      : COMMENT COMMENTCHAR* ;
 
 comments     : comment (lineseps comment)* ;
 
@@ -105,27 +109,10 @@ lineComments : comments lineseps ;
 
 
 //Helpers
-relkeyword : INHERIT | CLIENT | CONTAINS ;
-
-spaces     : SPACE+ ;
-
-wordSep    : spaces
-           | spaces? LINESEP spaces? ;
-
-words      : WORD (wordSep WORD)* ;
-
-name       : WORD (spaces WORD)* ;
-
-abbrev     : ABBREVSTART name ABBREVEND ;
+name       : NAMECHAR+ ;
 
 lineseps   : LINESEP+ ;
 
-sentTerm   : COMMANDTERM | CONSTRAINTTERM | QUERYTERM ;
-
-sentenceBody : spaces? words wordSep? ;
-
-sentence   : sentenceBody sentTerm lineseps? ;
-
-paragraph  : sentence+ ;
+paragraph  : PARAGRAPH ;
 
 blockend   : lineseps | EOF ;
