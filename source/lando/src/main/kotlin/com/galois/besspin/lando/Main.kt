@@ -85,16 +85,27 @@ class New : CliktCommand(
     val debug  by option("-d", "--debug").flag()
 
     override fun run() {
+        val errorListener = CollectingErrorListener()
+
         val stream = CharStreams.fromPath(source.toPath())
         val lexer = SSLLexer(stream)
         lexer.debug = debug;
+        lexer.removeErrorListeners();
+        lexer.addErrorListener(errorListener)
         // while (!lexer._hitEOF) lexer.nextToken()
+
         val tokenStream = CommonTokenStream(lexer)
         val parser = SSLParser(tokenStream)
-        val landoSource = parser.landoSource()
-        println(landoSource.toStringTree())
+        parser.removeErrorListeners()
+        parser.addErrorListener(errorListener)
 
-        println("$source appears to be valid")
+        val landoSource = parser.landoSource()
+        if(errorListener.errors.size != 0) {
+            println("Parser Failed due to the following errors:\n${errorListener.formatErrors()}\n")
+        } else {
+            println(landoSource.toStringTree())
+            println("$source appears to be valid")
+        }
     }
 }
 

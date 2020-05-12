@@ -124,8 +124,8 @@ sentTerm   : COMMANDTERM | CONSTRAINTTERM | QUERYTERM ;
 
 sentenceBody : spaces? words wordSep? ;
 
-sentence   : sentenceBody sentTerm lineseps? ;
+sentence   : sentenceBody sentTerm ;
 
-paragraph  : sentence+ ;
+paragraph  : sentence (lineseps? sentence)* ;
 
 blockend   : lineseps | EOF ;

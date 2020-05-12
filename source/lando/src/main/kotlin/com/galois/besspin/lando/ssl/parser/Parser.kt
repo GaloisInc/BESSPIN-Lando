@@ -20,7 +20,7 @@ data class SyntaxError(
     fun formatError(): String = "Line: $line, Column: $column. $message"
 }
 
-private class CollectingErrorListener : BaseErrorListener() {
+public class CollectingErrorListener : BaseErrorListener() {
 
     var errors: MutableList<SyntaxError> = arrayListOf() ;
 

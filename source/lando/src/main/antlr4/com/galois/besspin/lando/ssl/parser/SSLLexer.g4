@@ -50,11 +50,14 @@ fragment F_NONLINESEP   : ~ [\r\n];
 fragment F_WHITESPACE   : [ \t] ;
 fragment F_WHITESPACES  : F_WHITESPACE+ ;
 fragment F_EMPTYLINE    : F_LINESEP F_WHITESPACE* F_LINESEP ; //NOTE: This consumes the second line
+fragment F_WHITESPACES_OR_LINESEP : F_WHITESPACES | F_LINESEP ;
 
-fragment F_WORDCHAR       : ~ [\r\n \t.!?] ;
+fragment F_WORDCHAR       : ~ [\r\n \t.!?:] ;
+fragment F_SENT_WORDCHAR  : ~ [\r\n \t.!?] ;
 fragment F_NAME_WORDCHAR  : ~ [\r\n \t.!?()] ;
 fragment F_INDEX_WORDCHAR : ~ [\r\n \t:] ;
 fragment F_WORD           : F_WORDCHAR+ ;
+fragment F_SENT_WORD      : F_SENT_WORDCHAR+ ;
 fragment F_NAME_WORD      : F_NAME_WORDCHAR+ ;
 fragment F_INDEX_WORD     : F_INDEX_WORDCHAR+ ;
 
@@ -86,22 +89,23 @@ WS           : F_WHITESPACES -> skip ;
 
 LINESEP      : F_LINESEP ;
 
-SYSTEM       : F_SYSTEM       F_WHITESPACES -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
-SUBSYSTEM    : F_SUBSYSTEM    F_WHITESPACES -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
-COMPONENT    : F_COMPONENT    F_WHITESPACES -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
+SYSTEM       : F_SYSTEM       F_WHITESPACES_OR_LINESEP -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
+SUBSYSTEM    : F_SUBSYSTEM    F_WHITESPACES_OR_LINESEP -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
+COMPONENT    : F_COMPONENT    F_WHITESPACES_OR_LINESEP -> pushMode(MODE_PARAGRAPH), pushMode(MODE_PARAGRAPH), pushMode(MODE_NAMEPHRASEREL) ;
 
-EVENTS       : F_EVENTS       F_WHITESPACES -> pushMode(MODE_IDENT_LINE), pushMode(0), pushMode(MODE_NAMEPHRASE) ;
-SCENARIOS    : F_SCENARIOS    F_WHITESPACES -> pushMode(MODE_IDENT_LINE), pushMode(0), pushMode(MODE_NAMEPHRASE) ;
-REQUIREMENTS : F_REQUIREMENTS F_WHITESPACES -> pushMode(MODE_IDENT_LINE), pushMode(0), pushMode(MODE_NAMEPHRASE) ;
+EVENTS       : F_EVENTS       F_WHITESPACES_OR_LINESEP -> pushMode(MODE_IDENT_LINE), pushMode(0), pushMode(MODE_NAMEPHRASE) ;
+SCENARIOS    : F_SCENARIOS    F_WHITESPACES_OR_LINESEP -> pushMode(MODE_IDENT_LINE), pushMode(0), pushMode(MODE_NAMEPHRASE) ;
+REQUIREMENTS : F_REQUIREMENTS F_WHITESPACES_OR_LINESEP -> pushMode(MODE_IDENT_LINE), pushMode(0), pushMode(MODE_NAMEPHRASE) ;
 
-RELATION     : F_RELATION     F_WHITESPACES -> pushMode(MODE_NAMEPHRASEREL) ;
+RELATION     : F_RELATION     F_WHITESPACES_OR_LINESEP -> pushMode(MODE_NAMEPHRASEREL) ;
 
-INDEXING     : F_INDEXING F_WHITESPACES? F_LINESEP -> pushMode(MODE_INDEXING) ;
+INDEXING     : F_INDEXING     F_WHITESPACES_OR_LINESEP -> pushMode(MODE_INDEXING) ;
 
 NON_KEYWORD  : F_WORD -> type(WORD), popMode;
-//[Note 1] Switches to the mode stored at the top of the stack, which if there isn't one, defaults to mode 0.
-//         This is used for continuing paragraphs after an empty line, continuing indexing after an empty
-//         line, and event/scenario/requirement entries.
+//[Note 1] Switches to the mode stored at the top of the stack, if there is one.
+//         This is used for continuing paragraphs after an empty line ([Note 2]),
+//         continuing indexing after an empty line, and event/scenario/requirement
+//         entries ([Note 3]).
 
 COMMENTSTART : F_LINECOMMENTSTART -> pushMode(MODE_COMMENT) ;
 
@@ -109,48 +113,47 @@ COMMENTSTART : F_LINECOMMENTSTART -> pushMode(MODE_COMMENT) ;
 //Name-phrase lexing
 mode MODE_NAMEPHRASE;
 
-NP_LINESEP          : F_LINESEP     -> type(LINESEP), popMode ;
+NP_COMMENTSTART     : F_LINECOMMENTSTART -> type(COMMENTSTART), popMode, pushMode(MODE_COMMENT) ;
+
+NP_LINESEP          : F_LINESEP F_WHITESPACES? -> type(LINESEP), popMode ;
 
 NP_NAMEPHRASE_WORD  : F_NAME_WORD   -> type(WORD) ;
-
 NP_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
-
-NP_COMMENT          : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
 
 //Name-phrase lexing with relation keywords and abbreviations
 mode MODE_NAMEPHRASEREL;
 
-NPR_LINESEP          : F_LINESEP     -> type(LINESEP), popMode ;
+NPR_COMMENTSTART     : F_LINECOMMENTSTART -> type(COMMENTSTART), popMode, pushMode(MODE_COMMENT) ;
+
+NPR_LINESEP          : F_LINESEP F_WHITESPACES? -> type(LINESEP), popMode ;
 
 NPR_NAMEPHRASE_WORD  : F_NAME_WORD   -> type(WORD) ;
-
 NPR_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
 
-INHERIT              : F_WHITESPACES F_INHERIT  F_WHITESPACES ;
+INHERIT              : F_WHITESPACES F_INHERIT     F_WHITESPACES ;
 
-CLIENT               : F_WHITESPACES F_CLIENT   F_WHITESPACES ;
+CLIENT               : F_WHITESPACES F_CLIENT      F_WHITESPACES ;
 
-CONTAINS             : F_WHITESPACES F_CONTAINS F_WHITESPACES ;
+CONTAINS             : F_WHITESPACES F_CONTAINS    F_WHITESPACES ;
 
 ABBREVSTART          : F_WHITESPACES F_ABBREVSTART F_WHITESPACES? ;
 
 ABBREVEND            : F_WHITESPACES? F_ABBREVEND ;
 
-NPR_COMMENT          : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
-
 
 //Paragraphs, terminated by empty lines
 mode MODE_PARAGRAPH;
 
-PAR_LINESEP    : F_LINESEP     -> skip ;
+PAR_COMMENTSTART : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
 
-PAR_EMPTYLINE  : F_EMPTYLINE   -> type(LINESEP), pushMode(0) ;
+PAR_LINESEP    : F_LINESEP F_WHITESPACES? -> type(LINESEP) ;
+
+PAR_EMPTYLINE  : F_EMPTYLINE -> type(LINESEP), pushMode(0) ;
 //[Note 2] We `pushMode(0)` instead of `popMode` here to store MODE_PARAGRAPH at
 //         the top of the stack. By [Note 1], this ensures the paragraph can
 //         continue if the next line does not start with a keyword.
 
-PAR_WORD       : F_WORD        -> type(WORD) ;
-
+PAR_WORD       : F_SENT_WORD   -> type(WORD) ;
 PAR_SPACE      : F_WHITESPACES -> type(SPACE) ;
 
 PAR_COMMANDTERM    : F_COMMANDTERM    -> type(COMMANDTERM) ;
@@ -161,25 +164,27 @@ PAR_QUERYTERM      : F_QUERYTERM      -> type(QUERYTERM) ;
 //The start line of a specific event, requirement or scenario
 mode MODE_IDENT_LINE ;
 
-IL_LINESEP          : F_LINESEP     -> type(LINESEP), popMode, pushMode(MODE_SINGLE_SENTENCE) ;
+IL_COMMENTSTART     : F_LINECOMMENTSTART -> type(COMMENTSTART), popMode, pushMode(MODE_SINGLE_SENTENCE), pushMode(MODE_COMMENT) ;
 
-IL_NAMEPHRASE_WORD  : F_WORD        -> type(WORD) ;
+IL_LINESEP          : F_LINESEP F_WHITESPACES? -> type(LINESEP), popMode, pushMode(MODE_SINGLE_SENTENCE) ;
 
+IL_NAMEPHRASE_WORD  : F_NAME_WORD   -> type(WORD) ;
 IL_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
-
-IL_COMMENT          : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
 
 //The content of a specific event, requirement or scenario
 //Single sentences, terminated by empty lines or punctuation
+//[Note 3] When exiting this mode, instead of just `popMode` we store
+//         MODE_IDENT_LINE at the top of the stack then `pushMode(0)`.
+//         By [Note 1], this ensures that the sentence can continue
+//         if the next line does not start with a keyword.
 mode MODE_SINGLE_SENTENCE ;
 
-SS_WHITESPACE   : F_WHITESPACE  -> skip ;
+SS_COMMENTSTART   : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
 
-SS_LINESEP      : F_LINESEP     -> skip ;
+SS_LINESEP        : F_LINESEP F_WHITESPACES? -> type(LINESEP) ;
 
-SS_WORD         : F_WORD        -> type(WORD) ;
-
-SS_SPACE        : F_WHITESPACES -> type(SPACE) ;
+SS_WORD           : F_SENT_WORD   -> type(WORD) ;
+SS_SPACE          : F_WHITESPACES -> type(SPACE) ;
 
 SS_EMPTYLINE      : F_EMPTYLINE      -> type(LINESEP),        popMode, pushMode(MODE_IDENT_LINE), pushMode(0) ;
 
@@ -190,17 +195,16 @@ SS_QUERYTERM      : F_QUERYTERM      -> type(QUERYTERM),      popMode, pushMode(
 
 mode MODE_INDEXING ;
 
-INDEXSEP         : F_DICTSEP ;
+IND_COMMENTSTART : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
+
+INDEXSEP         : F_WHITESPACES? F_DICTSEP F_WHITESPACES? ;
 
 IND_LINESEP      : F_LINESEP -> type(LINESEP) ;
 
-IND_EMPTYLINE    : F_EMPTYLINE -> type(LINESEP), pushMode(0) ;
+IND_EMPTYLINE    : F_EMPTYLINE -> type(LINESEP), pushMode(0) ; // see [Note 2]
 
-IND_WORD         : F_INDEX_WORD -> type(WORD) ;
-
+IND_WORD         : F_INDEX_WORD  -> type(WORD) ;
 IND_SPACE        : F_WHITESPACES -> type(SPACE) ;
-
-IND_COMMENT      : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
 
 
 mode MODE_COMMENT ;
