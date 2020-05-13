@@ -1,14 +1,9 @@
 package com.galois.besspin.lando.ssl.parser
 
-import com.galois.besspin.lando.ssl.ast.*
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.CommonTokenStream
-import java.io.File
-import java.lang.IllegalStateException
+import com.galois.besspin.lando.ssl.ast.RawSSL
+import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.ParseCancellationException
-import org.antlr.v4.runtime.RecognitionException
-import org.antlr.v4.runtime.Recognizer
-import org.antlr.v4.runtime.BaseErrorListener
+import java.io.File
 
 data class SyntaxError(
     val offendingSymbol: Any?,
@@ -22,7 +17,7 @@ data class SyntaxError(
 
 private class CollectingErrorListener : BaseErrorListener() {
 
-    var errors: MutableList<SyntaxError> = arrayListOf() ;
+    var errors: MutableList<SyntaxError> = arrayListOf()
 
     @Throws(ParseCancellationException::class)
     override fun syntaxError(
