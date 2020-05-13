@@ -5,6 +5,10 @@ import org.antlr.v4.runtime.tree.TerminalNode
 
 class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
 
+    private var inheritRelations: MutableList<RawInheritRelation> = arrayListOf()
+    private var containsRelations: MutableList<RawContainsRelation> = arrayListOf()
+    private var clientRelations: MutableList<RawClientRelation> = arrayListOf()
+
     private var lastUid = 1
 
     private var lastSystem: RawSystem? = null

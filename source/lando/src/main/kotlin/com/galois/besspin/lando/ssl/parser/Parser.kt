@@ -1,7 +1,6 @@
 package com.galois.besspin.lando.ssl.parser
 
 import com.galois.besspin.lando.ssl.ast.*
-import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import java.io.File
@@ -21,7 +20,7 @@ data class SyntaxError(
     fun formatError(): String = "Line: $line, Column: $column. $message"
 }
 
-class CollectingErrorListener : BaseErrorListener() {
+private class CollectingErrorListener : BaseErrorListener() {
 
     var errors: MutableList<SyntaxError> = arrayListOf() ;
 
@@ -40,8 +39,10 @@ class CollectingErrorListener : BaseErrorListener() {
     fun formatErrors(): String = errors.map { e -> e.formatError() }.joinToString(separator = "\n")
 }
 
-fun parseStream(stream: CharStream, debugLexer: Boolean = false): RawSSL {
+fun parseFile(file: File, debugLexer: Boolean = false): RawSSL {
     val errorListener = CollectingErrorListener()
+
+    val stream = CharStreams.fromPath(file.toPath())
 
     val lexer = SSLLexer(stream)
     lexer.debug = debugLexer;
@@ -63,8 +64,26 @@ fun parseStream(stream: CharStream, debugLexer: Boolean = false): RawSSL {
     }
 }
 
-fun parseFile(file: File, debugLexer: Boolean = false): RawSSL =
-    parseStream(CharStreams.fromFile(file), debugLexer)
+fun parseText(text: String): RawSSL {
+    val errorListener = CollectingErrorListener()
 
-fun parseText(text: String, debugLexer: Boolean = false): RawSSL =
-        parseStream(CharStreams.fromString(text), debugLexer)
+    val stream = CharStreams.fromString(text)
+
+    val lexer = SSLLexer(stream)
+    lexer.removeErrorListeners();
+    lexer.addErrorListener(errorListener)
+
+    val tokenStream = CommonTokenStream(lexer)
+
+    val parser = SSLParser(tokenStream)
+    parser.removeErrorListeners()
+    parser.addErrorListener(errorListener)
+
+    val landoSource = parser.landoSource()
+
+    if(errorListener.errors.size != 0) {
+        throw IllegalStateException("Parser Failed due to the following errors:\n${errorListener.formatErrors()}\n")
+    } else {
+        return RawAstBuilder(landoSource).build()
+    }
+}
