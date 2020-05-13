@@ -132,15 +132,6 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         return componentParts
     }
 
-//  command         : lineComments? words COMMANDTERM    wordSep? comment?
-    private fun toAst(cmdCxt: SSLParser.CommandContext): RawCommand {
-        val text = toAst(cmdCxt.words())
-        val term = toAst(cmdCxt.COMMANDTERM())
-        val comments = collectComments(cmdCxt.lineComments(), cmdCxt.comment())
-
-        return RawCommand(text + term, comments)
-    }
-
 //  query           : lineComments? words QUERYTERM      wordSep? comment? ;
     private fun toAst(queryCxt: SSLParser.QueryContext): RawQuery {
         val text = toAst(queryCxt.words())
@@ -148,6 +139,15 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         val comments = collectComments(queryCxt.lineComments(), queryCxt.comment())
 
         return RawQuery(text + term, comments)
+    }
+
+//  command         : lineComments? words COMMANDTERM    wordSep? comment?
+    private fun toAst(cmdCxt: SSLParser.CommandContext): RawCommand {
+        val text = toAst(cmdCxt.words())
+        val term = toAst(cmdCxt.COMMANDTERM())
+        val comments = collectComments(cmdCxt.lineComments(), cmdCxt.comment())
+
+        return RawCommand(text + term, comments)
     }
 
 //  constraint      : lineComments? words CONSTRAINTTERM wordSep? comment? ;

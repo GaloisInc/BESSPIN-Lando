@@ -1,6 +1,7 @@
 package com.galois.besspin.lando.ssl.parser
 
 import com.galois.besspin.lando.ssl.ast.*
+import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import java.io.File
@@ -39,10 +40,8 @@ class CollectingErrorListener : BaseErrorListener() {
     fun formatErrors(): String = errors.map { e -> e.formatError() }.joinToString(separator = "\n")
 }
 
-fun parseFile(file: File, debugLexer: Boolean = false): RawSSL {
+fun parseStream(stream: CharStream, debugLexer: Boolean = false): RawSSL {
     val errorListener = CollectingErrorListener()
-
-    val stream = CharStreams.fromPath(file.toPath())
 
     val lexer = SSLLexer(stream)
     lexer.debug = debugLexer;
@@ -63,3 +62,9 @@ fun parseFile(file: File, debugLexer: Boolean = false): RawSSL {
         return RawAstBuilder(landoSource).build()
     }
 }
+
+fun parseFile(file: File, debugLexer: Boolean = false): RawSSL =
+    parseStream(CharStreams.fromFile(file), debugLexer)
+
+fun parseText(text: String, debugLexer: Boolean = false): RawSSL =
+        parseStream(CharStreams.fromString(text), debugLexer)

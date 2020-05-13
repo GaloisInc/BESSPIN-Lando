@@ -1,7 +1,7 @@
 package com.galois.besspin.lando
 
 import com.galois.besspin.lando.ssl.ast.toJSON
-import com.galois.besspin.lando.ssl.parser.*
+import com.galois.besspin.lando.ssl.parser.parseFile
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.NoRunCliktCommand
@@ -13,8 +13,6 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
 import kotlinx.io.PrintWriter
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.CommonTokenStream
 import java.io.File
 
 import java.lang.System
