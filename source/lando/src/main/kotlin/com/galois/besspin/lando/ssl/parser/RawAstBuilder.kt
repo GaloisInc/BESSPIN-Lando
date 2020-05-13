@@ -132,27 +132,27 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         return componentParts
     }
 
-//  command         : lineComments? sentenceBody COMMANDTERM comment? ;
+//  command         : lineComments? words COMMANDTERM    wordSep? comment?
     private fun toAst(cmdCxt: SSLParser.CommandContext): RawCommand {
-        val text = toAst(cmdCxt.sentenceBody())
+        val text = toAst(cmdCxt.words())
         val term = toAst(cmdCxt.COMMANDTERM())
         val comments = collectComments(cmdCxt.lineComments(), cmdCxt.comment())
 
         return RawCommand(text + term, comments)
     }
 
-//  query           : lineComments? sentenceBody QUERYTERM comment? ;
+//  query           : lineComments? words QUERYTERM      wordSep? comment? ;
     private fun toAst(queryCxt: SSLParser.QueryContext): RawQuery {
-        val text = toAst(queryCxt.sentenceBody())
+        val text = toAst(queryCxt.words())
         val term = toAst(queryCxt.QUERYTERM())
         val comments = collectComments(queryCxt.lineComments(), queryCxt.comment())
 
         return RawQuery(text + term, comments)
     }
 
-//  constraint      : lineComments? sentenceBody CONSTRAINTTERM comment? ;
+//  constraint      : lineComments? words CONSTRAINTTERM wordSep? comment? ;
     private fun toAst(constraintCxt: SSLParser.ConstraintContext): RawConstraint {
-        val text = toAst(constraintCxt.sentenceBody())
+        val text = toAst(constraintCxt.words())
         val term = toAst(constraintCxt.CONSTRAINTTERM())
         val comments = collectComments(constraintCxt.lineComments(), constraintCxt.comment())
 
@@ -307,23 +307,7 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
 
 //  spaces     : SPACE+ ;
     private fun toAst(spacesCxt: SSLParser.SpacesContext): String =
-        (spacesCxt.SPACE().map { it.symbol.text }).joinToString("")
-
-//  wordSep    : spaces                   #wordSepSpaces
-//             | spaces? LINESEP spaces?  #wordSepLinesep ;
-    private fun toAst(wordSepCxt: SSLParser.WordSepContext): String =
-        when(wordSepCxt) {
-            is SSLParser.WordSepSpacesContext -> toAst(wordSepCxt.spaces())
-            is SSLParser.WordSepLinesepContext -> " "
-            else -> throw UnsupportedOperationException(wordSepCxt.toString())
-        }
-
-//  words      : WORD (wordSep WORD)* ;
-    private fun toAst(wordsCxt: SSLParser.WordsContext): String {
-        val words = wordsCxt.WORD().map { toAst(it) }
-        val seps = wordsCxt.wordSep().map { toAst(it) } + listOf("")
-        return ((words zip seps).map { it.first + it.second }).joinToString("")
-    }
+            (spacesCxt.SPACE().map { it.symbol.text }).joinToString("")
 
 //  name       : WORD (spaces WORD)* ;
     private fun toAst(nameCxt: SSLParser.NameContext): String {
@@ -334,7 +318,23 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
 
 //  abbrev     : ABBREVSTART name ABBREVEND ;
     private fun toAst(abbrevCxt: SSLParser.AbbrevContext): String =
-        toAst(abbrevCxt.name())
+            toAst(abbrevCxt.name())
+
+//  wordSep    : spaces                   #wordSepSpaces
+//             | spaces? LINESEP spaces?  #wordSepLinesep ;
+    private fun toAst(wordSepCxt: SSLParser.WordSepContext): String =
+        when(wordSepCxt) {
+            is SSLParser.WordSepSpacesContext -> toAst(wordSepCxt.spaces())
+            is SSLParser.WordSepLinesepContext -> " "
+            else -> throw UnsupportedOperationException(wordSepCxt.toString())
+        }
+
+//  words      : WORD (wordSep WORD)* wordSep? ;
+    private fun toAst(wordsCxt: SSLParser.WordsContext): String {
+        val words = wordsCxt.WORD().map { toAst(it) }
+        val seps = wordsCxt.wordSep().map { toAst(it) } + listOf("")
+        return ((words zip seps).map { it.first + it.second }).joinToString("")
+    }
 
 //  sentTerm   : COMMANDTERM     #commandTerm
 //             | CONSTRAINTTERM  #constraintTerm
@@ -347,15 +347,11 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
             else -> throw UnsupportedOperationException(sentTermCxt.toString())
         }
 
-//  sentenceBody : spaces? words wordSep? ;
-    private fun toAst(sentenceBodyCxt: SSLParser.SentenceBodyContext): String =
-        toAst(sentenceBodyCxt.words())
-
-//  sentence   : sentenceBody sentTerm ;
+//  sentence   : words sentTerm wordSep? ;
     private fun toAst(sentenceCxt: SSLParser.SentenceContext): String =
-        toAst(sentenceCxt.sentenceBody()) + toAst(sentenceCxt.sentTerm())
+        toAst(sentenceCxt.words()) + toAst(sentenceCxt.sentTerm())
 
-//  paragraph  : sentence (lineseps? sentence)* ;
+//  paragraph  : sentence+ ;
     private fun toAst(paragraphCxt: SSLParser.ParagraphContext): String =
         (paragraphCxt.sentence().map { toAst(it) }).joinToString(" ")
 

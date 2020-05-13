@@ -46,11 +46,12 @@ tokens {
 }
 
 //Common Fragments
-fragment F_LINESEP      : ('\r'? '\n' | '\r') | EOF ;
-fragment F_NONLINESEP   : ~ [\r\n];
 fragment F_WHITESPACE   : [ \t] ;
 fragment F_WHITESPACES  : F_WHITESPACE+ ;
-fragment F_EMPTYLINE    : F_LINESEP F_WHITESPACE* F_LINESEP ; //NOTE: This consumes the second line
+fragment F_LINESEP      : ('\r'? '\n' | '\r') F_WHITESPACES? //We always ignore leading WS
+                        | EOF ;
+fragment F_NONLINESEP   : ~ [\r\n];
+fragment F_EMPTYLINE    : F_LINESEP F_LINESEP ; //NOTE: This consumes the second line
 
 fragment F_WORDCHAR       : ~ [\r\n \t.!?:] ;
 fragment F_SENT_WORDCHAR  : ~ [\r\n \t.!?] ;
@@ -75,8 +76,8 @@ fragment F_RELKEYWORD   : 'inherit' | 'client' | 'contains' ;
 fragment F_DICTSEP          : ':' ;
 fragment F_ABBREVSTART      : '(' ;
 fragment F_ABBREVEND        : ')' ;
-fragment F_COMMANDTERM      : '.' ;
-fragment F_CONSTRAINTTERM   : '!' ;
+fragment F_COMMANDTERM      : '!' ;
+fragment F_CONSTRAINTTERM   : '.' ;
 fragment F_QUERYTERM        : '?' ;
 fragment F_LINECOMMENTSTART : '//' ;
 
@@ -105,7 +106,7 @@ NON_KEYWORD  : F_WORD -> type(WORD), popMode;
 //[Note 1] Switches to the mode stored at the top of the stack, if there is one.
 //         This is used for continuing MODE_PARAGRAPH after an empty line ([Note 2]),
 //         continuing MODE_INDEXING after an empty line, and optional
-/          event/scenario/requirement entries ([Note 3]).
+//         event/scenario/requirement entries ([Note 3]).
 
 
 //Name-phrase lexing
@@ -113,7 +114,7 @@ mode MODE_NAMEPHRASE;
 
 NP_COMMENTSTART     : F_LINECOMMENTSTART -> type(COMMENTSTART), popMode, pushMode(MODE_COMMENT) ;
 
-NP_LINESEP          : F_LINESEP F_WHITESPACES? -> type(LINESEP), popMode ;
+NP_LINESEP          : F_LINESEP -> type(LINESEP), popMode ;
 
 NP_NAMEPHRASE_WORD  : F_NAME_WORD   -> type(WORD) ;
 NP_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
@@ -123,7 +124,7 @@ mode MODE_NAMEPHRASEREL;
 
 NPR_COMMENTSTART     : F_LINECOMMENTSTART -> type(COMMENTSTART), popMode, pushMode(MODE_COMMENT) ;
 
-NPR_LINESEP          : F_LINESEP F_WHITESPACES? -> type(LINESEP), popMode ;
+NPR_LINESEP          : F_LINESEP -> type(LINESEP), popMode ;
 
 NPR_NAMEPHRASE_WORD  : F_NAME_WORD   -> type(WORD) ;
 NPR_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
@@ -140,7 +141,7 @@ mode MODE_PARAGRAPH;
 
 PAR_COMMENTSTART : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
 
-PAR_LINESEP    : F_LINESEP F_WHITESPACES? -> type(LINESEP) ;
+PAR_LINESEP    : F_LINESEP -> type(LINESEP) ;
 
 PAR_EMPTYLINE  : F_EMPTYLINE -> type(EMPTYLINE), pushMode(0) ;
 //[Note 2] We `pushMode(0)` instead of `popMode` here to store MODE_PARAGRAPH at
@@ -161,7 +162,7 @@ mode MODE_IDENT_LINE ;
 
 IL_COMMENTSTART     : F_LINECOMMENTSTART -> type(COMMENTSTART), popMode, pushMode(MODE_SINGLE_SENTENCE), pushMode(MODE_COMMENT) ;
 
-IL_LINESEP          : F_LINESEP F_WHITESPACES? -> type(LINESEP), popMode, pushMode(MODE_SINGLE_SENTENCE) ;
+IL_LINESEP          : F_LINESEP -> type(LINESEP), popMode, pushMode(MODE_SINGLE_SENTENCE) ;
 
 IL_NAMEPHRASE_WORD  : F_NAME_WORD   -> type(WORD) ;
 IL_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
@@ -176,7 +177,7 @@ mode MODE_SINGLE_SENTENCE ;
 
 SS_COMMENTSTART   : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
 
-SS_LINESEP        : F_LINESEP F_WHITESPACES? -> type(LINESEP) ;
+SS_LINESEP        : F_LINESEP -> type(LINESEP) ;
 
 SS_WORD           : F_SENT_WORD   -> type(WORD) ;
 SS_SPACE          : F_WHITESPACES -> type(SPACE) ;
@@ -194,7 +195,7 @@ IND_COMMENTSTART : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMME
 
 INDEXSEP         : F_WHITESPACES? F_DICTSEP F_WHITESPACES? ;
 
-IND_LINESEP      : F_LINESEP F_WHITESPACES? -> type(LINESEP) ;
+IND_LINESEP      : F_LINESEP -> type(LINESEP) ;
 
 IND_EMPTYLINE    : F_EMPTYLINE -> type(EMPTYLINE), pushMode(0) ; // see [Note 2]
 

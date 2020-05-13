@@ -43,11 +43,11 @@ componentPart  : command          #commandPart
                | constraint       #constraintPart
                | query            #queryPart ;
 
-command         : lineComments? sentenceBody COMMANDTERM comment? ;
+command         : lineComments? words COMMANDTERM    wordSep? comment? ;
 
-query           : lineComments? sentenceBody QUERYTERM comment? ;
+query           : lineComments? words QUERYTERM      wordSep? comment? ;
 
-constraint      : lineComments? sentenceBody CONSTRAINTTERM comment? ;
+constraint      : lineComments? words CONSTRAINTTERM wordSep? comment? ;
 
 
 events          : lineComments?
@@ -107,25 +107,23 @@ lineComments : comments lineseps ;
 //Helpers
 spaces     : SPACE+ ;
 
-wordSep    : spaces                   #wordSepSpaces
-           | spaces? LINESEP spaces?  #wordSepLinesep ;
-
-words      : WORD (wordSep WORD)* ;
-
-name       : WORD (spaces WORD)* ;
+name       : WORD (spaces WORD)* spaces? ;
 
 abbrev     : ABBREVSTART name ABBREVEND ;
 
-lineseps   : (LINESEP | EMPTYLINE)+ ;
+wordSep    : spaces                   #wordSepSpaces
+           | spaces? LINESEP spaces?  #wordSepLinesep ;
+
+words      : WORD (wordSep WORD)* wordSep? ;
 
 sentTerm   : COMMANDTERM     #commandTerm
            | CONSTRAINTTERM  #constraintTerm
            | QUERYTERM       #queryTerm ;
 
-sentenceBody : spaces? words wordSep? ;
+sentence   : words sentTerm wordSep? ;
 
-sentence   : sentenceBody sentTerm ;
+paragraph  : sentence+ ;
 
-paragraph  : sentence (LINESEP? sentence)* ;
+lineseps   : (LINESEP | EMPTYLINE)+ ;
 
 blockend   : lineseps | EOF ;
