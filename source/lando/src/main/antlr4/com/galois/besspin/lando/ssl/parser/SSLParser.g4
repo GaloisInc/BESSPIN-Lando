@@ -18,21 +18,21 @@ specElement    : system           #systemElement
 
 system     : lineComments?
              SYSTEM
-             sysname=name abbrev? (relkeyword relname=name)? comment? lineseps
+             sysname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
              (lineseps indexing)?
              blockend ;
 
 subsystem  : lineComments?
              SUBSYSTEM
-             subsysname=name abbrev? (relkeyword relname=name)? comment? lineseps
+             subsysname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
              (lineseps indexing)?
              blockend ;
 
 component  : lineComments?
              COMPONENT
-             compname=name abbrev? (relkeyword relname=name)? comment? lineseps
+             compname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
              (lineseps componentParts)?
              blockend ;
@@ -83,18 +83,18 @@ requirementEntries : requirementEntry (lineseps requirementEntry)* ;
 requirementEntry   : lineComments? name nameComment=comment? lineseps sentence sentenceComment=comment? ;
 
 
-relation          : lineComments? RELATION left=name (relkeyword right=name)? comment? blockend ;
+relation          : lineComments? RELATION left=name (RELKEYWORD right=name)? comment? blockend ;
 
 
 indexing          : INDEXING (lineseps indexEntries)? ;
 
 indexEntries      : indexEntry (lineseps indexEntry)* ;
 
-indexEntry        : words INDEXSEP indexValueList ;
+indexEntry        : name INDEXSEP indexValueList ;
 
 indexValueList    : indexValuePart (lineseps indexValuePart)* ;
 
-indexValuePart    : words comment? ;
+indexValuePart    : name comment? ;
 
 
 comment      : COMMENTSTART COMMENT ;
@@ -105,12 +105,10 @@ lineComments : comments lineseps ;
 
 
 //Helpers
-relkeyword : INHERIT | CLIENT | CONTAINS ;
-
 spaces     : SPACE+ ;
 
-wordSep    : spaces
-           | spaces? LINESEP spaces? ;
+wordSep    : spaces                   #wordSepSpaces
+           | spaces? LINESEP spaces?  #wordSepLinesep ;
 
 words      : WORD (wordSep WORD)* ;
 
@@ -118,14 +116,16 @@ name       : WORD (spaces WORD)* ;
 
 abbrev     : ABBREVSTART name ABBREVEND ;
 
-lineseps   : LINESEP+ ;
+lineseps   : (LINESEP | EMPTYLINE)+ ;
 
-sentTerm   : COMMANDTERM | CONSTRAINTTERM | QUERYTERM ;
+sentTerm   : COMMANDTERM     #commandTerm
+           | CONSTRAINTTERM  #constraintTerm
+           | QUERYTERM       #queryTerm ;
 
 sentenceBody : spaces? words wordSep? ;
 
 sentence   : sentenceBody sentTerm ;
 
-paragraph  : sentence (lineseps? sentence)* ;
+paragraph  : sentence (LINESEP? sentence)* ;
 
 blockend   : lineseps | EOF ;

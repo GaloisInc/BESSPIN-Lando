@@ -117,6 +117,7 @@ data class RawSubsystem(
 data class RawSystem(
     override val uid: Int,
     override var name: String,
+    var abbrevName: String?,
     var explanation: String,
     var indexing: List<RawIndexEntry>,
     var comments: List<RawComment>

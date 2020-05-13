@@ -20,7 +20,7 @@ data class SyntaxError(
     fun formatError(): String = "Line: $line, Column: $column. $message"
 }
 
-public class CollectingErrorListener : BaseErrorListener() {
+class CollectingErrorListener : BaseErrorListener() {
 
     var errors: MutableList<SyntaxError> = arrayListOf() ;
 
@@ -44,14 +44,14 @@ fun parseFile(file: File, debugLexer: Boolean = false): RawSSL {
 
     val stream = CharStreams.fromPath(file.toPath())
 
-    val lexer = SSLLexerOld(stream)
+    val lexer = SSLLexer(stream)
     lexer.debug = debugLexer;
     lexer.removeErrorListeners();
     lexer.addErrorListener(errorListener)
 
     val tokenStream = CommonTokenStream(lexer)
 
-    val parser = SSLParserOld(tokenStream)
+    val parser = SSLParser(tokenStream)
     parser.removeErrorListeners()
     parser.addErrorListener(errorListener)
 

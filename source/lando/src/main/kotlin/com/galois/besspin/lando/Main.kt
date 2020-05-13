@@ -77,39 +77,7 @@ class Validate : CliktCommand(
     }
 }
 
-class New : CliktCommand(
-    printHelpOnEmptyArgs = true,
-    help = ""
-) {
-    val source by argument("SOURCE").file(exists = true)
-    val debug  by option("-d", "--debug").flag()
-
-    override fun run() {
-        val errorListener = CollectingErrorListener()
-
-        val stream = CharStreams.fromPath(source.toPath())
-        val lexer = SSLLexer(stream)
-        lexer.debug = debug;
-        lexer.removeErrorListeners();
-        lexer.addErrorListener(errorListener)
-        // while (!lexer._hitEOF) lexer.nextToken()
-
-        val tokenStream = CommonTokenStream(lexer)
-        val parser = SSLParser(tokenStream)
-        parser.removeErrorListeners()
-        parser.addErrorListener(errorListener)
-
-        val landoSource = parser.landoSource()
-        if(errorListener.errors.size != 0) {
-            println("Parser Failed due to the following errors:\n${errorListener.formatErrors()}\n")
-        } else {
-            println(landoSource.toStringTree())
-            println("$source appears to be valid")
-        }
-    }
-}
-
 fun main(args: Array<String>) {
-    CommandLine().subcommands(Convert(), Validate(), New()).main(args)
+    CommandLine().subcommands(Convert(), Validate()).main(args)
 }
 
