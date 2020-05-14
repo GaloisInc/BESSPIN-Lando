@@ -4,10 +4,6 @@ import com.galois.besspin.lando.ssl.ast.*
 
 class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
 
-    private var inheritRelations: MutableList<RawInheritRelation> = arrayListOf()
-    private var containsRelations: MutableList<RawContainsRelation> = arrayListOf()
-    private var clientRelations: MutableList<RawClientRelation> = arrayListOf()
-
     private var lastUid = 1
 
     private var lastSystem: RawSystem? = null
@@ -30,7 +26,7 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         }.unzip()
 
         val relationship = RawRelationships.fromRelationList(relationsListOfLists.flatten())
-        return RawSSL(nextUid(), elements.filterNotNull(), relationship, listOf());
+        return RawSSL(nextUid(), elements.filterNotNull(), relationship, listOf())
     }
 
     private fun toAst(sysCxt: SSLParser.SystemContext): Pair<RawSystem, List<RawRelation>> {
@@ -57,7 +53,7 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         val comments = collectComments(subsysCxt.lineComments(), subsysCxt.comment())
         val subsystem = RawSubsystem(nextUid(), name, abbrevName, description, index, comments)
 
-        val reltype = subsysCxt.RELKEYWORD()?.symbol?.text?.trim() ;
+        val reltype = subsysCxt.RELKEYWORD()?.symbol?.text?.trim()
         val relname = toAstOptional(subsysCxt.relname)
         val relation = createRelation(reltype, name, relname)
 
@@ -73,13 +69,13 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
 
     private fun toAst(cmpCxt: SSLParser.ComponentContext): Pair<RawComponent, List<RawRelation>> {
         val name = toAst(cmpCxt.compname)
-        val abbrevName = cmpCxt.ABBREV()?.symbol?.text?.trim() ;
+        val abbrevName = cmpCxt.ABBREV()?.symbol?.text?.trim()
         val description = toAst(cmpCxt.paragraph())
         val parts = if (cmpCxt.componentParts() != null) toAst(cmpCxt.componentParts()) else arrayListOf()
         val comments = collectComments(cmpCxt.lineComments(), cmpCxt.comment())
         val component = RawComponent(nextUid(), name, abbrevName, description, parts, comments)
 
-        val reltype = cmpCxt.RELKEYWORD()?.symbol?.text?.trim() ;
+        val reltype = cmpCxt.RELKEYWORD()?.symbol?.text?.trim()
         val relname = toAstOptional(cmpCxt.relname)
         val relation = createRelation(reltype, name, relname)
 
@@ -270,16 +266,16 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
 
     private fun cleanSentence(text: String): String {
         //TODO: Give this more thought
-        return Regex("\\s*[\\r\\n]\\s*", RegexOption.MULTILINE).replace(text, " ").trim();
+        return Regex("\\s*[\\r\\n]\\s*", RegexOption.MULTILINE).replace(text, " ").trim()
     }
 
     private fun cleanParagraph(text: String): String {
         //TODO: Give this more thought
-        return Regex("\\s*[\\r\\n]\\s*", RegexOption.MULTILINE).replace(text, " ").trim();
+        return Regex("\\s*[\\r\\n]\\s*", RegexOption.MULTILINE).replace(text, " ").trim()
     }
 
     private fun cleanIndexKeyValue(text: String): String {
-        return text.trim();
+        return text.trim()
     }
 
     private fun collectComments(
