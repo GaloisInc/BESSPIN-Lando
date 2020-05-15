@@ -352,10 +352,11 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
             else -> throw UnsupportedOperationException(sentTermCxt.toString())
         }
 
-//  sentence   : sentBody sentTerm wordSep? ;
+//  sentence   : sentBody sentTerm wordSep?
+//             | sentBody          wordSep?
     private fun toAst(sentenceCxt: SSLParser.SentenceContext): String {
         val sentBody = toAst(sentenceCxt.sentBody())
-        val sentTerm = toAst(sentenceCxt.sentTerm())
+        val sentTerm = sentenceCxt.sentTerm()?.let { toAst(it) } ?: ""
         val endSep = sentenceCxt.wordSep()?.let { toAst(it) } ?: ""
         return sentBody + sentTerm + endSep
     }

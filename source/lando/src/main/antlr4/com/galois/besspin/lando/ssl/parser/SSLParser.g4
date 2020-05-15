@@ -4,6 +4,14 @@ parser grammar SSLParser;
 //    package com.galois.symmetries.compiler.frontend;
 //}
 
+@members {
+    public static final String warningPrefix = "Warning: ";
+
+    public void emitWarning(String msg) {
+        notifyErrorListeners(warningPrefix + msg);
+    }
+}
+
 options { tokenVocab = SSLLexer; }
 
 landoSource    : lineseps? specElement* lineseps? lineComments? lineseps? EOF;
@@ -122,7 +130,9 @@ sentTerm   : COMMANDTERM     #commandTerm
            | CONSTRAINTTERM  #constraintTerm
            | QUERYTERM       #queryTerm ;
 
-sentence   : sentBody sentTerm wordSep? ;
+sentence   : sentBody sentTerm wordSep?
+           | sentBody          wordSep?
+             { emitWarning("forgotten '.', '!', or '?'"); } ;
 
 paragraph  : sentence+ ;
 

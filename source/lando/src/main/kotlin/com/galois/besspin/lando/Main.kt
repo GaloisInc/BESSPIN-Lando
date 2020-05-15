@@ -43,8 +43,9 @@ class Convert : CliktCommand(
 
     fun toJSON(source: File, dest: File, debug: Boolean) {
         try {
-            val ssl = parseFile(source, debug)
+            val (ssl, warnings) = parseFile(source, debug)
             val str = ssl.toJSON()
+            if (warnings.isNotEmpty()) { println(warnings) }
 
             val writer = PrintWriter(dest)
             writer.print(str)
@@ -65,7 +66,8 @@ class Validate : CliktCommand(
 
     override fun run() {
         try {
-            parseFile(source, debug)
+            val (_, warnings) = parseFile(source, debug)
+            if (warnings.isNotEmpty()) println(warnings)
         } catch (ex: Exception) {
             println("$source appears to have syntax errors. " + ex.message)
             System.exit(1)
