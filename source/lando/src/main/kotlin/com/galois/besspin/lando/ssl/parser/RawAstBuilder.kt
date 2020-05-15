@@ -5,10 +5,6 @@ import org.antlr.v4.runtime.tree.TerminalNode
 
 class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
 
-    private var inheritRelations: MutableList<RawInheritRelation> = arrayListOf()
-    private var containsRelations: MutableList<RawContainsRelation> = arrayListOf()
-    private var clientRelations: MutableList<RawClientRelation> = arrayListOf()
-
     private var lastUid = 1
 
     private var lastSystem: RawSystem? = null
@@ -39,7 +35,7 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         }.unzip()
 
         val relationship = RawRelationships.fromRelationList(relationsListOfLists.flatten())
-        return RawSSL(nextUid(), elements.filterNotNull(), relationship, listOf());
+        return RawSSL(nextUid(), elements.filterNotNull(), relationship, listOf())
     }
 
 //  system     : lineComments?
@@ -366,8 +362,7 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         term.symbol.text.trim()
 
 
-    private fun createRelation(reltype: String?, left: String, right: String?,
-                               comments: List<RawComment>? = null): RawRelation? {
+    private fun createRelation(reltype: String?, left: String, right: String?): RawRelation? {
         return when(reltype) {
             "inherit" -> RawInheritRelation(left, right!!)
             "contains" -> RawContainsRelation(right!!, left)

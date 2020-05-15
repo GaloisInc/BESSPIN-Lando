@@ -26,3 +26,7 @@ hs_err_pid*
 target/
 .idea/
 *.iml
+
+#Ignore antlr4 generated stuff
+*.tokens
+gen/

@@ -1,13 +1,9 @@
 package com.galois.besspin.lando.ssl.ast
 
-import kotlinx.serialization.*
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.modules.SerializersModule
-
-enum class RelationType {
-    INHERIT, CLIENT, CONTAINS
-}
 
 @Serializable
 data class RawComment(
@@ -33,13 +29,13 @@ data class RawQuery(
 data class RawConstraint(
     override var text: String,
     var comments: List<RawComment>
-) : RawComponentPart;
+) : RawComponentPart
 
 @Serializable
 data class RawCommand(
     override var text: String,
     var comments: List<RawComment>
-) : RawComponentPart;
+) : RawComponentPart
 
 @Serializable
 data class RawComponent(
@@ -49,7 +45,7 @@ data class RawComponent(
     var explanation: String,
     var parts: List<RawComponentPart> = arrayListOf(),
     var comments: List<RawComment>
-) : RawElement;
+) : RawElement
 
 @Serializable
 data class RawEvents(

@@ -2,22 +2,17 @@ package com.galois.besspin.lando
 
 import com.galois.besspin.lando.ssl.ast.toJSON
 import com.galois.besspin.lando.ssl.parser.parseFile
-
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.NoRunCliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
-import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
 import kotlinx.io.PrintWriter
 import java.io.File
-
-import java.lang.System
-
-typealias LSystem = com.galois.besspin.lando.ssl.ast.RawSystem
 
 
 class CommandLine : NoRunCliktCommand(printHelpOnEmptyArgs = true, name = "lando") {
