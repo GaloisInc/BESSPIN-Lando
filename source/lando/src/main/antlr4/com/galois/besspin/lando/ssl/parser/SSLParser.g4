@@ -105,7 +105,7 @@ indexValueList    : indexValuePart (lineseps indexValuePart)* ;
 indexValuePart    : name comment? ;
 
 
-comment      : COMMENTSTART COMMENT ;
+comment      : COMMENTSTART COMMENT? ;
 
 comments     : comment (lineseps comment)* ;
 
@@ -119,7 +119,7 @@ nameTrim   : WORD (spaces WORD)*;
 
 name       : spaces? nameTrim spaces? ;
 
-abbrev     : spaces? ABBREVSTART name ABBREVEND spaces? ;
+abbrev     : spaces? ABBREVSTART spaces? WORD spaces? ABBREVEND spaces? ;
 
 wordSep    : spaces                   #wordSepSpaces
            | spaces? LINESEP spaces?  #wordSepLinesep ;

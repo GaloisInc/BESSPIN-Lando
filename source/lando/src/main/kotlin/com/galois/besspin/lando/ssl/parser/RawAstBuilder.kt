@@ -294,9 +294,9 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
     }
 
 
-//  comment      : COMMENTSTART COMMENT ;
+//  comment      : COMMENTSTART COMMENT? ;
     private fun toAst(commentCxt: SSLParser.CommentContext?): RawComment? =
-        if (commentCxt != null) RawComment(toAst(commentCxt.COMMENT())) else null
+        if (commentCxt != null) RawComment(commentCxt.COMMENT()?.let { toAst(it) } ?: "") else null
 
 //  comments     : comment (lineseps comment)* ;
 //  lineComments : comments lineseps ;
@@ -321,9 +321,9 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         return (words zip spaces).map { it.first + it.second }.joinToString("")
     }
 
-//  abbrev     : spaces? ABBREVSTART name ABBREVEND spaces? ;
+//  abbrev     : spaces? ABBREVSTART spaces? WORD spaces? ABBREVEND spaces? ;
     private fun toAst(abbrevCxt: SSLParser.AbbrevContext): String =
-        toAst(abbrevCxt.name())
+        toAst(abbrevCxt.WORD())
 
 //  wordSep    : spaces                   #wordSepSpaces
 //             | spaces? LINESEP spaces?  #wordSepLinesep ;
@@ -354,12 +354,8 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
 
 //  sentence   : sentBody sentTerm wordSep?
 //             | sentBody          wordSep?
-    private fun toAst(sentenceCxt: SSLParser.SentenceContext): String {
-        val sentBody = toAst(sentenceCxt.sentBody())
-        val sentTerm = sentenceCxt.sentTerm()?.let { toAst(it) } ?: ""
-        val endSep = sentenceCxt.wordSep()?.let { toAst(it) } ?: ""
-        return sentBody + sentTerm + endSep
-    }
+    private fun toAst(sentenceCxt: SSLParser.SentenceContext): String =
+        toAst(sentenceCxt.sentBody()) + (sentenceCxt.sentTerm()?.let { toAst(it) } ?: "")
 
 //  paragraph  : sentence+ ;
     private fun toAst(paragraphCxt: SSLParser.ParagraphContext): String =
@@ -370,7 +366,8 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         term.symbol.text.trim()
 
 
-    private fun createRelation(reltype: String?, left: String, right: String?): RawRelation? {
+    private fun createRelation(reltype: String?, left: String, right: String?,
+                               comments: List<RawComment>? = null): RawRelation? {
         return when(reltype) {
             "inherit" -> RawInheritRelation(left, right!!)
             "contains" -> RawContainsRelation(right!!, left)
