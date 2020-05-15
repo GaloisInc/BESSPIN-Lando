@@ -43,11 +43,11 @@ componentPart  : command          #commandPart
                | constraint       #constraintPart
                | query            #queryPart ;
 
-command         : lineComments? words COMMANDTERM    wordSep? comment? ;
+command         : lineComments? sentBody COMMANDTERM    wordSep? comment? ;
 
-query           : lineComments? words QUERYTERM      wordSep? comment? ;
+query           : lineComments? sentBody QUERYTERM      wordSep? comment? ;
 
-constraint      : lineComments? words CONSTRAINTTERM wordSep? comment? ;
+constraint      : lineComments? sentBody CONSTRAINTTERM wordSep? comment? ;
 
 
 events          : lineComments?
@@ -86,7 +86,7 @@ requirementEntry   : lineComments? name nameComment=comment? lineseps sentence s
 relation          : lineComments? RELATION left=name (RELKEYWORD right=name)? comment? blockend ;
 
 
-indexing          : INDEXING (lineseps indexEntries)? ;
+indexing          : INDEXING spaces? (lineseps indexEntries)? ;
 
 indexEntries      : indexEntry (lineseps indexEntry)* ;
 
@@ -107,20 +107,22 @@ lineComments : comments lineseps ;
 //Helpers
 spaces     : SPACE+ ;
 
-name       : WORD (spaces WORD)* spaces? ;
+nameTrim   : WORD (spaces WORD)*;
 
-abbrev     : ABBREVSTART name ABBREVEND ;
+name       : spaces? nameTrim spaces? ;
+
+abbrev     : spaces? ABBREVSTART name ABBREVEND spaces? ;
 
 wordSep    : spaces                   #wordSepSpaces
            | spaces? LINESEP spaces?  #wordSepLinesep ;
 
-words      : WORD (wordSep WORD)* wordSep? ;
+sentBody   : WORD (wordSep WORD)* wordSep? ;
 
 sentTerm   : COMMANDTERM     #commandTerm
            | CONSTRAINTTERM  #constraintTerm
            | QUERYTERM       #queryTerm ;
 
-sentence   : words sentTerm wordSep? ;
+sentence   : sentBody sentTerm wordSep? ;
 
 paragraph  : sentence+ ;
 
