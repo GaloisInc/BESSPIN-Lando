@@ -1,0 +1,58 @@
+subsystem Smart Ballot Box Hardware
+The hardware components which augment the SSITH GFE and make up the
+SBB.
+
+indexing
+  owner: Steven Osborn <steven@freeandfair.us>
+  contributors: Haneef Mubarak <haneef@galois.com>
+                Parker Southwick <psouthwick@galois.com>
+                Michal Podhradsky <mpodhradsky@galois.com>
+
+component Ballot Box
+  Deposit ballot!
+component Barcode Scanner
+  Has a valid barcode?
+  What is the barcode?
+component LEDButton
+  Pressed?
+  Light On!
+  Light Off!
+component Motor
+  Forward!
+  Backward!
+  Stop!
+component LCD Display
+  Display this text!
+component Paper Sensor
+  Paper detected?
+
+requirements Smart Ballot Box
+MotorsInvariant It is impossible for the motors to turn in opposite directions.
+MotorsConsistent If one motor is enabled in a given direction, the other motor is too.
+
+scenarios Smart Ballot Box Hardware
+PowerUp  Opening Polling Place The Smart Ballot Box is turned on, time synced to Ballot Marking Device.
+SpoilPressed  Spoil Ballot Card The voter presses the spoil button indicating that they wish to spoil the ballot card and the ballot card is spoiled.
+CastPressed  Cast Ballot Card The voter presses the cast button indicating that they wish to cast the ballot card and the ballot card is cast.
+Spoiling  Spoil Ballot Card Display “spoiling ballot...”, eject the ballot card, display “Stamp your spoiled ballot.”, display decrypted vote.
+Casting  Cast Ballot Card Display “casting ballot…”, deposit the ballot card, display “Ballot cast.”.
+SBBConfigure  Pre-Election Setup of Smart Ballot Box The supervisor of elections installs in the smart ballot box the election configuration.
+PaperJam  Paper-Jammed Display “paper jammed, remove the paper”, wait for the paper to be removed.
+InvalidBallot  Invalid Ballot Inserted Display “Invalid ballot.”, eject the ballot card.
+MultipleBallots  Detect Too Many Ballots Inserted Display “invalid number of ballots”, eject ballot, alert coordinators.
+DisplayConfig  Election-day Setup of Smart Ballot Box The smart ballot box is turned on and its state is summarized.
+SelfCheck  Smart Ballot Box Self-Check When powered on, the smart ballot box displays the current version number of its software, the current time, and a summary of its state.
+PowerDown  Close Polling Place The smart ballot box is turned off.
+ExportEvidence  Export Election Data The supervisor of elections removes the SD card.
+
+events Smart Ballot Box Hardware
+motors_actuated The motors are actuated in direction D.
+motors_off The motors are turned off.
+display_information Display information I.
+button_pressed Button B is pressed.
+spoil_pressed The spoil button is pressed.
+cast_pressed The cast button is pressed.
+scan_barcode The barcode scanner sees and interprets a barcode.
+paper_detect A piece of paper is detected.
+button_light_up A button lights up, indicating it can be pressed.
+button_pressed A button is pressed.

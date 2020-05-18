@@ -1,0 +1,252 @@
+{
+    "uid": 14,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 1,
+            "name": "EvidenceServer",
+            "abbrevName": null,
+            "explanation": "The service that organizes and exposes to system auditors the evidence logged by other components of the BVS 2020.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 2,
+            "name": "Evidence extends Log",
+            "abbrevName": null,
+            "explanation": "Evidence is a record that the evidence server understands.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 3,
+            "name": "ElectionMetadata extends Evidence",
+            "abbrevName": null,
+            "explanation": "Record of all relevant election metadata: date, time, officials, location.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 4,
+            "name": "CastVoteRecord extends Evidence",
+            "abbrevName": null,
+            "explanation": "Tabulatable record of all votes produced by a single voter for a given ballot.",
+            "parts": [
+            ],
+            "comments": [
+                {
+                    "text": "@todo abakst Do we need this, since it's defined in our glossary?"
+                }
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 5,
+            "name": "RegisteredVoter extends Evidence",
+            "abbrevName": null,
+            "explanation": "Record of certification of voter registration containing the authenticator, registration system, polling place, and voter.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 6,
+            "name": "BallotStyle extends Evidence",
+            "abbrevName": null,
+            "explanation": "Record associating voters with their ballot style.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 7,
+            "name": "MarkedBallotImage extends Evidence",
+            "abbrevName": null,
+            "explanation": "Marked ballot image scanned by the ballot scanning device.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 8,
+            "name": "BallotOutcomeRecord extends Evidence",
+            "abbrevName": null,
+            "explanation": "A record of the choice made a voter with respect to a given marked ballot, documenting if the ballot is spoiled, cast, or challenged.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 9,
+            "name": "SmartBallotBoxRecord extends Evidence",
+            "abbrevName": null,
+            "explanation": "Records from the smart ballot box documenting the deposit of cast ballots.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 10,
+            "name": "TabulationRecord extends Evidence",
+            "abbrevName": null,
+            "explanation": "Record of the election results.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 11,
+            "name": "EvidenceServer",
+            "abbrevName": null,
+            "explanation": "An explanation.",
+            "parts": [
+            ],
+            "comments": [
+                {
+                    "text": "@todo abakst review the above with respect to the outcome of debate as to whether or not ballots are spoiled at SBB or BSD"
+                }
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 12,
+            "name": "PrivateServerAPI",
+            "abbrevName": null,
+            "explanation": "The interface between post-election officials and the server.",
+            "parts": [
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                    "text": "Import this evidence!",
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                    "text": "Publish evidence!",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 13,
+            "name": "PublicServerAPI",
+            "abbrevName": null,
+            "explanation": "The interface between the evidence and the public.",
+            "parts": [
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                    "text": "What is the decryption of my challenged ballot?",
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                    "text": "What are the collected encrypted ballots?",
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                    "text": "What is the election evidence?",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+            {
+                "uid": 2,
+                "parentUid": 1
+            },
+            {
+                "uid": 3,
+                "parentUid": 1
+            },
+            {
+                "uid": 4,
+                "parentUid": 1
+            },
+            {
+                "uid": 5,
+                "parentUid": 1
+            },
+            {
+                "uid": 6,
+                "parentUid": 1
+            },
+            {
+                "uid": 7,
+                "parentUid": 1
+            },
+            {
+                "uid": 8,
+                "parentUid": 1
+            },
+            {
+                "uid": 9,
+                "parentUid": 1
+            },
+            {
+                "uid": 10,
+                "parentUid": 1
+            },
+            {
+                "uid": 11,
+                "parentUid": 1
+            },
+            {
+                "uid": 12,
+                "parentUid": 1
+            },
+            {
+                "uid": 13,
+                "parentUid": 1
+            }
+        ],
+        "_clientRelations": [
+            {
+                "client": "PrivateServerAPI",
+                "provider": "Logging, Evidence"
+            },
+            {
+                "client": "PublicServerAPI",
+                "provider": "Network, Evidence"
+            }
+        ]
+    },
+    "comments": [
+    ]
+}

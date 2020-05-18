@@ -1,0 +1,2 @@
+Parser Failed due to the following errors:
+Line: 4, Column: 0. extraneous input 'sistem' expecting {<EOF>, EMPTYLINE, COMMENT, LINESEP, SYSTEM, SUBSYSTEM, COMPONENT, EVENTS, SCENARIOS, REQUIREMENTS, RELATION}

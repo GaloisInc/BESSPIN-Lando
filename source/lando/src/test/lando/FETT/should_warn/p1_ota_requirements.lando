@@ -1,0 +1,28 @@
+requirements OTA
+
+// Build Requirements
+signature_check
+OTA requires a crypto library for verification of Ed25519 cryptographic signatures.
+
+filesystem
+OTA requires a persistent filesystem on target where verified payloads will be stored
+Note: filesystem is shared with HTTP application
+
+tftp_service
+OTA will listen for clients using TFTP server protocol
+
+network
+OTA requires UDP network protocol plus all underlying protocols and drivers
+
+// Resources
+crypto_keys
+A predefined Ed25519 public key must be installed or built in to OTA
+
+// Configuration - config items that might need to be configured or changed per instance,
+// and are shared with the bastion host - i.e. TFTP port number needs to be known by both
+// the target and the host. Additional items are TBD
+tftp_config
+TFTP port number
+
+filesystem_config
+Name of root filesystem

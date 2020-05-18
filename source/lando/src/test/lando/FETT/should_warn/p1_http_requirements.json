@@ -1,0 +1,74 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
+            "uid": 1,
+            "name": "HTTP",
+            "requirements": [
+                {
+                    "id": "filesystem",
+                    "text": "HTTP requires a persistent filesystem on target from which web content can be read and served to a client Note: filesystem is shared with OTA application",
+                    "comments": [
+                        {
+                            "text": "Build Requirements"
+                        }
+                    ]
+                },
+                {
+                    "id": "http_service",
+                    "text": "OTA will listen for clients using HTTP protocol and must support the following HTTP request types: GET ",
+                    "comments": [
+                        {
+                            "text": "More request types here? What is necessary and sufficient for FETT?"
+                        }
+                    ]
+                },
+                {
+                    "id": "network",
+                    "text": "HTTP requires TCP/IP network protocol plus all underlying protocols and drivers",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "http_config",
+                    "text": "HTTP port number",
+                    "comments": [
+                        {
+                            "text": "Resources"
+                        },
+                        {
+                            "text": "Configuration - config items that might need to be configured or changed per instance,"
+                        },
+                        {
+                            "text": "and are shared with the bastion host - i.e. HTTP port number needs to be known by both"
+                        },
+                        {
+                            "text": "the target and the host. Additional items are TBD"
+                        }
+                    ]
+                },
+                {
+                    "id": "filesystem_config",
+                    "text": "Name of root filesystem",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

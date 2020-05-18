@@ -1,0 +1,68 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawScenarios",
+            "uid": 1,
+            "name": "Crypto",
+            "scenarios": [
+                {
+                    "id": "HSMStartup",
+                    "text": "Initialize the HSM microarchitecture, perform a secure boot, and load the HSM AES key.",
+                    "comments": [
+                        {
+                            "text": "initialization"
+                        }
+                    ]
+                },
+                {
+                    "id": "Encrypt_fewer_than_256_bits_of_data",
+                    "text": "Encrypt some data that is smaller than one block in size by padding the input and performing the encryption.",
+                    "comments": [
+                        {
+                            "text": "general use"
+                        }
+                    ]
+                },
+                {
+                    "id": "Encrypt_data",
+                    "text": "Encrypt some data that is larger than one block in size by encrypting each successive block of input using AES-CBC and then, when the remaining input is smaller than one block in size, padding then encrypting the remaining data.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "Decrypt_fewer_than_256_bits_of_data",
+                    "text": "Decrypt some data that is smaller than one block in size by decrypting the input and the receiving entity should know how to remove padding.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "Decrypt_data",
+                    "text": "Decrypt some data that is larger than one block in size by decrypting and catenating each successive block of input using AES-CBC and then, when the remaining input is smaller than one block in size, decrypting then truncating the padding then appending the remaining data.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "HMAC_some_data",
+                    "text": "HMACing some data means HMACing all of the data using a key.",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

@@ -1,0 +1,28 @@
+requirements Nginx webserver 
+
+// Build Requirements
+ssl support
+Nginx must be compiled with ssl support.
+
+http2 support
+Nginx must be compiled with http2 support.
+
+// Resources
+ssl certificate
+The Nginx installation and configuration must include a valid SSL certificate.
+
+hidden resources
+The Nginx app should include some resources that are intended to be 'private';
+ie protected by some nginx security mechanism.
+
+// Configuration
+http2 configuration
+Nginx must be configured to listen for http2 requests (listen http2).
+
+error_page redirect
+CVE-2019-20372 requires a server configuration with an error_page redirect.
+
+hidden resources configuration
+Nginx must be configured to run a separate 'server' (in its config file) that
+protects a named resource; this can serve as a target for error_page smuggling.
+

@@ -1,0 +1,80 @@
+subsystem FETT P2
+The P2 Target System Software.
+
+component P2 Target CVEs
+The CVEs exposed by the FETT P2 system.
+
+component P2 Target Forensics
+Target state that can be inspected by the FETT Runner. In this case, this should
+include OS core dumps, application core dumps, system logs, application logs,
+and processor state.
+
+// Target Application Components
+component P2 Target Applications
+The supported applications on the P2 Target System.
+
+component SSH Server
+The SSH service application.
+
+   Log in researcher!
+
+// @note abakst Some of the constraints below are derived
+// from the FETT-Voting requirements
+
+// @note abakst this serves as a very high level set of requirements
+// and descriptions. A separate file will document the requirements
+// for the concrete instantiation of the web server
+// (e.g. resources, configuration, etc.)
+component Web Server
+The Web Server application.
+
+  Web Server must support SSL/TLS.  
+  Web Server must support execution of external programs (via CGI or similar mechanism).  
+  Web Server and external program execution mechanism must support submission of forms
+    including attached files.
+  Web Server must log all connections and connection attempts.
+  Web Server must support execution of external programs (via CGI or similar mechanism).  
+  Execute HTTPS Method!
+
+component DatabaseCLI
+The Database CLI application.
+
+  Create new database!
+  Execute SQL statement!
+
+relation P2 Target Applications contains SSH Server
+relation P2 Target Applications contains Web Server
+relation P2 Target Applications contains DatabaseCLI
+
+// Operating System Components
+
+component Base OS Image
+The Base OS image that hosts the Target applications.
+
+  Each P2 Target Application must be supported on the Base OS Image.
+  What is the IP?
+  Which services are running?
+  Start a service from the P2 Target Applications list! // Note that for SQLite, this is a noop
+  Stop a service from the P2 Target Applications list!  // Note that for SQLite, this is a noop
+
+component Base FreeBSD Image extends Base OS Image
+The Base FreeBSD Image is a concrete instantiation of a Base OS Image.
+
+component Base Debian Image extends Base OS Image
+The Base Debian Image is a concrete instantiation of a Base OS Image.
+
+relation SSH Server client Base OS Image
+relation Web Server client Base OS Image
+relation DatabaseCLI client Base OS Image
+
+requirements Target System
+
+// This requirement should serve as the high level specification
+// for the concrete instantiation of each component, i.e. if we instantiate
+// the web server with NGINX, then we must define an exposed CVE list
+// and the features required such that each CVE is present.
+
+Base CVEs Exposed
+For each CVE in the P2 Target CVE list, there is a member of P2 Target
+Applications that is configured according to the publicly available CVE details
+to contain the vulnerability.

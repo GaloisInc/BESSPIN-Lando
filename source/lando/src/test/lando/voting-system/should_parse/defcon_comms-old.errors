@@ -1,0 +1,7 @@
+Parser Failed due to the following errors:
+Line: 15, Column: 56. token recognition error at: '\nc'
+Line: 17, Column: 63. token recognition error at: '\n  W'
+Line: 16, Column: 1. mismatched input 'omponent Issues Summary\n  What are the git issues describing successful system attacks?' expecting {<EOF>, LINESEP}
+Line: 18, Column: 60. token recognition error at: '\n  W'
+Line: 20, Column: 26. token recognition error at: '\nc'
+Line: 22, Column: 58. token recognition error at: '\n  W'

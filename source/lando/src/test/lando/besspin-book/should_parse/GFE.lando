@@ -1,0 +1,67 @@
+system Government Furnished Equipment (GFE)
+The SSITH GFE is the hardware platform upon which SSITH TA-1
+performers add security.  It includes six RISC-V SoCs, three
+operating systems, device drivers, and more.
+
+subsystem RISC-V System on Chip (SOC)
+The SSITH SoC is one of six SoCs that contain RISC-V CPUs.
+
+subsystem Piccolo CPU (Bluespec-P1)
+The Piccolo CPU is a RISC-V microcontroller written by Bluespec in
+Bluespec SystemVerilog.  It is one of the six CPUs used in the
+GFE.
+
+subsystem BESSPIN HSM (HSM)
+The HSM for the GFE contains sufficient crypto IP in order to
+accellerate GFE trusted boot.
+
+component AES IP (AES)
+An AES hardware module.
+
+component AES Secret Key (Key)
+The secret key held in an AES hardware module.
+
+// @note kiniry Due to the above layout of the specs, these two
+// containment specs are valid:
+//   `HSM contains AES`
+//   `HSM contains Key`
+
+relation GFE contains SoC
+relation SoC contains Bluespec-P1
+relation Bluespec-P1 contains HSM
+
+requirements Information Leakage
+
+// These are not consistent with each other, you should
+// definitely comment some of these out
+//add_leaks
+//The add instruction leaks timing information.
+//
+//mul_does_not_leak
+//The mul instruction does not leak timing information.
+//
+//arithmetic_leaks
+//All integer instructions leak timing information.
+
+only_multiply_leaks
+Only the mul instruction out of all the integer_ops instructions leaks timing information.
+
+// no_instruction_leaks
+// No instruction leaks timing information.
+
+io_kill_signal_not_leaked 
+The io__kill signal of the MulDiv Verilog module of my chisel_p2 processor isn't leaked
+through an information-flow channel.
+
+// alu_input1_not_leaked_ALU_module
+// The io_in1 signal of the ALU Verilog module isn't leaked outside of the
+// certification boundary of my ALU module.
+
+//alu_comparator_input2_not_leaked
+//The io_in2 signal of the ALU Verilog module isn't leaked through the io_cmp_out output channel.
+
+alu_input1_not_leaked
+The io_in1 signal of the ALU Verilog module isn't leaked through an information-flow channel.
+
+alu_input2_not_leaked
+The io_in2 signal of the ALU Verilog module isn't leaked through an information-flow channel.

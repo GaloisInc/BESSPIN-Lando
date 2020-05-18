@@ -1,0 +1,158 @@
+{
+    "uid": 8,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSystem",
+            "uid": 1,
+            "name": "BESSPIN FETT Target System",
+            "abbrevName": "BFTS",
+            "explanation": "The system responsible for running a BESSPIN demonstrator stack.",
+            "indexing": [
+                {
+                    "key": "owner",
+                    "values": [
+                        "Ramy Tadros <rtadros@galois.com>"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "contributors",
+                    "values": [
+                        "Galois"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "copyright",
+                    "values": [
+                        "(C) 2020 Galois"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "license",
+                    "values": [
+                        "TBD"
+                    ],
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 2,
+            "name": "Target Subsystem",
+            "abbrevName": null,
+            "explanation": "Realizations of the Target Subsystem are the principal subsystems that Researchers use to evaluate the security claims made by processor designers. Each subsystem denotes a single processor family -- the definition of the subsystem includes the applications that are exposed to security researchers.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 3,
+            "name": "FETT P1 extends Target Subsystem",
+            "abbrevName": null,
+            "explanation": "The principal subsystem by which researchers evaluate security claims made by designers of a P1 processor.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 4,
+            "name": "FETT P2 extends Target Subsystem",
+            "abbrevName": null,
+            "explanation": "The principal subsystem by which researchers evaluate security claims made by designers of a P2 processor.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 5,
+            "name": "FETT Runner",
+            "abbrevName": null,
+            "explanation": "The software for managing a particular FETT subsystem.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 6,
+            "name": "FPGA",
+            "abbrevName": null,
+            "explanation": "The FPGA that will be programmed with the processor on which the Target will execute.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 7,
+            "name": "CloudGFE",
+            "abbrevName": null,
+            "explanation": "The platform on which FETT will run, consisting of TA-1 SSITH processors running inside of AWS F1-hosted SoCs, complete with OS and devices relevant to FETT.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+            {
+                "name": "CloudGFE",
+                "parent": "FPGA"
+            }
+        ],
+        "_implicitContainsRelations": [
+            {
+                "uid": 2,
+                "parentUid": 1
+            },
+            {
+                "uid": 3,
+                "parentUid": 1
+            },
+            {
+                "uid": 4,
+                "parentUid": 1
+            },
+            {
+                "uid": 5,
+                "parentUid": 1
+            },
+            {
+                "uid": 6,
+                "parentUid": 1
+            },
+            {
+                "uid": 7,
+                "parentUid": 1
+            }
+        ],
+        "_clientRelations": [
+            {
+                "client": "Target Subsystem",
+                "provider": "CloudGFE"
+            }
+        ]
+    },
+    "comments": [
+    ]
+}

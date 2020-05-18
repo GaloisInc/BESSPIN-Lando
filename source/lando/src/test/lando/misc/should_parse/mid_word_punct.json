@@ -1,0 +1,34 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 1,
+            "name": "C Version 2.3",
+            "abbrevName": null,
+            "explanation": "Explanation.",
+            "parts": [
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                    "text": "C Version 2.3 does something!",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

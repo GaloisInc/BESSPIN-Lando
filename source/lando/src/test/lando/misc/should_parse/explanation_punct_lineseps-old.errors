@@ -1,0 +1,3 @@
+Parser Failed due to the following errors:
+Line: 6, Column: 31. token recognition error at: '\nA'
+Line: 7, Column: 1. extraneous input 'nd another sentence.' expecting {<EOF>, LINESEP}

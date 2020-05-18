@@ -1,0 +1,2 @@
+Parser Failed due to the following errors:
+Line: 14, Column: 0. no viable alternative at input '// @todo owner Extract all elections concepts concretized in code\n  // from the BMD.\n\n  // @note kiniry We are reusing the entire NIST VVSG 2.0 draft\n  // glossary.  An earlier version of that glossary was encoded in\n  // EBON during the U.S. Vote Foundation project and is found in that\n  // project’s repository and as an appendix to the report.\n  \nindexing'

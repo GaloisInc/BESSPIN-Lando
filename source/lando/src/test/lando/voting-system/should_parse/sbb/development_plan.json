@@ -1,0 +1,106 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 1,
+            "name": "Smart Ballot Box",
+            "abbrevName": "SBB",
+            "explanation": "The Smart Ballot Box (SBB) for the BESSPIN Voting System (BVS) 2020.",
+            "indexing": [
+                {
+                    "key": "owner",
+                    "values": [
+                        "Joseph Kiniry <kiniry@freeandfair.us>"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "contributors",
+                    "values": [
+                        "Michal Podhradsky <mpodhradsky@galois.com>",
+                        "Haneef Mubarak <haneef@galois.com>",
+                        "Parker Southwick <psouthwick@galois.com>",
+                        "Steven Osborn <steven@freeandfair.us>",
+                        "Alexander Bakst <abakst@galois.com>",
+                        "Daniel Zimmerman <dmz@freeandfair.us>",
+                        "Joey Dodds <jdodds@freeandfair.us>"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "design",
+                    "values": [
+                        "11 weeks"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "implementation",
+                    "values": [
+                        "3 weeks"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "assurance",
+                    "values": [
+                        "3 weeks"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "complexity estimate",
+                    "values": [
+                        "high"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "risk level",
+                    "values": [
+                        "medium"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "mandatory dependencies",
+                    "values": [
+                        "crypto logging security cascasdes"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "issues",
+                    "values": [
+                        "#152, #162-#170"
+                    ],
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

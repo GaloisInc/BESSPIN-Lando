@@ -1,9 +1,11 @@
 package com.galois.besspin.lando.ssl.ast
 
+import kotlinx.serialization.ImplicitReflectionSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.parse
 
 @Serializable
 data class RawComment(
@@ -191,26 +193,31 @@ data class RawRelationships(
 }
 
 
-fun RawSSL.toJSON(): String {
-    val sslModule = SerializersModule {
-        polymorphic(RawElement::class) {
-            RawSystem::class with RawSystem.serializer()
-            RawSubsystem::class with RawSubsystem.serializer()
-            RawComponent::class with RawComponent.serializer()
-            RawEvents::class with RawEvents.serializer()
-            RawScenarios::class with RawScenarios.serializer()
-            RawRequirements::class with RawRequirements.serializer()
-        }
-
-        polymorphic(RawComponentPart::class) {
-            RawQuery::class with RawQuery.serializer()
-            RawConstraint::class with RawConstraint.serializer()
-            RawCommand::class with RawCommand.serializer()
-        }
+private val sslModule = SerializersModule {
+    polymorphic(RawElement::class) {
+        RawSystem::class with RawSystem.serializer()
+        RawSubsystem::class with RawSubsystem.serializer()
+        RawComponent::class with RawComponent.serializer()
+        RawEvents::class with RawEvents.serializer()
+        RawScenarios::class with RawScenarios.serializer()
+        RawRequirements::class with RawRequirements.serializer()
     }
 
-    val config = JsonConfiguration(prettyPrint = true)
-    val json = Json(context = sslModule, configuration = config)
+    polymorphic(RawComponentPart::class) {
+        RawQuery::class with RawQuery.serializer()
+        RawConstraint::class with RawConstraint.serializer()
+        RawCommand::class with RawCommand.serializer()
+    }
+}
 
-    return json.stringify(RawSSL.serializer(), this)
+private val config = JsonConfiguration(prettyPrint = true)
+val jsonRawSSL = Json(context = sslModule, configuration = config)
+
+fun RawSSL.toJSON(): String {
+    return jsonRawSSL.stringify(RawSSL.serializer(), this)
+}
+
+@ImplicitReflectionSerializer
+fun rawSSLFromJSON(text: String): RawSSL {
+    return jsonRawSSL.parse(text)
 }

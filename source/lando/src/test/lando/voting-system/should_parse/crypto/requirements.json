@@ -1,0 +1,38 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
+            "uid": 1,
+            "name": "Crypto",
+            "requirements": [
+                {
+                    "id": "TwoAESKeys",
+                    "text": "If we are both encrypting using AES and using AES-CBC or an AES for HMAC, we must use two different keys for these two operations.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "AESKeySecrecy",
+                    "text": "All AES keys are secret and must not be leaked to any untrusted entity.",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

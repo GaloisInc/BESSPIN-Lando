@@ -1,0 +1,191 @@
+{
+    "uid": 8,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 1,
+            "name": "Logging",
+            "abbrevName": null,
+            "explanation": "A subsystem that supports the persistent logging of structured information.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 2,
+            "name": "Log Entry",
+            "abbrevName": null,
+            "explanation": "A structured set of linear data that is to be written to a log. Are these two log entries equal? Is this log entry verifiable wrt its well-formeded properties?",
+            "parts": [
+            ],
+            "comments": [
+                {
+                    "text": "@note kiniry A static architecture is described via three core"
+                },
+                {
+                    "text": "relations: containment, subtyping, and client.  Note that subtyping"
+                },
+                {
+                    "text": "is specified using the `inherit` keyword below. Containment is"
+                },
+                {
+                    "text": "specified structurally using syntactic nesting.  And"
+                },
+                {
+                    "text": "client-supplier dependencies is specified using the `client`"
+                },
+                {
+                    "text": "keyword."
+                },
+                {
+                    "text": "Refine to JSONValue or CSVValue?"
+                }
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 3,
+            "name": "Secure Log Entry",
+            "abbrevName": null,
+            "explanation": "Is this secure log entry verifiable wrt its security properties?",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 4,
+            "name": "Log",
+            "abbrevName": null,
+            "explanation": "A log is an (often persistent) sequence of events recorded about a given system. Create an empty log! What kind of entries can this log contain? Write this entry to the log! Export this log to the following target! Import this log! Is this log valid wrt its well-formedness properties?",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 5,
+            "name": "Secure Log",
+            "abbrevName": null,
+            "explanation": "A secure log is a log that has evidence that specific security properties hold. What kind of data integrity does this log have? What kind of provenance does this log have? What kind of confidentiality does this log have? What kind of authentication and access control does this log have? What non-repudiation properties does this log have? May I have a log created conforming to the following security properties? Is this secure log verifiable wrt its security properties? Must stipulate what kinds of events are permitted in the log.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 6,
+            "name": "Secure System Log",
+            "abbrevName": null,
+            "explanation": "Must contain only system events. component System Entry inherit Log Entry Must only describe a system-level event related to hardware state changes.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 7,
+            "name": "Secure Application Log",
+            "abbrevName": null,
+            "explanation": "Must only contain application entries of a specified kind. component Application Entry inherit Log Entry Must only describe an voting system-level event related to election-related state changes.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+            {
+                "name": "Log Entry",
+                "base": "String"
+            },
+            {
+                "name": "Secure Log Entry",
+                "base": "Log Entry"
+            },
+            {
+                "name": "Secure Log",
+                "base": "Log"
+            },
+            {
+                "name": "Secure System Log",
+                "base": "Secure Log"
+            },
+            {
+                "name": "Secure Application Log",
+                "base": "Secure Log"
+            }
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+            {
+                "uid": 2,
+                "parentUid": 1
+            },
+            {
+                "uid": 3,
+                "parentUid": 1
+            },
+            {
+                "uid": 4,
+                "parentUid": 1
+            },
+            {
+                "uid": 5,
+                "parentUid": 1
+            },
+            {
+                "uid": 6,
+                "parentUid": 1
+            },
+            {
+                "uid": 7,
+                "parentUid": 1
+            }
+        ],
+        "_clientRelations": [
+            {
+                "client": "Log",
+                "provider": "Log Entry"
+            },
+            {
+                "client": "Secure Log",
+                "provider": "Secure Log Entry"
+            },
+            {
+                "client": "Secure Log",
+                "provider": "Log"
+            },
+            {
+                "client": "Secure Log",
+                "provider": "Crypto"
+            },
+            {
+                "client": "Secure System Log",
+                "provider": "System Entry"
+            },
+            {
+                "client": "System Entry",
+                "provider": "Crypto"
+            },
+            {
+                "client": "Secure Log Entry",
+                "provider": "Crypto"
+            },
+            {
+                "client": "Secure Application Log",
+                "provider": "Application Event"
+            }
+        ]
+    },
+    "comments": [
+    ]
+}

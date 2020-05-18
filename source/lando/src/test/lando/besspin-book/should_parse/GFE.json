@@ -1,0 +1,203 @@
+{
+    "uid": 8,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSystem",
+            "uid": 1,
+            "name": "Government Furnished Equipment",
+            "abbrevName": "GFE",
+            "explanation": "The SSITH GFE is the hardware platform upon which SSITH TA-1 performers add security. It includes six RISC-V SoCs, three operating systems, device drivers, and more.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 2,
+            "name": "RISC-V System on Chip",
+            "abbrevName": "SOC",
+            "explanation": "The SSITH SoC is one of six SoCs that contain RISC-V CPUs.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 3,
+            "name": "Piccolo CPU",
+            "abbrevName": "Bluespec-P1",
+            "explanation": "The Piccolo CPU is a RISC-V microcontroller written by Bluespec in Bluespec SystemVerilog. It is one of the six CPUs used in the GFE.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 4,
+            "name": "BESSPIN HSM",
+            "abbrevName": "HSM",
+            "explanation": "The HSM for the GFE contains sufficient crypto IP in order to accellerate GFE trusted boot.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 5,
+            "name": "AES IP",
+            "abbrevName": "AES",
+            "explanation": "An AES hardware module.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 6,
+            "name": "AES Secret Key",
+            "abbrevName": "Key",
+            "explanation": "The secret key held in an AES hardware module.",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
+            "uid": 7,
+            "name": "Information Leakage",
+            "requirements": [
+                {
+                    "id": "only_multiply_leaks",
+                    "text": "Only the mul instruction out of all the integer_ops instructions leaks timing information.",
+                    "comments": [
+                        {
+                            "text": "These are not consistent with each other, you should"
+                        },
+                        {
+                            "text": "definitely comment some of these out"
+                        },
+                        {
+                            "text": "add_leaks"
+                        },
+                        {
+                            "text": "The add instruction leaks timing information."
+                        },
+                        {
+                            "text": ""
+                        },
+                        {
+                            "text": "mul_does_not_leak"
+                        },
+                        {
+                            "text": "The mul instruction does not leak timing information."
+                        },
+                        {
+                            "text": ""
+                        },
+                        {
+                            "text": "arithmetic_leaks"
+                        },
+                        {
+                            "text": "All integer instructions leak timing information."
+                        }
+                    ]
+                },
+                {
+                    "id": "io_kill_signal_not_leaked",
+                    "text": "The io__kill signal of the MulDiv Verilog module of my chisel_p2 processor isn't leaked through an information-flow channel.",
+                    "comments": [
+                        {
+                            "text": "no_instruction_leaks"
+                        },
+                        {
+                            "text": "No instruction leaks timing information."
+                        }
+                    ]
+                },
+                {
+                    "id": "alu_input1_not_leaked",
+                    "text": "The io_in1 signal of the ALU Verilog module isn't leaked through an information-flow channel.",
+                    "comments": [
+                        {
+                            "text": "alu_input1_not_leaked_ALU_module"
+                        },
+                        {
+                            "text": "The io_in1 signal of the ALU Verilog module isn't leaked outside of the"
+                        },
+                        {
+                            "text": "certification boundary of my ALU module."
+                        },
+                        {
+                            "text": "alu_comparator_input2_not_leaked"
+                        },
+                        {
+                            "text": "The io_in2 signal of the ALU Verilog module isn't leaked through the io_cmp_out output channel."
+                        }
+                    ]
+                },
+                {
+                    "id": "alu_input2_not_leaked",
+                    "text": "The io_in2 signal of the ALU Verilog module isn't leaked through an information-flow channel.",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+            {
+                "name": "SoC",
+                "parent": "GFE"
+            },
+            {
+                "name": "Bluespec-P1",
+                "parent": "SoC"
+            },
+            {
+                "name": "HSM",
+                "parent": "Bluespec-P1"
+            }
+        ],
+        "_implicitContainsRelations": [
+            {
+                "uid": 2,
+                "parentUid": 1
+            },
+            {
+                "uid": 3,
+                "parentUid": 1
+            },
+            {
+                "uid": 4,
+                "parentUid": 1
+            },
+            {
+                "uid": 5,
+                "parentUid": 4
+            },
+            {
+                "uid": 6,
+                "parentUid": 4
+            },
+            {
+                "uid": 7,
+                "parentUid": 4
+            }
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

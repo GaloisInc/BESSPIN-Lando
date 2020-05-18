@@ -1,0 +1,44 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
+            "uid": 1,
+            "name": "BEHAVIORAL_REQUIREMENTS",
+            "requirements": [
+                {
+                    "id": "TEST_QR_CODE",
+                    "text": "The voting system must include the ability to verify that any encoded version or images of voter selections on a ballot are created correctly.\"",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "VERIFY_ACTIVATION",
+                    "text": "Scanners and ballot marking devices must include a means of verifying that they have been correctly activated and are functioning properly.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "ENTER_VOTING_MODE",
+                    "text": "Scanners and ballot marking devices must provide designated functions for entering voting mode.",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

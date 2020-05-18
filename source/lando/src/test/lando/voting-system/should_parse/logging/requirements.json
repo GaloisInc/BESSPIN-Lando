@@ -1,0 +1,98 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
+            "uid": 1,
+            "name": "Logging",
+            "requirements": [
+                {
+                    "id": "all_hardware_events_logged",
+                    "text": "Every hardware event that triggers a state change is logged to the system secure log.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "voting_events_logged",
+                    "text": "Every voting system event that triggers a state change is logged to the application secure log.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "secure_log_integrity",
+                    "text": "Every secure log must have cryptographic integrity in order to guarantee that undetectable tampering is impossible.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "secure_log_provenance",
+                    "text": "Every secure log must have cryptographic provenance in order to guarantee that the only principle that could have initialized that secure log is the measured (via secure boot) running system.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "secure_log_count",
+                    "text": "Multiple, concurrent secure logs on the same device must be supported.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "secure_logs_on_boot",
+                    "text": "On system boot or reset, secure logs cryptographic properties must be checked prior to any use.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "secure_log_crypto_assurance_dependencies",
+                    "text": "All cryptographic operations used by secure logging must have formal assurance available, or assumptions stated, for correctness and information leakage.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "secure_log_crypto_hardware",
+                    "text": "If a cryptographic operation is available in hardware, it must be used.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "secure_log_crypto_keys",
+                    "text": "If a cryptographic key is ever accessible via software, its information leakage specification must be formally stated for secure CPU designers to understand and protect.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "secure_log_AES_reuse",
+                    "text": "If we use AES for both encryption (e.g., of voter choices) and HMAC (e.g., for provenance), we must use two different keys.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "all_log_entries_are_timestamped",
+                    "text": "Every log entry is prefixed by a timestamp.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "secure_log_security_properties",
+                    "text": "All SBB secure logs must be hashchained using SHA2-256 and authenticated using AES-CBC.",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}
