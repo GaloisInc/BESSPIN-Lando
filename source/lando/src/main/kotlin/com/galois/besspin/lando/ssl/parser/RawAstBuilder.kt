@@ -290,9 +290,14 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
     }
 
 
-//  comment      : COMMENTSTART COMMENT? ;
-    private fun toAst(commentCxt: SSLParser.CommentContext?): RawComment? =
-        if (commentCxt != null) RawComment(commentCxt.COMMENT()?.let { toAst(it) } ?: "") else null
+//  comment      : COMMENT ;
+    private fun toAst(commentCxt: SSLParser.CommentContext?): RawComment? {
+        if (commentCxt != null) {
+            return RawComment(toAst(commentCxt.COMMENT()).removePrefix("//").trimStart())
+        } else {
+            return null
+        }
+    }
 
 //  comments     : comment (lineseps comment)* ;
 //  lineComments : comments lineseps ;

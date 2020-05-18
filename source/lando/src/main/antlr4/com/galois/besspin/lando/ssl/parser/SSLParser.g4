@@ -102,10 +102,10 @@ indexEntry        : name INDEXSEP indexValueList ;
 
 indexValueList    : indexValuePart (lineseps indexValuePart)* ;
 
-indexValuePart    : name comment? ;
+indexValuePart    : name lineseps? comment? ;
 
 
-comment      : COMMENTSTART COMMENT? ;
+comment      : COMMENT ;
 
 comments     : comment (lineseps comment)* ;
 

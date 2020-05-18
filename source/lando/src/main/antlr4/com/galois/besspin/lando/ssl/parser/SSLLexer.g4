@@ -54,7 +54,8 @@ lexer grammar SSLLexer;
             case MODE_INDEXING:
                 return getText().matches("[^:]+");
             default:
-                return false;
+                //better to throw a parse error than a lexical error
+                return true;
         }
     }
 }
@@ -98,10 +99,12 @@ fragment F_CONSTRAINTTERM   : '.' ;
 fragment F_QUERYTERM        : '?' ;
 fragment F_LINECOMMENTSTART : '//' ;
 
+fragment F_LINECOMMENT      : F_LINECOMMENTSTART F_NONLINESEP* ;
+
 
 //Top-level (default) lexer - mode 0
 
-COMMENTSTART : F_LINECOMMENTSTART -> pushMode(MODE_COMMENT) ;
+COMMENT      : F_LINECOMMENT ;
 
 WS           : F_WHITESPACES -> skip ;
 
@@ -132,9 +135,9 @@ NON_KEYWORD  : F_GEN_WORD { isWordInTopMode() }? -> type(WORD), popMode ;
 //Name-phrase lexing
 mode MODE_NAMEPHRASE;
 
-NP_COMMENTSTART     : F_LINECOMMENTSTART -> type(COMMENTSTART), popMode, pushMode(MODE_COMMENT) ;
+NP_COMMENTSTART     : F_LINECOMMENT -> type(COMMENT) ;
 
-NP_LINESEP          : F_LINESEP          -> type(LINESEP),      popMode ;
+NP_LINESEP          : F_LINESEP -> type(LINESEP), popMode ;
 
 NP_NAMEPHRASE_WORD  : F_NAME_WORD   -> type(WORD) ;
 NP_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
@@ -142,9 +145,9 @@ NP_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
 //Name-phrase lexing with relation keywords and abbreviations
 mode MODE_NAMEPHRASEREL;
 
-NPR_COMMENTSTART     : F_LINECOMMENTSTART -> type(COMMENTSTART), popMode, pushMode(MODE_COMMENT) ;
+NPR_COMMENTSTART     : F_LINECOMMENT -> type(COMMENT) ;
 
-NPR_LINESEP          : F_LINESEP          -> type(LINESEP),      popMode ;
+NPR_LINESEP          : F_LINESEP -> type(LINESEP), popMode ;
 
 RELKEYWORD           : F_RELKEYWORD ;
 
@@ -158,7 +161,7 @@ NPR_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
 //Paragraphs, terminated by empty lines
 mode MODE_PARAGRAPH;
 
-PAR_COMMENTSTART : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
+PAR_COMMENTSTART : F_LINECOMMENT -> type(COMMENT) ;
 
 PAR_LINESEP    : F_LINESEP   -> type(LINESEP) ;
 
@@ -180,9 +183,9 @@ PAR_SPACE      : F_WHITESPACES -> type(SPACE) ;
 //(similar to MODE_NAMEPHRASE)
 mode MODE_IDENT_LINE ;
 
-IL_COMMENTSTART     : F_LINECOMMENTSTART -> type(COMMENTSTART), popMode, pushMode(MODE_SINGLE_SENTENCE), pushMode(MODE_COMMENT) ;
+IL_COMMENTSTART     : F_LINECOMMENT -> type(COMMENT) ;
 
-IL_LINESEP          : F_LINESEP          -> type(LINESEP),      popMode, pushMode(MODE_SINGLE_SENTENCE) ;
+IL_LINESEP          : F_LINESEP -> type(LINESEP), popMode, pushMode(MODE_SINGLE_SENTENCE) ;
 
 IL_NAMEPHRASE_WORD  : F_NAME_WORD   -> type(WORD) ;
 IL_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
@@ -196,7 +199,7 @@ IL_NAMEPHRASE_SPACE : F_WHITESPACES -> type(SPACE) ;
 //         entry, if there is one that does not start with a keyword.
 mode MODE_SINGLE_SENTENCE ;
 
-SS_COMMENTSTART   : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
+SS_COMMENTSTART   : F_LINECOMMENT -> type(COMMENT) ;
 
 SS_LINESEP        : F_LINESEP        -> type(LINESEP) ;
 
@@ -213,7 +216,7 @@ SS_SPACE          : F_WHITESPACES -> type(SPACE) ;
 //Indexing (similar to MODE_PARAGRAPH)
 mode MODE_INDEXING ;
 
-IND_COMMENTSTART : F_LINECOMMENTSTART -> type(COMMENTSTART), pushMode(MODE_COMMENT) ;
+IND_COMMENTSTART : F_LINECOMMENT -> type(COMMENT) ;
 
 IND_LINESEP      : F_LINESEP   -> type(LINESEP) ;
 
@@ -223,10 +226,3 @@ INDEXSEP         : F_DICTSEP ;
 
 IND_WORD         : F_INDEX_WORD  -> type(WORD) ;
 IND_SPACE        : F_WHITESPACES -> type(SPACE) ;
-
-
-mode MODE_COMMENT ;
-
-CMT_LINESEP : F_LINESEP -> type(LINESEP), popMode ;
-
-COMMENT     : F_NONLINESEP+ ;
