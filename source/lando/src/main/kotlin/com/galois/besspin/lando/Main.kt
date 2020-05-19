@@ -27,6 +27,7 @@ class Convert : CliktCommand(
     val format by option("-t", "--to").choice("json").required()
     val source by argument("SOURCE").file(exists = true)
     val dest   by argument("DEST").file()
+    val silent by option("-s", "--silent").flag()
     val debug  by option("-d", "--debug").flag()
 
     override fun run() {
@@ -46,7 +47,14 @@ class Convert : CliktCommand(
             writer.print(str)
             writer.close()
         } catch (ex: Exception) {
-            println("Unable to convert  file to JSON. " + ex.message)
+            if (!silent) {
+                println("Unable to convert  file to JSON. " + ex.message)
+            } else {
+                val destErrors = File(dest.parent, "${dest.nameWithoutExtension}.errors")
+                val writer = PrintWriter(destErrors)
+                writer.print(ex.message)
+                writer.close()
+            }
             System.exit(1)
         }
     }
@@ -57,6 +65,7 @@ class Validate : CliktCommand(
     help = "Read a lando SOURCE and check whether it is syntactically valid"
 ) {
     val source by argument("SOURCE").file(exists = true)
+    val silent by option("-s", "--silent").flag()
     val debug  by option("-d", "--debug").flag()
 
     override fun run() {
@@ -64,7 +73,9 @@ class Validate : CliktCommand(
             val (_, warnings) = parseFile(source, debug)
             if (warnings.isNotEmpty()) println(warnings)
         } catch (ex: Exception) {
-            println("$source appears to have syntax errors. " + ex.message)
+            if (!silent) {
+                println("$source appears to have syntax errors. " + ex.message)
+            }
             System.exit(1)
         }
 
