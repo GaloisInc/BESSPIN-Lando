@@ -1,0 +1,50 @@
+subsystem FETT P1
+The P1 Target System Software.
+
+component P1 Target CVEs
+The CVEs exposed by the FETT P1 system.
+
+component P1 Target Forensics
+Target state that can be inspected by the FETT Runner. In this case, this is be
+any in-memory logs, processor state, etc. The Researcher should not have access to
+any of this state.
+
+component FreeRTOS Kernel
+The (abstract) kernel that will be booted on the P1 processor.
+
+component HTTPS Configuration extends Base FreeRTOS Kernel
+The FreeRTOS configuration that includes HTTPS functionality.
+
+  Start the HTTPS service! // Can be boot
+  Stop the HTTPS service!  // Can be HALT
+  What is the IP Address of the HTTPS service?
+  On what ports is the HTTPS service listening?
+  Execute HTTPS Method!
+  HTTPS Query?
+
+// @note abakst
+// The following may need to be refined with additional details
+// e.g. MQTT/AWS information once we know precisely how this
+// will be implemented. From the point of view of the Target
+// system, however, abstracting these details is probably OK.
+
+component OTA Configuration extends Base FreeRTOS Kernel
+The FreeRTOS configuration that includes OTA functionality.
+
+  What is the IP Address of the OTA service?
+  Start the OTA service! // Can be boot
+  Stop the OTA service!  // Can be HALT
+  Accept update data!
+
+component P1 Target Applications
+The supported applications (FreeRTOS builds) on the P1 Target System.
+
+relation P1 Target Applications contains HTTPS Configuration
+relation P1 Target Applications contains OTA Configuration
+
+requirements Target System
+
+Base CVEs Exposed
+For each CVE in the P1 Target CVE list, there is a member of P1 Target
+Applications that is configured according to the publicly available CVE details
+to contain the vulnerability.

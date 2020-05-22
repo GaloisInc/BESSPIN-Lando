@@ -1,0 +1,3 @@
+Parser Failed due to the following errors:
+Line: 6, Column: 11. extraneous input '"' expecting {<EOF>, LINESEP}
+Line: 8, Column: 0. extraneous input 'VERIFY_ACTIVATION\nScanners and ballot marking devices must include a means of verifying\nthat they have been correctly activated and are functioning properly.' expecting {<EOF>, LINESEP, SYSTEM, SUBSYSTEM, COMPONENT, EVENTS, SCENARIOS, REQUIREMENTS, RELATION, COMMENT}

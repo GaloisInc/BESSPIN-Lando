@@ -1,0 +1,29 @@
+requirements OpenSSH server 7.3 configuration 
+
+Open_ssh_dependencies
+OpenSSH has dependencies on zlib and OpenSSL (or another SSL library), 
+and optionally libfido2.
+
+zlib is a software library used for data compression.
+
+libfido2 provides library functionality and command-line tools 
+to communicate with a FIDO device over USB, and to verify 
+attestation and assertion signatures.
+
+Open_sshd_config
+OpenSSH server requires an default configured sshd_config file. 
+
+Open_ssh_keygen
+The install also provides authentication keys by 
+standard mechanism ssh-keygen.
+
+Open_sshd_check_config
+The sshd_config file specifies the locations of one or more 
+host key files (mandatory) and the location of authorized_keys 
+files for users. The config should be checked with the following 
+command: sshd -t -f /path/to/sshd_config.
+
+Open_sshd_access_service
+Create a user-password pair per researcher (team) for logging purpose. 
+No additional authentication mechanism is required because each 
+researcher will have their own target. 

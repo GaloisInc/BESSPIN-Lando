@@ -1,0 +1,20 @@
+requirements database SQLite
+
+Sqlite_installation_versions
+For the CVE/CWE tests purpose only, provide installation 
+and set-up of the SQLite database version 3.22.0.
+
+Sqlite_error_log
+Set up a process-wide error log.
+
+Sqlite_db_connection
+Configure and provide limit for individual database connections
+
+Sqlite_access_and_permission
+Provide access to corresponding users in order 
+to be able to execute the sqlite binary.
+
+Sqlite_fts3_virtual_table
+Provide fts3 for sqite3 version < SQLite 3.25.3.
+
+

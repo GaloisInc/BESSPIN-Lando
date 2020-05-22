@@ -1,0 +1,4 @@
+system A
+
+indexing
+  this: should really give a warning.

@@ -1,0 +1,38 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawEvents",
+            "uid": 1,
+            "name": "A",
+            "events": [
+                {
+                    "id": "a keywordless event name",
+                    "text": "An event body.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "systemitize",
+                    "text": "Uh oh, now we're in the explanation of a system named itize!",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

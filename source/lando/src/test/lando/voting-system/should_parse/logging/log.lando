@@ -1,0 +1,63 @@
+subsystem Logging
+A subsystem that supports the persistent logging of structured
+information.
+
+// @note kiniry A static architecture is described via three core
+// relations: containment, subtyping, and client.  Note that subtyping
+// is specified using the `inherit` keyword below. Containment is
+// specified structurally using syntactic nesting.  And
+// client-supplier dependencies is specified using the `client`
+// keyword.
+
+component Log Entry inherit String // Refine to JSONValue or CSVValue?
+  A structured set of linear data that is to be written to a log.
+  Are these two log entries equal?
+  Is this log entry verifiable wrt its well-formeded properties?
+
+component Secure Log Entry inherit Log Entry
+  Is this secure log entry verifiable wrt its security properties?
+
+component Log
+  A log is an (often persistent) sequence of events recorded about a
+  given system.
+  Create an empty log!
+  What kind of entries can this log contain?
+  Write this entry to the log!
+  Export this log to the following target!
+  Import this log!
+  Is this log valid wrt its well-formedness properties?
+
+component Secure Log inherit Log
+  A secure log is a log that has evidence that specific security properties hold.
+  What kind of data integrity does this log have?
+  What kind of provenance does this log have?
+  What kind of confidentiality does this log have?
+  What kind of authentication and access control does this log have?
+  What non-repudiation properties does this log have?
+  May I have a log created conforming to the following security properties?
+  Is this secure log verifiable wrt its security properties?
+  Must stipulate what kinds of events are permitted in the log.
+
+component Secure System Log inherit Secure Log
+  Must contain only system events.
+component System Entry inherit Log Entry
+  Must only describe a system-level event related to hardware state changes.
+
+component Secure Application Log inherit Secure Log
+  Must only contain application entries of a specified kind.
+component Application Entry inherit Log Entry
+  Must only describe an voting system-level event related to
+  election-related state changes.
+
+// Here are the client relationships for this subsystem.  Note that
+// client relationships can be between components or subsystems.
+
+relation Log client Log Entry
+relation Secure Log client Secure Log Entry
+relation Secure Log client Log
+relation Secure Log client Crypto
+relation Secure System Log client System Entry
+relation System Entry client Crypto
+relation Secure Log Entry client Crypto
+relation Secure Application Log client Application Event
+

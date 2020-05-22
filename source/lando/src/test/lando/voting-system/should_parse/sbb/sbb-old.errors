@@ -1,0 +1,22 @@
+Parser Failed due to the following errors:
+Line: 13, Column: 87. token recognition error at: '\n  I'
+Line: 14, Column: 3. extraneous input 's this barcode valid?' expecting {<EOF>, LINESEP}
+Line: 18, Column: 27. token recognition error at: '\n  I'
+Line: 19, Column: 24. token recognition error at: '\n  W'
+Line: 19, Column: 3. mismatched input 's this barcode valid?' expecting {<EOF>, LINESEP}
+Line: 24, Column: 14. token recognition error at: '<'
+Line: 24, Column: 15. token recognition error at: '-'
+Line: 25, Column: 18. token recognition error at: '<'
+Line: 25, Column: 19. token recognition error at: '-'
+Line: 25, Column: 32. token recognition error at: '\n  A'
+Line: 55, Column: 35. token recognition error at: '\n  T'
+Line: 56, Column: 36. token recognition error at: '\n  S'
+Line: 61, Column: 29. token recognition error at: '\n  I'
+Line: 62, Column: 30. token recognition error at: '\n  I'
+Line: 63, Column: 30. token recognition error at: '\n  I'
+Line: 68, Column: 33. token recognition error at: '\n  T'
+Line: 69, Column: 34. token recognition error at: '\n  T'
+Line: 70, Column: 32. token recognition error at: '\n  T'
+Line: 75, Column: 18. token recognition error at: '\n  B'
+Line: 76, Column: 18. token recognition error at: '\n  D'
+Line: 77, Column: 41. token recognition error at: '\n  W'

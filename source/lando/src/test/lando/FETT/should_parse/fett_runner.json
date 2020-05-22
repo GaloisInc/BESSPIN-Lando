@@ -1,0 +1,137 @@
+{
+    "uid": 4,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 1,
+            "name": "FETT Runner",
+            "abbrevName": null,
+            "explanation": "The system used to bring up a target software stack (P1 or P2 + App).",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 2,
+            "name": "Linux Host",
+            "abbrevName": null,
+            "explanation": "The host Linux system. This system is connected to the FPGA, which itself contains the CloudGFE.",
+            "parts": [
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawConstraint",
+                    "text": "Linux Host must support CloudGFE and BESSPIN Tool Suite.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                    "text": "Where is the CloudGFE?",
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawConstraint",
+                    "text": "The Linux host is not accessible via a direct channel.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawConstraint",
+                    "text": "The Linux host is used exclusively to manage CloudGFE instances.",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 3,
+            "name": "FETT Runner Tool",
+            "abbrevName": null,
+            "explanation": "The tool used to execute commands on CloudGFE and the Target software stack.",
+            "parts": [
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                    "text": "What is the status of this CloudGFE instance?",
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                    "text": "What is the current Target's forensic data?",
+                    "comments": [
+                        {
+                            "text": "The definition of this depends on the platform"
+                        }
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                    "text": "Start Application in P1 Target Applications!",
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                    "text": "Start Application in P2 Target Applications!",
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                    "text": "Stop target application stack!",
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                    "text": "What is the state of the Target?",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+            {
+                "uid": 2,
+                "parentUid": 1
+            },
+            {
+                "uid": 3,
+                "parentUid": 1
+            }
+        ],
+        "_clientRelations": [
+            {
+                "client": "Linux Host",
+                "provider": "CloudGFE"
+            },
+            {
+                "client": "FETT Runner Tool",
+                "provider": "CloudGFE"
+            },
+            {
+                "client": "FETT Runner Tool",
+                "provider": "FETT P1"
+            },
+            {
+                "client": "FETT Runner Tool",
+                "provider": "FETT P2"
+            }
+        ]
+    },
+    "comments": [
+    ]
+}

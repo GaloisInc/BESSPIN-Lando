@@ -1,0 +1,7 @@
+Parser Failed due to the following errors:
+Line: 11, Column: 0. token recognition error at: '@'
+Line: 41, Column: 0. token recognition error at: '@'
+Line: 51, Column: 54. token recognition error at: '\n    W'
+Line: 52, Column: 51. token recognition error at: '\n    W'
+Line: 52, Column: 5. mismatched input 'hat is the decryption of my challenged ballot?' expecting {<EOF>, LINESEP}
+Line: 53, Column: 45. token recognition error at: '\n    W'

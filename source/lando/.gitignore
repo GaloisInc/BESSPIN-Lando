@@ -28,4 +28,5 @@ target/
 *.iml
 
 #Ignore antlr4 generated stuff
+*.tokens
 gen/

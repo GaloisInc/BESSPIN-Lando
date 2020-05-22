@@ -1,0 +1,6 @@
+Parser Failed due to the following errors:
+Line: 2, Column: 0. token recognition error at: '\nT'
+Line: 62, Column: 0. token recognition error at: '/'
+Line: 62, Column: 1. token recognition error at: '/'
+Line: 67, Column: 0. token recognition error at: '\ns'
+Line: 13, Column: 0. no viable alternative at input '// @design kiniry The security of the SBB is focused on the system and\n// application logs and their security properties.\n\nindexing'

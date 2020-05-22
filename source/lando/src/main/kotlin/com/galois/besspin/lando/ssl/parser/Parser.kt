@@ -18,6 +18,7 @@ data class SyntaxError(
 private class CollectingErrorListener : BaseErrorListener() {
 
     var errors: MutableList<SyntaxError> = arrayListOf()
+    var warnings: MutableList<SyntaxError> = arrayListOf()
 
     @Throws(ParseCancellationException::class)
     override fun syntaxError(
@@ -28,13 +29,27 @@ private class CollectingErrorListener : BaseErrorListener() {
         msg: String?,
         e: RecognitionException?
     ) {
-        errors.add(SyntaxError(offendingSymbol, line, charPositionInLine, msg ?: ""))
+        if (msg?.startsWith(SSLParser.warningPrefix) == true)
+            warnings.add(SyntaxError(offendingSymbol, line, charPositionInLine,
+                         msg.removePrefix(SSLParser.warningPrefix)))
+        else
+            errors.add(SyntaxError(offendingSymbol, line, charPositionInLine, msg ?: ""))
     }
 
     fun formatErrors(): String = errors.map { e -> e.formatError() }.joinToString(separator = "\n")
+
+    fun formatWarnings() : String {
+        if (warnings.size != 0)
+            return "Generated ${warnings.size} warning(s):\n" +
+                    warnings.map { e -> e.formatError() }.joinToString(separator="\n")
+        else
+            return ""
+    }
+
+
 }
 
-fun parseStream(stream: CharStream, debugLexer: Boolean = false): RawSSL {
+fun parseStream(stream: CharStream, debugLexer: Boolean = false): Pair<RawSSL,String> {
     val errorListener = CollectingErrorListener()
 
     val lexer = SSLLexer(stream)
@@ -53,12 +68,12 @@ fun parseStream(stream: CharStream, debugLexer: Boolean = false): RawSSL {
     if(errorListener.errors.size != 0) {
         throw IllegalStateException("Parser Failed due to the following errors:\n${errorListener.formatErrors()}\n")
     } else {
-        return RawAstBuilder(landoSource).build()
+        return Pair(RawAstBuilder(landoSource).build(), errorListener.formatWarnings())
     }
 }
 
-fun parseFile(file: File, debugLexer: Boolean = false): RawSSL =
+fun parseFile(file: File, debugLexer: Boolean = false): Pair<RawSSL,String> =
         parseStream(CharStreams.fromPath(file.toPath()), debugLexer)
 
-fun parseText(text: String, debugLexer: Boolean = false): RawSSL =
+fun parseText(text: String, debugLexer: Boolean = false): Pair<RawSSL,String> =
         parseStream(CharStreams.fromString(text), debugLexer)

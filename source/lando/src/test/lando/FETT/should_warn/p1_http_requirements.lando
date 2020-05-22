@@ -1,0 +1,25 @@
+requirements HTTP
+
+// Build Requirements
+filesystem
+HTTP requires a persistent filesystem on target from which web content can be read and served to a client
+Note: filesystem is shared with OTA application
+
+http_service
+OTA will listen for clients using HTTP protocol and must support the following
+HTTP request types: GET
+// More request types here? What is necessary and sufficient for FETT?
+
+network
+HTTP requires TCP/IP network protocol plus all underlying protocols and drivers
+
+// Resources
+
+// Configuration - config items that might need to be configured or changed per instance,
+// and are shared with the bastion host - i.e. HTTP port number needs to be known by both
+// the target and the host. Additional items are TBD
+http_config
+HTTP port number
+
+filesystem_config
+Name of root filesystem

@@ -1,0 +1,43 @@
+events Logging
+
+// Log
+
+Create_log
+Create a new, empty log.
+
+Write_log_entry
+Write a new log entry E to a log L.
+
+Validate_log
+Check whether or not log L is well-formed.
+
+Export_log
+Export log L to device D.
+
+Import_log
+Import log L from device D.
+
+// Secure Log
+
+system_log_init
+Initialize a secure system log.
+
+application_log_init
+Initialize a secure application log.
+
+log_system_event_to_system_log
+Log event E to the secure system log.
+
+log_application_event_to_application_log
+Log the event E to the secure application log.
+
+import_log_from_device
+Import secure log L from device D.
+
+validate_log
+Validate that secure log L is well-formed wrt structural correctness
+properties in its configuration.
+
+verify_log
+Verify that secure log L is secure wrt the security properties in its
+configuration.

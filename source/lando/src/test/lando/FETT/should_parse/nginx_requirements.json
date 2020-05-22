@@ -1,0 +1,77 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
+            "uid": 1,
+            "name": "Nginx webserver",
+            "requirements": [
+                {
+                    "id": "ssl support",
+                    "text": "Nginx must be compiled with ssl support.",
+                    "comments": [
+                        {
+                            "text": "Build Requirements"
+                        }
+                    ]
+                },
+                {
+                    "id": "http2 support",
+                    "text": "Nginx must be compiled with http2 support.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "ssl certificate",
+                    "text": "The Nginx installation and configuration must include a valid SSL certificate.",
+                    "comments": [
+                        {
+                            "text": "Resources"
+                        }
+                    ]
+                },
+                {
+                    "id": "hidden resources",
+                    "text": "The Nginx app should include some resources that are intended to be 'private'; ie protected by some nginx security mechanism.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "http2 configuration",
+                    "text": "Nginx must be configured to listen for http2 requests (listen http2).",
+                    "comments": [
+                        {
+                            "text": "Configuration"
+                        }
+                    ]
+                },
+                {
+                    "id": "error_page redirect",
+                    "text": "CVE-2019-20372 requires a server configuration with an error_page redirect.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "hidden resources configuration",
+                    "text": "Nginx must be configured to run a separate 'server' (in its config file) that protects a named resource; this can serve as a target for error_page smuggling.",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

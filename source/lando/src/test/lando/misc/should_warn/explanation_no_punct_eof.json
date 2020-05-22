@@ -1,0 +1,39 @@
+{
+    "uid": 3,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSystem",
+            "uid": 1,
+            "name": "A",
+            "abbrevName": null,
+            "explanation": "An explanation with punctuation.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSystem",
+            "uid": 2,
+            "name": "B",
+            "abbrevName": null,
+            "explanation": "An explanation without punctuation, followed by EOF",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

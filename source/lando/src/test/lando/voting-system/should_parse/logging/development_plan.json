@@ -1,0 +1,103 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 1,
+            "name": "Logging",
+            "abbrevName": null,
+            "explanation": "Persistent logs and their security properties.",
+            "indexing": [
+                {
+                    "key": "owner",
+                    "values": [
+                        "Dragan Stosic <dragan.stosic@freeandfair.us>"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "contributors",
+                    "values": [
+                        "Rod Chapman <rod.chapman@freeandfair.us>",
+                        "Dan Zimmerman <dmz@freeandfair.us>",
+                        "Joe Kiniry <kiniry@freeandfair.us>"
+                    ],
+                    "comments": [
+                        {
+                            "text": "effort estimates for design, implementation, and assurance work"
+                        }
+                    ]
+                },
+                {
+                    "key": "design",
+                    "values": [
+                        "1 week"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "implementation",
+                    "values": [
+                        "1 week"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "assurance",
+                    "values": [
+                        "1 week"
+                    ],
+                    "comments": [
+                        {
+                            "text": "complexity estimates (low, medium, high)"
+                        }
+                    ]
+                },
+                {
+                    "key": "complexity",
+                    "values": [
+                        "medium"
+                    ],
+                    "comments": [
+                        {
+                            "text": "risk levels (low, medium, high)"
+                        }
+                    ]
+                },
+                {
+                    "key": "risk level",
+                    "values": [
+                        "medium"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "mandatory dependencies",
+                    "values": [
+                        "crypto"
+                    ],
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

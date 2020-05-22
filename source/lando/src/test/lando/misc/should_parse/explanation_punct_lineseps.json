@@ -1,0 +1,39 @@
+{
+    "uid": 3,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSystem",
+            "uid": 1,
+            "name": "Ok",
+            "abbrevName": null,
+            "explanation": "An explanation with a sentence. And another sentence.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSystem",
+            "uid": 2,
+            "name": "Fails",
+            "abbrevName": null,
+            "explanation": "An explanation with a sentence. And another sentence.",
+            "indexing": [
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

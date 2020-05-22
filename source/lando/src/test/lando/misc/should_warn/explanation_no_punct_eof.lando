@@ -1,0 +1,5 @@
+system A
+An explanation with punctuation.
+
+system B
+An explanation without punctuation, followed by EOF

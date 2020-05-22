@@ -1,0 +1,104 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawEvents",
+            "uid": 1,
+            "name": "Logging",
+            "events": [
+                {
+                    "id": "Create_log",
+                    "text": "Create a new, empty log.",
+                    "comments": [
+                        {
+                            "text": "Log"
+                        }
+                    ]
+                },
+                {
+                    "id": "Write_log_entry",
+                    "text": "Write a new log entry E to a log L.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "Validate_log",
+                    "text": "Check whether or not log L is well-formed.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "Export_log",
+                    "text": "Export log L to device D.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "Import_log",
+                    "text": "Import log L from device D.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "system_log_init",
+                    "text": "Initialize a secure system log.",
+                    "comments": [
+                        {
+                            "text": "Secure Log"
+                        }
+                    ]
+                },
+                {
+                    "id": "application_log_init",
+                    "text": "Initialize a secure application log.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "log_system_event_to_system_log",
+                    "text": "Log event E to the secure system log.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "log_application_event_to_application_log",
+                    "text": "Log the event E to the secure application log.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "import_log_from_device",
+                    "text": "Import secure log L from device D.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "validate_log",
+                    "text": "Validate that secure log L is well-formed wrt structural correctness properties in its configuration.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "verify_log",
+                    "text": "Verify that secure log L is secure wrt the security properties in its configuration.",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}
