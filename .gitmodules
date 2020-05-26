@@ -1,3 +1,6 @@
 [submodule "BONc"]
 	path = BONc
 	url = https://github.com/FreeAndFair/BONc
+[submodule "lando-core/deps/what4"]
+	path = lando-core/deps/what4
+	url = git@github.com:/GaloisInc/what4

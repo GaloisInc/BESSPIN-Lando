@@ -1,0 +1,25 @@
+riscv : kind
+  with reg_width : { RV32, RV64 },
+       exts : subset { M, A, F, D, C },
+  where D in exts => F in exts.
+
+riscv_with_m : kind of riscv
+  where M in exts.
+
+minimal_riscv : kind of riscv
+  where exts = { M }.
+
+minimal_riscv_32 : minimal_riscv
+  where reg_width = RV32.
+
+// ERROR -- more than one instance
+bad_riscv_1 : riscv
+  where reg_width = RV32.
+
+// WARNING -- no instances
+bad_riscv_2 : kind of riscv
+  where exts = { D }.
+
+// ERROR -- violates constraint "D in exts => F in exts"
+bad_riscv_3 : riscv
+  where exts = { D }.

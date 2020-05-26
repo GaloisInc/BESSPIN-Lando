@@ -1,0 +1,7 @@
+person : kind
+  with: age  : integer,
+        sex  : { Male, Female }
+  where: age >= 0.
+
+old_person is a person
+  where: age >= 80.
