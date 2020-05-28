@@ -47,7 +47,7 @@ data Kind tps = Kind { kindName :: String
                      }
   deriving Show
 
--- | Concrete instance of a kind.
+-- | Concrete instance of a 'Kind'.
 data Instance tps = Instance { instanceKind :: Kind tps
                              , instanceValues :: List FieldValue tps
                              }
@@ -123,6 +123,7 @@ data Expr (ktps :: [(Symbol, FieldType)]) tp where
 
 deriving instance Show (Expr ktps tp)
 
+-- | Evaluate an expression given an assignment of fields to values.
 evalExpr :: List FieldValue ktps -> Expr ktps tp -> Literal tp
 evalExpr vs (FieldExpr _ ix) = let FieldValue _ l = vs !! ix
                                in l
@@ -140,6 +141,15 @@ evalExpr vs (ImpliesExpr e1 e2) = let BoolLit b1 = evalExpr vs e1
 -- | Add constraints to an existing 'Kind'.
 constrainKind :: [Expr ktps BoolType] -> Kind ktps -> Kind ktps
 constrainKind constraints k = k { kindConstraints = kindConstraints k ++ constraints}
+
+
+
+
+
+
+--------------
+-- EXAMPLES --
+--------------
 
 reg_width = Field { fieldName = knownSymbol @"reg_width"
                   , fieldType = reg_width_type
@@ -180,8 +190,10 @@ riscv = Kind { kindName = "riscv"
         has_f = MemberExpr (LiteralExpr f) (FieldExpr (knownSymbol @"exts") index1)
         has_d_implies_has_f = ImpliesExpr has_d has_f
 
+-- Returns a Right
 my_riscv = validateInstance riscv (rv32_val :< ma :< Nil)
   where ma = FieldValue exts (SetLit [m_lit, a_lit])
 
+-- Returns a Left
 my_bad_riscv = validateInstance riscv (rv64_val :< md :< Nil)
   where md = FieldValue exts (SetLit [m_lit, d_lit])
