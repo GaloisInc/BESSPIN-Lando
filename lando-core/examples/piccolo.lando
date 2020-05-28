@@ -1,0 +1,5 @@
+piccolo_build : kind
+  with riscv : riscv
+       sim : { Bluesim, IVerilog, Verilator }
+       debug : bool
+       tandem verif : bool
