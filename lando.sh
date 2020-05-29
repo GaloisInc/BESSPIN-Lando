@@ -92,7 +92,7 @@ then
     filename_no_ext="${filename%.*}"
     filename_out="${filename_no_ext}.json"
   fi
-  cmd2_suffix="convert --to json ${filename} ${filename_out}.json"
+  cmd2_suffix="convert --to json ${filename} ${filename_out}"
   cmd2="${cmd_prefix} ${cmd2_suffix} ${opt_flags}"
 fi
 

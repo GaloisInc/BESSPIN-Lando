@@ -41,22 +41,32 @@ class Convert : CliktCommand(
         try {
             val (ssl, warnings) = parseFile(source, debug)
             val str = ssl.toJSON()
-            if (warnings.isNotEmpty()) { println(warnings) }
 
-            val writer = PrintWriter(dest)
-            writer.print(str)
-            writer.close()
+            printToFile(dest, str)
+
+            if (warnings.isNotEmpty()) {
+                if (!silent) {
+                    println(warnings)
+                } else {
+                    val destWarns = File(dest.parent, "${dest.nameWithoutExtension}.warnings")
+                    printToFile(destWarns, warnings)
+                }
+            }
         } catch (ex: Exception) {
             if (!silent) {
                 println("Unable to convert  file to JSON. " + ex.message)
             } else {
                 val destErrors = File(dest.parent, "${dest.nameWithoutExtension}.errors")
-                val writer = PrintWriter(destErrors)
-                writer.print(ex.message)
-                writer.close()
+                printToFile(destErrors, ex.message)
             }
             System.exit(1)
         }
+    }
+
+    fun printToFile(dest: File, str: String?) {
+        val writer = PrintWriter(dest)
+        writer.print(str)
+        writer.close()
     }
 }
 
@@ -71,7 +81,9 @@ class Validate : CliktCommand(
     override fun run() {
         try {
             val (_, warnings) = parseFile(source, debug)
-            if (warnings.isNotEmpty()) println(warnings)
+            if (warnings.isNotEmpty() && !silent) {
+                println(warnings)
+            }
         } catch (ex: Exception) {
             if (!silent) {
                 println("$source appears to have syntax errors. " + ex.message)
