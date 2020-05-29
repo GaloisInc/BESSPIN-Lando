@@ -1,6 +1,10 @@
 #!/bin/bash
 
-cmd_prefix="java -jar source/lando/target/lando-1.0-SNAPSHOT-jar-with-dependencies.jar"
+# This script must be located in the top level of the lando repo
+LANDO_DIR=$(dirname $0)
+SSL_DIR="${LANDO_DIR}/source/lando"
+
+cmd_prefix="java -jar ${SSL_DIR}/target/lando-1.0-SNAPSHOT-jar-with-dependencies.jar"
 
 usage="Usage: lando.sh [-f FILE] [OPTION]
   Parses a given lando file and converts it to JSON. Options:
@@ -67,13 +71,13 @@ cmd1=":"
 
 if [[ "$do_rebuild" = true && "$do_test" = true ]]
 then
-  cmd1="mvn package -f source/lando/pom.xml"
+  cmd1="mvn package -f ${SSL_DIR}/pom.xml"
 elif [[ "$do_rebuild" = true && "$do_test" = false ]]
 then
-  cmd1="mvn -Dmaven.test.skip=true package -f source/lando/pom.xml"
+  cmd1="mvn -Dmaven.test.skip=true package -f ${SSL_DIR}/pom.xml"
 elif [[ "$do_rebuild" = false && "$do_test" = true ]]
 then
-  cmd1="mvn surefire:test -f source/lando/pom.xml"
+  cmd1="mvn surefire:test -f ${SSL_DIR}/pom.xml"
 fi
 
 cmd2=":"

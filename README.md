@@ -6,7 +6,7 @@ To run the SSL parser on a `.lando` file, first run `./lando.sh -r` to build the
 ```
 $ ./lando.sh -f path/to/source.lando
 ```
-Run `./lando.sh -h` or see `source/lando/README.md` for more details.
+Use `-h` to view the available options. See `source/lando/README.md` for more details.
 
 ## lobot-core
 

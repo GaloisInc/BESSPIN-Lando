@@ -11,17 +11,19 @@ Java and packaged to be built with Maven. To build the package you
 need an installation of the Java SDK, Version 11 or higher and the
 Kotlin compiler.
 
-Run `./lando.sh -r` from the top level to build the package. This can also be
-done directly by running `mvn package`. Both produce packaged jar files in the
-`target` directory. The jar file named
-`lando-1.0-SNAPSHOT-jar-with-dependencies.jar` includes all the dependencies
-including the Kotlin runtime and can be run on a JVM without the need for a
-local installation of Kotlin.
+Run the script `lando.sh` located on the top level with argument `-r` to
+build/rebuild the package. This can also be done directly by running
+`mvn package`. Both produce packaged jar files in the `target` directory. The
+jar file named `lando-1.0-SNAPSHOT-jar-with-dependencies.jar` includes all the
+dependencies including the Kotlin runtime and can be run on a JVM without the
+need for a local installation of Kotlin.
 
 ## Usage
 
-The easiest way to run the SSL parser is to use the script `lando.sh` on the
-top level - try running `./lando.sh -h`.
+The easiest way to run the SSL parser is to use the script `lando.sh` located
+on the top level with argument `-f FILE`, where `FILE` a path to a lando file.
+This parses the given file and converts it to JSON. Use the argument `-h` to
+view the available options.
 
 You can also run the CLI directly using something like
 `java -jar ./target/lando-1.0-SNAPSHOT-jar-with-dependencies.jar`. It should
@@ -38,4 +40,4 @@ Both commands support the options
 
 ## Testing
 
-Run `./lando.sh -t` from the top level to run all tests in `src/test`. This can also be done directly by running `mvn package` or `mvn surefire:test`.
+Run `lando.sh` with argument `-t` to run all tests in `src/test`. This can also be done directly by running `mvn package` or `mvn surefire:test`.
