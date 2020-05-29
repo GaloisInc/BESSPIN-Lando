@@ -6,14 +6,18 @@ SSL_DIR="${LANDO_DIR}/source/lando"
 
 cmd_prefix="java -jar ${SSL_DIR}/target/lando-1.0-SNAPSHOT-jar-with-dependencies.jar"
 
-usage="Usage: lando.sh [-f FILE] [OPTION]
+usage="Usage: lando.sh [-f FILE] [-o FILE] [-e] [-d] [-r] [-t] [-h]
   Parses a given lando file and converts it to JSON. Options:
-  -d  Show debug information while lexing
-  -s  Silent - no console output, save all errors to a file
-  -v  Validate only - do not save any files (JSON or errors)
-  -r  Rebuild   ('-f FILE' is optional)
-  -t  Run tests ('-f FILE' is optional)
-  -h  Show this help message"
+  -f FILE  Set input filename. This option must be present when
+           using -o, -e, or -d.
+  -o FILE  Set output filename. If this option is not present, this
+           defaults to the input filename with extension '.json'.
+  -e       Redirects errors/warnings from stdout to the output
+           filename with extension '.errors' or '.warnings'.
+  -d       Show debug information while lexing
+  -r       Rebuild
+  -t       Run tests
+  -h       Show this help message"
 
 if [ "$#" -eq 0 ]; then
   echo "No arguments given." 1>&2;
@@ -21,27 +25,26 @@ if [ "$#" -eq 0 ]; then
   exit 1
 fi
 
+filename=""
+filename_out=""
+opt_flags=""
 do_rebuild=false
 do_test=false
-do_convert=false
-do_validate=false
-opt_flags=""
 
-while getopts ":f:dsvrth" opt "$@"
+while getopts ":f:o:edrth" opt "$@"
 do
   case $opt in
     f)
       filename=$OPTARG
-      do_convert=true
+      ;;
+    o)
+      filename_out=$OPTARG
+      ;;
+    e)
+      opt_flags="$opt_flats --silent"
       ;;
     d)
       opt_flags="$opt_flags --debug"
-      ;;
-    s)
-      opt_flags="$opt_flags --silent"
-      ;;
-    v)
-      do_validate=true
       ;;
     r)
       do_rebuild=true
@@ -61,12 +64,6 @@ do
   esac
 done
 
-if [[ "$do_convert" = false && ("$opt_flags" != "" || "$do_validate" = true) ]]
-then
-  echo "Expected a file."
-  exit 1
-fi
-
 cmd1=":"
 
 if [[ "$do_rebuild" = true && "$do_test" = true ]]
@@ -82,14 +79,20 @@ fi
 
 cmd2=":"
 
-if [[ "$do_convert" = true ]]
+if [[ "$filename" = "" && ("$filename_out" != "" || "$opt_flags" != "") ]]
 then
-  filename_no_ext="${filename%.*}"
-  cmd2_suffix="convert --to json ${filename} ${filename_no_ext}.json"
-  if [[ "$do_validate" = true ]]
+  echo "Expected an input file."
+  exit 1
+fi
+
+if [[ "$filename" != "" ]]
+then
+  if [[ "$filename_out" = "" ]]
   then
-    cmd2_sufix="validate ${filename}"
+    filename_no_ext="${filename%.*}"
+    filename_out="${filename_no_ext}.json"
   fi
+  cmd2_suffix="convert --to json ${filename} ${filename_out}.json"
   cmd2="${cmd_prefix} ${cmd2_suffix} ${opt_flags}"
 fi
 
