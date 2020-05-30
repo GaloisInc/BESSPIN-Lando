@@ -1,7 +1,25 @@
 person : kind
-  with: age  : integer,
-        sex  : { Male, Female }
-  where: age >= 0.
+  with age  : integer,
+       sex  : { Male, Female }
+  where age >= 0
 
-old_person is a person
-  where: age >= 80.
+old_person : kind of person
+  where: age >= 80
+
+male : kind of person
+  where sex = Male
+
+female : kind of person
+  where sex = Female
+
+teenager : kind of person
+  where 13 <= age
+        age <= 19
+
+couple : kind
+  with person1 : person,
+       person2 : person
+
+cis_teenage_couple : kind of couple
+  where girl : female teenager,
+        boy  : male teenager

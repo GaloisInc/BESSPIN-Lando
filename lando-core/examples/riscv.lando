@@ -1,6 +1,6 @@
 riscv : kind
   with reg_width : { RV32, RV64 },
-       exts : set { M, A, F, D, C },
+       exts : set { M, A, F, D, C }.
   where D in exts => F in exts.
 
 riscv_with_m : kind of riscv
