@@ -1,8 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -19,7 +19,9 @@ This module defines the core data type for representing a feature model in Lando
 -}
 module Lando.Core.Kind
   ( Kind(..)
+  , addConstraints
   , Instance(..)
+  , instanceOf
     -- * Fields
   , FieldRepr(..)
   , Type(..), BoolType, EnumType, SetType, KindType
@@ -30,8 +32,6 @@ module Lando.Core.Kind
   , Literal(..)
   , evalExpr
   ) where
-
-import qualified Data.Kind as K
 
 import Data.List (find)
 import Data.Parameterized.Classes
@@ -50,19 +50,27 @@ data Kind (ktps :: [(Symbol, Type)]) = Kind
   }
   deriving Show
 
-listEq :: forall k f sh . EqF (f :: k -> K.Type) => List f sh -> List f sh -> Bool
-listEq Nil Nil = True
-listEq (a :< as) (b :< bs) = a `eqF` b && as `listEq` bs
+-- | Augment a 'Kind' with some additional constraints.
+addConstraints :: Kind ktps -> [Expr ktps BoolType] -> Kind ktps
+addConstraints kd cs = kd { kindConstraints = kindConstraints kd ++ cs }
 
 -- | Concrete instance of a 'Kind', but without the guarantee that this instance
 -- satisfies any of the kind's constraints. That needs to be checked.
-data Instance ktps = Instance
-  { instanceValues :: List FieldValue ktps
-  }
+data Instance ktps = Instance { instanceValues :: List FieldValue ktps }
   deriving (Show)
 
-instance Eq (Instance ktps) where
-  i1 == i2 = instanceValues i1 `listEq` instanceValues i2
+instanceEq :: forall (ktps :: [(Symbol, Type)]) . Instance ktps -> Instance ktps -> Bool
+instanceEq i1 i2 = listEq (instanceValues i1) (instanceValues i2)
+  where listEq :: forall (sh :: [(Symbol, Type)]) .
+                  List FieldValue sh -> List FieldValue sh -> Bool
+        listEq Nil Nil = True
+        listEq (a :< as) (b :< bs) | FieldValue _ _ <- a
+          = a `fieldValueEq` b && listEq as bs
+
+instanceOf :: Instance ktps -> Kind ktps -> Bool
+instanceOf inst (Kind{..}) = all constraintHolds kindConstraints
+  where constraintHolds e | BoolLit True <- evalExpr inst e = True
+                          | otherwise = False
 
 -- | A 'FieldRepr' is a key, type pair. Note that since both the key and the type
 -- are tracked at the type level, this is a singleton type that lets you know
@@ -91,7 +99,6 @@ data TypeRepr tp where
   EnumRepr :: List SymbolRepr cs -> TypeRepr (EnumType cs)
   SetRepr  :: TypeRepr tp -> TypeRepr (SetType tp)
   KindRepr :: List FieldRepr ktps -> TypeRepr (KindType ktps)
-
 deriving instance Show (TypeRepr tp)
 
 -- | Field type literal.
@@ -101,35 +108,29 @@ data Literal tp where
   SetLit      :: [Literal tp] -> Literal (SetType tp)
   InstanceLit :: Instance ktps -> Literal (KindType ktps)
 
-instance Eq (Literal tp) where
-  BoolLit b1 == BoolLit b2 = b1 == b2
-  EnumLit _ i1 == EnumLit _ i2 = isJust (i1 `testEquality` i2)
-  SetLit ls1 == SetLit ls2 = ls1 == ls2
-  InstanceLit i1 == InstanceLit i2 = i1 == i2
 deriving instance Show (Literal tp)
 
-eqLit :: Literal tp -> Literal tp -> Bool
-eqLit (BoolLit b1) (BoolLit b2) = b1 == b2
-eqLit (EnumLit _ i1) (EnumLit _ i2) | Just Refl <- i1 `testEquality` i2 = True
+litEq :: Literal tp -> Literal tp -> Bool
+litEq (BoolLit b1) (BoolLit b2) = b1 == b2
+litEq (IntLit x1) (IntLit x2) = x1 == x2
+litEq (EnumLit i1) (EnumLit i2) | Just Refl <- i1 `testEquality` i2 = True
                                     | otherwise = False
-eqLit (SetLit s1) (SetLit s2) = all (\e -> isJust (find (eqLit e) s2)) s1 &&
-                                all (\e -> isJust (find (eqLit e) s1)) s2
-eqLit (InstanceLit i1) (InstanceLit i2) = i1 == i2
+litEq (SetLit s1) (SetLit s2) = all (\e -> isJust (find (litEq e) s2)) s1 &&
+                                all (\e -> isJust (find (litEq e) s1)) s2
+litEq (InstanceLit i1) (InstanceLit i2) = i1 `instanceEq` i2
 
 -- | An instance of a particular field. This is just a field paired with a
 -- concrete literal.
-data FieldValue p where
+data FieldValue (p :: (Symbol, Type)) where
   FieldValue :: { fieldValueType :: FieldRepr '(nm, tp)
                 , fieldValueLit :: Literal tp
                 } -> FieldValue '(nm, tp)
 
-instance Eq (FieldValue p) where
-  FieldValue _ l1 == FieldValue _ l2 = l1 == l2
-instance EqF FieldValue where
-  fv `eqF` fv' = fv == fv'
-
 deriving instance Show (FieldValue p)
 instance ShowF FieldValue
+
+fieldValueEq :: FieldValue '(nm, tp) -> FieldValue '(nm, tp) -> Bool
+fieldValueEq fv1 fv2 = litEq (fieldValueLit fv1) (fieldValueLit fv2)
 
 -- | A expression involving a particular kind.
 data Expr (ktps :: [(Symbol, Type)]) (tp :: Type) where
@@ -159,13 +160,14 @@ evalExpr inst e = case e of
   LiteralExpr l -> l
   EqExpr e1 e2
     | l1 <- evalExpr inst e1
-    , l2 <- evalExpr inst e2 -> BoolLit (eqLit l1 l2)
+    , l2 <- evalExpr inst e2 -> BoolLit (litEq l1 l2)
+  LteExpr e1 e2
   MemberExpr e1 e2
     | l1 <- evalExpr inst e1
-    , SetLit s2 <- evalExpr inst e2 -> BoolLit (isJust (find (eqLit l1) s2))
+    , SetLit s2 <- evalExpr inst e2 -> BoolLit (isJust (find (litEq l1) s2))
   ImpliesExpr e1 e2
     | BoolLit b1 <- evalExpr inst e1
-    , BoolLit b2 <- evalExpr inst e2 -> BoolLit (if b1 then b2 else True)
+    , BoolLit b2 <- evalExpr inst e2 -> BoolLit (not b1 || b2)
   NotExpr e' | BoolLit b <- evalExpr inst e' -> BoolLit (not b)
 
 -- EXAMPLES
