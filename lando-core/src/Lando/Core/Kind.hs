@@ -67,6 +67,7 @@ instanceEq i1 i2 = listEq (instanceValues i1) (instanceValues i2)
         listEq (a :< as) (b :< bs) | FieldValue _ _ <- a
           = a `fieldValueEq` b && listEq as bs
 
+-- | Determine whether an instance satisfies all the constraints of a kind.
 instanceOf :: Instance ktps -> Kind ktps -> Bool
 instanceOf inst (Kind{..}) = all constraintHolds kindConstraints
   where constraintHolds e | BoolLit True <- evalExpr inst e = True
@@ -138,12 +139,12 @@ fieldValueEq fv1 fv2 = litEq (fieldValueLit fv1) (fieldValueLit fv2)
 
 -- | A expression involving a particular kind.
 data Expr (ktps :: [(Symbol, Type)]) (tp :: Type) where
+  -- | An expression built from a literal value.
+  LiteralExpr :: Literal tp -> Expr ktps tp
   -- | An expression referring to an abstract instance of this kind.
   SelfExpr    :: Expr ktps (KindType ktps)
   -- | An expression referring to a field of an instance of some kind.
   FieldExpr   :: Expr ktps (KindType ktps') -> Index ktps' '(nm, tp) -> Expr ktps tp
-  -- | An expression built from a literal value.
-  LiteralExpr :: Literal tp -> Expr ktps tp
   -- | Equality of two expressions.
   EqExpr      :: Expr ktps tp -> Expr ktps tp -> Expr ktps BoolType
   -- | Less-than-or-equal for two integer expressions.

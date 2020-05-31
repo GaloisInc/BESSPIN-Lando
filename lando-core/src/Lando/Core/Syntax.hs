@@ -20,29 +20,40 @@ type passes through the type checker to produce the typed AST in
 -}
 module Lando.Core.Syntax where
 
--- | Untyped AST for a LOBOT Kind.
-data Kind = Kind { kindName :: String
-                 , kindParent :: Maybe String
-                 , kindFields :: [FieldDecl]
-                 , kindConstraints :: [Expr]
-                 }
+data KindDecl = RootDecl RootKind
+              | DerivedDecl DerivedKind
 
--- | Untyped field declaration.
-data FieldDecl = FieldDecl FieldName FieldType
-
--- | Name of a field.
-data FieldName = FieldName String
-
-data FieldType = IntType
-               | EnumType [String]
-               | SubsetType BaseType
-
-data Expr = Literal Literal
-          | ExprField String
-          | Equal Expr Expr
-          | Set [Expr]
-
-data Instance = Instance { instanceName :: String
-                         , instanceKind :: String
-                         , instanceConstraints :: [Expr]
+data RootKind = RootKind { rootKindName :: String
+                         , rootKindField :: [Field]
+                         , rootKindConstraints :: [Expr]
                          }
+
+data DerivedKind = DerivedKind { derivedKindName :: String
+                               , derivedParentKindName :: String
+                               , derivedConstraints :: [Expr]
+                               }
+
+data Field = Field { fieldName :: String
+                   , fieldType :: Type
+                   }
+
+data Type = BoolType
+          | IntType
+          | EnumType [String]
+          | SetType Type
+          | KindType String
+
+data Expr = LiteralExpr Literal
+          | SelfExpr
+          | FieldExpr Expr String -- ^ kind.field
+          | EqExpr Expr Expr
+          | LteExpr Expr Expr
+          | MemberExpr Expr Expr
+          | ImpliesExpr Expr Expr
+          | NotExpr Expr
+          | IsInstance String
+
+data Literal = BoolLit Bool
+             | IntLit Integer
+             | EnumLit String
+             | SetLit [Literal]

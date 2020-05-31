@@ -20,7 +20,7 @@ extra-source-files:  CHANGELOG.md
 library
   exposed-modules:     Lando.Core.Kind
                        Lando.Core.Kind.Examples
-                       -- Lando.Core.Syntax
+                       Lando.Core.Syntax
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.13 && <4.15,
