@@ -24,7 +24,7 @@ module Lando.Core.Kind
   , instanceOf
     -- * Fields
   , FieldRepr(..)
-  , Type(..), BoolType, EnumType, SetType, KindType
+  , Type(..), BoolType, IntType, EnumType, SetType, KindType
   , TypeRepr(..)
   , FieldValue(..)
     -- * Expressions
@@ -84,11 +84,13 @@ instance ShowF FieldRepr
 
 -- | The types of LOBOT.
 data Type = BoolType
+          | IntType
           | EnumType [Symbol]
           | SetType Type
           | KindType [(Symbol, Type)]
 
 type BoolType = 'BoolType
+type IntType = 'IntType
 type EnumType = 'EnumType
 type SetType = 'SetType
 type KindType = 'KindType
@@ -96,6 +98,7 @@ type KindType = 'KindType
 -- | Term-level representative of a type.
 data TypeRepr tp where
   BoolRepr :: TypeRepr BoolType
+  IntRepr  :: TypeRepr IntType
   EnumRepr :: List SymbolRepr cs -> TypeRepr (EnumType cs)
   SetRepr  :: TypeRepr tp -> TypeRepr (SetType tp)
   KindRepr :: List FieldRepr ktps -> TypeRepr (KindType ktps)
@@ -104,7 +107,8 @@ deriving instance Show (TypeRepr tp)
 -- | Field type literal.
 data Literal tp where
   BoolLit     :: Bool -> Literal BoolType
-  EnumLit     :: SymbolRepr c -> Index cs c -> Literal (EnumType cs)
+  IntLit      :: Integer -> Literal IntType
+  EnumLit     :: Index cs c -> Literal (EnumType cs)
   SetLit      :: [Literal tp] -> Literal (SetType tp)
   InstanceLit :: Instance ktps -> Literal (KindType ktps)
 
@@ -142,6 +146,8 @@ data Expr (ktps :: [(Symbol, Type)]) (tp :: Type) where
   LiteralExpr :: Literal tp -> Expr ktps tp
   -- | Equality of two expressions.
   EqExpr      :: Expr ktps tp -> Expr ktps tp -> Expr ktps BoolType
+  -- | Less-than-or-equal for two integer expressions.
+  LteExpr     :: Expr ktps IntType -> Expr ktps IntType -> Expr ktps BoolType
   -- | Set membership.
   MemberExpr  :: Expr ktps tp -> Expr ktps (SetType tp) -> Expr ktps BoolType
   -- | Logical implication.
@@ -162,6 +168,8 @@ evalExpr inst e = case e of
     | l1 <- evalExpr inst e1
     , l2 <- evalExpr inst e2 -> BoolLit (litEq l1 l2)
   LteExpr e1 e2
+    | IntLit x1 <- evalExpr inst e1
+    , IntLit x2 <- evalExpr inst e2 -> BoolLit (x1 <= x2)
   MemberExpr e1 e2
     | l1 <- evalExpr inst e1
     , SetLit s2 <- evalExpr inst e2 -> BoolLit (isJust (find (litEq l1) s2))
@@ -169,5 +177,3 @@ evalExpr inst e = case e of
     | BoolLit b1 <- evalExpr inst e1
     , BoolLit b2 <- evalExpr inst e2 -> BoolLit (not b1 || b2)
   NotExpr e' | BoolLit b <- evalExpr inst e' -> BoolLit (not b)
-
--- EXAMPLES
