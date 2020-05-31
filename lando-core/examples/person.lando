@@ -3,17 +3,16 @@ person : kind
        sex  : { Male, Female }
   where age >= 0
 
-old_person : kind of person
-  where: age >= 80
+// Note: "kind of _" is just syntactic sugar for repeating all the fields and
+// constraints of the parent.
+old_person : kind of person where age >= 80
 
-male : kind of person
-  where sex = Male
+male : kind of person where sex = Male
 
-female : kind of person
-  where sex = Female
+female : kind of person where sex = Female
 
 teenager : kind of person
-  where 13 <= age
+  where 13 <= age,
         age <= 19
 
 couple : kind
@@ -21,5 +20,9 @@ couple : kind
        person2 : person
 
 cis_teenage_couple : kind of couple
-  where girl : female teenager,
-        boy  : male teenager
+  where person1 : female teenager,
+        person2 : male teenager
+
+cis_couple : kind of couple
+  where person1.sex = female,
+        person2.sex = male
