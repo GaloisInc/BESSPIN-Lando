@@ -20,12 +20,17 @@ extra-source-files:  CHANGELOG.md
 library
   exposed-modules:     Lando.Core.Kind
                        Lando.Core.Kind.Examples
-                       Lando.Core.Syntax
+                       Lando.Core.Instances
+                       Lando.Core.Syntax,
+
+                       Data.Parameterized.List.Length
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.13 && <4.15,
+                       bv-sized >= 1.0.1,
                        parameterized-utils >= 2.1.0 && < 2.2,
                        pretty-show,
+                       text,
                        what4
   hs-source-dirs:      src
   default-language:    Haskell2010
