@@ -32,6 +32,16 @@ person = Kind { kindName = "person"
                 [ LteExpr (LiteralExpr (IntLit 0)) (FieldExpr SelfExpr index0) ]
               }
 
+impossible_person :: Kind PersonType
+impossible_person = person `addConstraints`
+  [ EqExpr
+    (FieldExpr SelfExpr index1) -- sex
+    (LiteralExpr (EnumLit index0 knownNat)) -- male
+  , EqExpr
+    (FieldExpr SelfExpr index1) -- sex
+    (LiteralExpr (EnumLit index1 knownNat)) -- female
+  ]
+
 male_person :: Kind PersonType
 male_person = person `addConstraints`
   [ EqExpr
@@ -108,7 +118,14 @@ riscv_with_m :: Kind RISCVType
 riscv_with_m = riscv `addConstraints`
   [ MemberExpr
     (LiteralExpr (EnumLit index0 knownNat)) -- M
-    (FieldExpr SelfExpr index1) -- A
+    (FieldExpr SelfExpr index1) -- exts
+  ]
+
+riscv_with_only_d :: Kind RISCVType
+riscv_with_only_d = riscv `addConstraints`
+  [ EqExpr
+    (FieldExpr SelfExpr index1) -- exts
+    (LiteralExpr (SetLit [Some index3] knownNat)) -- D
   ]
 
 rv32i :: Instance RISCVType
