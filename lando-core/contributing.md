@@ -20,9 +20,11 @@ external imports. Example:
 import Lando.Core.Kind
 
 import qualified What4.Expr.Builder as WB
-import qualified What4.Solver.Z3 as WS
+import qualified What4.Solver.Z3    as WS
 
 import Data.List (intercalate)
+import Data.Parameterized.Nonce
+import Data.Parameterized.Some
 ```
 
 Internal imports should be unqualified in most cases, except when intentional
@@ -35,12 +37,22 @@ abbreviate every single intermediate module. In the above example,
 decision. As much as possible, use the same abbreviation across the project when
 importing the same module in multiple different places.
 
-Most external imports should be imported qualified. The only exceptions to this
-rule currently are the functions in `parameterized-utils`, as we consider those
-part of our conceptual `Prelude`. Even so, we sometimes have name clashes
-between `parameterized-utils` and `Prelude`, so it may be necessary to import
-something qualified, or to hide something from `Prelude`; both are acceptable,
-and discretion should be used to determine what the best way to do it is.
+All qualified imports should have the qualification prefixes lined up in a
+column, and should be alphabetized *by prefix*, rather than by module path. This
+allows one to see a qualification prefix in the code and quickly scan the
+qualified imports list to discover what that prefix abbreviates.
+
+When importing entire modules, most external imports should be imported
+qualified. The only exceptions to this rule currently are the functions in
+`parameterized-utils`, as we consider those part of our conceptual `Prelude`.
+Even so, we sometimes have name clashes between `parameterized-utils` and
+`Prelude`, so it may be necessary to import something qualified, or to hide
+something from `Prelude`; both are acceptable, and discretion should be used to
+determine what the best way to do it is.
+
+We also allow importing specific declarations from external modules other than
+`parameterized-utils`; for instance, in the above example we import the function
+`intercalate` from `Data.List`. This is fine.
 
 When importing the same module both qualified and unqualified, the unqualified
 import must not be the whole module, but must contain a parenthesized list of
