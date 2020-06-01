@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wno-unused-imports #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
@@ -14,6 +13,7 @@ module Lando.Core.Instances
   , SymFieldLiteral(..)
   , SymLiteral(..)
   , symEvalExpr
+  , hasInstance
   ) where
 
 import Data.Parameterized.List.Length
@@ -24,7 +24,7 @@ import qualified Data.Parameterized.List as PL
 import qualified Data.Text               as T
 import qualified What4.Expr.Builder      as WB
 import qualified What4.Config            as WC
-import qualified What4.Expr.GroundEval   as WG
+-- import qualified What4.Expr.GroundEval   as WG
 import qualified What4.Interface         as WI
 import qualified What4.Protocol.SMTLib2  as WS
 import qualified What4.SatResult         as WS
@@ -32,13 +32,13 @@ import qualified What4.Solver            as WS
 import qualified What4.Solver.Z3         as WS
 import qualified What4.BaseTypes         as WT
 
+import Data.Foldable (forM_)
 import Data.Parameterized.List
 import Data.Parameterized.NatRepr
 import Data.Parameterized.Nonce
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
-import GHC.TypeLits
 import Prelude hiding ((!!))
 
 -- | Symbolic 'Literal'.
@@ -192,29 +192,25 @@ symEvalExpr sym inst e = case e of
     BoolSym b <- symEvalExpr sym inst e'
     BoolSym <$> WI.notPred sym b
 
--- data BuilderState s = BuilderState
+data BuilderState s = EmptyBuilderState
 
--- data Result = Sat (BV.BV 5) | Unsat | Unknown
---   deriving Show
+data SatResult = Sat | Unsat | Unknown
+  deriving Show
 
--- what4Example :: IO Result
--- what4Example = do
---   Some nonceGen <- newIONonceGenerator
---   sym <- WB.newExprBuilder WB.FloatIEEERepr BuilderState nonceGen
---   x <- WI.freshConstant sym (WI.safeSymbol "x") (WT.BaseBVRepr (knownNat @5))
---   x_1 <- WI.testBitBV sym 1 x
---   x_3 <- WI.testBitBV sym 3 x
---   x_1_implies_x_3 <- WI.impliesPred sym x_1 x_3
---   a <- WI.andPred sym x_1 x_1_implies_x_3
---   ten <- WI.bvLit sym (knownNat @5) (BV.mkBV knownNat 10)
---   x_eq_10 <- WI.bvEq sym x ten
---   x_neq_10 <- WI.notPred sym x_eq_10
---   b <- WI.andPred sym a x_neq_10
---   WC.extendConfig WS.z3Options (WI.getConfiguration sym)
---   WS.withZ3 sym "/usr/local/bin/z3" WS.defaultLogData $ \ session -> do
---     WS.assume (WS.sessionWriter session) b
---     WS.runCheckSat session $ \result ->
---       case result of
---         WS.Sat (geval, _) -> Sat <$> WG.groundEval geval x
---         WS.Unsat _ -> return Unsat
---         WS.Unknown -> return Unknown
+hasInstance :: FilePath -> Kind ktps -> IO SatResult
+hasInstance z3_path kd = do
+  Some nonceGen <- newIONonceGenerator
+  sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
+  WC.extendConfig WS.z3Options (WI.getConfiguration sym)
+  WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
+    -- Create a fresh symbolic instance of our kind
+    symInst <- freshSymInstanceConstant sym "" (kindFields kd) session
+    -- Add all the kind constraints to our list of assumptions
+    forM_ (kindConstraints kd) $ \e -> do
+      BoolSym symConstraint <- symEvalExpr sym symInst e
+      WS.assume (WS.sessionWriter session) symConstraint
+    WS.runCheckSat session $ \result ->
+      case result of
+        WS.Sat _ -> return Sat
+        WS.Unsat _ -> return Unsat
+        WS.Unknown -> return Unknown
