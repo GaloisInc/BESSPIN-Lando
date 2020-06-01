@@ -4,6 +4,8 @@
 module Lando.Core.Kind.Examples where
 
 import Data.Parameterized.List
+import Data.Parameterized.NatRepr
+import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Lando.Core.Kind
 
@@ -16,7 +18,7 @@ age = FieldRepr
 sex :: FieldRepr '("sex", EnumType '["Male", "Female"])
 sex = FieldRepr
   { fieldName = knownSymbol @"sex"
-  , fieldType = EnumRepr (knownSymbol @"Male" :< knownSymbol @"Female" :< Nil)
+  , fieldType = EnumRepr (knownSymbol @"Male" :< knownSymbol @"Female" :< Nil) knownNat
   }
 
 type PersonType = '[ '("age", IntType)
@@ -34,14 +36,14 @@ male_person :: Kind PersonType
 male_person = person `addConstraints`
   [ EqExpr
     (FieldExpr SelfExpr index1) -- sex
-    (LiteralExpr (EnumLit index0)) -- male
+    (LiteralExpr (EnumLit index0 knownNat)) -- male
   ]
 
 female_person :: Kind PersonType
 female_person = person `addConstraints`
   [ EqExpr
     (FieldExpr SelfExpr index1) -- sex
-    (LiteralExpr (EnumLit index1)) -- female
+    (LiteralExpr (EnumLit index1 knownNat)) -- female
   ]
 
 child :: Kind PersonType
@@ -50,39 +52,42 @@ child = person `addConstraints`
 
 ben :: Instance PersonType
 ben = Instance { instanceValues =
-                 FieldValue age (IntLit 30) :< FieldValue sex (EnumLit index0) :< Nil
+                 FieldLiteral age (IntLit 30) :<
+                 FieldLiteral sex (EnumLit index0 knownNat) :< Nil
                }
 
 emmy :: Instance PersonType
 emmy = Instance { instanceValues =
-                  FieldValue age (IntLit 8) :< FieldValue sex (EnumLit index1) :< Nil
+                  FieldLiteral age (IntLit 8) :<
+                  FieldLiteral sex (EnumLit index1 knownNat) :< Nil
                 }
 
 archer :: Instance PersonType
 archer = Instance { instanceValues =
-                    FieldValue age (IntLit 4) :< FieldValue sex (EnumLit index0) :< Nil
+                    FieldLiteral age (IntLit 4) :<
+                    FieldLiteral sex (EnumLit index0 knownNat) :< Nil
                   }
 
 
 reg_width :: FieldRepr '("reg_width", EnumType '["RV32", "RV64"])
 reg_width = FieldRepr
   { fieldName = knownSymbol @"reg_width"
-  , fieldType = EnumRepr (knownSymbol @"RV32" :< knownSymbol @"RV64" :< Nil)
+  , fieldType = EnumRepr (knownSymbol @"RV32" :< knownSymbol @"RV64" :< Nil) knownNat
   }
 
-exts :: FieldRepr '("exts", SetType (EnumType '["M", "A", "F", "D", "C"]))
+exts :: FieldRepr '("exts", SetType '["M", "A", "F", "D", "C"])
 exts = FieldRepr
   { fieldName = knownSymbol @"exts"
-  , fieldType = SetRepr $
-    EnumRepr (knownSymbol @"M" :<
-              knownSymbol @"A" :<
-              knownSymbol @"F" :<
-              knownSymbol @"D" :<
-              knownSymbol @"C" :< Nil)
+  , fieldType = SetRepr (knownSymbol @"M" :<
+                         knownSymbol @"A" :<
+                         knownSymbol @"F" :<
+                         knownSymbol @"D" :<
+                         knownSymbol @"C" :< Nil)
+                knownNat
   }
 
 type RISCVType = '[ '("reg_width", EnumType '["RV32", "RV64"]),
-                    '("exts", SetType (EnumType '["M", "A", "F", "D", "C"]))
+                    '("exts", SetType '["M", "A", "F", "D", "C"])
                   ]
 
 riscv :: Kind RISCVType
@@ -91,10 +96,10 @@ riscv = Kind { kindName = "riscv"
              , kindConstraints =
                [ ImpliesExpr
                  (MemberExpr -- D in exts
-                  (LiteralExpr (EnumLit index3)) -- D
+                  (LiteralExpr (EnumLit index3 knownNat)) -- D
                   (FieldExpr SelfExpr index1)) -- exts
                  (MemberExpr -- F in exts
-                  (LiteralExpr (EnumLit index2)) -- F
+                  (LiteralExpr (EnumLit index2 knownNat)) -- F
                   (FieldExpr SelfExpr index1)) -- exts
                ]
              }
@@ -102,40 +107,40 @@ riscv = Kind { kindName = "riscv"
 riscv_with_m :: Kind RISCVType
 riscv_with_m = riscv `addConstraints`
   [ MemberExpr
-    (LiteralExpr (EnumLit index0)) -- M
+    (LiteralExpr (EnumLit index0 knownNat)) -- M
     (FieldExpr SelfExpr index1) -- A
   ]
 
 rv32i :: Instance RISCVType
 rv32i = Instance { instanceValues =
-                   FieldValue reg_width (EnumLit index0) :<
-                   FieldValue exts (SetLit []) :<
+                   FieldLiteral reg_width (EnumLit index0 knownNat) :<
+                   FieldLiteral exts (SetLit [] knownNat) :<
                    Nil
                  }
 
 rv32m :: Instance RISCVType
 rv32m = Instance { instanceValues =
-                   FieldValue reg_width (EnumLit index0) :<
-                   FieldValue exts (SetLit [EnumLit index0]) :<
+                   FieldLiteral reg_width (EnumLit index0 knownNat) :<
+                   FieldLiteral exts (SetLit [Some index0] knownNat) :<
                    Nil
                  }
 
 rv32d :: Instance RISCVType
 rv32d = Instance { instanceValues =
-                   FieldValue reg_width (EnumLit index0) :<
-                   FieldValue exts (SetLit [EnumLit index3]) :<
+                   FieldLiteral reg_width (EnumLit index0 knownNat) :<
+                   FieldLiteral exts (SetLit [Some index3] knownNat) :<
                    Nil
                  }
 
 rv64gc :: Instance RISCVType
 rv64gc = Instance { instanceValues =
-                    FieldValue reg_width (EnumLit index1) :<
-                    FieldValue exts (SetLit [ EnumLit index0
-                                            , EnumLit index1
-                                            , EnumLit index2
-                                            , EnumLit index3
-                                            , EnumLit (IndexThere index3)
-                                            ]) :<
+                    FieldLiteral reg_width (EnumLit index1 knownNat) :<
+                    FieldLiteral exts (SetLit [ Some index0
+                                            , Some index1
+                                            , Some index2
+                                            , Some index3
+                                            , Some (IndexThere index3)
+                                            ] knownNat) :<
                     Nil
                   }
 
@@ -150,6 +155,7 @@ sim = FieldRepr { fieldName = knownSymbol @"sim"
                                         knownSymbol @"IVerilog" :<
                                         knownSymbol @"Verilator" :<
                                         Nil)
+                              knownNat
                 }
 
 type PiccoloBuildType = '[ '("riscv", KindType RISCVType)
@@ -162,12 +168,12 @@ piccolo_build = Kind { kindName = "piccolo_build"
                      , kindConstraints =
                          [ ImpliesExpr -- inherited from riscv
                            (MemberExpr -- D in riscv.exts
-                            (LiteralExpr (EnumLit index3)) -- riscv.D
+                            (LiteralExpr (EnumLit index3 knownNat)) -- riscv.D
                             (FieldExpr -- riscv.exts
                              (FieldExpr SelfExpr index0) -- riscv
                              index1))
                            (MemberExpr -- F in riscv.exts
-                            (LiteralExpr (EnumLit index2)) -- riscv.F
+                            (LiteralExpr (EnumLit index2 knownNat)) -- riscv.F
                             (FieldExpr -- riscv.exts
                              (FieldExpr SelfExpr index0) -- riscv
                              index1))
