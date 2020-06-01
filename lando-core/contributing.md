@@ -57,3 +57,11 @@ We also allow importing specific declarations from external modules other than
 When importing the same module both qualified and unqualified, the unqualified
 import must not be the whole module, but must contain a parenthesized list of
 specific types, functions, etc. that will be imported unqualified.
+
+### Function and variable naming
+
+Functions must be camel case -- they cannot ever contain underscores. Variables
+may contain underscores, although camel case is usually preferred. One instance
+where underscores may be preferable is indicating indexes -- so if `as :: [a]`,
+then we might declare `as_3 = as !! 3`, which is a bit more readable than `as3 =
+as !! 3`.
