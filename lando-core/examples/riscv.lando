@@ -23,3 +23,7 @@ bad_riscv_2 : kind of riscv
 // ERROR -- violates constraint "D in exts => F in exts"
 bad_riscv_3 : riscv
   where exts = { D }.
+
+
+
+type Field = (Symbol, Type)

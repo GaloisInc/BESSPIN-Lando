@@ -5,7 +5,28 @@ person : kind
 
 // Note: "kind of _" is just syntactic sugar for repeating all the fields and
 // constraints of the parent.
-old_person : kind of person where age >= 80
+old_person : kind of person
+  where age >= 80
+
+old_person : kind
+  with age  : integer,
+       sex  : { Male, Female }
+  where age >= 0,
+        age >= 80
+
+old_person : kind
+  with person_val : person,
+       has_cane : boolean,
+  where person_val.age >= 80
+
+===>
+
+old_person : kind
+  with person_val : kind with age : integer,
+                              sex : { Male, Female }
+       has_cane : boolean,
+  where person_val.age >= 0,
+        person_val.age >= 80
 
 male : kind of person where sex = Male
 
@@ -26,3 +47,8 @@ cis_teenage_couple : kind of couple
 cis_couple : kind of couple
   where person1.sex = female,
         person2.sex = male
+
+two_identical_people : kind of couple
+  where person1 = person2
+
+
