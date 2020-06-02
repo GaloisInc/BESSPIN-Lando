@@ -93,11 +93,9 @@ data TypeRepr tp where
   IntRepr  :: TypeRepr IntType
   EnumRepr :: 1 <= (Length cs)
            => List SymbolRepr cs
-           -> NatRepr (Length cs)
            -> TypeRepr (EnumType cs)
   SetRepr  :: 1 <= (Length cs)
            => List SymbolRepr cs
-           -> NatRepr (Length cs)
            -> TypeRepr (SetType cs)
   KindRepr :: List FieldRepr ktps -> TypeRepr (KindType ktps)
 deriving instance Show (TypeRepr tp)
@@ -107,20 +105,20 @@ data Literal tp where
   BoolLit :: Bool -> Literal BoolType
   IntLit  :: Integer -> Literal IntType
   EnumLit :: 1 <= Length cs
-          => Index cs c
-          -> NatRepr (Length cs)
+          => List SymbolRepr cs
+          -> Index cs c
           -> Literal (EnumType cs)
   SetLit  :: 1 <= Length cs
-          => [Some (Index cs)]
-          -> NatRepr (Length cs)
+          => List SymbolRepr cs
+          -> [Some (Index cs)]
           -> Literal (SetType cs)
   KindLit :: Instance ktps -> Literal (KindType ktps)
 deriving instance Show (Literal tp)
 
--- | An instance of a particular field. This is just a field paired with a
--- concrete literal.
+-- | An instance of a particular field. This is just the field name paired with
+-- a concrete literal.
 data FieldLiteral (p :: (Symbol, Type)) where
-  FieldLiteral :: { fieldLiteralType :: FieldRepr '(nm, tp)
+  FieldLiteral :: { fieldLiteralName :: SymbolRepr nm
                   , fieldLiteralValue :: Literal tp
                   } -> FieldLiteral '(nm, tp)
 
@@ -158,10 +156,10 @@ deriving instance Show (Expr ktps tp)
 litEq :: Literal tp -> Literal tp -> Bool
 litEq (BoolLit b1) (BoolLit b2) = b1 == b2
 litEq (IntLit x1) (IntLit x2) = x1 == x2
-litEq (EnumLit i1 _) (EnumLit i2 _) | Just Refl <- i1 `testEquality` i2 = True
+litEq (EnumLit _ i1) (EnumLit _ i2) | Just Refl <- i1 `testEquality` i2 = True
                                     | otherwise = False
-litEq (SetLit s1 _) (SetLit s2 _) = all (\i -> isJust (find (==i) s2)) s1 &&
-                                all (\i -> isJust (find (==i) s1)) s2
+litEq (SetLit _ s1) (SetLit _ s2) = all (\i -> isJust (find (==i) s2)) s1 &&
+                                    all (\i -> isJust (find (==i) s1)) s2
 litEq (KindLit i1) (KindLit i2) = i1 `instanceEq` i2
 
 fieldValueEq :: FieldLiteral '(nm, tp) -> FieldLiteral '(nm, tp) -> Bool
@@ -195,8 +193,8 @@ evalExpr inst e = case e of
     | IntLit x1 <- evalExpr inst e1
     , IntLit x2 <- evalExpr inst e2 -> BoolLit (x1 <= x2)
   MemberExpr e1 e2
-    | EnumLit i _ <- evalExpr inst e1
-    , SetLit  s _ <- evalExpr inst e2 -> BoolLit (isJust (find (== Some i) s))
+    | EnumLit _ i <- evalExpr inst e1
+    , SetLit _ s <- evalExpr inst e2 -> BoolLit (isJust (find (== Some i) s))
   ImpliesExpr e1 e2
     | BoolLit b1 <- evalExpr inst e1
     , BoolLit b2 <- evalExpr inst e2 -> BoolLit (not b1 || b2)

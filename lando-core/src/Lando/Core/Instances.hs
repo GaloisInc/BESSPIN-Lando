@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -13,7 +14,8 @@ module Lando.Core.Instances
   , SymFieldLiteral(..)
   , SymLiteral(..)
   , symEvalExpr
-  , hasInstance
+  , InstanceResult(..)
+  , getInstance
   ) where
 
 import Data.Parameterized.List.Length
@@ -24,7 +26,7 @@ import qualified Data.Parameterized.List as PL
 import qualified Data.Text               as T
 import qualified What4.Expr.Builder      as WB
 import qualified What4.Config            as WC
--- import qualified What4.Expr.GroundEval   as WG
+import qualified What4.Expr.GroundEval   as WG
 import qualified What4.Interface         as WI
 import qualified What4.Protocol.SMTLib2  as WS
 import qualified What4.SatResult         as WS
@@ -45,20 +47,26 @@ import Prelude hiding ((!!))
 data SymLiteral t tp where
   BoolSym :: WB.BoolExpr t -> SymLiteral t BoolType
   IntSym  :: WB.IntegerExpr t -> SymLiteral t IntType
-  -- | This needs a @bvPopCount == 1@ constraint
-  EnumSym :: 1 <= Length cs => WB.BVExpr t (Length cs) -> SymLiteral t (EnumType cs)
-  SetSym  :: 1 <= Length cs => WB.BVExpr t (Length cs) -> SymLiteral t (SetType cs)
+  -- | This implies a @bvPopCount == 1@ constraint.
+  EnumSym :: 1 <= Length cs
+          => List SymbolRepr cs
+          -> WB.BVExpr t (Length cs)
+          -> SymLiteral t (EnumType cs)
+  SetSym  :: 1 <= Length cs
+          => List SymbolRepr cs
+          -> WB.BVExpr t (Length cs)
+          -> SymLiteral t (SetType cs)
   KindSym :: SymInstance t ktps -> SymLiteral t (KindType ktps)
 
 -- | Symbolic 'FieldLiteral'.
 data SymFieldLiteral t (p :: (Symbol, Type)) where
-  SymFieldLiteral :: { symFieldLiteralType :: FieldRepr '(nm, tp)
+  SymFieldLiteral :: { symFieldLiteralName :: SymbolRepr nm
                      , symFieldLiteralValue :: SymLiteral t tp
                      } -> SymFieldLiteral t '(nm, tp)
 
 -- | Symbolic 'Instance'.
 data SymInstance t ktps =
-  SymInstance { symInstanceValues :: List (SymFieldLiteral t) ktps }
+  SymInstance { symInstanceLiterals :: List (SymFieldLiteral t) ktps }
 
 freshSymFieldConstant :: WS.SMTLib2Tweaks solver
                       => WB.ExprBuilder t st fs
@@ -66,31 +74,33 @@ freshSymFieldConstant :: WS.SMTLib2Tweaks solver
                       -> FieldRepr '(nm, tp)
                       -> WS.Session t solver
                       -> IO (SymFieldLiteral t '(nm, tp))
-freshSymFieldConstant sym prefix ftp@(FieldRepr nm tp) session = do
+freshSymFieldConstant sym prefix (FieldRepr nm tp) session = do
   let prefix' = prefix ++ T.unpack (symbolRepr nm)
       cSymbol = WI.safeSymbol prefix'
   case tp of
     BoolRepr -> do
       c <- WI.freshConstant sym cSymbol WT.BaseBoolRepr
-      return $ SymFieldLiteral ftp (BoolSym c)
+      return $ SymFieldLiteral nm (BoolSym c)
     IntRepr -> do
       c <- WI.freshConstant sym cSymbol WT.BaseIntegerRepr
-      return $ SymFieldLiteral ftp (IntSym c)
-    EnumRepr _ n -> do
+      return $ SymFieldLiteral nm (IntSym c)
+    EnumRepr cs -> do
       -- We represent individual enumeration constants as 1 << n for some n.
       -- Therefore, we add a constraint that the popcount of the bitvector is 1.
+      let n = ilength cs
       c <- WI.freshConstant sym cSymbol (WT.BaseBVRepr n)
       c_popcount <- WI.bvPopcount sym c
       one <- WI.bvLit sym n (BV.one n)
       c_popcount_1 <- WI.bvEq sym c_popcount one
       WS.assume (WS.sessionWriter session) c_popcount_1
-      return $ SymFieldLiteral ftp (EnumSym c)
-    SetRepr _ n -> do
+      return $ SymFieldLiteral nm (EnumSym cs c)
+    SetRepr cs -> do
+      let n = ilength cs
       c <- WI.freshConstant sym cSymbol (WT.BaseBVRepr n)
-      return $ SymFieldLiteral ftp (SetSym c)
+      return $ SymFieldLiteral nm (SetSym cs c)
     KindRepr flds -> do
       c <- freshSymInstanceConstant sym prefix' flds session
-      return $ SymFieldLiteral ftp (KindSym c)
+      return $ SymFieldLiteral nm (KindSym c)
 
 freshSymInstanceConstant :: WS.SMTLib2Tweaks solver
                          => WB.ExprBuilder t st fs
@@ -104,21 +114,22 @@ freshSymInstanceConstant sym prefix flds session = do
     freshSymFieldConstant sym prefix' ftp session
   return $ SymInstance cs
 
-symValueEq :: WB.ExprBuilder t st fs
-           -> SymLiteral t tp
-           -> SymLiteral t tp
-           -> IO (WB.BoolExpr t)
-symValueEq sym (BoolSym b1) (BoolSym b2) = WI.eqPred sym b1 b2
-symValueEq sym (IntSym x1) (IntSym x2) = WI.intEq sym x1 x2
-symValueEq sym (EnumSym bv1) (EnumSym bv2) = WI.bvEq sym bv1 bv2
-symValueEq sym (SetSym bv1) (SetSym bv2) = WI.bvEq sym bv1 bv2
-symValueEq sym (KindSym i1) (KindSym i2) = symInstanceEq sym i1 i2
+symLiteralEq :: WB.ExprBuilder t st fs
+             -> SymLiteral t tp
+             -> SymLiteral t tp
+             -> IO (WB.BoolExpr t)
+symLiteralEq sym (BoolSym b1) (BoolSym b2) = WI.eqPred sym b1 b2
+symLiteralEq sym (IntSym x1) (IntSym x2) = WI.intEq sym x1 x2
+symLiteralEq sym (EnumSym _ bv1) (EnumSym _ bv2) = WI.bvEq sym bv1 bv2
+symLiteralEq sym (SetSym _ bv1) (SetSym _ bv2) = WI.bvEq sym bv1 bv2
+symLiteralEq sym (KindSym i1) (KindSym i2) = symInstanceEq sym i1 i2
 
 symFieldLiteralValueEq :: WB.ExprBuilder t st fs
-                -> SymFieldLiteral t '(nm, tp)
-                -> SymFieldLiteral t '(nm, tp)
-                -> IO (WB.BoolExpr t)
-symFieldLiteralValueEq sym fv1 fv2 = symValueEq sym (symFieldLiteralValue fv1) (symFieldLiteralValue fv2)
+                       -> SymFieldLiteral t '(nm, tp)
+                       -> SymFieldLiteral t '(nm, tp)
+                       -> IO (WB.BoolExpr t)
+symFieldLiteralValueEq sym fv1 fv2 =
+  symLiteralEq sym (symFieldLiteralValue fv1) (symFieldLiteralValue fv2)
 
 symInstanceEq :: forall t st fs ktps .
                  WB.ExprBuilder t st fs
@@ -126,7 +137,7 @@ symInstanceEq :: forall t st fs ktps .
               -> SymInstance t ktps
               -> IO (WB.BoolExpr t)
 symInstanceEq sym inst1 inst2 =
-  listEq (symInstanceValues inst1) (symInstanceValues inst2)
+  listEq (symInstanceLiterals inst1) (symInstanceLiterals inst2)
   where listEq :: forall (sh :: [(Symbol, Type)]) .
                   List (SymFieldLiteral t) sh
                -> List (SymFieldLiteral t) sh
@@ -138,24 +149,28 @@ symInstanceEq sym inst1 inst2 =
               rstEq <- listEq as bs
               WI.andPred sym abEq rstEq
 
-symFieldValue :: WB.ExprBuilder t st fs
-              -> FieldLiteral '(nm, tp)
-              -> IO (SymFieldLiteral t '(nm, tp))
-symFieldValue sym (FieldLiteral tp l) = SymFieldLiteral tp <$> symLiteral sym l
-
 symInstance :: WB.ExprBuilder t st fs -> Instance ktps -> IO (SymInstance t ktps)
 symInstance sym inst = do
   symFieldLiteralValues <- forFC (instanceValues inst) $ \fv@(FieldLiteral _ _) ->
-    symFieldValue sym fv
+    symFieldLiteral sym fv
   return $ SymInstance symFieldLiteralValues
+
+symFieldLiteral :: WB.ExprBuilder t st fs
+                -> FieldLiteral '(nm, tp)
+                -> IO (SymFieldLiteral t '(nm, tp))
+symFieldLiteral sym (FieldLiteral nm l) = SymFieldLiteral nm <$> symLiteral sym l
 
 symLiteral :: WB.ExprBuilder t st fs -> Literal tp -> IO (SymLiteral t tp)
 symLiteral sym l = case l of
   BoolLit True -> return $ BoolSym (WI.truePred sym)
   BoolLit False -> return $ BoolSym (WI.falsePred sym)
   IntLit x -> IntSym <$> WI.intLit sym x
-  EnumLit i n -> EnumSym <$> WI.bvLit sym n (indexBit n (Some i))
-  SetLit is n -> SetSym <$> WI.bvLit sym n (foldr BV.or (BV.zero n) (indexBit n <$> is))
+  EnumLit cs i -> do
+    let n = ilength cs
+    EnumSym cs <$> WI.bvLit sym n (indexBit n (Some i))
+  SetLit cs is -> do
+    let n = ilength cs
+    SetSym cs <$> WI.bvLit sym n (foldr BV.or (BV.zero n) (indexBit n <$> is))
   KindLit inst -> KindSym <$> symInstance sym inst
   where indexBit n (Some i) = BV.bit' n (fromInteger (PL.indexValue i))
 
@@ -173,14 +188,14 @@ symEvalExpr sym inst e = case e of
   EqExpr e1 e2 -> do
     sv1 <- symEvalExpr sym inst e1
     sv2 <- symEvalExpr sym inst e2
-    BoolSym <$> symValueEq sym sv1 sv2
+    BoolSym <$> symLiteralEq sym sv1 sv2
   LteExpr e1 e2 -> do
     IntSym sv1 <- symEvalExpr sym inst e1
     IntSym sv2 <- symEvalExpr sym inst e2
     BoolSym <$> WI.intLe sym sv1 sv2
   MemberExpr e1 e2 -> do
-    EnumSym elt_bv <- symEvalExpr sym inst e1
-    SetSym set_bv <- symEvalExpr sym inst e2
+    EnumSym _ elt_bv <- symEvalExpr sym inst e1
+    SetSym _ set_bv <- symEvalExpr sym inst e2
     elt_bv_and_set_bv <- WI.bvAndBits sym elt_bv set_bv
     elt_bv_in_set_bv <- WI.bvEq sym elt_bv elt_bv_and_set_bv
     return $ BoolSym elt_bv_in_set_bv
@@ -192,13 +207,59 @@ symEvalExpr sym inst e = case e of
     BoolSym b <- symEvalExpr sym inst e'
     BoolSym <$> WI.notPred sym b
 
+natReprToIndex :: List f sh -> NatRepr n -> Maybe (Some (Index sh))
+natReprToIndex Nil _ = Nothing
+natReprToIndex (_ :< as) n = case isZeroOrGT1 n of
+  Left Refl -> Just $ Some (IndexHere)
+  Right LeqProof
+    | Just (Some ix) <- natReprToIndex as (decNat n) -> Just (Some (IndexThere ix))
+  _ -> Nothing
+
+groundEvalFieldLiteral :: WG.GroundEvalFn t
+                       -> SymFieldLiteral t ftp
+                       -> IO (FieldLiteral ftp)
+groundEvalFieldLiteral ge@WG.GroundEvalFn{..} SymFieldLiteral{..} = do
+  l <- case symFieldLiteralValue of
+         BoolSym sb -> BoolLit <$> groundEval sb
+         IntSym sx -> IntLit <$> groundEval sx
+         EnumSym cs sbv -> do
+           let n = ilength cs
+           bv <- groundEval sbv
+           Some ixNat <- return $ mkNatRepr (BV.asNatural (BV.ctz n bv))
+           Just (Some ix) <- return $ natReprToIndex cs ixNat
+           return $ EnumLit cs ix
+         SetSym cs sbv -> do
+           let n = ilength cs
+           bv <- groundEval sbv
+           ixNats <- return $ map mkNatRepr
+             [ i | i' <- [0..toInteger (natValue n) - 1]
+                 , let i = fromInteger i'
+                 , BV.testBit' i bv ]
+           Just ixs <- return $ sequence (map (viewSome (natReprToIndex cs)) ixNats)
+           return $ SetLit cs ixs
+         KindSym sinst -> KindLit <$> groundEvalInstance ge sinst
+  return $ FieldLiteral symFieldLiteralName l
+
+-- | Evaluate a 'SymInstance' to an 'Instance' with the help of a ground
+-- evaluation function (returned by a What4 solver).
+groundEvalInstance :: WG.GroundEvalFn t
+                   -> SymInstance t ktps
+                   -> IO (Instance ktps)
+groundEvalInstance ge SymInstance{..} = do
+  fls <- traverseFC (groundEvalFieldLiteral ge) symInstanceLiterals
+  return $ Instance fls
+
 data BuilderState s = EmptyBuilderState
 
-data SatResult = Sat | Unsat | Unknown
+data InstanceResult ktps = HasInstance (Instance ktps)
+                         | NoInstance
+                         | Unknown
   deriving Show
 
-hasInstance :: FilePath -> Kind ktps -> IO SatResult
-hasInstance z3_path kd = do
+-- | Given a 'Kind', get a satisfying 'Instance' if we can determine whether one
+-- exists.
+getInstance :: FilePath -> Kind ktps -> IO (InstanceResult ktps)
+getInstance z3_path kd = do
   Some nonceGen <- newIONonceGenerator
   sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
   WC.extendConfig WS.z3Options (WI.getConfiguration sym)
@@ -211,6 +272,8 @@ hasInstance z3_path kd = do
       WS.assume (WS.sessionWriter session) symConstraint
     WS.runCheckSat session $ \result ->
       case result of
-        WS.Sat _ -> return Sat
-        WS.Unsat _ -> return Unsat
+        WS.Sat (ge,_) -> do
+          inst <- groundEvalInstance ge symInst
+          return $ HasInstance inst
+        WS.Unsat _ -> return NoInstance
         WS.Unknown -> return Unknown
