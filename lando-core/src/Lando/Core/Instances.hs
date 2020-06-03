@@ -16,10 +16,13 @@ module Lando.Core.Instances
   , symEvalExpr
   , InstanceResult(..)
   , getInstance
+  , getNextInstance
+  , instanceSession
   ) where
 
 import Data.Parameterized.List.Length
 import Lando.Core.Kind
+import Lando.Core.Kind.Pretty
 
 import qualified Data.BitVector.Sized    as BV
 import qualified Data.Parameterized.List as PL
@@ -277,3 +280,50 @@ getInstance z3_path kd = do
           return $ HasInstance inst
         WS.Unsat _ -> return NoInstance
         WS.Unknown -> return Unknown
+
+-- | If there are any instances in the current session, retrieve it, and then
+-- negate that instance so we get a different result next time.
+getNextInstance :: WS.SMTLib2Tweaks solver
+                => WB.ExprBuilder t st fs
+                -> WS.Session t solver
+                -> SymInstance t ktps
+                -> IO (InstanceResult ktps)
+getNextInstance sym session symInst = WS.runCheckSat session $ \result ->
+  case result of
+    WS.Sat (ge,_) -> do
+      inst <- groundEvalInstance ge symInst
+      let negateExpr = NotExpr (EqExpr SelfExpr (LiteralExpr (KindLit inst)))
+      BoolSym symConstraint <- symEvalExpr sym symInst negateExpr
+      WS.assume (WS.sessionWriter session) symConstraint
+      return $ HasInstance inst
+    WS.Unsat _ -> return NoInstance
+    WS.Unknown -> return Unknown
+
+repeatIO :: Show a => (String -> IO (Maybe a)) -> IO ()
+repeatIO k = do
+  s <- getLine
+  ma <- k s
+  case ma of
+    Just a -> do print a
+                 repeatIO k
+    Nothing -> return ()
+
+-- | Run an interactive session for instance generation. Every time the user
+-- hits "Enter", a new instance is provided.
+instanceSession :: FilePath -> Kind ktps -> IO ()
+instanceSession z3_path kd = do
+  Some nonceGen <- newIONonceGenerator
+  sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
+  WC.extendConfig WS.z3Options (WI.getConfiguration sym)
+  WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
+    -- Create a fresh symbolic instance of our kind
+    symInst <- freshSymInstanceConstant sym "" (kindFields kd) session
+    -- Add all the kind constraints to our list of assumptions
+    forM_ (kindConstraints kd) $ \e -> do
+      BoolSym symConstraint <- symEvalExpr sym symInst e
+      WS.assume (WS.sessionWriter session) symConstraint
+    WS.runCheckSat session $ \_ -> repeatIO $ \_ -> do
+      res <- getNextInstance sym session symInst
+      case res of
+        HasInstance i -> return $ Just (ppInstance i)
+        _ -> return Nothing
