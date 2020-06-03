@@ -24,36 +24,45 @@ We use $e$ to denote strings which are enum identifiers, $f$ to denote strings w
 \subsection{Expression grammar}
 
 \[ \begin{array}{lclll}
-\exprCtx,\exprCtxAlt
-    &::= & f_1 : A_1 , \ldots , f_n : A_n &&\text{Kind contexts} \\ \\
-A,B &::= & \BB \| \ZZ \| \{ e_1 , \ldots , e_n \} \| \kw{set}\;\{ e_1 , \ldots , e_n \}
-    &&\text{Expression types}  \\
-    &\|  & \kw{kind}\;\{ \exprCtx \} \\ \\
-t,u &::= & f \| %\kw{self} \|
-           t.f \| t = u \| t \le u \| t \;\kw{in}\; u \| t \Rightarrow u \| \neg t \| l
-    &&\text{Expressions} \\ \\
+% \exprCtx,\exprCtxAlt
+%     &::= & f_1 : A_1 , \ldots , f_n : A_n &&\text{Kind contexts} \\ \\
+X   &::= & \BB \| \ZZ \| \{ e_1 , \ldots , e_n \} \| \kw{set}\;\{ e_1 , \ldots , e_n \}
+    &&\text{Base types} \\ \\
+A,B &::= & X \| \kw{kind}\;\{ F \}
+    &&\text{Expression types}  \\ \\
+F,G &::= & f_1 : A_1, \ldots, f_n : A_n
+    &&\text{Kind fields} \\ \\
+t,u &::= & \kw{self} \| f \|
+           t.f \| t = u \| t \le u \| t \;\kw{in}\; u \| t \Rightarrow u
+    &&\text{Expressions} \\
+    &\|  & \neg t \| l \\ \\
 l   &::= & \kw{true} \| \kw{false} \| z \| e \| \{ e_1 , \ldots , e_n \}
     &&\text{Literals} \\
-    &\|  & \kw{inst}\;\{ (f_1, t_1), \ldots, (f_n, t_n) \}
+    &\|  & \kw{inst}\;\{ f_1 = l_1, \ldots, f_n = l_n \}
 \end{array} \]
 
 \subsection{Kind declaration grammar}
 
-For kind declarations, we re-interpret kind contexts as kind types.
+On the top level, we permit in-scope kind names in types, thus we must redefine types and kind fields.
 
 \[ \begin{array}{lclll}
-\declCtx
-    &::= & k_1 : \exprCtx_1, \ldots, k_n : \exprCtx_n
-    &&\text{Document contexts} \\ \\
-D   &::= & \cdot \mid k := d \;;\, D
-    &&\text{Sequences of kind declarations} \\ \\
-d   &::= & \kw{dec}\;\{ (f_1 , F_1) , \ldots , (f_n , F_n) \} \; \{ t_1 , \ldots , t_m \}
-    &&\text{Kind declaration bodies} \\ \\
-F   &::= & A \| K
-    &&\text{Field types} \\ %\\
+\declType, \declTypeAlt
+    &::= & X \| \kw{kind}\;\{ \declFields \} \| K
+    &&\text{Top-level types} \\ \\
+\declFields, \declFieldsAlt
+    &::= & f_1 : \declType_1, \ldots, f_n : \declType_n
+    &&\text{Top-level kind fields} \\ \\
 K   &::= & k \|  k\;K
-    %&&\text{Kinds and unions of kinds}
+    &&\text{Kinds and unions of kinds} \\ \\
+\hline \\
+\declCtx%,\declCtxAlt
+    &::= & k_1 : A_1, \ldots, k_n : A_n
+    &&\text{Document contexts} \\ \\
+D   &::= & \cdot \| k : \declType \text{ where } \{t_1,\ldots,t_n\} \;;\, D
+    &&\text{Declarations} \\ \\
 \end{array} \]
+
+Note that the `$:$' character in document contexts and declarations means something different than the `$:$' character in kind fields!
 
 
 
@@ -61,40 +70,29 @@ K   &::= & k \|  k\;K
 
 \subsection{Expression typing rules}
 
-We provide inference rules for the judgement `$\exprCtx \vdash t : A$' meaning ``the expression $t$ has type $A$ in context $\exprCtx$.'' \\
-
-% \fbox{Rules for types}
-% \begin{mathpar}
-% \inferrule{ }{\BB \text{ type}} \and
-% \inferrule{ }{\ZZ \text{ type}} \and
-% \inferrule{n > 0}{\{ e_1, \ldots, e_n \} \text{ type}} \and
-% \inferrule{n > 0}{\kw{set}\;\{ e_1, \ldots, e_n \} \text{ type}} \and
-% \inferrule{ }{\kw{kind}\;\{ F \} \text{ type}}
-% \end{mathpar}
+We provide inference rules for the judgement ``$A \vdash t : B$'' meaning ``the expression $t$ has type $B$ in a context of type $A$.'' \\
 
 \fbox{Well-typed expressions}
 \begin{mathpar}
-%\inferrule{ }{\exprCtx \vdash \kw{self} : \kw{kind}\;\{ \exprCtx \}} \and
-% \inferrule{\exprCtx \vdash t : \kw{kind}\;\{ (f_1,A_1), \ldots, (f_n,A_n) \} \\ (f,A) \in \{ (f_1,A_1), \ldots, (f_n,A_n) \} }{\exprCtx \vdash t.f : A} \and
-\inferrule{(f : A) \in \exprCtx}{\exprCtx \vdash f : A} \and
-\inferrule{\exprCtx \vdash t : \kw{kind}\;\{ \exprCtxAlt \} \\ \exprCtxAlt \vdash f : A }{\exprCtx \vdash t.f : A} \\
-
-\inferrule{\exprCtx \vdash t : A \\ \exprCtx \vdash u : A}{\exprCtx \vdash t = u : \BB} \and
-\inferrule{\exprCtx \vdash t : \ZZ \\ \exprCtx \vdash u : \ZZ}{\exprCtx \vdash t \le u : \BB} \and
-\inferrule{\exprCtx \vdash t : \{ e_1, \ldots, e_n \} \\ \exprCtx \vdash u : \kw{set} \; \{ e_1, \ldots, e_n \}}{\exprCtx \vdash t \;\kw{in}\; u : \BB} \\
-\inferrule{\exprCtx \vdash t : \BB \\ \exprCtx \vdash u : \BB}{\exprCtx \vdash t \Rightarrow u : \BB} \and
-\inferrule{\exprCtx \vdash t : \BB}{\exprCtx \vdash \neg t : \BB} \and
+\inferrule{ }{A \vdash \kw{self} : A} \and
+\inferrule{(f : A) \in F}{\kw{kind}\;\{F\} \vdash f : A} \and
+\inferrule{\kw{kind}\;\{F\} \vdash t : \kw{kind}\;\{ G \} \\ \kw{kind}\;\{G\} \vdash f : A }{\kw{kind}\;\{F\} \vdash t.f : A} \\
+\inferrule{A \vdash t : B \\ A \vdash u : B}{A \vdash t = u : \BB} \and
+\inferrule{A \vdash t : \ZZ \\ A \vdash u : \ZZ}{A \vdash t \le u : \BB} \and
+\inferrule{A \vdash t : \{ e_1, \ldots, e_n \} \\ A \vdash u : \kw{set} \; \{ e_1, \ldots, e_n \}}{A \vdash t \;\kw{in}\; u : \BB} \\
+\inferrule{A \vdash t : \BB \\ A \vdash u : \BB}{A \vdash t \Rightarrow u : \BB} \and
+\inferrule{A \vdash t : \BB}{A \vdash \neg t : \BB} \and
 \end{mathpar}
 
 \fbox{Well-typed literals}
 \begin{mathpar}
-\inferrule{ }{\exprCtx \vdash \kw{true} : \BB} \and
-\inferrule{ }{\exprCtx \vdash \kw{false} : \BB} \and
-\inferrule{ }{\exprCtx \vdash z : \ZZ} \\
-\inferrule{e \in \{ e_1,\ldots,e_n \}}{\exprCtx \vdash e : \{ e_1,\ldots,e_n \}} \and
+\inferrule{ }{A \vdash \kw{true} : \BB} \and
+\inferrule{ }{A \vdash \kw{false} : \BB} \and
+\inferrule{ }{A \vdash z : \ZZ} \\
+\inferrule{e \in \{ e_1,\ldots,e_n \}}{A \vdash e : \{ e_1,\ldots,e_n \}} \and
 %\inferrule{ }{\exprCtx \vdash \{\} : \kw{set}\;\{e_1,\ldots,e_n\}} \and
-\inferrule{e_i \in \{ e'_1 , \ldots, e'_m \} \text{ for all } i}{ \exprCtx \vdash \{e_1,\ldots,e_n\} : \kw{set}\;\{ e'_1,\ldots,e'_m \} } \and
-\inferrule{ \Gamma \vdash t_i : A_i \text{ for all } i }{\Gamma \vdash \kw{inst}\;\{ (f_1, t_1), \ldots, (f_n, t_n) \} : \kw{kind} \{ (f_1,A_1), \ldots, (f_n,A_n) \}}
+\inferrule{e_i \in \{ e'_1 , \ldots, e'_m \} \text{ for all } i}{A \vdash \{e_1,\ldots,e_n\} : \kw{set}\;\{ e'_1,\ldots,e'_m \} } \and
+\inferrule{ A \vdash l_i : B_i \text{ for all } i }{A \vdash \kw{inst}\;\{ f_1 = l_1, \ldots, f_n = l_n \} : \kw{kind}\;\{ f_1 : B_1, \ldots, f_n : B_n \}}
 \end{mathpar}
 
 \subsection{Kind declaration typing rules}
@@ -108,30 +106,31 @@ We provide inference rules for the judgement `$\exprCtx \vdash t : A$' meaning `
 % \inferrule{\Gamma_D \vdash U \text{ type} \\ (k,-) \in \declCtx}{\declCtx \vdash U\;k \text{ type}}
 % \end{mathpar}
 
-We provide inference rules for three kinds of judgements: 
+We provide inference rules for two kinds of judgements: 
 \begin{itemize}
-    \item `$\declCtx \vdashD D \text{ valid}$' meaning ``the declarations $D$ are valid in document context $\declCtx$''
-    \item `$\declCtx \vdashD d : \exprCtx$' meaning ``the kind declaration $d$ has type $\exprCtx$ in $\declCtx$''
-    \item `$\declCtx \vdashD F \to A$' meaning ``the field type $F$ corresponds to the expression type $A$ in $\declCtx$''
+    \item ``$\declCtx \vdashD D \text{ valid}$'' meaning ``the declarations $D$ are valid in the document context $\declCtx$,''
+    %\item ``$\declCtx \vdashD d : A$'' meaning ``the kind declaration $d$ has expression type $A$ in context $\declCtx$''
+    \item ``$\declCtx \vdashD \declType \to A$'' meaning ``the top-level type $\declType$ corresponds to the expression type $A$ in the document context $\declCtx$''. This correspondence consists of just resolving all the kind names $k$ present in $\declType$ using the context $\Delta$ (see the final two rules).
 \end{itemize}
-(Given a Lobot document $D$, the goal is to derive $\cdot \vdashD D$.) \\
+Given a Lobot document $D$, the goal is to derive $\cdot \vdashD D \text{ valid}$. \\
 
-\fbox{Valid sequences of declarations}
+\fbox{Valid declarations}
 \begin{mathpar}
 \inferrule{ }{\declCtx \vdashD \cdot \text{ valid}} \and
-\inferrule{\declCtx \vdashD d : \exprCtx \\ \declCtx,k : \exprCtx \vdashD D \text{ valid}}{\declCtx \vdashD k := d \;;\, D \text{ valid}}
+\inferrule{\declCtx \vdashD \declType \to A \\ A \vdash t_i : \BB \text{ for all } i \\ \declCtx,k : A \vdashD D \text{ valid}}{\declCtx \vdashD k : \declType \text{ where } \{t_1,\ldots,t_n\}\;;\, D \text{ valid}}
 \end{mathpar}
 
-\fbox{Well-typed declarations}
-\begin{mathpar}
-\inferrule{\declCtx \vdashD F_i \to A_i \;\text{ for all } i \\ f_1 : A_1,\ldots,f_n : A_n \vdash t_j : \BB \;\text{ for all } j}{\declCtx \vdashD \kw{dec}\;\{ (f_1,F_1),\ldots,(f_n,F_n) \}\;\{t_1,\ldots,t_m\} : (f_1 : A_1,\ldots,f_n : A_n)}
-\end{mathpar}
+% \fbox{Well-typed declarations}
+% \begin{mathpar}
+% \inferrule{\declCtx \vdashD \declType \to A \\ A \vdash t_i : \BB \text{ for all } i}{\declCtx \vdashD \declType \kw{ where } \{t_1,\ldots,t_n\} : A}
+% \end{mathpar}
 
-\fbox{Field types to expression types}
+\fbox{Top-level types to expression types}
 \begin{mathpar}
-\inferrule{ }{\declCtx \vdashD A \to A} \and
-\inferrule{(k : \exprCtx) \in \declCtx}{\declCtx \vdashD k \to \kw{kind}\{ \exprCtx \}} \and
-\inferrule{(k : \exprCtx) \in \declCtx \\ \declCtx \vdashD K \to \kw{kind}\{ \exprCtx \}}{\declCtx \vdashD k\;K \to \kw{kind}\{ \exprCtx \}} \and
+\inferrule{ }{\declCtx \vdashD X \to X} \and
+\inferrule{\declCtx \vdashD \declType_i \to A_i \text{ for all } i}{\declCtx \vdashD \kw{kind}\;\{ f_1 : \declType_1, \ldots, f_n : \declType_n \} \to \kw{kind}\;\{ f_1 : A_1, \ldots, f_n : A_n \}} \\
+\inferrule{(k : A) \in \declCtx}{\declCtx \vdashD k \to A} \and
+\inferrule{(k : A) \in \declCtx \\ \declCtx \vdashD K \to A}{\declCtx \vdashD k\;K \to A} \and
 \end{mathpar}
 
 \end{document}
