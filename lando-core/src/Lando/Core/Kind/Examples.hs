@@ -12,6 +12,9 @@ module Lando.Core.Kind.Examples
   , SexType, PersonType
   , person_kind
   , teenager_kind
+    -- * Example 3
+  , RegWidthType, ExtsType, RISCVType
+  , riscv
   ) where
 
 import Data.List.NonEmpty
@@ -116,6 +119,42 @@ teenager_kind = derivedKind (person_kind :| []) "teenager"
                   (LiteralExpr (IntLit 19))
                 ]
 
+type RegWidthType = '["RV32", "RV64"]
+reg_width_type :: List SymbolRepr RegWidthType
+reg_width_type = knownSymbol :< knownSymbol :< Nil
+
+type ExtsType = '["M", "A", "F", "D", "C"]
+exts_type :: List SymbolRepr ExtsType
+exts_type = knownSymbol :<
+            knownSymbol :<
+            knownSymbol :<
+            knownSymbol :<
+            knownSymbol :< Nil
+
+type RISCVType = '[ '("reg_width", EnumType RegWidthType),
+                    '("exts", SetType ExtsType)
+                  ]
+-- |
+-- @
+-- kind riscv
+--   with reg_width : {RV32, RV64}, 
+--        exts : subset {M, A, F, D, C}
+-- @
+riscv :: Kind RISCVType
+riscv = Kind { kindName = "riscv"
+             , kindFields = FieldRepr knownSymbol (EnumRepr reg_width_type) :<
+                            FieldRepr knownSymbol (SetRepr exts_type) :< Nil
+             , kindConstraints =
+               [ ImpliesExpr
+                 (MemberExpr
+                  (LiteralExpr (EnumLit exts_type index3))
+                  (FieldExpr SelfExpr index1))
+                 (MemberExpr
+                  (LiteralExpr (EnumLit exts_type index2))
+                  (FieldExpr SelfExpr index1))
+               ]
+             }
+
 -- couple :: Kind '[ '("person1", KindType PersonType)
 --                 , '("person2", KindType PersonType) ]
 -- couple = Kind { kindName = "couple"
@@ -188,24 +227,6 @@ teenager_kind = derivedKind (person_kind :| []) "teenager"
 --                          knownSymbol @"C" :< Nil)
 --                 knownNat
 --   }
-
--- type RISCVType = '[ '("reg_width", EnumType '["RV32", "RV64"]),
---                     '("exts", SetType '["M", "A", "F", "D", "C"])
---                   ]
-
--- riscv :: Kind RISCVType
--- riscv = Kind { kindName = "riscv"
---              , kindFields = reg_width :< exts :< Nil
---              , kindConstraints =
---                [ ImpliesExpr
---                  (MemberExpr -- D in exts
---                   (LiteralExpr (EnumLit index3 knownNat)) -- D
---                   (FieldExpr SelfExpr index1)) -- exts
---                  (MemberExpr -- F in exts
---                   (LiteralExpr (EnumLit index2 knownNat)) -- F
---                   (FieldExpr SelfExpr index1)) -- exts
---                ]
---              }
 
 -- riscv_with_m :: Kind RISCVType
 -- riscv_with_m = riscv `addConstraints`
