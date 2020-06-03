@@ -29,10 +29,14 @@ module Lando.Core.Kind
   , Kind(..)
   , FieldRepr(..)
   , addConstraints
+  , derivedKind
     -- * Instances
   , Instance(..)
+  , instanceType
   , FieldLiteral(..)
+  , fieldLiteralType
   , Literal(..)
+  , literalType
   , instanceOf
     -- * Expressions
   , Expr(..)
@@ -42,11 +46,13 @@ module Lando.Core.Kind
 import Data.Parameterized.List.Length
 
 import Data.List (find)
+import Data.List.NonEmpty hiding ((!!))
 import Data.Parameterized.Some
 import Data.Parameterized.Classes
 import Data.Parameterized.List
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
+import Data.Parameterized.TraversableFC
 import Prelude hiding ((!!))
 
 -- | Representation of a Lando feature model, which we term a 'Kind' for
@@ -62,7 +68,15 @@ data Kind (ktps :: [(Symbol, Type)]) = Kind
 
 -- | Augment a 'Kind' with some additional constraints.
 addConstraints :: Kind ktps -> [Expr ktps BoolType] -> Kind ktps
-addConstraints kd cs = kd { kindConstraints = kindConstraints kd ++ cs }
+addConstraints kd cs =
+  kd { kindConstraints = kindConstraints kd ++ cs }
+
+-- | Given a set of parent 'Kind's, create a derived 'Kind'.
+derivedKind :: NonEmpty (Kind ktps) -> String -> [Expr ktps BoolType] -> Kind ktps
+derivedKind kds@(kd :| _) nm cs =
+  kd { kindName = nm
+     , kindConstraints = concatMap kindConstraints kds ++ cs
+     }
 
 -- | A 'FieldRepr' is a key, type pair. Note that since both the key and the type
 -- are tracked at the type level, this is a singleton type that lets you know
@@ -115,12 +129,25 @@ data Literal tp where
   KindLit :: Instance ktps -> Literal (KindType ktps)
 deriving instance Show (Literal tp)
 
+-- | Get the type of a literal.
+literalType :: Literal tp -> TypeRepr tp
+literalType (BoolLit _) = BoolRepr
+literalType (IntLit _) = IntRepr
+literalType (EnumLit cs _) = EnumRepr cs
+literalType (SetLit cs _) = SetRepr cs
+literalType (KindLit (Instance flds)) = KindRepr (fmapFC fieldLiteralType flds)
+
 -- | An instance of a particular field. This is just the field name paired with
 -- a concrete literal.
 data FieldLiteral (p :: (Symbol, Type)) where
   FieldLiteral :: { fieldLiteralName :: SymbolRepr nm
                   , fieldLiteralValue :: Literal tp
                   } -> FieldLiteral '(nm, tp)
+
+-- | Get the type of a 'FieldLiteral'.
+fieldLiteralType :: FieldLiteral ftp -> FieldRepr ftp
+fieldLiteralType FieldLiteral{..} =
+  FieldRepr fieldLiteralName (literalType fieldLiteralValue)
 
 deriving instance Show (FieldLiteral p)
 instance ShowF FieldLiteral
@@ -129,6 +156,10 @@ instance ShowF FieldLiteral
 -- satisfies any of the kind's constraints. That needs to be checked.
 data Instance ktps = Instance { instanceValues :: List FieldLiteral ktps }
   deriving (Show)
+
+-- | Get the type of an 'Instance'.
+instanceType :: Instance ktps -> List FieldRepr ktps
+instanceType Instance{..} = fmapFC fieldLiteralType instanceValues
 
 -- | A expression involving a particular kind.
 data Expr (ktps :: [(Symbol, Type)]) (tp :: Type) where
@@ -162,8 +193,9 @@ litEq (SetLit _ s1) (SetLit _ s2) = all (\i -> isJust (find (==i) s2)) s1 &&
                                     all (\i -> isJust (find (==i) s1)) s2
 litEq (KindLit i1) (KindLit i2) = i1 `instanceEq` i2
 
-fieldValueEq :: FieldLiteral '(nm, tp) -> FieldLiteral '(nm, tp) -> Bool
-fieldValueEq fv1 fv2 = litEq (fieldLiteralValue fv1) (fieldLiteralValue fv2)
+fieldValueEq :: FieldLiteral ftp -> FieldLiteral ftp -> Bool
+fieldValueEq fv1@(FieldLiteral _ _) fv2 =
+  litEq (fieldLiteralValue fv1) (fieldLiteralValue fv2)
 
 instanceEq :: forall (ktps :: [(Symbol, Type)]) . Instance ktps -> Instance ktps -> Bool
 instanceEq i1 i2 = listEq (instanceValues i1) (instanceValues i2)

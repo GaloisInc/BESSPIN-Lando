@@ -1,56 +1,146 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Lando.Core.Kind.Examples where
+module Lando.Core.Kind.Examples
+  ( -- * Example 1
+    ABCType, FooType
+  , abc_kind
+  , abc_kind_1
+  , abc_kind_2
+  , abc_kind_3
+    -- * Example 2
+  , SexType, PersonType
+  , person_kind
+  , teenager_kind
+  ) where
 
+import Data.List.NonEmpty
 import Data.Parameterized.List
-import Data.Parameterized.NatRepr
-import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Lando.Core.Kind
 
-age :: FieldRepr '("age", IntType)
-age = FieldRepr
-  { fieldName = knownSymbol @"age"
-  , fieldType = IntRepr
-  }
+type ABCType = '["A", "B", "C"]
 
-sex_type :: List SymbolRepr '["Male", "Female"]
-sex_type = knownSymbol @"Male" :< knownSymbol @"Female" :< Nil
+type FooType = '[ '("abc", SetType ABCType ) ]
 
-sex :: FieldRepr '("sex", EnumType '["Male", "Female"])
-sex = FieldRepr
-  { fieldName = knownSymbol @"sex"
-  , fieldType = EnumRepr sex_type
-  }
+abc_type :: List SymbolRepr ABCType
+abc_type = knownSymbol :< knownSymbol :< knownSymbol :< Nil
+
+-- |
+-- @
+-- kind abc_kind
+--   with abc : subset {A, B, C}
+-- @
+abc_kind :: Kind FooType
+abc_kind = Kind { kindName = "abc"
+                , kindFields = FieldRepr knownSymbol (SetRepr abc_type) :< Nil
+                , kindConstraints = []
+                }
+-- |
+-- @
+-- kind abc_kind_1 of abc_kind
+--   with abc : subset {A, B, C}
+--   where A in abc
+-- @
+abc_kind_1 :: Kind FooType
+abc_kind_1 = derivedKind (abc_kind :| []) "abc_kind_1"
+                  [ MemberExpr
+                    (LiteralExpr (EnumLit abc_type index0))
+                    (FieldExpr SelfExpr index0)
+                  ]
+
+-- |
+-- @
+-- kind abc_kind_2 of abc_kind
+--   with abc : subset {A, B, C}
+--   where (A in abc) => (C in abc)
+-- @
+abc_kind_2 :: Kind FooType
+abc_kind_2 = derivedKind (abc_kind :| []) "abc_kind_2"
+             [ ImpliesExpr
+               (MemberExpr
+                (LiteralExpr (EnumLit abc_type index0))
+                (FieldExpr SelfExpr index0))
+               (MemberExpr
+                (LiteralExpr (EnumLit abc_type index2))
+                (FieldExpr SelfExpr index0))
+             ]
+
+-- |
+-- @
+-- kind abc_kind2 of abc_kind_1 abc_kind_2
+-- @
+abc_kind_3 :: Kind FooType
+abc_kind_3 = derivedKind
+  (abc_kind_1 :| [abc_kind_2])
+  "abc_kind_1_and_A_implies_C"
+  []
+
+type SexType = '["Male", "Female"]
+
+sex_type :: List SymbolRepr SexType
+sex_type = knownSymbol :< knownSymbol :< Nil
 
 type PersonType = '[ '("age", IntType)
-                   , '("sex", EnumType '["Male", "Female"])
+                   , '("sex", EnumType SexType)
                    ]
 
-person :: Kind PersonType
-person = Kind { kindName = "person"
-              , kindFields = age :< sex :< Nil
-              , kindConstraints =
-                [ LteExpr (LiteralExpr (IntLit 0)) (FieldExpr SelfExpr index0) ]
-              }
+-- |
+-- @
+-- kind person
+--   with age : int
+--        sex : {Male, Female}
+--   where age >= 0
+-- @
+person_kind :: Kind PersonType
+person_kind = Kind { kindName = "person"
+                   , kindFields = FieldRepr knownSymbol IntRepr :<
+                                  FieldRepr knownSymbol (EnumRepr sex_type) :< Nil
+                   , kindConstraints =
+                       [ LteExpr
+                         (LiteralExpr (IntLit 0))
+                         (FieldExpr SelfExpr index0)
+                       ]
+                   }
 
-impossible_person :: Kind PersonType
-impossible_person = person `addConstraints`
-  [ EqExpr
-    (FieldExpr SelfExpr index1) -- sex
-    (LiteralExpr (EnumLit sex_type index0)) -- male
-  , EqExpr
-    (FieldExpr SelfExpr index1) -- sex
-    (LiteralExpr (EnumLit sex_type index1)) -- female
-  ]
+-- kind teenager of person
+--   where 13 <= age,
+--         age <= 19
+teenager_kind :: Kind PersonType
+teenager_kind = derivedKind (person_kind :| []) "teenager"
+                [ LteExpr
+                  (LiteralExpr (IntLit 13))
+                  (FieldExpr SelfExpr index0)
+                , LteExpr
+                  (FieldExpr SelfExpr index0)
+                  (LiteralExpr (IntLit 19))
+                ]
 
-male_person :: Kind PersonType
-male_person = person `addConstraints`
-  [ EqExpr
-    (FieldExpr SelfExpr index1) -- sex
-    (LiteralExpr (EnumLit sex_type index0)) -- male
-  ]
+-- couple :: Kind '[ '("person1", KindType PersonType)
+--                 , '("person2", KindType PersonType) ]
+-- couple = Kind { kindName = "couple"
+--               , kindFields = FieldRepr (knownSymbol @"person1") personRepr :<
+--                              FieldRepr (knownSymbol @"person2") personRepr :< Nil
+--               , kindConstraints = []
+--               }
+--   where personRepr = KindRepr (age :< sex :< Nil)
+
+-- impossible_person :: Kind PersonType
+-- impossible_person = derivedKind person "impossible_person "
+--   [ EqExpr
+--     (FieldExpr SelfExpr index1) -- sex
+--     (LiteralExpr (EnumLit sex_type index0)) -- male
+--   , EqExpr
+--     (FieldExpr SelfExpr index1) -- sex
+--     (LiteralExpr (EnumLit sex_type index1)) -- female
+--   ]
+
+-- male_person :: Kind PersonType
+-- male_person = derivedKind person "male_person"
+--   [ EqExpr
+--     (FieldExpr SelfExpr index1) -- sex
+--     (LiteralExpr (EnumLit sex_type index0)) -- male
+--   ]
 
 -- female_person :: Kind PersonType
 -- female_person = person `addConstraints`
@@ -65,8 +155,8 @@ male_person = person `addConstraints`
 
 -- ben :: Instance PersonType
 -- ben = Instance { instanceValues =
---                  FieldLiteral age (IntLit 30) :<
---                  FieldLiteral sex (EnumLit index0 knownNat) :< Nil
+--                  FieldLiteral knownSymbol (IntLit 30) :<
+--                  FieldLiteral knownSymbol (EnumLit sex_type index0) :< Nil
 --                }
 
 -- emmy :: Instance PersonType
