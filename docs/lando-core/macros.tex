@@ -1,0 +1,23 @@
+\usepackage{amsmath}
+\usepackage{mathpartir}
+
+\let\oldneg\neg
+\renewcommand{\neg}{\oldneg\,}
+
+
+% Grammar definition helpers
+\renewcommand{\|}{~\mid~}
+
+% Keywords
+\newcommand{\kw}[1]{\textsf{#1}}
+\newcommand{\BB}{\kw{bool}}
+\newcommand{\ZZ}{\kw{integer}}
+
+% Inference rule notations
+\newcommand{\exprCtx}{\Gamma}
+\newcommand{\exprCtxAlt}{\Delta}
+
+\newcommand{\declCtx}{\Theta}
+\newcommand{\declCtxAlt}{\Phi}
+
+\newcommand{\vdashD}{\vdash_D}

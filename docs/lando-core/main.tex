@@ -1,0 +1,137 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{
+left=1.4in,
+right=1.4in,
+top=1in,
+bottom=1in,
+}
+
+\input{macros}
+
+\title{Lobot Typing Rules}
+\author{Matthew Yacavone}
+
+\begin{document}
+
+\maketitle
+
+\section{Grammar}
+
+We use $e$ to denote strings which are enum identifiers, $f$ to denote strings which are field identifiers, $k$ to denote strings which are kind identifiers, and $z$ to denote strings which are integer literals.
+
+\subsection{Expression grammar}
+
+\[ \begin{array}{lclll}
+\exprCtx,\exprCtxAlt
+    &::= & f_1 : A_1 , \ldots , f_n : A_n &&\text{Kind contexts} \\ \\
+A,B &::= & \BB \| \ZZ \| \{ e_1 , \ldots , e_n \} \| \kw{set}\;\{ e_1 , \ldots , e_n \}
+    &&\text{Expression types}  \\
+    &\|  & \kw{kind}\;\{ \exprCtx \} \\ \\
+t,u &::= & f \| %\kw{self} \|
+           t.f \| t = u \| t \le u \| t \;\kw{in}\; u \| t \Rightarrow u \| \neg t \| l
+    &&\text{Expressions} \\ \\
+l   &::= & \kw{true} \| \kw{false} \| z \| e \| \{ e_1 , \ldots , e_n \}
+    &&\text{Literals} \\
+    &\|  & \kw{inst}\;\{ (f_1, t_1), \ldots, (f_n, t_n) \}
+\end{array} \]
+
+\subsection{Kind declaration grammar}
+
+For kind declarations, we re-interpret kind contexts as kind types.
+
+\[ \begin{array}{lclll}
+\declCtx
+    &::= & k_1 : \exprCtx_1, \ldots, k_n : \exprCtx_n
+    &&\text{Document contexts} \\ \\
+D   &::= & \cdot \mid k := d \;;\, D
+    &&\text{Sequences of kind declarations} \\ \\
+d   &::= & \kw{dec}\;\{ (f_1 , F_1) , \ldots , (f_n , F_n) \} \; \{ t_1 , \ldots , t_m \}
+    &&\text{Kind declaration bodies} \\ \\
+F   &::= & A \| K
+    &&\text{Field types} \\ %\\
+K   &::= & k \|  k\;K
+    %&&\text{Kinds and unions of kinds}
+\end{array} \]
+
+
+
+\section{Typing Rules}
+
+\subsection{Expression typing rules}
+
+We provide inference rules for the judgement `$\exprCtx \vdash t : A$' meaning ``the expression $t$ has type $A$ in context $\exprCtx$.'' \\
+
+% \fbox{Rules for types}
+% \begin{mathpar}
+% \inferrule{ }{\BB \text{ type}} \and
+% \inferrule{ }{\ZZ \text{ type}} \and
+% \inferrule{n > 0}{\{ e_1, \ldots, e_n \} \text{ type}} \and
+% \inferrule{n > 0}{\kw{set}\;\{ e_1, \ldots, e_n \} \text{ type}} \and
+% \inferrule{ }{\kw{kind}\;\{ F \} \text{ type}}
+% \end{mathpar}
+
+\fbox{Well-typed expressions}
+\begin{mathpar}
+%\inferrule{ }{\exprCtx \vdash \kw{self} : \kw{kind}\;\{ \exprCtx \}} \and
+% \inferrule{\exprCtx \vdash t : \kw{kind}\;\{ (f_1,A_1), \ldots, (f_n,A_n) \} \\ (f,A) \in \{ (f_1,A_1), \ldots, (f_n,A_n) \} }{\exprCtx \vdash t.f : A} \and
+\inferrule{(f : A) \in \exprCtx}{\exprCtx \vdash f : A} \and
+\inferrule{\exprCtx \vdash t : \kw{kind}\;\{ \exprCtxAlt \} \\ \exprCtxAlt \vdash f : A }{\exprCtx \vdash t.f : A} \\
+
+\inferrule{\exprCtx \vdash t : A \\ \exprCtx \vdash u : A}{\exprCtx \vdash t = u : \BB} \and
+\inferrule{\exprCtx \vdash t : \ZZ \\ \exprCtx \vdash u : \ZZ}{\exprCtx \vdash t \le u : \BB} \and
+\inferrule{\exprCtx \vdash t : \{ e_1, \ldots, e_n \} \\ \exprCtx \vdash u : \kw{set} \; \{ e_1, \ldots, e_n \}}{\exprCtx \vdash t \;\kw{in}\; u : \BB} \\
+\inferrule{\exprCtx \vdash t : \BB \\ \exprCtx \vdash u : \BB}{\exprCtx \vdash t \Rightarrow u : \BB} \and
+\inferrule{\exprCtx \vdash t : \BB}{\exprCtx \vdash \neg t : \BB} \and
+\end{mathpar}
+
+\fbox{Well-typed literals}
+\begin{mathpar}
+\inferrule{ }{\exprCtx \vdash \kw{true} : \BB} \and
+\inferrule{ }{\exprCtx \vdash \kw{false} : \BB} \and
+\inferrule{ }{\exprCtx \vdash z : \ZZ} \\
+\inferrule{e \in \{ e_1,\ldots,e_n \}}{\exprCtx \vdash e : \{ e_1,\ldots,e_n \}} \and
+%\inferrule{ }{\exprCtx \vdash \{\} : \kw{set}\;\{e_1,\ldots,e_n\}} \and
+\inferrule{e_i \in \{ e'_1 , \ldots, e'_m \} \text{ for all } i}{ \exprCtx \vdash \{e_1,\ldots,e_n\} : \kw{set}\;\{ e'_1,\ldots,e'_m \} } \and
+\inferrule{ \Gamma \vdash t_i : A_i \text{ for all } i }{\Gamma \vdash \kw{inst}\;\{ (f_1, t_1), \ldots, (f_n, t_n) \} : \kw{kind} \{ (f_1,A_1), \ldots, (f_n,A_n) \}}
+\end{mathpar}
+
+\subsection{Kind declaration typing rules}
+
+% Typing rules for kind declarations. \\
+
+% \fbox{Well-formed field types}
+% \begin{mathpar}
+% \inferrule{ }{\declCtx \vdash A \text{ type}} \and
+% \inferrule{(k,-) \in \declCtx}{\declCtx \vdash k \text{ type}} \and
+% \inferrule{\Gamma_D \vdash U \text{ type} \\ (k,-) \in \declCtx}{\declCtx \vdash U\;k \text{ type}}
+% \end{mathpar}
+
+We provide inference rules for three kinds of judgements: 
+\begin{itemize}
+    \item `$\declCtx \vdashD D \text{ valid}$' meaning ``the declarations $D$ are valid in document context $\declCtx$''
+    \item `$\declCtx \vdashD d : \exprCtx$' meaning ``the kind declaration $d$ has type $\exprCtx$ in $\declCtx$''
+    \item `$\declCtx \vdashD F \to A$' meaning ``the field type $F$ corresponds to the expression type $A$ in $\declCtx$''
+\end{itemize}
+(Given a Lobot document $D$, the goal is to derive $\cdot \vdashD D$.) \\
+
+\fbox{Valid sequences of declarations}
+\begin{mathpar}
+\inferrule{ }{\declCtx \vdashD \cdot \text{ valid}} \and
+\inferrule{\declCtx \vdashD d : \exprCtx \\ \declCtx,k : \exprCtx \vdashD D \text{ valid}}{\declCtx \vdashD k := d \;;\, D \text{ valid}}
+\end{mathpar}
+
+\fbox{Well-typed declarations}
+\begin{mathpar}
+\inferrule{\declCtx \vdashD F_i \to A_i \;\text{ for all } i \\ f_1 : A_1,\ldots,f_n : A_n \vdash t_j : \BB \;\text{ for all } j}{\declCtx \vdashD \kw{dec}\;\{ (f_1,F_1),\ldots,(f_n,F_n) \}\;\{t_1,\ldots,t_m\} : (f_1 : A_1,\ldots,f_n : A_n)}
+\end{mathpar}
+
+\fbox{Field types to expression types}
+\begin{mathpar}
+\inferrule{ }{\declCtx \vdashD A \to A} \and
+\inferrule{(k : \exprCtx) \in \declCtx}{\declCtx \vdashD k \to \kw{kind}\{ \exprCtx \}} \and
+\inferrule{(k : \exprCtx) \in \declCtx \\ \declCtx \vdashD K \to \kw{kind}\{ \exprCtx \}}{\declCtx \vdashD k\;K \to \kw{kind}\{ \exprCtx \}} \and
+\end{mathpar}
+
+\end{document}
