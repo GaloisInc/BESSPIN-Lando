@@ -106,9 +106,12 @@ person_kind = Kind { kindName = "person"
                        ]
                    }
 
+-- |
+-- @
 -- kind teenager of person
 --   where 13 <= age,
 --         age <= 19
+-- @
 teenager_kind :: Kind PersonType
 teenager_kind = derivedKind (person_kind :| []) "teenager"
                 [ LteExpr
@@ -134,11 +137,13 @@ exts_type = knownSymbol :<
 type RISCVType = '[ '("reg_width", EnumType RegWidthType),
                     '("exts", SetType ExtsType)
                   ]
+
 -- |
 -- @
 -- kind riscv
---   with reg_width : {RV32, RV64}, 
+--   with reg_width : {RV32, RV64},
 --        exts : subset {M, A, F, D, C}
+--   where (D in exts) => (F in exts)
 -- @
 riscv :: Kind RISCVType
 riscv = Kind { kindName = "riscv"

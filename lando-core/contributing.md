@@ -1,6 +1,6 @@
 # Contributing to lando-core
 
-The following is a set of guidelines for contributing to Lando.
+The following is a set of guidelines for contributing to Lando/Lobot.
 
 #### Table Of Contents
 
