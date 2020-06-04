@@ -309,7 +309,7 @@ repeatIO k = do
     Nothing -> return ()
 
 -- | Run an interactive session for instance generation. Every time the user
--- hits "Enter", a new instance is provided.
+-- hits \"Enter\", a new instance is provided.
 instanceSession :: FilePath -> Kind ktps -> IO ()
 instanceSession z3_path kd = do
   Some nonceGen <- newIONonceGenerator
