@@ -15,9 +15,12 @@ module Lando.Core.Kind.Examples
     -- * Example 3
   , RegWidthType, ExtsType, RISCVType
   , riscv
+  , PiccoloBuildType
+  , piccolo_build
   ) where
 
 import Data.List.NonEmpty
+import Data.Parameterized.Classes
 import Data.Parameterized.List
 import Data.Parameterized.SymbolRepr
 import Lando.Core.Kind
@@ -27,7 +30,7 @@ type ABCType = '["A", "B", "C"]
 type FooType = '[ '("abc", SetType ABCType ) ]
 
 abc_type :: List SymbolRepr ABCType
-abc_type = knownSymbol :< knownSymbol :< knownSymbol :< Nil
+abc_type = knownRepr
 
 -- |
 -- @
@@ -39,6 +42,7 @@ abc_kind = Kind { kindName = "abc"
                 , kindFields = FieldRepr knownSymbol (SetRepr abc_type) :< Nil
                 , kindConstraints = []
                 }
+
 -- |
 -- @
 -- kind abc_kind_1 of abc_kind
@@ -82,7 +86,7 @@ abc_kind_3 = derivedKind
 type SexType = '["Male", "Female"]
 
 sex_type :: List SymbolRepr SexType
-sex_type = knownSymbol :< knownSymbol :< Nil
+sex_type = knownRepr
 
 type PersonType = '[ '("age", IntType)
                    , '("sex", EnumType SexType)
@@ -128,11 +132,7 @@ reg_width_type = knownSymbol :< knownSymbol :< Nil
 
 type ExtsType = '["M", "A", "F", "D", "C"]
 exts_type :: List SymbolRepr ExtsType
-exts_type = knownSymbol :<
-            knownSymbol :<
-            knownSymbol :<
-            knownSymbol :<
-            knownSymbol :< Nil
+exts_type = knownRepr
 
 type RISCVType = '[ '("reg_width", EnumType RegWidthType),
                     '("exts", SetType ExtsType)
@@ -159,6 +159,27 @@ riscv = Kind { kindName = "riscv"
                   (FieldExpr SelfExpr index1))
                ]
              }
+
+type SimType = '[ "Bluesim", "IVerilog", "Verilator" ]
+sim_type :: List SymbolRepr SimType
+sim_type = knownRepr
+
+type PiccoloBuildType = '[ '("riscv", KindType RISCVType)
+                         , '("sim", EnumType SimType)
+                         ]
+-- |
+-- @
+-- kind piccolo_build
+--   with riscv : riscv,
+--        sim : {Bluesim, IVerilog, Verilator}
+-- @
+piccolo_build :: Kind PiccoloBuildType
+piccolo_build = liftConstraints k riscv index0
+  where k = Kind { kindName = "piccolo_build"
+                 , kindFields = FieldRepr knownSymbol (KindRepr (kindFields riscv)) :<
+                                FieldRepr knownSymbol (EnumRepr sim_type) :< Nil
+                 , kindConstraints = []
+                 }
 
 -- couple :: Kind '[ '("person1", KindType PersonType)
 --                 , '("person2", KindType PersonType) ]

@@ -30,6 +30,7 @@ module Lando.Core.Kind
   , FieldRepr(..)
   , addConstraints
   , derivedKind
+  , liftConstraints
     -- * Instances
   , Instance(..)
   , instanceType
@@ -41,6 +42,7 @@ module Lando.Core.Kind
     -- * Expressions
   , Expr(..)
   , evalExpr
+  , liftExpr
   ) where
 
 import Data.Parameterized.List.Length
@@ -77,6 +79,14 @@ derivedKind kds@(kd :| _) nm cs =
   kd { kindName = nm
      , kindConstraints = concatMap kindConstraints kds ++ cs
      }
+
+-- | Lift the constraints of a kind @K'@ into a parent kind @K@ that contains
+-- @K'@. This should only be called once for a given child.
+liftConstraints :: Kind ktps
+                -> Kind ktps'
+                -> Index ktps '(nm, KindType ktps')
+                -> Kind ktps
+liftConstraints k k' i = addConstraints k (liftExpr i <$> kindConstraints k')
 
 -- | A 'FieldRepr' is a key, type pair. Note that since both the key and the type
 -- are tracked at the type level, this is a singleton type that lets you know
@@ -215,8 +225,8 @@ instanceOf inst (Kind{..}) = all constraintHolds kindConstraints
 evalExpr :: Instance ktps -> Expr ktps tp -> Literal tp
 evalExpr inst e = case e of
   SelfExpr -> KindLit inst
-  FieldExpr kd fld
-    | KindLit (Instance fvs) <- evalExpr inst kd -> fieldLiteralValue (fvs !! fld)
+  FieldExpr kd i
+    | KindLit (Instance fvs) <- evalExpr inst kd -> fieldLiteralValue (fvs !! i)
   LiteralExpr l -> l
   EqExpr e1 e2
     | l1 <- evalExpr inst e1
@@ -231,3 +241,18 @@ evalExpr inst e = case e of
     | BoolLit b1 <- evalExpr inst e1
     , BoolLit b2 <- evalExpr inst e2 -> BoolLit (not b1 || b2)
   NotExpr e' | BoolLit b <- evalExpr inst e' -> BoolLit (not b)
+
+-- | Lift an expression about a kind @K'@ into an expression about a kind @K@ which
+-- contains @K'@.
+liftExpr :: Index ktps '(nm, KindType ktps')
+         -> Expr ktps' tp
+         -> Expr ktps tp
+liftExpr i e = case e of
+  LiteralExpr l -> LiteralExpr l
+  SelfExpr -> FieldExpr SelfExpr i
+  FieldExpr kd i' -> FieldExpr (liftExpr i kd) i'
+  EqExpr e1 e2 -> EqExpr (liftExpr i e1) (liftExpr i e2)
+  LteExpr e1 e2 -> LteExpr (liftExpr i e1) (liftExpr i e2)
+  MemberExpr e1 e2 -> MemberExpr (liftExpr i e1) (liftExpr i e2)
+  ImpliesExpr e1 e2 -> ImpliesExpr (liftExpr i e1) (liftExpr i e2)
+  NotExpr e' -> NotExpr (liftExpr i e')
