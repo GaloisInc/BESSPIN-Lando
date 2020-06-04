@@ -210,14 +210,6 @@ symEvalExpr sym inst e = case e of
     BoolSym b <- symEvalExpr sym inst e'
     BoolSym <$> WI.notPred sym b
 
-natReprToIndex :: List f sh -> NatRepr n -> Maybe (Some (Index sh))
-natReprToIndex Nil _ = Nothing
-natReprToIndex (_ :< as) n = case isZeroOrGT1 n of
-  Left Refl -> Just $ Some (IndexHere)
-  Right LeqProof
-    | Just (Some ix) <- natReprToIndex as (decNat n) -> Just (Some (IndexThere ix))
-  _ -> Nothing
-
 groundEvalFieldLiteral :: WG.GroundEvalFn t
                        -> SymFieldLiteral t ftp
                        -> IO (FieldLiteral ftp)
@@ -238,7 +230,9 @@ groundEvalFieldLiteral ge@WG.GroundEvalFn{..} SymFieldLiteral{..} = do
              [ i | i' <- [0..toInteger (natValue n) - 1]
                  , let i = fromInteger i'
                  , BV.testBit' i bv ]
-           Just ixs <- return $ sequence (map (viewSome (natReprToIndex cs)) ixNats)
+           Just ixs <- return $
+             sequence (map (viewSome (natReprToIndex cs))
+                       ixNats)
            return $ SetLit cs ixs
          KindSym sinst -> KindLit <$> groundEvalInstance ge sinst
   return $ FieldLiteral symFieldLiteralName l
