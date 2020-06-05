@@ -20,14 +20,18 @@ import Data.Parameterized.NatRepr
 import Data.Parameterized.Some
 import GHC.TypeLits
 
+-- | Length of a type-level list.
 type family Length (l :: [k]) :: Nat where
   Length '[] = 0
   Length (c ': cs) = Length cs + 1
 
+-- | Compute the length of a 'List'.
 ilength :: List f sh -> NatRepr (Length sh)
 ilength Nil = knownNat @0
 ilength (_ :< as) = incNat (ilength as)
 
+-- | Given a 'List', convert a 'NatRepr' into an 'Index' into that list. If the
+-- 'NatRepr' exceeds the length of the list, return 'Nothing'.
 natReprToIndex :: List f sh -> NatRepr n -> Maybe (Some (Index sh))
 natReprToIndex Nil _ = Nothing
 natReprToIndex (_ :< as) n = case isZeroOrGT1 n of
