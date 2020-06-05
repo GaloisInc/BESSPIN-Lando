@@ -24,6 +24,7 @@ module Lando.Core.Kind.Examples
 import Data.List.NonEmpty
 import Data.Parameterized.Classes
 import Data.Parameterized.List
+import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Lando.Core.Kind
 
@@ -238,5 +239,12 @@ bluespec_build :: Kind BluespecBuildType
 bluespec_build = liftConstraints k riscv index0
   where k = Kind { kindName = "bluespec_build"
                  , kindFields = knownRepr
-                 , kindConstraints = []
+                 , kindConstraints =
+                   [ MemberExpr
+                     (FieldExpr (FieldExpr SelfExpr index0) index4)
+                     (LiteralExpr (SetLit vm_type [ Some index0
+                                                  , Some index1
+                                                  , Some index2
+                                                  ]))
+                   ]
                  }
