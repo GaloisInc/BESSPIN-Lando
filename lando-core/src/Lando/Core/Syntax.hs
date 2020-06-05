@@ -7,7 +7,7 @@
 {-|
 Module      : Lando.Core.Syntax
 Description : The untyped AST for the Lando LOBOT sublanguage.
-Copyright   : (c) Ben Selfridge, 2020
+Copyright   : (c) Ben Selfridge, Matthew Yacavone, 2020
 License     : BSD3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
@@ -20,40 +20,32 @@ type passes through the type checker to produce the typed AST in
 -}
 module Lando.Core.Syntax where
 
-data KindDecl = RootDecl RootKind
-              | DerivedDecl DerivedKind
+import Data.Text (Text)
 
-data RootKind = RootKind { rootKindName :: String
-                         , rootKindField :: [Field]
-                         , rootKindConstraints :: [Expr]
+data KindDecl = KindDecl { kindDeclName :: Text
+                         , kindDeclType :: Type
+                         , kindDeclConstraints :: [Expr]
                          }
-
-data DerivedKind = DerivedKind { derivedKindName :: String
-                               , derivedParentKindName :: String
-                               , derivedConstraints :: [Expr]
-                               }
-
-data Field = Field { fieldName :: String
-                   , fieldType :: Type
-                   }
 
 data Type = BoolType
           | IntType
-          | EnumType [String]
-          | SetType Type
-          | KindType String
+          | EnumType [Text]
+          | SetType [Text]
+          | StructType [(Text, Type)]
+          | KindNames [Text]
 
 data Expr = LiteralExpr Literal
           | SelfExpr
-          | FieldExpr Expr String -- ^ kind.field
+          | FieldExpr Expr Text -- ^ struct.field
           | EqExpr Expr Expr
           | LteExpr Expr Expr
           | MemberExpr Expr Expr
           | ImpliesExpr Expr Expr
           | NotExpr Expr
-          | IsInstance String
+          | IsInstance Text Type -- ^ field : type (in a constraint)
 
 data Literal = BoolLit Bool
              | IntLit Integer
-             | EnumLit String
-             | SetLit [Literal]
+             | EnumLit Text
+             | SetLit [Text]
+             | StructLit [(Text, Expr)]
