@@ -9,6 +9,18 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+{-|
+Module      : Lando.Core.Instances
+Description : Enumerating instances via what4/Z3.
+Copyright   : (c) Ben Selfridge, 2020
+License     : BSD3
+Maintainer  : benselfridge@galois.com
+Stability   : experimental
+Portability : POSIX
+
+This module provides functions to enumerate instances of a kind via a
+what4-based SMT solver backend.
+-}
 module Lando.Core.Instances
   ( SymInstance(..)
   , SymFieldLiteral(..)
