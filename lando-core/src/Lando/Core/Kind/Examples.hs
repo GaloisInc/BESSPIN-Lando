@@ -15,7 +15,7 @@ module Lando.Core.Kind.Examples
   , person_kind
   , teenager_kind
     -- * Example 3
-  , RegWidthType, ExtsType, RISCVType
+  , RegWidthType, ExtsType, PrivType, VMType, RISCVType
   , riscv
   , SimType, BluespecBuildType
   , bluespec_build
@@ -143,7 +143,7 @@ vm_type = knownRepr
 type RISCVType = '[ '("reg_width", EnumType RegWidthType),
                     '("xlen", IntType),
                     '("exts", SetType ExtsType),
-                    '("privilege", SetType PrivType),
+                    '("privs", SetType PrivType),
                     '("vm", EnumType VMType)
                   ]
 
@@ -153,15 +153,15 @@ type RISCVType = '[ '("reg_width", EnumType RegWidthType),
 --   with reg_width : {RV32, RV64},
 --        xlen : int,
 --        exts : subset {M, A, F, D, C},
---        privilege : subset {PrivM, PrivS, PrivU},
+--        privs : subset {PrivM, PrivS, PrivU},
 --        vm : {SVNone, SV32, SV39, SV48}
 --   where (reg_width = RV32) => (xlen = 32),
 --         (reg_width = RV64) => (xlen = 64),
 --         (D in exts) => (F in exts),
---         PrivM in privilege,
---         (PrivS in privilege) => (PrivU in privilege),
---         (PrivS in privilege) => (not (vm = SVNone)),
---         (not (PrivS in privilege)) => (vm = SVNone)
+--         PrivM in privs,
+--         (PrivS in privs) => (PrivU in privs),
+--         (PrivS in privs) => (not (vm = SVNone)),
+--         (not (PrivS in privs)) => (vm = SVNone)
 -- @
 riscv :: Kind RISCVType
 riscv = Kind { kindName = "riscv"
@@ -226,7 +226,7 @@ _sim_type = knownRepr
 
 type BluespecBuildType = '[ '("riscv", KindType RISCVType)
                           , '("sim", EnumType SimType)
-                          , '("INCLUDE_TANDEM_VERIF", BoolType)
+                          , '("tv", BoolType)
                           ]
 
 -- |
@@ -234,6 +234,8 @@ type BluespecBuildType = '[ '("riscv", KindType RISCVType)
 -- kind bluespec_build
 --   with riscv : riscv,
 --        sim : {Bluesim, IVerilog, Verilator}
+--        tv : bool
+--   where riscv.vm in {SVNone, SV32, SV39}
 -- @
 bluespec_build :: Kind BluespecBuildType
 bluespec_build = liftConstraints k riscv index0
