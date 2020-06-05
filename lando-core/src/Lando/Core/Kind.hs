@@ -1,6 +1,8 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -8,6 +10,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 {-|
@@ -19,7 +22,8 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : POSIX
 
-This module defines the core data type for representing a feature model in Lando.
+This module defines the core data type for representing a feature model in
+Lando.
 -}
 module Lando.Core.Kind
   ( -- * Types
@@ -97,6 +101,8 @@ data FieldRepr (pr :: (Symbol, Type)) where
 
 deriving instance Show (FieldRepr pr)
 instance ShowF FieldRepr
+instance (KnownSymbol nm, KnownRepr TypeRepr tp) => KnownRepr FieldRepr '(nm, tp) where
+  knownRepr = FieldRepr knownRepr knownRepr
 
 -- | The types of LOBOT.
 data Type = BoolType
@@ -123,6 +129,19 @@ data TypeRepr tp where
            -> TypeRepr (SetType cs)
   KindRepr :: List FieldRepr ktps -> TypeRepr (KindType ktps)
 deriving instance Show (TypeRepr tp)
+
+instance KnownRepr TypeRepr BoolType
+  where knownRepr = BoolRepr
+instance KnownRepr TypeRepr IntType
+  where knownRepr = IntRepr
+instance (1 <= Length cs, KnownRepr (List SymbolRepr) cs) =>
+  KnownRepr TypeRepr (EnumType cs)
+  where knownRepr = EnumRepr knownRepr
+instance (1 <= Length cs, KnownRepr (List SymbolRepr) cs) =>
+  KnownRepr TypeRepr (SetType cs)
+  where knownRepr = SetRepr knownRepr
+instance KnownRepr (List FieldRepr) ktps => KnownRepr TypeRepr (KindType ktps)
+  where knownRepr = KindRepr knownRepr
 
 -- | Concrete value inhabiting a type.
 data Literal tp where

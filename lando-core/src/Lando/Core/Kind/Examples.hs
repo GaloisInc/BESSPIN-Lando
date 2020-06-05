@@ -39,7 +39,7 @@ abc_type = knownRepr
 -- @
 abc_kind :: Kind FooType
 abc_kind = Kind { kindName = "abc"
-                , kindFields = FieldRepr knownSymbol (SetRepr abc_type) :< Nil
+                , kindFields = knownRepr
                 , kindConstraints = []
                 }
 
@@ -85,8 +85,8 @@ abc_kind_3 = derivedKind
 
 type SexType = '["Male", "Female"]
 
-sex_type :: List SymbolRepr SexType
-sex_type = knownRepr
+_sex_type :: List SymbolRepr SexType
+_sex_type = knownRepr
 
 type PersonType = '[ '("age", IntType)
                    , '("sex", EnumType SexType)
@@ -101,8 +101,7 @@ type PersonType = '[ '("age", IntType)
 -- @
 person_kind :: Kind PersonType
 person_kind = Kind { kindName = "person"
-                   , kindFields = FieldRepr knownSymbol IntRepr :<
-                                  FieldRepr knownSymbol (EnumRepr sex_type) :< Nil
+                   , kindFields = knownRepr
                    , kindConstraints =
                        [ LteExpr
                          (LiteralExpr (IntLit 0))
@@ -128,7 +127,7 @@ teenager_kind = derivedKind (person_kind :| []) "teenager"
 
 type RegWidthType = '["RV32", "RV64"]
 reg_width_type :: List SymbolRepr RegWidthType
-reg_width_type = knownSymbol :< knownSymbol :< Nil
+reg_width_type = knownRepr
 
 type ExtsType = '["M", "A", "F", "D", "C"]
 exts_type :: List SymbolRepr ExtsType
@@ -161,8 +160,8 @@ riscv = Kind { kindName = "riscv"
              }
 
 type SimType = '[ "Bluesim", "IVerilog", "Verilator" ]
-sim_type :: List SymbolRepr SimType
-sim_type = knownRepr
+_sim_type :: List SymbolRepr SimType
+_sim_type = knownRepr
 
 type BluespecBuildType = '[ '("riscv", KindType RISCVType)
                           , '("sim", EnumType SimType)
@@ -178,8 +177,6 @@ type BluespecBuildType = '[ '("riscv", KindType RISCVType)
 bluespec_build :: Kind BluespecBuildType
 bluespec_build = liftConstraints k riscv index0
   where k = Kind { kindName = "bluespec_build"
-                 , kindFields = FieldRepr knownSymbol (KindRepr (kindFields riscv)) :<
-                                FieldRepr knownSymbol (EnumRepr sim_type) :<
-                                FieldRepr knownSymbol BoolRepr :< Nil
+                 , kindFields = knownRepr
                  , kindConstraints = []
                  }
