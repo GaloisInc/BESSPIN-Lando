@@ -27,7 +27,7 @@ Lando.
 -}
 module Lando.Core.Kind
   ( -- * Types
-    Type(..), BoolType, IntType, EnumType, SetType, KindType
+    Type(..), BoolType, IntType, EnumType, SetType, StructType
   , TypeRepr(..)
     -- * Kinds
   , Kind(..)
@@ -36,8 +36,8 @@ module Lando.Core.Kind
   , derivedKind
   , liftConstraints
     -- * Instances
-  , Instance(..)
-  , instanceType
+  , StructInstance(..)
+  , structInstanceType
   , FieldLiteral(..)
   , fieldLiteralType
   , Literal(..)
@@ -62,23 +62,22 @@ import Data.Parameterized.TraversableFC
 import Prelude hiding ((!!))
 
 -- | Representation of a Lando feature model, which we term a 'Kind' for
--- brevity. A kind consists of a name, a list of typed fields, and a list of
--- constraints that must hold.
-data Kind (ktps :: [(Symbol, Type)]) = Kind
+-- brevity. A kind consists of a name, a type, and a list of constraints
+-- that must hold for all instances of this kind.
+data Kind (tp :: Type) = Kind
   { kindName :: String
-  , kindFields :: List FieldRepr ktps
-    -- ^ This is, effectively, the type of this kind.
-  , kindConstraints :: [Expr ktps BoolType]
+  , kindType :: TypeRepr tp
+  , kindConstraints :: [Expr tp BoolType]
   }
   deriving Show
 
 -- | Augment a 'Kind' with some additional constraints.
-addConstraints :: Kind ktps -> [Expr ktps BoolType] -> Kind ktps
+addConstraints :: Kind tp -> [Expr tp BoolType] -> Kind tp
 addConstraints kd cs =
   kd { kindConstraints = kindConstraints kd ++ cs }
 
--- | Given a set of parent 'Kind's, create a derived 'Kind'.
-derivedKind :: NonEmpty (Kind ktps) -> String -> [Expr ktps BoolType] -> Kind ktps
+-- | Given a set of parent 'Kind's of the same type, create a derived 'Kind'.
+derivedKind :: NonEmpty (Kind tp) -> String -> [Expr tp BoolType] -> Kind tp
 derivedKind kds@(kd :| _) nm cs =
   kd { kindName = nm
      , kindConstraints = concatMap kindConstraints kds ++ cs
@@ -86,10 +85,10 @@ derivedKind kds@(kd :| _) nm cs =
 
 -- | Lift the constraints of a kind @K'@ into a parent kind @K@ that contains
 -- @K'@. This should only be called once for a given child.
-liftConstraints :: Kind ktps
-                -> Kind ktps'
-                -> Index ktps '(nm, KindType ktps')
-                -> Kind ktps
+liftConstraints :: Kind (StructType ftps)
+                -> Kind tp
+                -> Index ftps '(nm, tp)
+                -> Kind (StructType ftps)
 liftConstraints k k' i = addConstraints k (liftExpr i <$> kindConstraints k')
 
 -- | A 'FieldRepr' is a key, type pair. Note that since both the key and the type
@@ -115,25 +114,25 @@ data Type = BoolType
           | IntType
           | EnumType [Symbol]
           | SetType [Symbol]
-          | KindType [(Symbol, Type)]
+          | StructType [(Symbol, Type)]
 
 type BoolType = 'BoolType
 type IntType = 'IntType
 type EnumType = 'EnumType
 type SetType = 'SetType
-type KindType = 'KindType
+type StructType = 'StructType
 
 -- | Term-level representative of a type.
 data TypeRepr tp where
-  BoolRepr :: TypeRepr BoolType
-  IntRepr  :: TypeRepr IntType
-  EnumRepr :: 1 <= (Length cs)
-           => List SymbolRepr cs
-           -> TypeRepr (EnumType cs)
-  SetRepr  :: 1 <= (Length cs)
-           => List SymbolRepr cs
-           -> TypeRepr (SetType cs)
-  KindRepr :: List FieldRepr ktps -> TypeRepr (KindType ktps)
+  BoolRepr   :: TypeRepr BoolType
+  IntRepr    :: TypeRepr IntType
+  EnumRepr   :: 1 <= (Length cs)
+             => List SymbolRepr cs
+             -> TypeRepr (EnumType cs)
+  SetRepr    :: 1 <= (Length cs)
+             => List SymbolRepr cs
+             -> TypeRepr (SetType cs)
+  StructRepr :: List FieldRepr ftps -> TypeRepr (StructType ftps)
 deriving instance Show (TypeRepr tp)
 
 instance TestEquality TypeRepr where
@@ -145,7 +144,7 @@ instance TestEquality TypeRepr where
   testEquality (SetRepr cs) (SetRepr cs') = case testEquality cs cs' of
     Just Refl -> Just Refl
     Nothing -> Nothing
-  testEquality (KindRepr flds) (KindRepr flds') = case testEquality flds flds' of
+  testEquality (StructRepr flds) (StructRepr flds') = case testEquality flds flds' of
     Just Refl -> Just Refl
     Nothing -> Nothing
   testEquality _ _ = Nothing
@@ -160,22 +159,22 @@ instance (1 <= Length cs, KnownRepr (List SymbolRepr) cs) =>
 instance (1 <= Length cs, KnownRepr (List SymbolRepr) cs) =>
   KnownRepr TypeRepr (SetType cs)
   where knownRepr = SetRepr knownRepr
-instance KnownRepr (List FieldRepr) ktps => KnownRepr TypeRepr (KindType ktps)
-  where knownRepr = KindRepr knownRepr
+instance KnownRepr (List FieldRepr) ftps => KnownRepr TypeRepr (StructType ftps)
+  where knownRepr = StructRepr knownRepr
 
 -- | Concrete value inhabiting a type.
 data Literal tp where
-  BoolLit :: Bool -> Literal BoolType
-  IntLit  :: Integer -> Literal IntType
-  EnumLit :: 1 <= Length cs
-          => List SymbolRepr cs
-          -> Index cs c
-          -> Literal (EnumType cs)
-  SetLit  :: 1 <= Length cs
-          => List SymbolRepr cs
-          -> [Some (Index cs)]
-          -> Literal (SetType cs)
-  KindLit :: Instance ktps -> Literal (KindType ktps)
+  BoolLit   :: Bool -> Literal BoolType
+  IntLit    :: Integer -> Literal IntType
+  EnumLit   :: 1 <= Length cs
+            => List SymbolRepr cs
+            -> Index cs c
+            -> Literal (EnumType cs)
+  SetLit    :: 1 <= Length cs
+            => List SymbolRepr cs
+            -> [Some (Index cs)]
+            -> Literal (SetType cs)
+  StructLit :: StructInstance ftps -> Literal (StructType ftps)
 deriving instance Show (Literal tp)
 
 -- | Get the type of a literal.
@@ -184,7 +183,7 @@ literalType (BoolLit _) = BoolRepr
 literalType (IntLit _) = IntRepr
 literalType (EnumLit cs _) = EnumRepr cs
 literalType (SetLit cs _) = SetRepr cs
-literalType (KindLit (Instance flds)) = KindRepr (fmapFC fieldLiteralType flds)
+literalType (StructLit (StructInstance flds)) = StructRepr (fmapFC fieldLiteralType flds)
 
 -- | An instance of a particular field. This is just the field name paired with
 -- a concrete literal.
@@ -203,35 +202,35 @@ instance ShowF FieldLiteral
 
 -- | Concrete instance of a 'Kind', but without the guarantee that this instance
 -- satisfies any of the kind's constraints. That needs to be checked.
-data Instance ktps = Instance { instanceValues :: List FieldLiteral ktps }
+data StructInstance ftps = StructInstance { instanceValues :: List FieldLiteral ftps }
   deriving (Show)
 
 -- | Get the type of an 'Instance'.
-instanceType :: Instance ktps -> List FieldRepr ktps
-instanceType Instance{..} = fmapFC fieldLiteralType instanceValues
+structInstanceType :: StructInstance ftps -> List FieldRepr ftps
+structInstanceType StructInstance{..} = fmapFC fieldLiteralType instanceValues
 
 -- | A expression involving a particular kind.
-data Expr (ktps :: [(Symbol, Type)]) (tp :: Type) where
+data Expr (ctx :: Type) (tp :: Type) where
   -- | An expression built from a literal value.
-  LiteralExpr :: Literal tp -> Expr ktps tp
+  LiteralExpr :: Literal tp -> Expr ctx tp
   -- | An expression referring to an abstract instance of this kind.
-  SelfExpr    :: Expr ktps (KindType ktps)
+  SelfExpr    :: Expr ctx ctx
   -- | An expression referring to a field of an instance of some kind.
-  FieldExpr   :: Expr ktps (KindType ktps') -> Index ktps' '(nm, tp) -> Expr ktps tp
+  FieldExpr   :: Expr ctx (StructType ftps) -> Index ftps '(nm, tp) -> Expr ctx tp
   -- | Equality of two expressions.
-  EqExpr      :: Expr ktps tp -> Expr ktps tp -> Expr ktps BoolType
+  EqExpr      :: Expr ctx tp -> Expr ctx tp -> Expr ctx BoolType
   -- | Less-than-or-equal for two integer expressions.
-  LteExpr     :: Expr ktps IntType -> Expr ktps IntType -> Expr ktps BoolType
+  LteExpr     :: Expr ctx IntType -> Expr ctx IntType -> Expr ctx BoolType
   -- | Set membership.
-  MemberExpr  :: Expr ktps (EnumType cs)
-              -> Expr ktps (SetType cs)
-              -> Expr ktps BoolType
+  MemberExpr  :: Expr ctx (EnumType cs)
+              -> Expr ctx (SetType cs)
+              -> Expr ctx BoolType
   -- | Logical implication.
-  ImpliesExpr :: Expr ktps BoolType -> Expr ktps BoolType -> Expr ktps BoolType
+  ImpliesExpr :: Expr ctx BoolType -> Expr ctx BoolType -> Expr ctx BoolType
   -- | Logical negation.
-  NotExpr     :: Expr ktps BoolType -> Expr ktps BoolType
+  NotExpr     :: Expr ctx BoolType -> Expr ctx BoolType
 
-deriving instance Show (Expr ktps tp)
+deriving instance Show (Expr ctx tp)
 
 litEq :: Literal tp -> Literal tp -> Bool
 litEq (BoolLit b1) (BoolLit b2) = b1 == b2
@@ -240,32 +239,34 @@ litEq (EnumLit _ i1) (EnumLit _ i2) | Just Refl <- i1 `testEquality` i2 = True
                                     | otherwise = False
 litEq (SetLit _ s1) (SetLit _ s2) = all (\i -> isJust (find (==i) s2)) s1 &&
                                     all (\i -> isJust (find (==i) s1)) s2
-litEq (KindLit i1) (KindLit i2) = i1 `instanceEq` i2
+litEq (StructLit i1) (StructLit i2) = i1 `structInstanceEq` i2
 
 fieldValueEq :: FieldLiteral ftp -> FieldLiteral ftp -> Bool
 fieldValueEq fv1@(FieldLiteral _ _) fv2 =
   litEq (fieldLiteralValue fv1) (fieldLiteralValue fv2)
 
-instanceEq :: forall (ktps :: [(Symbol, Type)]) . Instance ktps -> Instance ktps -> Bool
-instanceEq i1 i2 = listEq (instanceValues i1) (instanceValues i2)
-  where listEq :: forall (sh :: [(Symbol, Type)]) .
-                  List FieldLiteral sh -> List FieldLiteral sh -> Bool
+structInstanceEq :: forall (ftps :: [(Symbol, Type)]) .
+                    StructInstance ftps -> StructInstance ftps -> Bool
+structInstanceEq i1 i2 = listEq (instanceValues i1) (instanceValues i2)
+  where listEq :: forall (ftps :: [(Symbol, Type)]) .
+                  List FieldLiteral ftps -> List FieldLiteral ftps -> Bool
         listEq Nil Nil = True
         listEq (a :< as) (b :< bs) | FieldLiteral _ _ <- a
           = a `fieldValueEq` b && listEq as bs
 
--- | Determine whether an instance satisfies all the constraints of a kind.
-instanceOf :: Instance ktps -> Kind ktps -> Bool
+-- | Determine whether a literal satisfies all the constraints of a kind.
+instanceOf :: Literal tp -> Kind tp -> Bool
 instanceOf inst (Kind{..}) = all constraintHolds kindConstraints
   where constraintHolds e | BoolLit True <- evalExpr inst e = True
                           | otherwise = False
 
--- | Evaluate an expression given an instance of its kind.
-evalExpr :: Instance ktps -> Expr ktps tp -> Literal tp
+-- | Evaluate an expression given an instance of its type context.
+evalExpr :: Literal ctx -> Expr ctx tp -> Literal tp
 evalExpr inst e = case e of
-  SelfExpr -> KindLit inst
+  SelfExpr -> inst
   FieldExpr kd i
-    | KindLit (Instance fvs) <- evalExpr inst kd -> fieldLiteralValue (fvs !! i)
+    | StructLit (StructInstance fvs) <- evalExpr inst kd 
+      -> fieldLiteralValue (fvs !! i)
   LiteralExpr l -> l
   EqExpr e1 e2
     | l1 <- evalExpr inst e1
@@ -283,9 +284,9 @@ evalExpr inst e = case e of
 
 -- | Lift an expression about a kind @K'@ into an expression about a kind @K@ which
 -- contains @K'@.
-liftExpr :: Index ktps '(nm, KindType ktps')
-         -> Expr ktps' tp
-         -> Expr ktps tp
+liftExpr :: Index ftps '(nm, tp)
+         -> Expr tp tp'
+         -> Expr (StructType ftps) tp'
 liftExpr i e = case e of
   LiteralExpr l -> LiteralExpr l
   SelfExpr -> FieldExpr SelfExpr i
