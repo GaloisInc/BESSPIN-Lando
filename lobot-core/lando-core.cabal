@@ -22,7 +22,8 @@ library
                        Lobot.Core.Kind.Examples
                        Lobot.Core.Kind.Pretty
                        Lobot.Core.Instances
-                       Lobot.Core.Syntax,
+                       Lobot.Core.Syntax
+                       Lobot.Core.TypeCheck
 
                        Data.Parameterized.List.Length
   -- other-modules:
