@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
@@ -29,6 +30,7 @@ module Lando.Core.Instances
   , InstanceResult(..)
   , getInstance
   , getNextInstance
+  , countInstances
   , instanceSession
   ) where
 
@@ -303,10 +305,8 @@ getNextInstance sym session symInst = WS.runCheckSat session $ \result ->
       BoolSym symConstraint <- symEvalExpr sym symInst negateExpr
       WS.assume (WS.sessionWriter session) symConstraint
       return $ HasInstance inst
-    WS.Unsat _ -> do putStrLn "no more instances"
-                     return NoInstance
-    WS.Unknown -> do putStrLn "don't know if there's any more instances"
-                     return Unknown
+    WS.Unsat _ -> do return NoInstance
+    WS.Unknown -> do return Unknown
 
 repeatIO :: Show a => (String -> IO (Maybe a)) -> IO ()
 repeatIO k = do
@@ -320,24 +320,48 @@ repeatIO k = do
 -- | Run an interactive session for instance generation. Every time the user
 -- hits \"Enter\", a new instance is provided.
 instanceSession :: FilePath -> Kind ktps -> IO ()
-instanceSession z3_path kd = do
+instanceSession = withSession $ \sym session symInst -> do
+  i <- newIORef (0 :: Integer)
+  WS.runCheckSat session $ \_ -> repeatIO $ \_ -> do
+    iVal <- readIORef i
+    let iVal' = iVal + 1
+    writeIORef i iVal'
+    res <- getNextInstance sym session symInst
+    case res of
+      HasInstance inst -> do
+        putStrLn $ "Instance #" ++ show iVal' ++ ":"
+        return $ Just (ppInstance inst)
+      _ -> return Nothing
+
+countInstances' :: Integer -> SolverSessionFn ktps Integer
+countInstances' 0 _ _ _ = return 0
+countInstances' limit sym session symInst = do
+  nextInstance <- getNextInstance sym session symInst
+  case nextInstance of
+    HasInstance _ -> do n <- countInstances' (limit-1) sym session symInst
+                        return $ n + 1
+    _ -> return 0
+
+-- | Count the total number of instances, up to a certain limit.
+countInstances :: Integer -- ^ Maximum number to count to
+               -> FilePath
+               -> Kind ktps
+               -> IO Integer
+countInstances limit = withSession (countInstances' limit)
+
+type SolverSessionFn ktps a = forall t . WB.ExprBuilder t BuilderState (WB.Flags WB.FloatIEEE) -> WS.Session t WS.Z3 -> SymInstance t ktps -> IO a
+
+withSession :: SolverSessionFn ktps a
+            -> FilePath
+            -> Kind ktps
+            -> IO a
+withSession k z3_path kd = do
   Some nonceGen <- newIONonceGenerator
   sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
   WC.extendConfig WS.z3Options (WI.getConfiguration sym)
   WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
-    -- Create a fresh symbolic instance of our kind
     symInst <- freshSymInstanceConstant sym "" (kindFields kd) session
-    -- Add all the kind constraints to our list of assumptions
     forM_ (kindConstraints kd) $ \e -> do
       BoolSym symConstraint <- symEvalExpr sym symInst e
       WS.assume (WS.sessionWriter session) symConstraint
-    i <- newIORef (0 :: Integer)
-    WS.runCheckSat session $ \_ -> repeatIO $ \_ -> do
-      iVal <- readIORef i
-      let iVal' = iVal + 1
-      writeIORef i iVal'
-      putStrLn $ "Instance #" ++ show iVal' ++ ":"
-      res <- getNextInstance sym session symInst
-      case res of
-        HasInstance inst -> return $ Just (ppInstance inst)
-        _ -> return Nothing
+    k sym session symInst
