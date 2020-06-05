@@ -99,6 +99,12 @@ data FieldRepr (pr :: (Symbol, Type)) where
   FieldRepr :: { fieldName :: SymbolRepr nm
                , fieldType :: TypeRepr tp } -> FieldRepr '(nm, tp)
 
+instance TestEquality FieldRepr where
+  testEquality (FieldRepr nm tp) (FieldRepr nm' tp') =
+    case (testEquality nm nm', testEquality tp tp') of
+      (Just Refl, Just Refl) -> Just Refl
+      _ -> Nothing
+
 deriving instance Show (FieldRepr pr)
 instance ShowF FieldRepr
 instance (KnownSymbol nm, KnownRepr TypeRepr tp) => KnownRepr FieldRepr '(nm, tp) where
@@ -129,6 +135,20 @@ data TypeRepr tp where
            -> TypeRepr (SetType cs)
   KindRepr :: List FieldRepr ktps -> TypeRepr (KindType ktps)
 deriving instance Show (TypeRepr tp)
+
+instance TestEquality TypeRepr where
+  testEquality BoolRepr BoolRepr = Just Refl
+  testEquality IntRepr IntRepr = Just Refl
+  testEquality (EnumRepr cs) (EnumRepr cs') = case testEquality cs cs' of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  testEquality (SetRepr cs) (SetRepr cs') = case testEquality cs cs' of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  testEquality (KindRepr flds) (KindRepr flds') = case testEquality flds flds' of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  testEquality _ _ = Nothing
 
 instance KnownRepr TypeRepr BoolType
   where knownRepr = BoolRepr
