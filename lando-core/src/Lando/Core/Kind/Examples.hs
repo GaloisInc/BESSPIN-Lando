@@ -1,5 +1,7 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Lando.Core.Kind.Examples
   ( -- * Example 1
@@ -45,9 +47,7 @@ abc_kind = Kind { kindName = "abc"
 
 -- |
 -- @
--- kind abc_kind_1 of abc_kind
---   with abc : subset {A, B, C}
---   where A in abc
+-- kind abc_kind_1 of abc_kind where A in abc
 -- @
 abc_kind_1 :: Kind FooType
 abc_kind_1 = derivedKind (abc_kind :| []) "abc_kind_1"
@@ -58,9 +58,7 @@ abc_kind_1 = derivedKind (abc_kind :| []) "abc_kind_1"
 
 -- |
 -- @
--- kind abc_kind_2 of abc_kind
---   with abc : subset {A, B, C}
---   where (A in abc) => (C in abc)
+-- kind abc_kind_2 of abc_kind where (A in abc) => (C in abc)
 -- @
 abc_kind_2 :: Kind FooType
 abc_kind_2 = derivedKind (abc_kind :| []) "abc_kind_2"
@@ -133,31 +131,93 @@ type ExtsType = '["M", "A", "F", "D", "C"]
 exts_type :: List SymbolRepr ExtsType
 exts_type = knownRepr
 
+type PrivType = '["PrivM", "PrivS", "PrivU"]
+priv_type :: List SymbolRepr PrivType
+priv_type = knownRepr
+
+type VMType = '["SVNone", "SV32", "SV39", "SV48"]
+vm_type :: List SymbolRepr VMType
+vm_type = knownRepr
+
 type RISCVType = '[ '("reg_width", EnumType RegWidthType),
-                    '("exts", SetType ExtsType)
+                    '("xlen", IntType),
+                    '("exts", SetType ExtsType),
+                    '("privilege", SetType PrivType),
+                    '("vm", EnumType VMType)
                   ]
 
 -- |
 -- @
 -- kind riscv
 --   with reg_width : {RV32, RV64},
---        exts : subset {M, A, F, D, C}
---   where (D in exts) => (F in exts)
+--        xlen : int,
+--        exts : subset {M, A, F, D, C},
+--        privilege : subset {PrivM, PrivS, PrivU},
+--        vm : {SVNone, SV32, SV39, SV48}
+--   where (reg_width = RV32) => (xlen = 32),
+--         (reg_width = RV64) => (xlen = 64),
+--         (D in exts) => (F in exts),
+--         PrivM in privilege,
+--         (PrivS in privilege) => (PrivU in privilege),
+--         (PrivS in privilege) => (not (vm = SVNone)),
+--         (not (PrivS in privilege)) => (vm = SVNone)
 -- @
 riscv :: Kind RISCVType
 riscv = Kind { kindName = "riscv"
-             , kindFields = FieldRepr knownSymbol (EnumRepr reg_width_type) :<
-                            FieldRepr knownSymbol (SetRepr exts_type) :< Nil
+             , kindFields = knownRepr
              , kindConstraints =
                [ ImpliesExpr
+                 (EqExpr
+                  (FieldExpr SelfExpr index0)
+                  (LiteralExpr (EnumLit reg_width_type index0)))
+                 (EqExpr
+                  (FieldExpr SelfExpr index1)
+                  (LiteralExpr (IntLit 32)))
+               , ImpliesExpr
+                 (EqExpr
+                  (FieldExpr SelfExpr index0)
+                  (LiteralExpr (EnumLit reg_width_type index1)))
+                 (EqExpr
+                  (FieldExpr SelfExpr index1)
+                  (LiteralExpr (IntLit 64)))
+               , ImpliesExpr
                  (MemberExpr
                   (LiteralExpr (EnumLit exts_type index3))
-                  (FieldExpr SelfExpr index1))
+                  (FieldExpr SelfExpr index2))
                  (MemberExpr
                   (LiteralExpr (EnumLit exts_type index2))
-                  (FieldExpr SelfExpr index1))
+                  (FieldExpr SelfExpr index2))
+               , MemberExpr
+                 (LiteralExpr (EnumLit priv_type index0))
+                 (FieldExpr SelfExpr index3)
+               , ImpliesExpr
+                 (MemberExpr
+                  (LiteralExpr (EnumLit priv_type index1))
+                  (FieldExpr SelfExpr index3))
+                 (MemberExpr
+                  (LiteralExpr (EnumLit priv_type index2))
+                  (FieldExpr SelfExpr index3))
+               , ImpliesExpr
+                 (MemberExpr
+                  (LiteralExpr (EnumLit priv_type index1))
+                  (FieldExpr SelfExpr index3))
+                 (NotExpr
+                  (EqExpr
+                   (FieldExpr SelfExpr index4)
+                   (LiteralExpr (EnumLit vm_type index0))))
+               , ImpliesExpr
+                 (NotExpr
+                  (MemberExpr
+                   (LiteralExpr (EnumLit priv_type index1))
+                   (FieldExpr SelfExpr index3)))
+                 (EqExpr
+                  (FieldExpr SelfExpr index4)
+                  (LiteralExpr (EnumLit vm_type index0)))
                ]
              }
+
+index4 :: Index (x0:x1:x2:x3:x4:r) x4
+index4 = IndexThere index3
 
 type SimType = '[ "Bluesim", "IVerilog", "Verilator" ]
 _sim_type :: List SymbolRepr SimType

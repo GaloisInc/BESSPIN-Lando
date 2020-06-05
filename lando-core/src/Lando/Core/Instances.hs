@@ -50,6 +50,7 @@ import qualified What4.Solver.Z3         as WS
 import qualified What4.BaseTypes         as WT
 
 import Data.Foldable (forM_)
+import Data.IORef
 import Data.Parameterized.List
 import Data.Parameterized.NatRepr
 import Data.Parameterized.Nonce
@@ -302,8 +303,10 @@ getNextInstance sym session symInst = WS.runCheckSat session $ \result ->
       BoolSym symConstraint <- symEvalExpr sym symInst negateExpr
       WS.assume (WS.sessionWriter session) symConstraint
       return $ HasInstance inst
-    WS.Unsat _ -> return NoInstance
-    WS.Unknown -> return Unknown
+    WS.Unsat _ -> do putStrLn "no more instances"
+                     return NoInstance
+    WS.Unknown -> do putStrLn "don't know if there's any more instances"
+                     return Unknown
 
 repeatIO :: Show a => (String -> IO (Maybe a)) -> IO ()
 repeatIO k = do
@@ -328,8 +331,13 @@ instanceSession z3_path kd = do
     forM_ (kindConstraints kd) $ \e -> do
       BoolSym symConstraint <- symEvalExpr sym symInst e
       WS.assume (WS.sessionWriter session) symConstraint
+    i <- newIORef (0 :: Integer)
     WS.runCheckSat session $ \_ -> repeatIO $ \_ -> do
+      iVal <- readIORef i
+      let iVal' = iVal + 1
+      writeIORef i iVal'
+      putStrLn $ "Instance #" ++ show iVal' ++ ":"
       res <- getNextInstance sym session symInst
       case res of
-        HasInstance i -> return $ Just (ppInstance i)
+        HasInstance inst -> return $ Just (ppInstance inst)
         _ -> return Nothing
