@@ -1,5 +1,5 @@
 {-|
-Module      : Lando.Core.TypeCheck
+Module      : Lobot.Core.TypeCheck
 Description : The LOBOT type checker.
 Copyright   : (c) Matt Yacavone, 2020
 License     : BSD3
@@ -10,10 +10,10 @@ Portability : POSIX
 This module defines the type checking algorithm for the Lobot AST.
 -}
 
-module Lando.Core.TypeCheck where
+module Lobot.Core.TypeCheck where
 
-import Lando.Core.Kind   as K
-import Lando.Core.Syntax as S
+import Lobot.Core.Kind   as K
+import Lobot.Core.Syntax as S
 
 data TypeError = TypeError
 

@@ -5,20 +5,20 @@
 {-# LANGUAGE TypeApplications #-}
 
 {-|
-Module      : Lando.Core.Syntax
-Description : The untyped AST for the Lando LOBOT sublanguage.
+Module      : Lobot.Core.Syntax
+Description : The untyped AST for the Lobot Lobot sublanguage.
 Copyright   : (c) Ben Selfridge, Matthew Yacavone, 2020
 License     : BSD3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : POSIX
 
-This module defines the untyped AST for the LOBOT sublanguage of lando. When
-parsing a concrete syntax for Lando, this is the data type we target. Then, this
+This module defines the untyped AST for the Lobot sublanguage of Lando. When
+parsing a concrete syntax for Lobot, this is the data type we target. Then, this
 type passes through the type checker to produce the typed AST in
-'Lando.Core.Kind'.
+'Lobot.Core.Kind'.
 -}
-module Lando.Core.Syntax where
+module Lobot.Core.Syntax where
 
 import Data.Text (Text)
 

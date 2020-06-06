@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Lando.Core.Kind.Examples
+module Lobot.Core.Kind.Examples
   ( -- * Example 1
     posint
   , IntPairType
@@ -34,7 +34,7 @@ import Data.Parameterized.Classes
 import Data.Parameterized.List
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
-import Lando.Core.Kind
+import Lobot.Core.Kind
 
 -- |
 -- @

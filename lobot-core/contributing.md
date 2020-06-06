@@ -1,6 +1,6 @@
-# Contributing to lando-core
+# Contributing to lobot-core
 
-The following is a set of guidelines for contributing to Lando/Lobot.
+The following is a set of guidelines for contributing to Lobot.
 
 #### Table Of Contents
 
@@ -17,7 +17,7 @@ list, followed by the qualified external imports, followed by the unqualified
 external imports. Example:
 
 ```
-import Lando.Core.Kind
+import Lobot.Core.Kind
 
 import qualified What4.Expr.Builder as WB
 import qualified What4.Solver.Z3    as WS

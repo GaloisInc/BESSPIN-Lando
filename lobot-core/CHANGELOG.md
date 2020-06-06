@@ -1,4 +1,4 @@
-# Revision history for lando-core
+# Revision history for lobot-core
 
 ## 0.1.0.0 -- YYYY-mm-dd
 

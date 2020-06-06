@@ -1,3 +1,3 @@
-# lando
+# lobot
 
-Formal description, syntax and examples of the LANDO language.
+Formal description, syntax and examples of the Lobot sublanguage of Lando.

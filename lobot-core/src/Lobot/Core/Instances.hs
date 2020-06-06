@@ -11,7 +11,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 {-|
-Module      : Lando.Core.Instances
+Module      : Lobot.Core.Instances
 Description : Enumerating instances via what4/Z3.
 Copyright   : (c) Ben Selfridge, 2020
 License     : BSD3
@@ -22,7 +22,7 @@ Portability : POSIX
 This module provides functions to enumerate instances of a kind via a
 what4-based SMT solver backend.
 -}
-module Lando.Core.Instances
+module Lobot.Core.Instances
   ( SymLiteral(..)
   , SymFieldLiteral(..)
   , symEvalExpr
@@ -34,8 +34,8 @@ module Lando.Core.Instances
   ) where
 
 import Data.Parameterized.List.Length
-import Lando.Core.Kind
-import Lando.Core.Kind.Pretty
+import Lobot.Core.Kind
+import Lobot.Core.Kind.Pretty
 
 import qualified Data.BitVector.Sized    as BV
 import qualified Data.Parameterized.List as PL

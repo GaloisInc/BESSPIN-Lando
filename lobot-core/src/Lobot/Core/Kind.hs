@@ -14,8 +14,8 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 {-|
-Module      : Lando.Core.Kind
-Description : The core data type for representing feature models in Lando.
+Module      : Lobot.Core.Kind
+Description : The core data type for representing feature models in Lobot.
 Copyright   : (c) Ben Selfridge, 2020
 License     : BSD3
 Maintainer  : benselfridge@galois.com
@@ -23,9 +23,9 @@ Stability   : experimental
 Portability : POSIX
 
 This module defines the core data type for representing a feature model in
-Lando.
+Lobot.
 -}
-module Lando.Core.Kind
+module Lobot.Core.Kind
   ( -- * Types
     Type(..), BoolType, IntType, EnumType, SetType, StructType
   , TypeRepr(..)
@@ -59,7 +59,7 @@ import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 import Prelude hiding ((!!))
 
--- | Representation of a Lando feature model, which we term a 'Kind' for
+-- | Representation of a Lobot feature model, which we term a 'Kind' for
 -- brevity. A kind consists of a name, a type, and a list of constraints
 -- that must hold for all instances of this kind.
 data Kind (tp :: Type) = Kind

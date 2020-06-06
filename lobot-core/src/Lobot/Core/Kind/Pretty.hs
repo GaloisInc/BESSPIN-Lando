@@ -2,8 +2,8 @@
 {-# LANGUAGE RecordWildCards #-}
 
 {-|
-Module      : Lando.Core.Kind.Pretty
-Description : Pretty printing functions for types defined in 'Lando.Core.Kind'.
+Module      : Lobot.Core.Kind.Pretty
+Description : Pretty printing functions for types defined in 'Lobot.Core.Kind'.
 Copyright   : (c) Ben Selfridge, 2020
 License     : BSD3
 Maintainer  : benselfridge@galois.com
@@ -13,13 +13,13 @@ Portability : POSIX
 This module defines pretty printing functions for the core LOBOT types.
 -}
 
-module Lando.Core.Kind.Pretty
+module Lobot.Core.Kind.Pretty
   ( ppKind
   , ppExpr
   , ppLiteral
   ) where
 
-import Lando.Core.Kind
+import Lobot.Core.Kind
 
 import qualified Text.PrettyPrint as PP
 import qualified Data.Text        as T
