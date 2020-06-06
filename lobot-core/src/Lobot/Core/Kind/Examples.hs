@@ -27,13 +27,15 @@ module Lobot.Core.Kind.Examples
   , riscv
   , SimType, BluespecBuildType
   , bluespec_build
+    -- * Example 5
+  , ColorType, AustraliaColoringType
+  , australia_coloring
   ) where
 
 import Data.List.NonEmpty
 import Data.Parameterized.Classes
 import Data.Parameterized.List
 import Data.Parameterized.Some
-import Data.Parameterized.SymbolRepr
 import Lobot.Core.Kind
 
 -- |
@@ -290,12 +292,10 @@ riscv = Kind { kindName = "riscv"
 index4 :: Index (x0:x1:x2:x3:x4:r) x4
 index4 = IndexThere index3
 
-type SimType = '[ "Bluesim", "IVerilog", "Verilator" ]
-_sim_type :: List SymbolRepr SimType
-_sim_type = knownRepr
+type SimType = EnumType '[ "Bluesim", "IVerilog", "Verilator" ]
 
 type BluespecBuildType = StructType '[ '("riscv", RISCVType)
-                                     , '("sim", EnumType SimType)
+                                     , '("sim", SimType)
                                      , '("tv", BoolType)
                                      ]
 
@@ -320,3 +320,81 @@ bluespec_build = liftConstraints index0 riscv k
                                                     ]))
                    ]
                  }
+
+type ColorType = EnumType '["Red", "Blue", "Yellow"]
+type AustraliaColoringType = StructType '[ '("WA", ColorType)
+                                         , '("NT", ColorType)
+                                         , '("SA", ColorType)
+                                         , '("Q", ColorType)
+                                         , '("NSW", ColorType)
+                                         , '("V", ColorType)
+                                         , '("T", ColorType)
+                                         ]
+
+-- |
+-- @
+-- color is {Red, Blue, Yellow}
+--
+-- australia_coloring kind of struct
+--   with WA : color,
+--        NT : color,
+--        SA : color,
+--        Q : color,
+--        NSW : color,
+--        V : color,
+--        T : color
+--   where not (WA = NT),
+--         not (WA = SA),
+--         not (NT = SA),
+--         not (NT = Q),
+--         not (SA = Q),
+--         not (SA = NSW),
+--         not (SA = V),
+--         not (Q = NSW),
+--         not (NSW = V)
+-- @
+australia_coloring :: Kind AustraliaColoringType
+australia_coloring = Kind { kindName = "australia_coloring"
+                           , kindType = knownRepr
+                           , kindConstraints =
+                             [ NotExpr
+                               (EqExpr
+                                (FieldExpr SelfExpr index0)
+                                (FieldExpr SelfExpr index1))
+                             , NotExpr
+                               (EqExpr
+                                (FieldExpr SelfExpr index0)
+                                (FieldExpr SelfExpr index2))
+                             , NotExpr
+                               (EqExpr
+                                (FieldExpr SelfExpr index1)
+                                (FieldExpr SelfExpr index2))
+                             , NotExpr
+                               (EqExpr
+                                (FieldExpr SelfExpr index1)
+                                (FieldExpr SelfExpr index3))
+                             , NotExpr
+                               (EqExpr
+                                (FieldExpr SelfExpr index2)
+                                (FieldExpr SelfExpr index3))
+                             , NotExpr
+                               (EqExpr
+                                (FieldExpr SelfExpr index2)
+                                (FieldExpr SelfExpr index4))
+                             , NotExpr
+                               (EqExpr
+                                (FieldExpr SelfExpr index2)
+                                (FieldExpr SelfExpr index5))
+                             , NotExpr
+                               (EqExpr
+                                (FieldExpr SelfExpr index3)
+                                (FieldExpr SelfExpr index4))
+                             , NotExpr
+                               (EqExpr
+                                (FieldExpr SelfExpr index4)
+                                (FieldExpr SelfExpr index5))
+                             ]
+                           }
+
+index5 :: Index (x0:x1:x2:x3:x4:x5:r) x5
+index5 = IndexThere index4
