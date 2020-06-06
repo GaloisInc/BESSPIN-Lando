@@ -5,19 +5,19 @@
 
 module Lando.Core.Kind.Examples
   ( -- * Example 1
-    ABCType, FooType
-  , abc_kind
-  , abc_kind_1
-  , abc_kind_2
-  , abc_kind_3
+    ABCType
+  , abc
+  , abc_1
+  , abc_2
+  , abc_3
     -- * Example 2
   , SexType, PersonType
-  , person_kind
-  , teenager_kind
+  , person
+  , teenager
   , CoupleType
-  , couple_kind
-  , straight_couple_kind
-  , teenage_couple_kind
+  , couple
+  , straight_couple
+  , teenage_couple
     -- * Example 3
   , RegWidthType, ExtsType, PrivType, VMType, RISCVType
   , riscv
@@ -32,65 +32,55 @@ import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Lando.Core.Kind
 
-type ABCType = '["A", "B", "C"]
-
-type FooType = StructType '[ '("abc", SetType ABCType) ]
-
-abc_type :: List SymbolRepr ABCType
-abc_type = knownRepr
+type ABCType = SetType '["A", "B", "C"]
 
 -- |
 -- @
--- abc_kind kind of struct
---   with abc : subset {A, B, C}
+-- abc kind of abc kind of {A, B, C}
 -- @
-abc_kind :: Kind FooType
-abc_kind = Kind { kindName = "abc"
+abc :: Kind ABCType
+abc = Kind { kindName = "abc"
                 , kindType = knownRepr
                 , kindConstraints = []
                 }
 
 -- |
 -- @
--- abc_kind_1 kind of abc_kind where A in abc
+-- abc_1 kind of abc where A in abc
 -- @
-abc_kind_1 :: Kind FooType
-abc_kind_1 = derivedKind (abc_kind :| []) "abc_kind_1"
+abc_1 :: Kind ABCType
+abc_1 = derivedKind (abc :| []) "abc_1"
                   [ MemberExpr
-                    (LiteralExpr (EnumLit abc_type index0))
-                    (FieldExpr SelfExpr index0)
+                    (LiteralExpr (EnumLit knownRepr index0))
+                    SelfExpr
                   ]
 
 -- |
 -- @
--- abc_kind_2 kind of of abc_kind where (A in abc) => (C in abc)
+-- abc_2 kind of of abc where (A in abc) => (C in abc)
 -- @
-abc_kind_2 :: Kind FooType
-abc_kind_2 = derivedKind (abc_kind :| []) "abc_kind_2"
+abc_2 :: Kind ABCType
+abc_2 = derivedKind (abc :| []) "abc_2"
              [ ImpliesExpr
                (MemberExpr
-                (LiteralExpr (EnumLit abc_type index0))
-                (FieldExpr SelfExpr index0))
+                (LiteralExpr (EnumLit knownRepr index0))
+                SelfExpr)
                (MemberExpr
-                (LiteralExpr (EnumLit abc_type index2))
-                (FieldExpr SelfExpr index0))
+                (LiteralExpr (EnumLit knownRepr index2))
+                SelfExpr)
              ]
 
 -- |
 -- @
--- abc_kind2 kind of abc_kind_1 abc_kind_2
+-- abc2 kind of abc_1 abc_2
 -- @
-abc_kind_3 :: Kind FooType
-abc_kind_3 = derivedKind
-  (abc_kind_1 :| [abc_kind_2])
-  "abc_kind_3"
+abc_3 :: Kind ABCType
+abc_3 = derivedKind
+  (abc_1 :| [abc_2])
+  "abc_3"
   []
 
 type SexType = '["Male", "Female"]
-
-_sex_type :: List SymbolRepr SexType
-_sex_type = knownRepr
-
 type PersonType = StructType '[ '("age", IntType)
                               , '("sex", EnumType SexType)
                               ]
@@ -102,8 +92,8 @@ type PersonType = StructType '[ '("age", IntType)
 --        sex : {Male, Female}
 --   where age >= 0
 -- @
-person_kind :: Kind PersonType
-person_kind = Kind { kindName = "person"
+person :: Kind PersonType
+person = Kind { kindName = "person"
                    , kindType = knownRepr
                    , kindConstraints =
                        [ LteExpr
@@ -118,8 +108,8 @@ person_kind = Kind { kindName = "person"
 --   where 13 <= age,
 --         age <= 19
 -- @
-teenager_kind :: Kind PersonType
-teenager_kind = derivedKind (person_kind :| []) "teenager"
+teenager :: Kind PersonType
+teenager = derivedKind (person :| []) "teenager"
                 [ LteExpr
                   (LiteralExpr (IntLit 13))
                   (FieldExpr SelfExpr index0)
@@ -134,23 +124,23 @@ type CoupleType = StructType '[ '("person1", PersonType)
 
 -- |
 -- @
--- kind couple
+-- couple kind of struct
 --   with person1 : person,
 --        person2 : person
 -- @
-couple_kind :: Kind CoupleType
-couple_kind = Kind { kindName = "couple"
+couple :: Kind CoupleType
+couple = Kind { kindName = "couple"
                    , kindType = knownRepr
                    , kindConstraints = []
                    }
 
 -- |
 -- @
--- kind straight_couple of couple
+-- straight_couple kind of couple
 --   where not (person1.sex = person2.sex)
 -- @
-straight_couple_kind :: Kind CoupleType
-straight_couple_kind = derivedKind (couple_kind :| []) "straight_couple"
+straight_couple :: Kind CoupleType
+straight_couple = derivedKind (couple :| []) "straight_couple"
                        [ NotExpr
                          (EqExpr
                           (FieldExpr (FieldExpr SelfExpr index0) index1)
@@ -158,30 +148,22 @@ straight_couple_kind = derivedKind (couple_kind :| []) "straight_couple"
                        ]
 
 -- |
--- @ kind teenage_couple of couple
+-- @ teenage_couple kind of couple
 --     where person1 : teenager,
 --           person2 : teenager
 -- @
-teenage_couple_kind :: Kind CoupleType
-teenage_couple_kind = liftConstraints index0 teenager_kind $
-                      liftConstraints index1 teenager_kind $
-                      derivedKind (couple_kind :| []) "teenage_couple" []
+teenage_couple :: Kind CoupleType
+teenage_couple = liftConstraints index0 teenager $
+                      liftConstraints index1 teenager $
+                      derivedKind (couple :| []) "teenage_couple" []
 
 type RegWidthType = '["RV32", "RV64"]
-reg_width_type :: List SymbolRepr RegWidthType
-reg_width_type = knownRepr
 
 type ExtsType = '["M", "A", "F", "D", "C"]
-exts_type :: List SymbolRepr ExtsType
-exts_type = knownRepr
 
 type PrivType = '["PrivM", "PrivS", "PrivU"]
-priv_type :: List SymbolRepr PrivType
-priv_type = knownRepr
 
 type VMType = '["SVNone", "SV32", "SV39", "SV48"]
-vm_type :: List SymbolRepr VMType
-vm_type = knownRepr
 
 type RISCVType = StructType '[ '("reg_width", EnumType RegWidthType),
                                '("xlen", IntType),
@@ -213,50 +195,50 @@ riscv = Kind { kindName = "riscv"
                [ ImpliesExpr
                  (EqExpr
                   (FieldExpr SelfExpr index0)
-                  (LiteralExpr (EnumLit reg_width_type index0)))
+                  (LiteralExpr (EnumLit knownRepr index0)))
                  (EqExpr
                   (FieldExpr SelfExpr index1)
                   (LiteralExpr (IntLit 32)))
                , ImpliesExpr
                  (EqExpr
                   (FieldExpr SelfExpr index0)
-                  (LiteralExpr (EnumLit reg_width_type index1)))
+                  (LiteralExpr (EnumLit knownRepr index1)))
                  (EqExpr
                   (FieldExpr SelfExpr index1)
                   (LiteralExpr (IntLit 64)))
                , ImpliesExpr
                  (MemberExpr
-                  (LiteralExpr (EnumLit exts_type index3))
+                  (LiteralExpr (EnumLit knownRepr index3))
                   (FieldExpr SelfExpr index2))
                  (MemberExpr
-                  (LiteralExpr (EnumLit exts_type index2))
+                  (LiteralExpr (EnumLit knownRepr index2))
                   (FieldExpr SelfExpr index2))
                , MemberExpr
-                 (LiteralExpr (EnumLit priv_type index0))
+                 (LiteralExpr (EnumLit knownRepr index0))
                  (FieldExpr SelfExpr index3)
                , ImpliesExpr
                  (MemberExpr
-                  (LiteralExpr (EnumLit priv_type index1))
+                  (LiteralExpr (EnumLit knownRepr index1))
                   (FieldExpr SelfExpr index3))
                  (MemberExpr
-                  (LiteralExpr (EnumLit priv_type index2))
+                  (LiteralExpr (EnumLit knownRepr index2))
                   (FieldExpr SelfExpr index3))
                , ImpliesExpr
                  (MemberExpr
-                  (LiteralExpr (EnumLit priv_type index1))
+                  (LiteralExpr (EnumLit knownRepr index1))
                   (FieldExpr SelfExpr index3))
                  (NotExpr
                   (EqExpr
                    (FieldExpr SelfExpr index4)
-                   (LiteralExpr (EnumLit vm_type index0))))
+                   (LiteralExpr (EnumLit knownRepr index0))))
                , ImpliesExpr
                  (NotExpr
                   (MemberExpr
-                   (LiteralExpr (EnumLit priv_type index1))
+                   (LiteralExpr (EnumLit knownRepr index1))
                    (FieldExpr SelfExpr index3)))
                  (EqExpr
                   (FieldExpr SelfExpr index4)
-                  (LiteralExpr (EnumLit vm_type index0)))
+                  (LiteralExpr (EnumLit knownRepr index0)))
                ]
              }
 
@@ -287,9 +269,9 @@ bluespec_build = liftConstraints index0 riscv k
                  , kindConstraints =
                    [ MemberExpr
                      (FieldExpr (FieldExpr SelfExpr index0) index4)
-                     (LiteralExpr (SetLit vm_type [ Some index0
-                                                  , Some index1
-                                                  , Some index2
-                                                  ]))
+                     (LiteralExpr (SetLit knownRepr [ Some index0
+                                                    , Some index1
+                                                    , Some index2
+                                                    ]))
                    ]
                  }
