@@ -15,7 +15,6 @@ This module defines pretty printing functions for the core LOBOT types.
 
 module Lando.Core.Kind.Pretty
   ( ppKind
-  , ppStructInstance
   , ppExpr
   , ppLiteral
   ) where
@@ -52,7 +51,7 @@ ppKind kd =
   PP.$$ PP.nest 2 (ppWClause "where" (ppExpr kd <$> kindConstraints kd))
 
 ppWClause :: String -> [PP.Doc] -> PP.Doc
-ppWClause w [] = PP.empty
+ppWClause _ [] = PP.empty
 ppWClause w xs = PP.text w PP.<+> vcommas xs
 
 ppFieldRepr :: FieldRepr ftp -> PP.Doc
@@ -79,28 +78,23 @@ ppLiteral (IntLit x) = PP.integer x
 ppLiteral (EnumLit cs i) = symbolDoc (cs !! i)
 ppLiteral (SetLit cs is) =
   PP.braces (commas (viewSome (symbolDoc . (cs !!)) <$> is))
-ppLiteral (StructLit inst) = ppStructInstance inst
+ppLiteral (StructLit fls) = PP.text "instance" PP.<+> withClause
+  where withClause = case fls of
+          Nil -> PP.empty
+          _ -> PP.text "with" PP.<+> commas (toListFC ppFieldLiteral fls)
 
 ppFieldLiteral :: FieldLiteral ftp -> PP.Doc
 ppFieldLiteral FieldLiteral{..} =
   symbolDoc fieldLiteralName PP.<+> PP.equals PP.<+> ppLiteral fieldLiteralValue
 
-ppStructInstance :: StructInstance ftps -> PP.Doc
-ppStructInstance (StructInstance fls) =
-  PP.text "instance" PP.<+> withClause
-  where withClause = case fls of
-          Nil -> PP.empty
-          _ -> PP.text "with" PP.<+> commas (toListFC ppFieldLiteral fls)
-
 exprKindFields :: Kind ctx
                -> Expr ctx (StructType ftps)
                -> List FieldRepr ftps
-exprKindFields _ (LiteralExpr (StructLit (StructInstance flds))) =
-  fmapFC fieldLiteralType flds
-exprKindFields kd SelfExpr | StructRepr flds <- kindType kd = flds
+exprKindFields _ (LiteralExpr (StructLit fls)) = fmapFC fieldLiteralType fls
+exprKindFields kd SelfExpr | StructRepr fls <- kindType kd = fls
 exprKindFields kd (FieldExpr kdExpr i) =
-  let StructRepr flds = fieldType (exprKindFields kd kdExpr !! i)
-  in flds
+  let StructRepr fls = fieldType (exprKindFields kd kdExpr !! i)
+  in fls
 
 ppExpr :: Kind ctx -> Expr ctx tp -> PP.Doc
 ppExpr = ppExpr' True

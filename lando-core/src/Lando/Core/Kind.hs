@@ -36,8 +36,6 @@ module Lando.Core.Kind
   , derivedKind
   , liftConstraints
     -- * Instances
-  , StructInstance(..)
-  , structInstanceType
   , FieldLiteral(..)
   , fieldLiteralType
   , Literal(..)
@@ -85,11 +83,11 @@ derivedKind kds@(kd :| _) nm cs =
 
 -- | Lift the constraints of a kind @K'@ into a parent kind @K@ that contains
 -- @K'@. This should only be called once for a given child.
-liftConstraints :: Kind (StructType ftps)
+liftConstraints :: Index ktps '(nm, tp)
                 -> Kind tp
-                -> Index ftps '(nm, tp)
-                -> Kind (StructType ftps)
-liftConstraints k k' i = addConstraints k (liftExpr i <$> kindConstraints k')
+                -> Kind (StructType ktps)
+                -> Kind (StructType ktps)
+liftConstraints i k' k = addConstraints k (liftExpr i <$> kindConstraints k')
 
 -- | A 'FieldRepr' is a key, type pair. Note that since both the key and the type
 -- are tracked at the type level, this is a singleton type that lets you know
@@ -174,7 +172,7 @@ data Literal tp where
             => List SymbolRepr cs
             -> [Some (Index cs)]
             -> Literal (SetType cs)
-  StructLit :: StructInstance ftps -> Literal (StructType ftps)
+  StructLit :: List FieldLiteral ftps -> Literal (StructType ftps)
 deriving instance Show (Literal tp)
 
 -- | Get the type of a literal.
@@ -183,7 +181,7 @@ literalType (BoolLit _) = BoolRepr
 literalType (IntLit _) = IntRepr
 literalType (EnumLit cs _) = EnumRepr cs
 literalType (SetLit cs _) = SetRepr cs
-literalType (StructLit (StructInstance flds)) = StructRepr (fmapFC fieldLiteralType flds)
+literalType (StructLit fls) = StructRepr (fmapFC fieldLiteralType fls)
 
 -- | An instance of a particular field. This is just the field name paired with
 -- a concrete literal.
@@ -199,15 +197,6 @@ fieldLiteralType FieldLiteral{..} =
 
 deriving instance Show (FieldLiteral p)
 instance ShowF FieldLiteral
-
--- | Concrete instance of a 'Kind', but without the guarantee that this instance
--- satisfies any of the kind's constraints. That needs to be checked.
-data StructInstance ftps = StructInstance { instanceValues :: List FieldLiteral ftps }
-  deriving (Show)
-
--- | Get the type of an 'Instance'.
-structInstanceType :: StructInstance ftps -> List FieldRepr ftps
-structInstanceType StructInstance{..} = fmapFC fieldLiteralType instanceValues
 
 -- | A expression involving a particular kind.
 data Expr (ctx :: Type) (tp :: Type) where
@@ -239,20 +228,16 @@ litEq (EnumLit _ i1) (EnumLit _ i2) | Just Refl <- i1 `testEquality` i2 = True
                                     | otherwise = False
 litEq (SetLit _ s1) (SetLit _ s2) = all (\i -> isJust (find (==i) s2)) s1 &&
                                     all (\i -> isJust (find (==i) s1)) s2
-litEq (StructLit i1) (StructLit i2) = i1 `structInstanceEq` i2
+litEq (StructLit fls1) (StructLit fls2) = fls1 `flsEq` fls2
+  where flsEq :: forall (ftps :: [(Symbol, Type)]) .
+                  List FieldLiteral ftps -> List FieldLiteral ftps -> Bool
+        flsEq Nil Nil = True
+        flsEq (a :< as) (b :< bs) | FieldLiteral _ _ <- a
+          = a `fieldValueEq` b && flsEq as bs
 
 fieldValueEq :: FieldLiteral ftp -> FieldLiteral ftp -> Bool
 fieldValueEq fv1@(FieldLiteral _ _) fv2 =
   litEq (fieldLiteralValue fv1) (fieldLiteralValue fv2)
-
-structInstanceEq :: forall (ftps :: [(Symbol, Type)]) .
-                    StructInstance ftps -> StructInstance ftps -> Bool
-structInstanceEq i1 i2 = listEq (instanceValues i1) (instanceValues i2)
-  where listEq :: forall (ftps :: [(Symbol, Type)]) .
-                  List FieldLiteral ftps -> List FieldLiteral ftps -> Bool
-        listEq Nil Nil = True
-        listEq (a :< as) (b :< bs) | FieldLiteral _ _ <- a
-          = a `fieldValueEq` b && listEq as bs
 
 -- | Determine whether a literal satisfies all the constraints of a kind.
 instanceOf :: Literal tp -> Kind tp -> Bool
@@ -265,8 +250,7 @@ evalExpr :: Literal ctx -> Expr ctx tp -> Literal tp
 evalExpr inst e = case e of
   SelfExpr -> inst
   FieldExpr kd i
-    | StructLit (StructInstance fvs) <- evalExpr inst kd 
-      -> fieldLiteralValue (fvs !! i)
+    | StructLit fls <- evalExpr inst kd -> fieldLiteralValue (fls !! i)
   LiteralExpr l -> l
   EqExpr e1 e2
     | l1 <- evalExpr inst e1

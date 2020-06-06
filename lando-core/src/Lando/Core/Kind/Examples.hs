@@ -14,8 +14,12 @@ module Lando.Core.Kind.Examples
   , SexType, PersonType
   , person_kind
   , teenager_kind
+  , CoupleType
+  , couple_kind
+  , straight_couple_kind
+  , teenage_couple_kind
     -- * Example 3
-  , RegWidthType, ExtsType, RISCVType
+  , RegWidthType, ExtsType, PrivType, VMType, RISCVType
   , riscv
   , SimType, BluespecBuildType
   , bluespec_build
@@ -24,6 +28,7 @@ module Lando.Core.Kind.Examples
 import Data.List.NonEmpty
 import Data.Parameterized.Classes
 import Data.Parameterized.List
+import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Lando.Core.Kind
 
@@ -123,6 +128,45 @@ teenager_kind = derivedKind (person_kind :| []) "teenager"
                   (LiteralExpr (IntLit 19))
                 ]
 
+type CoupleType = StructType '[ '("person1", PersonType)
+                              , '("person2", PersonType)
+                              ]
+
+-- |
+-- @
+-- kind couple
+--   with person1 : person,
+--        person2 : person
+-- @
+couple_kind :: Kind CoupleType
+couple_kind = Kind { kindName = "couple"
+                   , kindType = knownRepr
+                   , kindConstraints = []
+                   }
+
+-- |
+-- @
+-- kind straight_couple of couple
+--   where not (person1.sex = person2.sex)
+-- @
+straight_couple_kind :: Kind CoupleType
+straight_couple_kind = derivedKind (couple_kind :| []) "straight_couple"
+                       [ NotExpr
+                         (EqExpr
+                          (FieldExpr (FieldExpr SelfExpr index0) index1)
+                          (FieldExpr (FieldExpr SelfExpr index1) index1))
+                       ]
+
+-- |
+-- @ kind teenage_couple of couple
+--     where person1 : teenager,
+--           person2 : teenager
+-- @
+teenage_couple_kind :: Kind CoupleType
+teenage_couple_kind = liftConstraints index0 teenager_kind $
+                      liftConstraints index1 teenager_kind $
+                      derivedKind (couple_kind :| []) "teenage_couple" []
+
 type RegWidthType = '["RV32", "RV64"]
 reg_width_type :: List SymbolRepr RegWidthType
 reg_width_type = knownRepr
@@ -142,7 +186,7 @@ vm_type = knownRepr
 type RISCVType = StructType '[ '("reg_width", EnumType RegWidthType),
                                '("xlen", IntType),
                                '("exts", SetType ExtsType),
-                               '("privilege", SetType PrivType),
+                               '("privs", SetType PrivType),
                                '("vm", EnumType VMType)
                              ]
 
@@ -152,15 +196,15 @@ type RISCVType = StructType '[ '("reg_width", EnumType RegWidthType),
 --   with reg_width : {RV32, RV64},
 --        xlen : int,
 --        exts : subset {M, A, F, D, C},
---        privilege : subset {PrivM, PrivS, PrivU},
+--        privs : subset {PrivM, PrivS, PrivU},
 --        vm : {SVNone, SV32, SV39, SV48}
 --   where (reg_width = RV32) => (xlen = 32),
 --         (reg_width = RV64) => (xlen = 64),
 --         (D in exts) => (F in exts),
---         PrivM in privilege,
---         (PrivS in privilege) => (PrivU in privilege),
---         (PrivS in privilege) => (not (vm = SVNone)),
---         (not (PrivS in privilege)) => (vm = SVNone)
+--         PrivM in privs,
+--         (PrivS in privs) => (PrivU in privs),
+--         (PrivS in privs) => (not (vm = SVNone)),
+--         (not (PrivS in privs)) => (vm = SVNone)
 -- @
 riscv :: Kind RISCVType
 riscv = Kind { kindName = "riscv"
@@ -225,7 +269,7 @@ _sim_type = knownRepr
 
 type BluespecBuildType = StructType '[ '("riscv", RISCVType)
                                      , '("sim", EnumType SimType)
-                                     , '("INCLUDE_TANDEM_VERIF", BoolType)
+                                     , '("tv", BoolType)
                                      ]
 
 -- |
@@ -233,10 +277,19 @@ type BluespecBuildType = StructType '[ '("riscv", RISCVType)
 -- bluespec_build kind of struct
 --   with riscv : riscv,
 --        sim : {Bluesim, IVerilog, Verilator}
+--        tv : bool
+--   where riscv.vm in {SVNone, SV32, SV39}
 -- @
 bluespec_build :: Kind BluespecBuildType
-bluespec_build = liftConstraints k riscv index0
+bluespec_build = liftConstraints index0 riscv k
   where k = Kind { kindName = "bluespec_build"
                  , kindType = knownRepr
-                 , kindConstraints = []
+                 , kindConstraints =
+                   [ MemberExpr
+                     (FieldExpr (FieldExpr SelfExpr index0) index4)
+                     (LiteralExpr (SetLit vm_type [ Some index0
+                                                  , Some index1
+                                                  , Some index2
+                                                  ]))
+                   ]
                  }
