@@ -86,11 +86,11 @@ derivedKind kds@(kd :| _) nm cs =
 
 -- | Lift the constraints of a kind @K'@ into a parent kind @K@ that contains
 -- @K'@. This should only be called once for a given child.
-liftConstraints :: Kind ktps
+liftConstraints :: Index ktps '(nm, KindType ktps')
                 -> Kind ktps'
-                -> Index ktps '(nm, KindType ktps')
                 -> Kind ktps
-liftConstraints k k' i = addConstraints k (liftExpr i <$> kindConstraints k')
+                -> Kind ktps
+liftConstraints i k' k = addConstraints k (liftExpr i <$> kindConstraints k')
 
 -- | A 'FieldRepr' is a key, type pair. Note that since both the key and the type
 -- are tracked at the type level, this is a singleton type that lets you know

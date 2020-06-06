@@ -14,6 +14,10 @@ module Lando.Core.Kind.Examples
   , SexType, PersonType
   , person_kind
   , teenager_kind
+  , CoupleType
+  , couple_kind
+  , straight_couple_kind
+  , teenage_couple_kind
     -- * Example 3
   , RegWidthType, ExtsType, PrivType, VMType, RISCVType
   , riscv
@@ -123,6 +127,45 @@ teenager_kind = derivedKind (person_kind :| []) "teenager"
                   (FieldExpr SelfExpr index0)
                   (LiteralExpr (IntLit 19))
                 ]
+
+type CoupleType = '[ '("person1", KindType PersonType)
+                   , '("person2", KindType PersonType)
+                   ]
+
+-- |
+-- @
+-- kind couple
+--   with person1 : person,
+--        person2 : person
+-- @
+couple_kind :: Kind CoupleType
+couple_kind = Kind { kindName = "couple"
+                   , kindFields = knownRepr
+                   , kindConstraints = []
+                   }
+
+-- |
+-- @
+-- kind straight_couple of couple
+--   where not (person1.sex = person2.sex)
+-- @
+straight_couple_kind :: Kind CoupleType
+straight_couple_kind = derivedKind (couple_kind :| []) "straight_couple"
+                       [ NotExpr
+                         (EqExpr
+                          (FieldExpr (FieldExpr SelfExpr index0) index1)
+                          (FieldExpr (FieldExpr SelfExpr index1) index1))
+                       ]
+
+-- |
+-- @ kind teenage_couple of couple
+--     where person1 : teenager,
+--           person2 : teenager
+-- @
+teenage_couple_kind :: Kind CoupleType
+teenage_couple_kind = liftConstraints index0 teenager_kind $
+                      liftConstraints index1 teenager_kind $
+                      derivedKind (couple_kind :| []) "teenage_couple" []
 
 type RegWidthType = '["RV32", "RV64"]
 reg_width_type :: List SymbolRepr RegWidthType
@@ -238,7 +281,7 @@ type BluespecBuildType = '[ '("riscv", KindType RISCVType)
 --   where riscv.vm in {SVNone, SV32, SV39}
 -- @
 bluespec_build :: Kind BluespecBuildType
-bluespec_build = liftConstraints k riscv index0
+bluespec_build = liftConstraints index0 riscv k
   where k = Kind { kindName = "bluespec_build"
                  , kindFields = knownRepr
                  , kindConstraints =
