@@ -5,12 +5,16 @@
 
 module Lando.Core.Kind.Examples
   ( -- * Example 1
-    ABCType
+    posint
+  , IntPairType
+  , unique_posint_pair
+    -- * Example 2
+  , ABCType
   , abc
   , abc_1
   , abc_2
   , abc_3
-    -- * Example 2
+    -- * Example 3
   , SexType, PersonType
   , person
   , teenager
@@ -18,7 +22,7 @@ module Lando.Core.Kind.Examples
   , couple
   , straight_couple
   , teenage_couple
-    -- * Example 3
+    -- * Example 4
   , RegWidthType, ExtsType, PrivType, VMType, RISCVType
   , riscv
   , SimType, BluespecBuildType
@@ -32,17 +36,58 @@ import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Lando.Core.Kind
 
+-- |
+-- @
+-- posint kind of int
+--   where 0 <= self
+-- @
+posint :: Kind IntType
+posint = Kind { kindName = "posint"
+              , kindType = knownRepr
+              , kindConstraints =
+                [ LteExpr (LiteralExpr (IntLit 0)) SelfExpr
+                ]
+              }
+
+type IntPairType = StructType '[ '("x", IntType)
+                               , '("y", IntType)
+                               ]
+
+-- |
+-- @
+-- unique_posint_pair kind of struct
+--   with x : posint,
+--        y : posint
+--   where not (x = y),
+--         x <= y
+-- @
+unique_posint_pair :: Kind IntPairType
+unique_posint_pair = liftConstraints index0 posint $
+                     liftConstraints index1 posint $
+                     Kind { kindName = "unique_posint_pair"
+                          , kindType = knownRepr
+                          , kindConstraints =
+                            [ NotExpr
+                              (EqExpr
+                               (FieldExpr SelfExpr index0)
+                               (FieldExpr SelfExpr index1))
+                            , LteExpr
+                              (FieldExpr SelfExpr index0)
+                              (FieldExpr SelfExpr index1)
+                            ]
+                          }
+
 type ABCType = SetType '["A", "B", "C"]
 
 -- |
 -- @
--- abc kind of abc kind of {A, B, C}
+-- abc kind of subset {A, B, C}
 -- @
 abc :: Kind ABCType
 abc = Kind { kindName = "abc"
-                , kindType = knownRepr
-                , kindConstraints = []
-                }
+           , kindType = knownRepr
+           , kindConstraints = []
+           }
 
 -- |
 -- @
