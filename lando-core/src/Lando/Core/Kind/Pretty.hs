@@ -44,11 +44,11 @@ ppKind kd@Kind{ kindType = StructRepr flds } =
   PP.text (kindName kd)
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> PP.text "struct"
   PP.$$ PP.nest 2 (ppWClause "with" (toListFC ppFieldRepr flds))
-  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr kd <$> kindConstraints kd))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (kindType kd) <$> kindConstraints kd))
 ppKind kd =
   PP.text (kindName kd)
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> ppTypeRepr (kindType kd)
-  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr kd <$> kindConstraints kd))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (kindType kd) <$> kindConstraints kd))
 
 ppWClause :: String -> [PP.Doc] -> PP.Doc
 ppWClause _ [] = PP.empty
@@ -87,26 +87,26 @@ ppFieldLiteral :: FieldLiteral ftp -> PP.Doc
 ppFieldLiteral FieldLiteral{..} =
   symbolDoc fieldLiteralName PP.<+> PP.equals PP.<+> ppLiteral fieldLiteralValue
 
-exprKindFields :: Kind ctx
-               -> Expr ctx (StructType ftps)
-               -> List FieldRepr ftps
-exprKindFields _ (LiteralExpr (StructLit fls)) = fmapFC fieldLiteralType fls
-exprKindFields kd SelfExpr | StructRepr fls <- kindType kd = fls
-exprKindFields kd (FieldExpr kdExpr i) =
-  let StructRepr fls = fieldType (exprKindFields kd kdExpr !! i)
+exprStructFields :: TypeRepr ctx
+                 -> Expr ctx (StructType ftps)
+                 -> List FieldRepr ftps
+exprStructFields _ (LiteralExpr (StructLit fls)) = fmapFC fieldLiteralType fls
+exprStructFields (StructRepr fls) SelfExpr = fls
+exprStructFields tp (FieldExpr structExpr i) =
+  let StructRepr fls = fieldType (exprStructFields tp structExpr !! i)
   in fls
 
-ppExpr :: Kind ctx -> Expr ctx tp -> PP.Doc
+ppExpr :: TypeRepr ctx -> Expr ctx tp -> PP.Doc
 ppExpr = ppExpr' True
 
-ppExpr' :: Bool -> Kind ctx -> Expr ctx tp -> PP.Doc
+ppExpr' :: Bool -> TypeRepr ctx -> Expr ctx tp -> PP.Doc
 ppExpr' _ _ (LiteralExpr l) = ppLiteral l
 ppExpr' _ _ SelfExpr = PP.text "self"
-ppExpr' _ Kind{..} (FieldExpr SelfExpr i)
-  | StructRepr flds <- kindType = symbolDoc (fieldName (flds !! i))
+ppExpr' _ (StructRepr flds) (FieldExpr SelfExpr i) =
+  symbolDoc (fieldName (flds !! i))
 ppExpr' top kd (FieldExpr kdExpr i) =
   ppExpr' top kd kdExpr PP.<> PP.text "." PP.<>
-  symbolDoc (fieldName (exprKindFields kd kdExpr !! i))
+  symbolDoc (fieldName (exprStructFields kd kdExpr !! i))
 ppExpr' False kd e = PP.parens (ppExpr' True kd e)
 ppExpr' _ kd (EqExpr e1 e2) =
   ppExpr' False kd e1 PP.<+> PP.equals PP.<+> ppExpr' False kd e2
