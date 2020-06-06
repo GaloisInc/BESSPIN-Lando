@@ -15,7 +15,7 @@ This module defines pretty printing functions for the core LOBOT types.
 
 module Lando.Core.Kind.Pretty
   ( ppKind
-  , ppInstance
+  , ppStructInstance
   , ppExpr
   , ppLiteral
   ) where
@@ -40,16 +40,20 @@ commas = PP.cat . PP.punctuate (PP.text ", ")
 vcommas :: [PP.Doc] -> PP.Doc
 vcommas = PP.vcat . PP.punctuate (PP.text ", ")
 
-ppKind :: Kind ktps -> PP.Doc
-ppKind kd@Kind{..} = PP.text "kind" PP.<+> PP.text kindName
-                     PP.$$ PP.nest 2 withClause
-                     PP.$$ PP.nest 2 whereClause
-  where withClause  = case kindFields of
-          Nil -> PP.empty
-          _ -> PP.text "with" PP.<+> vcommas (toListFC ppFieldRepr kindFields)
-        whereClause = case kindConstraints of
-          [] -> PP.empty
-          _ -> PP.text "where" PP.<+> vcommas (ppExpr kd <$> kindConstraints)
+ppKind :: Kind tp -> PP.Doc
+ppKind kd@Kind{ kindType = StructRepr flds } =
+  PP.text (kindName kd)
+  PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> PP.text "struct"
+  PP.$$ PP.nest 2 (ppWClause "with" (toListFC ppFieldRepr flds))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr kd <$> kindConstraints kd))
+ppKind kd =
+  PP.text (kindName kd)
+  PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> ppTypeRepr (kindType kd)
+  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr kd <$> kindConstraints kd))
+
+ppWClause :: String -> [PP.Doc] -> PP.Doc
+ppWClause w [] = PP.empty
+ppWClause w xs = PP.text w PP.<+> vcommas xs
 
 ppFieldRepr :: FieldRepr ftp -> PP.Doc
 ppFieldRepr FieldRepr{..} = symbolDoc fieldName PP.<+>
@@ -65,10 +69,8 @@ ppTypeRepr tp = case tp of
   SetRepr syms ->
     PP.text "subset" PP.<+>
     PP.braces (commas (toListFC symbolDoc syms))
-  KindRepr flds -> PP.text "kind" PP.<+> withClause
-    where withClause = case flds of
-            Nil -> PP.empty
-            _ -> PP.text "with" PP.<+> PP.vcat (toListFC ppFieldRepr flds)
+  StructRepr flds -> PP.text "struct" PP.<+> withClause
+    where withClause = ppWClause "with" (toListFC ppFieldRepr flds)
 
 ppLiteral :: Literal tp -> PP.Doc
 ppLiteral (BoolLit True) = PP.text "true"
@@ -77,36 +79,37 @@ ppLiteral (IntLit x) = PP.integer x
 ppLiteral (EnumLit cs i) = symbolDoc (cs !! i)
 ppLiteral (SetLit cs is) =
   PP.braces (commas (viewSome (symbolDoc . (cs !!)) <$> is))
-ppLiteral (KindLit inst) = ppInstance inst
+ppLiteral (StructLit inst) = ppStructInstance inst
 
 ppFieldLiteral :: FieldLiteral ftp -> PP.Doc
 ppFieldLiteral FieldLiteral{..} =
   symbolDoc fieldLiteralName PP.<+> PP.equals PP.<+> ppLiteral fieldLiteralValue
 
-ppInstance :: Instance ktps -> PP.Doc
-ppInstance (Instance fls) =
+ppStructInstance :: StructInstance ftps -> PP.Doc
+ppStructInstance (StructInstance fls) =
   PP.text "instance" PP.<+> withClause
   where withClause = case fls of
           Nil -> PP.empty
           _ -> PP.text "with" PP.<+> commas (toListFC ppFieldLiteral fls)
 
-exprKindFields :: Kind ktps
-               -> Expr ktps (KindType ktps')
-               -> List FieldRepr ktps'
-exprKindFields _ (LiteralExpr (KindLit (Instance flds))) =
+exprKindFields :: Kind ctx
+               -> Expr ctx (StructType ftps)
+               -> List FieldRepr ftps
+exprKindFields _ (LiteralExpr (StructLit (StructInstance flds))) =
   fmapFC fieldLiteralType flds
-exprKindFields kd SelfExpr = kindFields kd
+exprKindFields kd SelfExpr | StructRepr flds <- kindType kd = flds
 exprKindFields kd (FieldExpr kdExpr i) =
-  let KindRepr flds = fieldType (exprKindFields kd kdExpr !! i)
+  let StructRepr flds = fieldType (exprKindFields kd kdExpr !! i)
   in flds
 
-ppExpr :: Kind ktps -> Expr ktps tp -> PP.Doc
+ppExpr :: Kind ctx -> Expr ctx tp -> PP.Doc
 ppExpr = ppExpr' True
 
-ppExpr' :: Bool -> Kind ktps -> Expr ktps tp -> PP.Doc
+ppExpr' :: Bool -> Kind ctx -> Expr ctx tp -> PP.Doc
 ppExpr' _ _ (LiteralExpr l) = ppLiteral l
 ppExpr' _ _ SelfExpr = PP.text "self"
-ppExpr' _ Kind{..} (FieldExpr SelfExpr i) = symbolDoc (fieldName (kindFields !! i))
+ppExpr' _ Kind{..} (FieldExpr SelfExpr i)
+  | StructRepr flds <- kindType = symbolDoc (fieldName (flds !! i))
 ppExpr' top kd (FieldExpr kdExpr i) =
   ppExpr' top kd kdExpr PP.<> PP.text "." PP.<>
   symbolDoc (fieldName (exprKindFields kd kdExpr !! i))

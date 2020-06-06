@@ -29,25 +29,25 @@ import Lando.Core.Kind
 
 type ABCType = '["A", "B", "C"]
 
-type FooType = '[ '("abc", SetType ABCType) ]
+type FooType = StructType '[ '("abc", SetType ABCType) ]
 
 abc_type :: List SymbolRepr ABCType
 abc_type = knownRepr
 
 -- |
 -- @
--- kind abc_kind
+-- abc_kind kind of struct
 --   with abc : subset {A, B, C}
 -- @
 abc_kind :: Kind FooType
 abc_kind = Kind { kindName = "abc"
-                , kindFields = knownRepr
+                , kindType = knownRepr
                 , kindConstraints = []
                 }
 
 -- |
 -- @
--- kind abc_kind_1 of abc_kind where A in abc
+-- abc_kind_1 kind of abc_kind where A in abc
 -- @
 abc_kind_1 :: Kind FooType
 abc_kind_1 = derivedKind (abc_kind :| []) "abc_kind_1"
@@ -58,7 +58,7 @@ abc_kind_1 = derivedKind (abc_kind :| []) "abc_kind_1"
 
 -- |
 -- @
--- kind abc_kind_2 of abc_kind where (A in abc) => (C in abc)
+-- abc_kind_2 kind of of abc_kind where (A in abc) => (C in abc)
 -- @
 abc_kind_2 :: Kind FooType
 abc_kind_2 = derivedKind (abc_kind :| []) "abc_kind_2"
@@ -73,7 +73,7 @@ abc_kind_2 = derivedKind (abc_kind :| []) "abc_kind_2"
 
 -- |
 -- @
--- kind abc_kind2 of abc_kind_1 abc_kind_2
+-- abc_kind2 kind of abc_kind_1 abc_kind_2
 -- @
 abc_kind_3 :: Kind FooType
 abc_kind_3 = derivedKind
@@ -86,20 +86,20 @@ type SexType = '["Male", "Female"]
 _sex_type :: List SymbolRepr SexType
 _sex_type = knownRepr
 
-type PersonType = '[ '("age", IntType)
-                   , '("sex", EnumType SexType)
-                   ]
+type PersonType = StructType '[ '("age", IntType)
+                              , '("sex", EnumType SexType)
+                              ]
 
 -- |
 -- @
--- kind person
+-- person kind of struct
 --   with age : int
 --        sex : {Male, Female}
 --   where age >= 0
 -- @
 person_kind :: Kind PersonType
 person_kind = Kind { kindName = "person"
-                   , kindFields = knownRepr
+                   , kindType = knownRepr
                    , kindConstraints =
                        [ LteExpr
                          (LiteralExpr (IntLit 0))
@@ -109,7 +109,7 @@ person_kind = Kind { kindName = "person"
 
 -- |
 -- @
--- kind teenager of person
+-- teenager kind of person
 --   where 13 <= age,
 --         age <= 19
 -- @
@@ -139,16 +139,16 @@ type VMType = '["SVNone", "SV32", "SV39", "SV48"]
 vm_type :: List SymbolRepr VMType
 vm_type = knownRepr
 
-type RISCVType = '[ '("reg_width", EnumType RegWidthType),
-                    '("xlen", IntType),
-                    '("exts", SetType ExtsType),
-                    '("privilege", SetType PrivType),
-                    '("vm", EnumType VMType)
-                  ]
+type RISCVType = StructType '[ '("reg_width", EnumType RegWidthType),
+                               '("xlen", IntType),
+                               '("exts", SetType ExtsType),
+                               '("privilege", SetType PrivType),
+                               '("vm", EnumType VMType)
+                             ]
 
 -- |
 -- @
--- kind riscv
+-- riscv kind of struct
 --   with reg_width : {RV32, RV64},
 --        xlen : int,
 --        exts : subset {M, A, F, D, C},
@@ -164,7 +164,7 @@ type RISCVType = '[ '("reg_width", EnumType RegWidthType),
 -- @
 riscv :: Kind RISCVType
 riscv = Kind { kindName = "riscv"
-             , kindFields = knownRepr
+             , kindType = knownRepr
              , kindConstraints =
                [ ImpliesExpr
                  (EqExpr
@@ -223,20 +223,20 @@ type SimType = '[ "Bluesim", "IVerilog", "Verilator" ]
 _sim_type :: List SymbolRepr SimType
 _sim_type = knownRepr
 
-type BluespecBuildType = '[ '("riscv", KindType RISCVType)
-                          , '("sim", EnumType SimType)
-                          , '("INCLUDE_TANDEM_VERIF", BoolType)
-                          ]
+type BluespecBuildType = StructType '[ '("riscv", RISCVType)
+                                     , '("sim", EnumType SimType)
+                                     , '("INCLUDE_TANDEM_VERIF", BoolType)
+                                     ]
 
 -- |
 -- @
--- kind bluespec_build
+-- bluespec_build kind of struct
 --   with riscv : riscv,
 --        sim : {Bluesim, IVerilog, Verilator}
 -- @
 bluespec_build :: Kind BluespecBuildType
 bluespec_build = liftConstraints k riscv index0
   where k = Kind { kindName = "bluespec_build"
-                 , kindFields = knownRepr
+                 , kindType = knownRepr
                  , kindConstraints = []
                  }
