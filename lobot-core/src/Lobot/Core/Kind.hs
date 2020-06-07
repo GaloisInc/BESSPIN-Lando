@@ -1,3 +1,4 @@
+{-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -65,8 +66,8 @@ import Data.Parameterized.TraversableFC
 import Prelude hiding ((!!))
 
 -- | Representation of a Lobot feature model, which we term a 'Kind' for
--- brevity. A kind consists of a name, a type, and a list of constraints
--- that must hold for all instances of this kind.
+-- brevity. A kind consists of a name, a type, a function environment, and a
+-- list of constraints that must hold for all instances of this kind.
 data Kind (env :: [FunctionType]) (tp :: Type) = Kind
   { kindName :: String
   , kindType :: TypeRepr tp
@@ -118,7 +119,7 @@ data Type = BoolType
           | IntType
           | EnumType [Symbol]
           | SetType [Symbol]
-          | StructType [(Symbol, Type)] -- [(Symbol, FunctionType)]
+          | StructType [(Symbol, Type)]
 
 type BoolType = 'BoolType
 type IntType = 'IntType
@@ -230,10 +231,10 @@ fieldLiteralType FieldLiteral{..} =
 deriving instance Show (FieldLiteral p)
 instance ShowF FieldLiteral
 
-data FunctionImpl fntp where
+data FunctionImpl m fntp where
   FunctionImpl :: { fnImplType :: FunctionTypeRepr (FunType nm args ret)
                   , fnImplRun :: List Literal args -> m (Literal ret)
-                  } -> FunctionImpl (FunType nm args ret)
+                  } -> FunctionImpl m (FunType nm args ret)
 
 -- | A expression involving a particular kind, given a particular function
 -- environment.
@@ -244,6 +245,10 @@ data Expr (env :: [FunctionType]) (ctx :: Type) (tp :: Type) where
   SelfExpr    :: Expr env ctx ctx
   -- | An expression referring to a field of an instance of some kind.
   FieldExpr   :: Expr env ctx (StructType ftps) -> Index ftps '(nm, tp) -> Expr env ctx tp
+  -- | Function application.
+  ApplyExpr   :: Index env (FunType nm args ret)
+              -> List (Expr env ctx) args
+              -> Expr env ctx ret
   -- | Equality of two expressions.
   EqExpr      :: Expr env ctx tp -> Expr env ctx tp -> Expr env ctx BoolType
   -- | Less-than-or-equal for two integer expressions.
@@ -258,6 +263,7 @@ data Expr (env :: [FunctionType]) (ctx :: Type) (tp :: Type) where
   NotExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType
 
 deriving instance Show (Expr env ctx tp)
+instance ShowF (Expr env ctx)
 
 litEq :: Literal tp -> Literal tp -> Bool
 litEq (BoolLit b1) (BoolLit b2) = b1 == b2
@@ -278,31 +284,50 @@ fieldValueEq fv1@(FieldLiteral _ _) fv2 =
   litEq (fieldLiteralValue fv1) (fieldLiteralValue fv2)
 
 -- | Determine whether a literal satisfies all the constraints of a kind.
-instanceOf :: Literal tp -> Kind env tp -> Bool
-instanceOf inst (Kind{..}) = all constraintHolds kindConstraints
-  where constraintHolds e | BoolLit True <- evalExpr inst e = True
-                          | otherwise = False
+instanceOf :: MonadFail m
+           => List (FunctionImpl m) env
+           -> Literal tp
+           -> Kind env tp
+           -> m Bool
+instanceOf env inst (Kind{..}) = and <$> traverse constraintHolds kindConstraints
+  where constraintHolds e = do
+          BoolLit b <- evalExpr env inst e
+          return b
 
--- | Evaluate an expression given an instance of its type context.
-evalExpr :: Literal ctx -> Expr env ctx tp -> Literal tp
-evalExpr inst e = case e of
-  SelfExpr -> inst
-  FieldExpr kd i
-    | StructLit fls <- evalExpr inst kd -> fieldLiteralValue (fls !! i)
-  LiteralExpr l -> l
-  EqExpr e1 e2
-    | l1 <- evalExpr inst e1
-    , l2 <- evalExpr inst e2 -> BoolLit (litEq l1 l2)
-  LteExpr e1 e2
-    | IntLit x1 <- evalExpr inst e1
-    , IntLit x2 <- evalExpr inst e2 -> BoolLit (x1 <= x2)
-  MemberExpr e1 e2
-    | EnumLit _ i <- evalExpr inst e1
-    , SetLit _ s <- evalExpr inst e2 -> BoolLit (isJust (find (== Some i) s))
-  ImpliesExpr e1 e2
-    | BoolLit b1 <- evalExpr inst e1
-    , BoolLit b2 <- evalExpr inst e2 -> BoolLit (not b1 || b2)
-  NotExpr e' | BoolLit b <- evalExpr inst e' -> BoolLit (not b)
+-- | Evaluate an expression given an instance of its function and type contexts.
+evalExpr :: MonadFail m
+         => List (FunctionImpl m) env
+         -> Literal ctx
+         -> Expr env ctx tp
+         -> m (Literal tp)
+evalExpr fns inst e = case e of
+  LiteralExpr l -> pure l
+  SelfExpr -> pure inst
+  FieldExpr kd i -> do
+    StructLit fls <- evalExpr fns inst kd
+    pure $ fieldLiteralValue (fls !! i)
+  ApplyExpr fi es -> do
+    ls <- traverseFC (evalExpr fns inst) es
+    fnImplRun (fns !! fi) ls
+  EqExpr e1 e2 -> do
+    l1 <- evalExpr fns inst e1
+    l2 <- evalExpr fns inst e2
+    pure $ BoolLit (litEq l1 l2)
+  LteExpr e1 e2 -> do
+    IntLit x1 <- evalExpr fns inst e1
+    IntLit x2 <- evalExpr fns inst e2
+    pure $ BoolLit (x1 <= x2)
+  MemberExpr e1 e2 -> do
+    EnumLit _ i <- evalExpr fns inst e1
+    SetLit _ s <- evalExpr fns inst e2
+    pure $ BoolLit (isJust (find (== Some i) s))
+  ImpliesExpr e1 e2 -> do
+    BoolLit b1 <- evalExpr fns inst e1
+    BoolLit b2 <- evalExpr fns inst e2
+    pure $ BoolLit (not b1 || b2)
+  NotExpr e' -> do
+    BoolLit b <- evalExpr fns inst e'
+    pure $ BoolLit (not b)
 
 -- | Lift an expression about a kind @K'@ into an expression about a kind @K@ which
 -- contains @K'@.
@@ -313,6 +338,7 @@ liftExpr i e = case e of
   LiteralExpr l -> LiteralExpr l
   SelfExpr -> FieldExpr SelfExpr i
   FieldExpr kd i' -> FieldExpr (liftExpr i kd) i'
+  ApplyExpr fi es -> ApplyExpr fi (fmapFC (liftExpr i) es)
   EqExpr e1 e2 -> EqExpr (liftExpr i e1) (liftExpr i e2)
   LteExpr e1 e2 -> LteExpr (liftExpr i e1) (liftExpr i e2)
   MemberExpr e1 e2 -> MemberExpr (liftExpr i e1) (liftExpr i e2)

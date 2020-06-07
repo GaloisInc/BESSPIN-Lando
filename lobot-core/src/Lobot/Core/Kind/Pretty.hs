@@ -44,11 +44,11 @@ ppKind kd@Kind{ kindType = StructRepr flds } =
   PP.text (kindName kd)
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> PP.text "struct"
   PP.$$ PP.nest 2 (ppWClause "with" (toListFC ppFieldRepr flds))
-  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (kindType kd) <$> kindConstraints kd))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
 ppKind kd =
   PP.text (kindName kd)
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> ppTypeRepr (kindType kd)
-  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (kindType kd) <$> kindConstraints kd))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
 
 ppWClause :: String -> [PP.Doc] -> PP.Doc
 ppWClause _ [] = PP.empty
@@ -87,33 +87,44 @@ ppFieldLiteral :: FieldLiteral ftp -> PP.Doc
 ppFieldLiteral FieldLiteral{..} =
   symbolDoc fieldLiteralName PP.<+> PP.equals PP.<+> ppLiteral fieldLiteralValue
 
-exprStructFields :: TypeRepr ctx
+exprStructFields :: List FunctionTypeRepr env
+                 -> TypeRepr ctx
                  -> Expr env ctx (StructType ftps)
                  -> List FieldRepr ftps
-exprStructFields _ (LiteralExpr (StructLit fls)) = fmapFC fieldLiteralType fls
-exprStructFields (StructRepr fls) SelfExpr = fls
-exprStructFields tp (FieldExpr structExpr i) =
-  let StructRepr fls = fieldType (exprStructFields tp structExpr !! i)
+exprStructFields _ _ (LiteralExpr (StructLit fls)) = fmapFC fieldLiteralType fls
+exprStructFields _ (StructRepr fls) SelfExpr = fls
+exprStructFields env tp (FieldExpr structExpr i) =
+  let StructRepr fls = fieldType (exprStructFields env tp structExpr !! i)
+  in fls
+exprStructFields env _ (ApplyExpr fi _) =
+  let FunctionTypeRepr _ _ (StructRepr fls) = env !! fi
   in fls
 
-ppExpr :: TypeRepr ctx -> Expr env ctx tp -> PP.Doc
+ppExpr :: List FunctionTypeRepr env -> TypeRepr ctx -> Expr env ctx tp -> PP.Doc
 ppExpr = ppExpr' True
 
-ppExpr' :: Bool -> TypeRepr ctx -> Expr env ctx tp -> PP.Doc
-ppExpr' _ _ (LiteralExpr l) = ppLiteral l
-ppExpr' _ _ SelfExpr = PP.text "self"
-ppExpr' _ (StructRepr flds) (FieldExpr SelfExpr i) =
+ppExpr' :: Bool
+        -> List FunctionTypeRepr env
+        -> TypeRepr ctx
+        -> Expr env ctx tp -> PP.Doc
+ppExpr' _ _ _ (LiteralExpr l) = ppLiteral l
+ppExpr' _ _ _ SelfExpr = PP.text "self"
+ppExpr' _ _ (StructRepr flds) (FieldExpr SelfExpr i) =
   symbolDoc (fieldName (flds !! i))
-ppExpr' top kd (FieldExpr kdExpr i) =
-  ppExpr' top kd kdExpr PP.<> PP.text "." PP.<>
-  symbolDoc (fieldName (exprStructFields kd kdExpr !! i))
-ppExpr' False kd e = PP.parens (ppExpr' True kd e)
-ppExpr' _ kd (EqExpr e1 e2) =
-  ppExpr' False kd e1 PP.<+> PP.equals PP.<+> ppExpr' False kd e2
-ppExpr' _ kd (LteExpr e1 e2) =
-  ppExpr' False kd e1 PP.<+> PP.text "<=" PP.<+> ppExpr' False kd e2
-ppExpr' _ kd (MemberExpr e1 e2) =
-  ppExpr' False kd e1 PP.<+> PP.text "in" PP.<+> ppExpr' False kd e2
-ppExpr' _ kd (ImpliesExpr e1 e2) =
-  ppExpr' False kd e1 PP.<+> PP.text "=>" PP.<+> ppExpr' False kd e2
-ppExpr' _ kd (NotExpr e) = PP.text "not" PP.<+> ppExpr' False kd e
+ppExpr' top env ctx (FieldExpr ctxExpr i) =
+  ppExpr' top env ctx ctxExpr PP.<> PP.text "." PP.<>
+  symbolDoc (fieldName (exprStructFields env ctx ctxExpr !! i))
+ppExpr' _ env ctx (ApplyExpr fi es) =
+  let FunctionTypeRepr fnm _ _ = env !! fi
+  in symbolDoc fnm PP.<>
+     PP.parens (commas (toListFC (ppExpr' True env ctx) es))
+ppExpr' False env ctx e = PP.parens (ppExpr' True env ctx e)
+ppExpr' _ env ctx (EqExpr e1 e2) =
+  ppExpr' False env ctx e1 PP.<+> PP.equals PP.<+> ppExpr' False env ctx e2
+ppExpr' _ env ctx (LteExpr e1 e2) =
+  ppExpr' False env ctx e1 PP.<+> PP.text "<=" PP.<+> ppExpr' False env ctx e2
+ppExpr' _ env ctx (MemberExpr e1 e2) =
+  ppExpr' False env ctx e1 PP.<+> PP.text "in" PP.<+> ppExpr' False env ctx e2
+ppExpr' _ env ctx (ImpliesExpr e1 e2) =
+  ppExpr' False env ctx e1 PP.<+> PP.text "=>" PP.<+> ppExpr' False env ctx e2
+ppExpr' _ env ctx (NotExpr e) = PP.text "not" PP.<+> ppExpr' False env ctx e
