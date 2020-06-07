@@ -122,19 +122,28 @@ type SetType = 'SetType
 type StructType = 'StructType
 
 -- | Types for functions in Lobot.
-data FunctionType = FunType [Type] Type
+data FunctionType = FunType Symbol [Type] Type
 
 type FunType = 'FunType
 
 data FunctionTypeRepr fntp where
-  FunctionTypeRepr :: List TypeRepr args
+  FunctionTypeRepr :: SymbolRepr nm
+                   -> List TypeRepr args
                    -> TypeRepr ret
-                   -> FunctionTypeRepr (FunType args ret)
+                   -> FunctionTypeRepr (FunType nm args ret)
+deriving instance Show (FunctionTypeRepr fntp)
 
-data FunctionFieldRepr (sig :: (Symbol, FunctionType)) where
-  FunctionFieldRepr :: SymbolRepr nm
-                    -> FunctionTypeRepr fntp
-                    -> FunctionFieldRepr '(nm, fntp)
+instance TestEquality FunctionTypeRepr where
+  testEquality (FunctionTypeRepr nm args ret) (FunctionTypeRepr nm' args' ret')=
+    case (testEquality nm nm', testEquality args args', testEquality ret ret') of
+      (Just Refl, Just Refl, Just Refl) -> Just Refl
+      _ -> Nothing
+
+instance ( KnownSymbol nm
+         , KnownRepr (List TypeRepr) args
+         , KnownRepr TypeRepr ret
+         ) => KnownRepr FunctionTypeRepr (FunType nm args ret) where
+  knownRepr = FunctionTypeRepr knownRepr knownRepr knownRepr
 
 -- | Term-level representative of a type.
 data TypeRepr tp where
@@ -147,9 +156,9 @@ data TypeRepr tp where
              => List SymbolRepr cs
              -> TypeRepr (SetType cs)
   StructRepr :: List FieldRepr ftps
---             -> List FunctionFieldRepr sigs
              -> TypeRepr (StructType ftps)
 deriving instance Show (TypeRepr tp)
+instance ShowF TypeRepr
 
 instance TestEquality TypeRepr where
   testEquality BoolRepr BoolRepr = Just Refl
