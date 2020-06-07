@@ -1,0 +1,7 @@
+bluespec_build kind of struct
+  with riscv : riscv,
+       sim : {Bluesim, IVerilog, Verilator}
+       tv : bool
+  where riscv.vm in {SVNone, SV32, SV39}
+
+piccolo_build kind of bluespec_build

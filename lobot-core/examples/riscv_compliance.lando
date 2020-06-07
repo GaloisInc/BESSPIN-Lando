@@ -1,0 +1,8 @@
+riscv_device kind of struct
+  with riscv : riscv,
+       run_test : 
+
+riscv_compliance kind of struct
+  with device : riscv_device
+       is_compliant : riscv_device -> bool
+  where is_compliant(device.riscv)

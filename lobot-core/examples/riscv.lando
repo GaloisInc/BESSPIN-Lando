@@ -1,29 +1,13 @@
-riscv : kind
-  with reg_width : { RV32, RV64 },
-       exts : set { M, A, F, D, C }.
-  where D in exts => F in exts.
-
-riscv_with_m : kind of riscv
-  where M in exts.
-
-minimal_riscv : kind of riscv
-  where exts = { M }.
-
-minimal_riscv_32 : minimal_riscv
-  where reg_width = RV32.
-
-// ERROR -- more than one instance
-bad_riscv_1 : riscv
-  where reg_width = RV32.
-
-// WARNING -- no instances
-bad_riscv_2 : kind of riscv
-  where exts = { D }.
-
-// ERROR -- violates constraint "D in exts => F in exts"
-bad_riscv_3 : riscv
-  where exts = { D }.
-
-
-
-type Field = (Symbol, Type)
+riscv kind of struct
+  with reg_width : {RV32, RV64},
+       xlen : int,
+       exts : subset {M, A, F, D, C},
+       privs : subset {PrivM, PrivS, PrivU},
+       vm : {SVNone, SV32, SV39, SV48}
+  where (reg_width = RV32) => (xlen = 32),
+        (reg_width = RV64) => (xlen = 64),
+        (D in exts) => (F in exts),
+        PrivM in privs,
+        (PrivS in privs) => (PrivU in privs),
+        (PrivS in privs) => (not (vm = SVNone)),
+        (not (PrivS in privs)) => (vm = SVNone)
