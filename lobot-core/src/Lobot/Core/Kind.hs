@@ -29,6 +29,7 @@ module Lobot.Core.Kind
   ( -- * Types
     Type(..), BoolType, IntType, EnumType, SetType, StructType
   , TypeRepr(..)
+    -- * Functions
     -- * Kinds
   , Kind(..)
   , FieldRepr(..)
@@ -120,6 +121,18 @@ type EnumType = 'EnumType
 type SetType = 'SetType
 type StructType = 'StructType
 
+-- | Types for functions in Lobot.
+data FunctionType = FunctionType [Type] Type
+
+data FunctionTypeRepr args ret where
+  FunctionTypeRepr :: List TypeRepr args -> TypeRepr ret -> FunctionTypeRepr args ret
+
+data FunctionFieldRepr (sig :: (Symbol, FunctionType)) where
+  FunctionFieldRepr :: SymbolRepr nm
+                    -> FunctionTypeRepr args ret
+                    -> FunctionFieldRepr '(nm, 'FunctionType args ret)
+
+
 -- | Term-level representative of a type.
 data TypeRepr tp where
   BoolRepr   :: TypeRepr BoolType
@@ -130,7 +143,8 @@ data TypeRepr tp where
   SetRepr    :: 1 <= (Length cs)
              => List SymbolRepr cs
              -> TypeRepr (SetType cs)
-  StructRepr :: List FieldRepr ftps -> TypeRepr (StructType ftps)
+  StructRepr :: List FieldRepr ftps
+             -> TypeRepr (StructType ftps)
 deriving instance Show (TypeRepr tp)
 
 instance TestEquality TypeRepr where
