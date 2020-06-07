@@ -113,7 +113,7 @@ data Type = BoolType
           | IntType
           | EnumType [Symbol]
           | SetType [Symbol]
-          | StructType [(Symbol, Type)]
+          | StructType [(Symbol, Type)] -- [(Symbol, FunctionType)]
 
 type BoolType = 'BoolType
 type IntType = 'IntType
@@ -122,16 +122,19 @@ type SetType = 'SetType
 type StructType = 'StructType
 
 -- | Types for functions in Lobot.
-data FunctionType = FunctionType [Type] Type
+data FunctionType = FunType [Type] Type
 
-data FunctionTypeRepr args ret where
-  FunctionTypeRepr :: List TypeRepr args -> TypeRepr ret -> FunctionTypeRepr args ret
+type FunType = 'FunType
+
+data FunctionTypeRepr fntp where
+  FunctionTypeRepr :: List TypeRepr args
+                   -> TypeRepr ret
+                   -> FunctionTypeRepr (FunType args ret)
 
 data FunctionFieldRepr (sig :: (Symbol, FunctionType)) where
   FunctionFieldRepr :: SymbolRepr nm
-                    -> FunctionTypeRepr args ret
-                    -> FunctionFieldRepr '(nm, 'FunctionType args ret)
-
+                    -> FunctionTypeRepr fntp
+                    -> FunctionFieldRepr '(nm, fntp)
 
 -- | Term-level representative of a type.
 data TypeRepr tp where
@@ -144,6 +147,7 @@ data TypeRepr tp where
              => List SymbolRepr cs
              -> TypeRepr (SetType cs)
   StructRepr :: List FieldRepr ftps
+--             -> List FunctionFieldRepr sigs
              -> TypeRepr (StructType ftps)
 deriving instance Show (TypeRepr tp)
 
