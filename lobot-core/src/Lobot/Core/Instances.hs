@@ -249,7 +249,7 @@ data InstanceResult tp = HasInstance (Literal tp)
 -- TODO: Rewrite using 'withSession'
 -- | Given a 'Kind', get a satisfying 'Instance' if we can determine whether one
 -- exists.
-getInstance :: FilePath -> Kind ktps -> IO (InstanceResult ktps)
+getInstance :: FilePath -> Kind env ktps -> IO (InstanceResult ktps)
 getInstance z3_path kd = do
   Some nonceGen <- newIONonceGenerator
   sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
@@ -298,7 +298,7 @@ repeatIO k = do
 
 -- | Run an interactive session for instance generation. Every time the user
 -- hits \"Enter\", a new instance is provided.
-instanceSession :: FilePath -> Kind ktps -> IO ()
+instanceSession :: FilePath -> Kind env ktps -> IO ()
 instanceSession = withSession $ \sym session symInst -> do
   i <- newIORef (0 :: Integer)
   WS.runCheckSat session $ \_ -> repeatIO $ \_ -> do
@@ -324,7 +324,7 @@ countInstances' limit sym session symLit = do
 -- | Count the total number of instances, up to a certain limit.
 countInstances :: Integer -- ^ Maximum number to count to
                -> FilePath
-               -> Kind ktps
+               -> Kind env ktps
                -> IO Integer
 countInstances limit = withSession (countInstances' limit)
 
@@ -332,7 +332,7 @@ type SolverSessionFn tp a = forall t . WB.ExprBuilder t BuilderState (WB.Flags W
 
 withSession :: SolverSessionFn tp a
             -> FilePath
-            -> Kind tp
+            -> Kind env tp
             -> IO a
 withSession k z3_path kd = do
   Some nonceGen <- newIONonceGenerator

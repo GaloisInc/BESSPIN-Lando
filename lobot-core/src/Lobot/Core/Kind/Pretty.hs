@@ -39,7 +39,7 @@ commas = PP.cat . PP.punctuate (PP.text ", ")
 vcommas :: [PP.Doc] -> PP.Doc
 vcommas = PP.vcat . PP.punctuate (PP.text ", ")
 
-ppKind :: Kind tp -> PP.Doc
+ppKind :: Kind env tp -> PP.Doc
 ppKind kd@Kind{ kindType = StructRepr flds } =
   PP.text (kindName kd)
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> PP.text "struct"

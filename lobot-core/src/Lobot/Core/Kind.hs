@@ -63,20 +63,21 @@ import Prelude hiding ((!!))
 -- | Representation of a Lobot feature model, which we term a 'Kind' for
 -- brevity. A kind consists of a name, a type, and a list of constraints
 -- that must hold for all instances of this kind.
-data Kind (tp :: Type) = Kind
+data Kind (env :: [FunctionType]) (tp :: Type) = Kind
   { kindName :: String
   , kindType :: TypeRepr tp
+  , kindFunctionEnv :: List FunctionTypeRepr env
   , kindConstraints :: [Expr tp BoolType]
   }
   deriving Show
 
 -- | Augment a 'Kind' with some additional constraints.
-addConstraints :: Kind tp -> [Expr tp BoolType] -> Kind tp
+addConstraints :: Kind env tp -> [Expr tp BoolType] -> Kind env tp
 addConstraints kd cs =
   kd { kindConstraints = kindConstraints kd ++ cs }
 
 -- | Given a set of parent 'Kind's of the same type, create a derived 'Kind'.
-derivedKind :: NonEmpty (Kind tp) -> String -> [Expr tp BoolType] -> Kind tp
+derivedKind :: NonEmpty (Kind env tp) -> String -> [Expr tp BoolType] -> Kind env tp
 derivedKind kds@(kd :| _) nm cs =
   kd { kindName = nm
      , kindConstraints = concatMap kindConstraints kds ++ cs
@@ -85,9 +86,9 @@ derivedKind kds@(kd :| _) nm cs =
 -- | Lift the constraints of a kind @K'@ into a parent kind @K@ that contains
 -- @K'@. This should only be called once for a given child.
 liftConstraints :: Index ktps '(nm, tp)
-                -> Kind tp
-                -> Kind (StructType ktps)
-                -> Kind (StructType ktps)
+                -> Kind env tp
+                -> Kind env (StructType ktps)
+                -> Kind env (StructType ktps)
 liftConstraints i k' k = addConstraints k (liftExpr i <$> kindConstraints k')
 
 -- | A 'FieldRepr' is a key, type pair. Note that since both the key and the type
@@ -131,14 +132,14 @@ data FunctionTypeRepr fntp where
                    -> List TypeRepr args
                    -> TypeRepr ret
                    -> FunctionTypeRepr (FunType nm args ret)
-deriving instance Show (FunctionTypeRepr fntp)
 
+deriving instance Show (FunctionTypeRepr fntp)
+instance ShowF FunctionTypeRepr
 instance TestEquality FunctionTypeRepr where
   testEquality (FunctionTypeRepr nm args ret) (FunctionTypeRepr nm' args' ret')=
     case (testEquality nm nm', testEquality args args', testEquality ret ret') of
       (Just Refl, Just Refl, Just Refl) -> Just Refl
       _ -> Nothing
-
 instance ( KnownSymbol nm
          , KnownRepr (List TypeRepr) args
          , KnownRepr TypeRepr ret
@@ -267,7 +268,7 @@ fieldValueEq fv1@(FieldLiteral _ _) fv2 =
   litEq (fieldLiteralValue fv1) (fieldLiteralValue fv2)
 
 -- | Determine whether a literal satisfies all the constraints of a kind.
-instanceOf :: Literal tp -> Kind tp -> Bool
+instanceOf :: Literal tp -> Kind env tp -> Bool
 instanceOf inst (Kind{..}) = all constraintHolds kindConstraints
   where constraintHolds e | BoolLit True <- evalExpr inst e = True
                           | otherwise = False

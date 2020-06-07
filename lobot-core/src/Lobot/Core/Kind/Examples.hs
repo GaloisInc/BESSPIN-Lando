@@ -43,9 +43,10 @@ import Lobot.Core.Kind
 -- posint kind of int
 --   where 0 <= self
 -- @
-posint :: Kind IntType
+posint :: Kind '[] IntType
 posint = Kind { kindName = "posint"
               , kindType = knownRepr
+              , kindFunctionEnv = Nil
               , kindConstraints =
                 [ LteExpr (LiteralExpr (IntLit 0)) SelfExpr
                 ]
@@ -63,11 +64,12 @@ type IntPairType = StructType '[ '("x", IntType)
 --   where not (x = y),
 --         x <= y
 -- @
-unique_posint_pair :: Kind IntPairType
+unique_posint_pair :: Kind '[] IntPairType
 unique_posint_pair = liftConstraints index0 posint $
                      liftConstraints index1 posint $
                      Kind { kindName = "unique_posint_pair"
                           , kindType = knownRepr
+                          , kindFunctionEnv = Nil
                           , kindConstraints =
                             [ NotExpr
                               (EqExpr
@@ -85,9 +87,10 @@ type ABCType = SetType '["A", "B", "C"]
 -- @
 -- abc kind of subset {A, B, C}
 -- @
-abc :: Kind ABCType
+abc :: Kind '[] ABCType
 abc = Kind { kindName = "abc"
            , kindType = knownRepr
+           , kindFunctionEnv = Nil
            , kindConstraints = []
            }
 
@@ -95,7 +98,7 @@ abc = Kind { kindName = "abc"
 -- @
 -- abc_1 kind of abc where A in abc
 -- @
-abc_1 :: Kind ABCType
+abc_1 :: Kind '[] ABCType
 abc_1 = derivedKind (abc :| []) "abc_1"
                   [ MemberExpr
                     (LiteralExpr (EnumLit knownRepr index0))
@@ -106,7 +109,7 @@ abc_1 = derivedKind (abc :| []) "abc_1"
 -- @
 -- abc_2 kind of of abc where (A in abc) => (C in abc)
 -- @
-abc_2 :: Kind ABCType
+abc_2 :: Kind '[] ABCType
 abc_2 = derivedKind (abc :| []) "abc_2"
              [ ImpliesExpr
                (MemberExpr
@@ -121,7 +124,7 @@ abc_2 = derivedKind (abc :| []) "abc_2"
 -- @
 -- abc2 kind of abc_1 abc_2
 -- @
-abc_3 :: Kind ABCType
+abc_3 :: Kind '[] ABCType
 abc_3 = derivedKind
   (abc_1 :| [abc_2])
   "abc_3"
@@ -139,15 +142,16 @@ type PersonType = StructType '[ '("age", IntType)
 --        sex : {Male, Female}
 --   where age >= 0
 -- @
-person :: Kind PersonType
+person :: Kind '[] PersonType
 person = Kind { kindName = "person"
-                   , kindType = knownRepr
-                   , kindConstraints =
-                       [ LteExpr
-                         (LiteralExpr (IntLit 0))
-                         (FieldExpr SelfExpr index0)
-                       ]
-                   }
+              , kindType = knownRepr
+              , kindFunctionEnv = Nil
+              , kindConstraints =
+                  [ LteExpr
+                    (LiteralExpr (IntLit 0))
+                    (FieldExpr SelfExpr index0)
+                  ]
+              }
 
 -- |
 -- @
@@ -155,7 +159,7 @@ person = Kind { kindName = "person"
 --   where 13 <= age,
 --         age <= 19
 -- @
-teenager :: Kind PersonType
+teenager :: Kind '[] PersonType
 teenager = derivedKind (person :| []) "teenager"
                 [ LteExpr
                   (LiteralExpr (IntLit 13))
@@ -175,18 +179,19 @@ type CoupleType = StructType '[ '("person1", PersonType)
 --   with person1 : person,
 --        person2 : person
 -- @
-couple :: Kind CoupleType
+couple :: Kind '[] CoupleType
 couple = Kind { kindName = "couple"
-                   , kindType = knownRepr
-                   , kindConstraints = []
-                   }
+              , kindType = knownRepr
+              , kindFunctionEnv = Nil
+              , kindConstraints = []
+              }
 
 -- |
 -- @
 -- straight_couple kind of couple
 --   where not (person1.sex = person2.sex)
 -- @
-straight_couple :: Kind CoupleType
+straight_couple :: Kind '[] CoupleType
 straight_couple = derivedKind (couple :| []) "straight_couple"
                        [ NotExpr
                          (EqExpr
@@ -199,7 +204,7 @@ straight_couple = derivedKind (couple :| []) "straight_couple"
 --     where person1 : teenager,
 --           person2 : teenager
 -- @
-teenage_couple :: Kind CoupleType
+teenage_couple :: Kind '[] CoupleType
 teenage_couple = liftConstraints index0 teenager $
                       liftConstraints index1 teenager $
                       derivedKind (couple :| []) "teenage_couple" []
@@ -235,9 +240,10 @@ type RISCVType = StructType '[ '("reg_width", EnumType RegWidthType),
 --         (PrivS in privs) => (not (vm = SVNone)),
 --         (not (PrivS in privs)) => (vm = SVNone)
 -- @
-riscv :: Kind RISCVType
+riscv :: Kind '[] RISCVType
 riscv = Kind { kindName = "riscv"
              , kindType = knownRepr
+             , kindFunctionEnv = Nil
              , kindConstraints =
                [ ImpliesExpr
                  (EqExpr
@@ -307,10 +313,11 @@ type BluespecBuildType = StructType '[ '("riscv", RISCVType)
 --        tv : bool
 --   where riscv.vm in {SVNone, SV32, SV39}
 -- @
-bluespec_build :: Kind BluespecBuildType
+bluespec_build :: Kind '[] BluespecBuildType
 bluespec_build = liftConstraints index0 riscv k
   where k = Kind { kindName = "bluespec_build"
                  , kindType = knownRepr
+                 , kindFunctionEnv = Nil
                  , kindConstraints =
                    [ MemberExpr
                      (FieldExpr (FieldExpr SelfExpr index0) index4)
@@ -355,48 +362,49 @@ type AustraliaColoringType = StructType '[ '("WA", ColorType)
 --         not (Q = NSW),
 --         not (NSW = V)
 -- @
-australia_coloring :: Kind AustraliaColoringType
+australia_coloring :: Kind '[] AustraliaColoringType
 australia_coloring = Kind { kindName = "australia_coloring"
-                           , kindType = knownRepr
-                           , kindConstraints =
-                             [ NotExpr
-                               (EqExpr
-                                (FieldExpr SelfExpr index0)
-                                (FieldExpr SelfExpr index1))
-                             , NotExpr
-                               (EqExpr
-                                (FieldExpr SelfExpr index0)
-                                (FieldExpr SelfExpr index2))
-                             , NotExpr
-                               (EqExpr
-                                (FieldExpr SelfExpr index1)
-                                (FieldExpr SelfExpr index2))
-                             , NotExpr
-                               (EqExpr
-                                (FieldExpr SelfExpr index1)
-                                (FieldExpr SelfExpr index3))
-                             , NotExpr
-                               (EqExpr
-                                (FieldExpr SelfExpr index2)
-                                (FieldExpr SelfExpr index3))
-                             , NotExpr
-                               (EqExpr
-                                (FieldExpr SelfExpr index2)
-                                (FieldExpr SelfExpr index4))
-                             , NotExpr
-                               (EqExpr
-                                (FieldExpr SelfExpr index2)
-                                (FieldExpr SelfExpr index5))
-                             , NotExpr
-                               (EqExpr
-                                (FieldExpr SelfExpr index3)
-                                (FieldExpr SelfExpr index4))
-                             , NotExpr
-                               (EqExpr
-                                (FieldExpr SelfExpr index4)
-                                (FieldExpr SelfExpr index5))
-                             ]
-                           }
+                          , kindType = knownRepr
+                          , kindFunctionEnv = Nil
+                          , kindConstraints =
+                            [ NotExpr
+                              (EqExpr
+                               (FieldExpr SelfExpr index0)
+                               (FieldExpr SelfExpr index1))
+                            , NotExpr
+                              (EqExpr
+                               (FieldExpr SelfExpr index0)
+                               (FieldExpr SelfExpr index2))
+                            , NotExpr
+                              (EqExpr
+                               (FieldExpr SelfExpr index1)
+                               (FieldExpr SelfExpr index2))
+                            , NotExpr
+                              (EqExpr
+                               (FieldExpr SelfExpr index1)
+                               (FieldExpr SelfExpr index3))
+                            , NotExpr
+                              (EqExpr
+                               (FieldExpr SelfExpr index2)
+                               (FieldExpr SelfExpr index3))
+                            , NotExpr
+                              (EqExpr
+                               (FieldExpr SelfExpr index2)
+                               (FieldExpr SelfExpr index4))
+                            , NotExpr
+                              (EqExpr
+                               (FieldExpr SelfExpr index2)
+                               (FieldExpr SelfExpr index5))
+                            , NotExpr
+                              (EqExpr
+                               (FieldExpr SelfExpr index3)
+                               (FieldExpr SelfExpr index4))
+                            , NotExpr
+                              (EqExpr
+                               (FieldExpr SelfExpr index4)
+                               (FieldExpr SelfExpr index5))
+                            ]
+                          }
 
 index5 :: Index (x0:x1:x2:x3:x4:x5:r) x5
 index5 = IndexThere index4
