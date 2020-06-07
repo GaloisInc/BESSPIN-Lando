@@ -71,17 +71,17 @@ data Kind (env :: [FunctionType]) (tp :: Type) = Kind
   { kindName :: String
   , kindType :: TypeRepr tp
   , kindFunctionEnv :: List FunctionTypeRepr env
-  , kindConstraints :: [Expr tp BoolType]
+  , kindConstraints :: [Expr env tp BoolType]
   }
   deriving Show
 
 -- | Augment a 'Kind' with some additional constraints.
-addConstraints :: Kind env tp -> [Expr tp BoolType] -> Kind env tp
+addConstraints :: Kind env tp -> [Expr env tp BoolType] -> Kind env tp
 addConstraints kd cs =
   kd { kindConstraints = kindConstraints kd ++ cs }
 
 -- | Given a set of parent 'Kind's of the same type, create a derived 'Kind'.
-derivedKind :: NonEmpty (Kind env tp) -> String -> [Expr tp BoolType] -> Kind env tp
+derivedKind :: NonEmpty (Kind env tp) -> String -> [Expr env tp BoolType] -> Kind env tp
 derivedKind kds@(kd :| _) nm cs =
   kd { kindName = nm
      , kindConstraints = concatMap kindConstraints kds ++ cs
@@ -235,28 +235,29 @@ data FunctionImpl fntp where
                   , fnImplRun :: List Literal args -> m (Literal ret)
                   } -> FunctionImpl (FunType nm args ret)
 
--- | A expression involving a particular kind.
-data Expr (ctx :: Type) (tp :: Type) where
+-- | A expression involving a particular kind, given a particular function
+-- environment.
+data Expr (env :: [FunctionType]) (ctx :: Type) (tp :: Type) where
   -- | An expression built from a literal value.
-  LiteralExpr :: Literal tp -> Expr ctx tp
+  LiteralExpr :: Literal tp -> Expr env ctx tp
   -- | An expression referring to an abstract instance of this kind.
-  SelfExpr    :: Expr ctx ctx
+  SelfExpr    :: Expr env ctx ctx
   -- | An expression referring to a field of an instance of some kind.
-  FieldExpr   :: Expr ctx (StructType ftps) -> Index ftps '(nm, tp) -> Expr ctx tp
+  FieldExpr   :: Expr env ctx (StructType ftps) -> Index ftps '(nm, tp) -> Expr env ctx tp
   -- | Equality of two expressions.
-  EqExpr      :: Expr ctx tp -> Expr ctx tp -> Expr ctx BoolType
+  EqExpr      :: Expr env ctx tp -> Expr env ctx tp -> Expr env ctx BoolType
   -- | Less-than-or-equal for two integer expressions.
-  LteExpr     :: Expr ctx IntType -> Expr ctx IntType -> Expr ctx BoolType
+  LteExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx BoolType
   -- | Set membership.
-  MemberExpr  :: Expr ctx (EnumType cs)
-              -> Expr ctx (SetType cs)
-              -> Expr ctx BoolType
+  MemberExpr  :: Expr env ctx (EnumType cs)
+              -> Expr env ctx (SetType cs)
+              -> Expr env ctx BoolType
   -- | Logical implication.
-  ImpliesExpr :: Expr ctx BoolType -> Expr ctx BoolType -> Expr ctx BoolType
+  ImpliesExpr :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical negation.
-  NotExpr     :: Expr ctx BoolType -> Expr ctx BoolType
+  NotExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType
 
-deriving instance Show (Expr ctx tp)
+deriving instance Show (Expr env ctx tp)
 
 litEq :: Literal tp -> Literal tp -> Bool
 litEq (BoolLit b1) (BoolLit b2) = b1 == b2
@@ -283,7 +284,7 @@ instanceOf inst (Kind{..}) = all constraintHolds kindConstraints
                           | otherwise = False
 
 -- | Evaluate an expression given an instance of its type context.
-evalExpr :: Literal ctx -> Expr ctx tp -> Literal tp
+evalExpr :: Literal ctx -> Expr env ctx tp -> Literal tp
 evalExpr inst e = case e of
   SelfExpr -> inst
   FieldExpr kd i
@@ -306,8 +307,8 @@ evalExpr inst e = case e of
 -- | Lift an expression about a kind @K'@ into an expression about a kind @K@ which
 -- contains @K'@.
 liftExpr :: Index ftps '(nm, tp)
-         -> Expr tp tp'
-         -> Expr (StructType ftps) tp'
+         -> Expr env tp tp'
+         -> Expr env (StructType ftps) tp'
 liftExpr i e = case e of
   LiteralExpr l -> LiteralExpr l
   SelfExpr -> FieldExpr SelfExpr i

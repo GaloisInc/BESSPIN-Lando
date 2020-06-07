@@ -88,7 +88,7 @@ ppFieldLiteral FieldLiteral{..} =
   symbolDoc fieldLiteralName PP.<+> PP.equals PP.<+> ppLiteral fieldLiteralValue
 
 exprStructFields :: TypeRepr ctx
-                 -> Expr ctx (StructType ftps)
+                 -> Expr env ctx (StructType ftps)
                  -> List FieldRepr ftps
 exprStructFields _ (LiteralExpr (StructLit fls)) = fmapFC fieldLiteralType fls
 exprStructFields (StructRepr fls) SelfExpr = fls
@@ -96,10 +96,10 @@ exprStructFields tp (FieldExpr structExpr i) =
   let StructRepr fls = fieldType (exprStructFields tp structExpr !! i)
   in fls
 
-ppExpr :: TypeRepr ctx -> Expr ctx tp -> PP.Doc
+ppExpr :: TypeRepr ctx -> Expr env ctx tp -> PP.Doc
 ppExpr = ppExpr' True
 
-ppExpr' :: Bool -> TypeRepr ctx -> Expr ctx tp -> PP.Doc
+ppExpr' :: Bool -> TypeRepr ctx -> Expr env ctx tp -> PP.Doc
 ppExpr' _ _ (LiteralExpr l) = ppLiteral l
 ppExpr' _ _ SelfExpr = PP.text "self"
 ppExpr' _ (StructRepr flds) (FieldExpr SelfExpr i) =

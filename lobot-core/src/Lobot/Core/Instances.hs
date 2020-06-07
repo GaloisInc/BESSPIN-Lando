@@ -176,7 +176,7 @@ symLiteral sym l = case l of
 -- | Symbolically evaluate an expression given a symbolic instance.
 symEvalExpr :: WB.ExprBuilder t st fs
             -> SymLiteral t tp
-            -> Expr tp tp'
+            -> Expr env tp tp'
             -> IO (SymLiteral t tp')
 symEvalExpr sym symLit e = case e of
   LiteralExpr l -> symLiteral sym l
