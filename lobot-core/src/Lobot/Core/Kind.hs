@@ -30,6 +30,8 @@ module Lobot.Core.Kind
     Type(..), BoolType, IntType, EnumType, SetType, StructType
   , TypeRepr(..)
     -- * Functions
+  , FunctionType(..), FunType
+  , FunctionTypeRepr(..)
     -- * Kinds
   , Kind(..)
   , FieldRepr(..)
@@ -42,6 +44,8 @@ module Lobot.Core.Kind
   , Literal(..)
   , literalType
   , instanceOf
+    -- * Function implementation
+  , FunctionImpl(..)
     -- * Expressions
   , Expr(..)
   , evalExpr
@@ -225,6 +229,11 @@ fieldLiteralType FieldLiteral{..} =
 
 deriving instance Show (FieldLiteral p)
 instance ShowF FieldLiteral
+
+data FunctionImpl fntp where
+  FunctionImpl :: { fnImplType :: FunctionTypeRepr (FunType nm args ret)
+                  , fnImplRun :: List Literal args -> m (Literal ret)
+                  } -> FunctionImpl (FunType nm args ret)
 
 -- | A expression involving a particular kind.
 data Expr (ctx :: Type) (tp :: Type) where
