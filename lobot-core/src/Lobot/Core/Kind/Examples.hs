@@ -332,6 +332,8 @@ type AustraliaColoringType = StructType '[ '("WA", ColorType)
                                          ]
 
 -- |
+-- This is a MiniZinc <https://www.minizinc.org/doc-2.4.3/en/modelling.html example>.
+--
 -- @
 -- color is {Red, Blue, Yellow}
 --
