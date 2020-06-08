@@ -25,6 +25,7 @@ what4-based SMT solver backend.
 module Lobot.Core.Instances
   ( SymLiteral(..)
   , SymFieldLiteral(..)
+  , SymFunction(..)
   , symEvalExpr
   , InstanceResult(..)
   , getInstance
@@ -37,6 +38,7 @@ import Lobot.Core.Kind
 import Lobot.Core.Kind.Pretty
 
 import qualified Data.BitVector.Sized    as BV
+import qualified Data.Text               as T
 import qualified What4.Expr.Builder      as WB
 import qualified What4.Config            as WC
 import qualified What4.Expr.GroundEval   as WG
@@ -76,6 +78,15 @@ type family FieldBaseType (ftp :: (Symbol, Type)) :: WT.BaseType where
 fieldBaseType :: FieldRepr ftp -> WT.BaseTypeRepr (FieldBaseType ftp)
 fieldBaseType (FieldRepr _ tp) = typeBaseType tp
 
+type family TypesBaseTypes (tps :: Ctx Type) :: Ctx WT.BaseType where
+  TypesBaseTypes EmptyCtx = EmptyCtx
+  TypesBaseTypes (tps ::> tp) = TypesBaseTypes tps ::> TypeBaseType tp
+
+typesBaseTypes :: Assignment TypeRepr tps
+               -> Assignment WT.BaseTypeRepr (TypesBaseTypes tps)
+typesBaseTypes Empty = Empty
+typesBaseTypes (tps :> tp) = typesBaseTypes tps :> typeBaseType tp
+
 type family TypeBaseType (tp :: Type) :: WT.BaseType where
   TypeBaseType BoolType = WT.BaseBoolType
   TypeBaseType IntType = WT.BaseIntegerType
@@ -102,9 +113,28 @@ data SymFieldLiteral t (p :: (Symbol, Type)) where
                      , symFieldLiteralValue :: SymLiteral t tp
                      } -> SymFieldLiteral t '(nm, tp)
 
+-- | Symbolic 'FunctionImpl'.
+data SymFunction t fntp where
+  SymFunction :: { symFunctionType :: FunctionTypeRepr (FunType nm args ret)
+                 , symFunctionValue :: WB.ExprSymFn t (TypesBaseTypes args) (TypeBaseType ret)
+                 } -> SymFunction t (FunType nm args ret)
+
 -- | Extract the What4 expression from a symbolic field literal.
 symFieldLiteralExpr :: SymFieldLiteral t ftp -> WB.Expr t (FieldBaseType ftp)
 symFieldLiteralExpr (SymFieldLiteral _ sl) = symLiteralExpr sl
+
+-- | Declare a fresh uninterpreted 'SymFunction'.
+freshUninterpSymFunction :: WS.SMTLib2Tweaks solver
+                         => WB.ExprBuilder t st fs
+                         -> FunctionTypeRepr fntp
+                         -> WS.Session t solver
+                         -> IO (SymFunction t fntp)
+freshUninterpSymFunction sym fntp@FunctionTypeRepr{..} session = do
+  let cSymbol = WI.safeSymbol (T.unpack (symbolRepr functionName))
+      baseArgTypes = typesBaseTypes functionArgTypes
+      baseRetType = typeBaseType functionRetType
+  symFn <- WI.freshTotalUninterpFn sym cSymbol baseArgTypes baseRetType
+  return $ SymFunction fntp symFn
 
 -- | Declare a fresh constant 'SymLiteral'.
 freshSymLiteralConstant :: WS.SMTLib2Tweaks solver
