@@ -54,8 +54,8 @@ import Data.Parameterized.NatRepr
 import Data.Parameterized.Nonce
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
-import Data.Parameterized.TraversableFC
 import Prelude hiding ((!!))
+import Unsafe.Coerce (unsafeCoerce) -- I know, I know.
 
 ctxSize :: Assignment f tps -> NatRepr (CtxSize tps)
 ctxSize Empty = knownNat
@@ -140,16 +140,6 @@ freshSymLiteralConstant sym prefix tp session = do
       c <- WI.freshConstant sym cSymbol (WT.BaseStructRepr (fieldBaseTypes flds))
       return $ SymLiteral tp c
 
--- | Declare a fresh constant 'SymFieldLiteral'
-freshSymFieldLiteralConstant :: WS.SMTLib2Tweaks solver
-                             => WB.ExprBuilder t st fs
-                             -> String
-                             -> FieldRepr ftp
-                             -> WS.Session t solver
-                             -> IO (SymFieldLiteral t ftp)
-freshSymFieldLiteralConstant sym prefix (FieldRepr nm tp) session =
-  SymFieldLiteral nm <$> freshSymLiteralConstant sym prefix tp session
-
 -- | Check if two 'SymLiteral's are equal.
 symLiteralEq :: forall t st fs tp .
                 WB.ExprBuilder t st fs
@@ -162,14 +152,6 @@ symLiteralEq sym (SymLiteral tp e1) (SymLiteral _ e2) = case tp of
   EnumRepr _ -> WI.bvEq sym e1 e2
   SetRepr _ -> WI.bvEq sym e1 e2
   StructRepr _ -> WI.structEq sym e1 e2
-
--- | Check if two 'SymFieldLiterals' are equal.
-symFieldLiteralValueEq :: WB.ExprBuilder t st fs
-                       -> SymFieldLiteral t '(nm, tp)
-                       -> SymFieldLiteral t '(nm, tp)
-                       -> IO (WB.BoolExpr t)
-symFieldLiteralValueEq sym fv1 fv2 =
-  symLiteralEq sym (symFieldLiteralValue fv1) (symFieldLiteralValue fv2)
 
 -- | Convert an 'Assignment' of 'FieldLiteral's to an 'Assignment' of 'WB.Expr's by calling 'symFieldLiteral' on each element.
 symFieldLiteralExprs :: WB.ExprBuilder t st fs
@@ -211,6 +193,10 @@ symFieldLiteral :: WB.ExprBuilder t st fs
                 -> IO (SymFieldLiteral t ftp)
 symFieldLiteral sym (FieldLiteral nm l) = SymFieldLiteral nm <$> symLiteral sym l
 
+convertFieldIndex :: Index ftps ftp
+                  -> Index (FieldBaseTypes ftps) (FieldBaseType ftp)
+convertFieldIndex i = unsafeCoerce i
+
 -- | Symbolically evaluate an expression given a symbolic instance.
 symEvalExpr :: WB.ExprBuilder t st fs
             -> SymLiteral t tp
@@ -221,7 +207,7 @@ symEvalExpr sym symLit e = case e of
   SelfExpr -> return symLit
   FieldExpr strE fi -> do
     SymLiteral (StructRepr ftps) str <- symEvalExpr sym symLit strE
-    fld <- WI.structField sym str undefined
+    fld <- WI.structField sym str (convertFieldIndex fi)
     return $ SymLiteral (fieldType (ftps ! fi)) fld
   EqExpr e1 e2 -> do
     sl1 <- symEvalExpr sym symLit e1
@@ -245,41 +231,80 @@ symEvalExpr sym symLit e = case e of
     SymLiteral BoolRepr b <- symEvalExpr sym symLit e'
     SymLiteral BoolRepr <$> WI.notPred sym b
 
-fieldLiteralFromGroundValue :: WG.GroundValueWrapper btp -> Some Literal
-fieldLiteralFromGroundValue = undefined
+literalFromGroundValue :: TypeRepr tp
+                       -> WT.BaseTypeRepr btp
+                       -> WG.GroundValue btp
+                       -> Maybe (Literal tp)
+literalFromGroundValue tp btp val = case (tp, btp) of
+  (BoolRepr, WT.BaseBoolRepr) -> Just $ BoolLit val
+  (IntRepr, WT.BaseIntegerRepr) -> Just $ IntLit val
+  (EnumRepr cs, WT.BaseBVRepr n)
+    | Just Refl <- testEquality (ctxSize cs) n -> do
+        ixNat <- return $ BV.asNatural (BV.ctz n val)
+        Just (Some ix) <- return $ intIndex (fromIntegral ixNat) (size cs)
+        return $ EnumLit cs ix
+  (SetRepr cs, WT.BaseBVRepr n)
+    | Just Refl <- testEquality (ctxSize cs) n -> do
+        ixNats <- return $
+          [ i | i' <- [0..toInteger (natValue n) - 1]
+              , let i = fromInteger i'
+              , BV.testBit' i val ]
+        Just ixs <- return $
+          sequence (map (flip intIndex (size cs)) (fromIntegral <$> ixNats))
+        return $ SetLit cs ixs
+  (StructRepr ftps, WT.BaseStructRepr btps) -> do
+    lits <- literalsFromGroundValues' ftps btps val
+    return $ StructLit lits
+  _ -> Nothing
+
+literalsFromGroundValues' :: Assignment FieldRepr ftps
+                          -> Assignment WT.BaseTypeRepr btps
+                          -> Assignment WG.GroundValueWrapper btps
+                          -> Maybe (Assignment FieldLiteral ftps)
+literalsFromGroundValues' Empty Empty Empty = Just Empty
+literalsFromGroundValues' (ftps :> ftp@(FieldRepr _ _)) (btps :> btp) (gvs :> gv) =
+  let mFls = literalsFromGroundValues' ftps btps gvs
+      mFl = literalFromGroundValue' ftp btp (WG.unGVW gv)
+  in case (mFls, mFl) of
+       (Just fls, Just fl) -> Just $ fls :> fl
+       _ -> Nothing
+literalsFromGroundValues' _ _ _ = Nothing
+
+-- | Like literalFromGroundValue, but with a 'FieldRepr'.
+literalFromGroundValue' :: FieldRepr '(nm, tp)
+                        -> WT.BaseTypeRepr btp
+                        -> WG.GroundValue btp
+                        -> Maybe (FieldLiteral '(nm, tp))
+literalFromGroundValue' (FieldRepr nm tp) btp val =
+  FieldLiteral nm <$> literalFromGroundValue tp btp val
 
 groundEvalLiteral :: WG.GroundEvalFn t
                   -> SymLiteral t tp
                   -> IO (Literal tp)
-groundEvalLiteral ge@WG.GroundEvalFn{..} (SymLiteral tp e) = case tp of
-  _ -> undefined
-  -- BoolSym sb -> BoolLit <$> groundEval sb
-  -- IntSym sx -> IntLit <$> groundEval sx
-  -- EnumSym cs sbv -> do
-  --   let n = ctxSize cs
-  --   bv <- groundEval sbv
-  --   ixNat <- return $ BV.asNatural (BV.ctz n bv)
-  --   Just (Some ix) <- return $ intIndex (fromIntegral ixNat) (size cs)
-  --   return $ EnumLit cs ix
-  -- SetSym cs sbv -> do
-  --   let n = ctxSize cs
-  --   bv <- groundEval sbv
-  --   ixNats <- return $
-  --     [ i | i' <- [0..toInteger (natValue n) - 1]
-  --         , let i = fromInteger i'
-  --         , BV.testBit' i bv ]
-  --   Just ixs <- return $
-  --     sequence (map (flip intIndex (size cs)) (fromIntegral <$> ixNats))
-  --   return $ SetLit cs ixs
-  -- StructSym _ str -> do
-  --   gvws <- groundEval str
-  --   Some lit <- fmapFC literalFromGroundValue 
-  --   return $ StructLit _
-  --   -- return $ StructLit (fmapFC (exprSymLiteral . WG.unGVW) gvLits)
-  --   -- fls <- fmapFC (exprSymLiteral . WG.unGVW) gvLits
-  --   -- return $ StructLit fls
-  --   -- fls <- traverseFC (groundEvalFieldLiteral ge) sfls
-  --   -- return $ StructLit fls
+groundEvalLiteral WG.GroundEvalFn{..} (SymLiteral tp e) = case tp of
+  BoolRepr -> BoolLit <$> groundEval e
+  IntRepr -> IntLit <$> groundEval e
+  EnumRepr cs -> do
+    let n = ctxSize cs
+    bv <- groundEval e
+    ixNat <- return $ BV.asNatural (BV.ctz n bv)
+    Just (Some ix) <- return $ intIndex (fromIntegral ixNat) (size cs)
+    return $ EnumLit cs ix
+  SetRepr cs -> do
+    let n = ctxSize cs
+    bv <- groundEval e
+    ixNats <- return $
+      [ i | i' <- [0..toInteger (natValue n) - 1]
+          , let i = fromInteger i'
+          , BV.testBit' i bv ]
+    Just ixs <- return $
+      sequence (map (flip intIndex (size cs)) (fromIntegral <$> ixNats))
+    return $ SetLit cs ixs
+  StructRepr ftps -> do
+    gvws <- groundEval e
+    case literalsFromGroundValues' ftps (fieldBaseTypes ftps) gvws of
+      Just fls -> return $ StructLit fls
+      Nothing -> error "PANIC: Lobot.Core.Instances.groundEvalLiteral"
 
 data BuilderState s = EmptyBuilderState
 
