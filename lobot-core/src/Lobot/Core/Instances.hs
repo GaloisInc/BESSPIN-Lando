@@ -61,20 +61,40 @@ ctxSize :: Assignment f tps -> NatRepr (CtxSize tps)
 ctxSize Empty = knownNat
 ctxSize (fs :> _) = (knownNat @1) `addNat` ctxSize fs
 
+type family FieldBaseTypes (ftps :: Ctx (Symbol, Type)) :: Ctx WT.BaseType where
+  FieldBaseTypes EmptyCtx = EmptyCtx
+  FieldBaseTypes (ftps ::> ftp) = FieldBaseTypes ftps ::> FieldBaseType ftp
+
+fieldBaseTypes :: Assignment FieldRepr ftps
+               -> Assignment WT.BaseTypeRepr (FieldBaseTypes ftps)
+fieldBaseTypes Empty = empty
+fieldBaseTypes (ftps :> ftp) = fieldBaseTypes ftps :> fieldBaseType ftp
+
+type family FieldBaseType (ftp :: (Symbol, Type)) :: WT.BaseType where
+  FieldBaseType '(nm, tp) = TypeBaseType tp
+
+fieldBaseType :: FieldRepr ftp -> WT.BaseTypeRepr (FieldBaseType ftp)
+fieldBaseType (FieldRepr _ tp) = typeBaseType tp
+
+type family TypeBaseType (tp :: Type) :: WT.BaseType where
+  TypeBaseType BoolType = WT.BaseBoolType
+  TypeBaseType IntType = WT.BaseIntegerType
+  TypeBaseType (EnumType cs) = WT.BaseBVType (CtxSize cs)
+  TypeBaseType (SetType cs) = WT.BaseBVType (CtxSize cs)
+  TypeBaseType (StructType ftps) = WT.BaseStructType (FieldBaseTypes ftps)
+
+typeBaseType :: TypeRepr tp -> WT.BaseTypeRepr (TypeBaseType tp)
+typeBaseType BoolRepr = WT.BaseBoolRepr
+typeBaseType IntRepr = WT.BaseIntegerRepr
+typeBaseType (EnumRepr cs) = WT.BaseBVRepr (ctxSize cs)
+typeBaseType (SetRepr cs) = WT.BaseBVRepr (ctxSize cs)
+typeBaseType (StructRepr ftps) = WT.BaseStructRepr (fieldBaseTypes ftps)
+
 -- | Symbolic 'Literal'.
-data SymLiteral t tp where
-  BoolSym :: WB.BoolExpr t -> SymLiteral t BoolType
-  IntSym  :: WB.IntegerExpr t -> SymLiteral t IntType
-  -- | This implies a @bvPopCount == 1@ constraint.
-  EnumSym :: 1 <= CtxSize cs
-          => Assignment SymbolRepr cs
-          -> WB.BVExpr t (CtxSize cs)
-          -> SymLiteral t (EnumType cs)
-  SetSym  :: 1 <= CtxSize cs
-          => Assignment SymbolRepr cs
-          -> WB.BVExpr t (CtxSize cs)
-          -> SymLiteral t (SetType cs)
-  StructSym :: Assignment (SymFieldLiteral t) ktps -> SymLiteral t (StructType ktps)
+data SymLiteral t tp =
+  SymLiteral { symLiteralType :: TypeRepr tp
+             , symLiteralExpr :: WB.Expr t (TypeBaseType tp)
+             }
 
 -- | Symbolic 'FieldLiteral'.
 data SymFieldLiteral t (p :: (Symbol, Type)) where
@@ -82,16 +102,11 @@ data SymFieldLiteral t (p :: (Symbol, Type)) where
                      , symFieldLiteralValue :: SymLiteral t tp
                      } -> SymFieldLiteral t '(nm, tp)
 
-freshSymFieldLiteralConstant :: WS.SMTLib2Tweaks solver
-                             => WB.ExprBuilder t st fs
-                             -> String
-                             -> FieldRepr ftp
-                             -> WS.Session t solver
-                             -> IO (SymFieldLiteral t ftp)
-freshSymFieldLiteralConstant sym prefix (FieldRepr nm tp) session =
-  SymFieldLiteral nm <$> freshSymLiteralConstant sym prefix tp session
+-- | Extract the What4 expression from a symbolic field literal.
+symFieldLiteralExpr :: SymFieldLiteral t ftp -> WB.Expr t (FieldBaseType ftp)
+symFieldLiteralExpr (SymFieldLiteral _ sl) = symLiteralExpr sl
 
--- | Symbolic 'Literal'.
+-- | Declare a fresh constant 'SymLiteral'.
 freshSymLiteralConstant :: WS.SMTLib2Tweaks solver
                         => WB.ExprBuilder t st fs
                         -> String
@@ -103,10 +118,10 @@ freshSymLiteralConstant sym prefix tp session = do
   case tp of
     BoolRepr -> do
       c <- WI.freshConstant sym cSymbol WT.BaseBoolRepr
-      return $ BoolSym c
+      return $ SymLiteral tp c
     IntRepr -> do
       c <- WI.freshConstant sym cSymbol WT.BaseIntegerRepr
-      return $ IntSym c
+      return $ SymLiteral tp c
     EnumRepr cs -> do
       -- We represent individual enumeration constants as 1 << n for some n.
       -- Therefore, we add a constraint that the popcount of the bitvector is 1.
@@ -116,36 +131,39 @@ freshSymLiteralConstant sym prefix tp session = do
       one <- WI.bvLit sym n (BV.one n)
       c_popcount_1 <- WI.bvEq sym c_popcount one
       WS.assume (WS.sessionWriter session) c_popcount_1
-      return $ EnumSym cs c
+      return $ SymLiteral tp c
     SetRepr cs -> do
       let n = ctxSize cs
       c <- WI.freshConstant sym cSymbol (WT.BaseBVRepr n)
-      return $ SetSym cs c
+      return $ SymLiteral tp c
     StructRepr flds -> do
-      cs <- forFC flds $ \fld -> freshSymFieldLiteralConstant sym prefix fld session
-      return $ StructSym cs
+      c <- WI.freshConstant sym cSymbol (WT.BaseStructRepr (fieldBaseTypes flds))
+      return $ SymLiteral tp c
 
+-- | Declare a fresh constant 'SymFieldLiteral'
+freshSymFieldLiteralConstant :: WS.SMTLib2Tweaks solver
+                             => WB.ExprBuilder t st fs
+                             -> String
+                             -> FieldRepr ftp
+                             -> WS.Session t solver
+                             -> IO (SymFieldLiteral t ftp)
+freshSymFieldLiteralConstant sym prefix (FieldRepr nm tp) session =
+  SymFieldLiteral nm <$> freshSymLiteralConstant sym prefix tp session
+
+-- | Check if two 'SymLiteral's are equal.
 symLiteralEq :: forall t st fs tp .
                 WB.ExprBuilder t st fs
              -> SymLiteral t tp
              -> SymLiteral t tp
              -> IO (WB.BoolExpr t)
-symLiteralEq sym (BoolSym b1) (BoolSym b2) = WI.eqPred sym b1 b2
-symLiteralEq sym (IntSym x1) (IntSym x2) = WI.intEq sym x1 x2
-symLiteralEq sym (EnumSym _ bv1) (EnumSym _ bv2) = WI.bvEq sym bv1 bv2
-symLiteralEq sym (SetSym _ bv1) (SetSym _ bv2) = WI.bvEq sym bv1 bv2
-symLiteralEq sym (StructSym sfls1) (StructSym sfls2) = sflsEq sfls1 sfls2
-  where sflsEq :: forall (sh :: Ctx (Symbol, Type)) .
-                  Assignment (SymFieldLiteral t) sh
-               -> Assignment (SymFieldLiteral t) sh
-               -> IO (WB.BoolExpr t)
-        sflsEq Empty Empty = return $ WI.truePred sym
-        sflsEq (as :> a) (bs :> b)
-          | SymFieldLiteral _ _ <- a = do
-              abEq <- symFieldLiteralValueEq sym a b
-              rstEq <- sflsEq as bs
-              WI.andPred sym abEq rstEq
+symLiteralEq sym (SymLiteral tp e1) (SymLiteral _ e2) = case tp of
+  BoolRepr -> WI.eqPred sym e1 e2
+  IntRepr -> WI.intEq sym e1 e2
+  EnumRepr _ -> WI.bvEq sym e1 e2
+  SetRepr _ -> WI.bvEq sym e1 e2
+  StructRepr _ -> WI.structEq sym e1 e2
 
+-- | Check if two 'SymFieldLiterals' are equal.
 symFieldLiteralValueEq :: WB.ExprBuilder t st fs
                        -> SymFieldLiteral t '(nm, tp)
                        -> SymFieldLiteral t '(nm, tp)
@@ -153,27 +171,45 @@ symFieldLiteralValueEq :: WB.ExprBuilder t st fs
 symFieldLiteralValueEq sym fv1 fv2 =
   symLiteralEq sym (symFieldLiteralValue fv1) (symFieldLiteralValue fv2)
 
-symFieldLiteral :: WB.ExprBuilder t st fs
-                -> FieldLiteral '(nm, tp)
-                -> IO (SymFieldLiteral t '(nm, tp))
-symFieldLiteral sym (FieldLiteral nm l) = SymFieldLiteral nm <$> symLiteral sym l
+-- | Convert an 'Assignment' of 'FieldLiteral's to an 'Assignment' of 'WB.Expr's by calling 'symFieldLiteral' on each element.
+symFieldLiteralExprs :: WB.ExprBuilder t st fs
+                     -> Assignment FieldLiteral ftps
+                     -> IO (Assignment (WB.Expr t) (FieldBaseTypes ftps))
+symFieldLiteralExprs _ Empty = return empty
+symFieldLiteralExprs sym (fls :> fl) = do
+  sfl <- symFieldLiteral sym fl
+  sfls <- symFieldLiteralExprs sym fls
+  return $ sfls :> symFieldLiteralExpr sfl
 
-symLiteral :: WB.ExprBuilder t st fs -> Literal tp -> IO (SymLiteral t tp)
-symLiteral sym l = case l of
-  BoolLit True -> return $ BoolSym (WI.truePred sym)
-  BoolLit False -> return $ BoolSym (WI.falsePred sym)
-  IntLit x -> IntSym <$> WI.intLit sym x
+-- | Inject a 'Literal' into a 'WB.Expr' by initiating the symbolic values to
+-- concrete ones.
+symExpr :: WB.ExprBuilder t st fs -> Literal tp -> IO (WB.Expr t (TypeBaseType tp))
+symExpr sym l = case l of
+  BoolLit True -> return $ WI.truePred sym
+  BoolLit False -> return $ WI.falsePred sym
+  IntLit x -> WI.intLit sym x
   EnumLit cs i -> do
     let n = ctxSize cs
-    EnumSym cs <$> WI.bvLit sym n (indexBit n (Some i))
+    WI.bvLit sym n (indexBit n (Some i))
   SetLit cs is -> do
     let n = ctxSize cs
-    SetSym cs <$> WI.bvLit sym n (foldr BV.or (BV.zero n) (indexBit n <$> is))
+    WI.bvLit sym n (foldr BV.or (BV.zero n) (indexBit n <$> is))
   StructLit fls -> do
-    symFieldLiteralValues <- forFC fls $ \fl@(FieldLiteral _ _) ->
-      symFieldLiteral sym fl
-    return $ StructSym symFieldLiteralValues
+    symExprs <- symFieldLiteralExprs sym fls
+    WI.mkStruct sym symExprs
   where indexBit n (Some i) = BV.bit' n (fromIntegral (indexVal i))
+
+-- | Inject a 'Literal' into a 'SymLiteral' by initiating the symbolic values to
+-- concrete ones.
+symLiteral :: WB.ExprBuilder t st fs -> Literal tp -> IO (SymLiteral t tp)
+symLiteral sym l = SymLiteral (literalType l) <$> symExpr sym l
+
+-- | Inject a 'FieldLiteral' into a 'SymFieldLiteral' by setting the
+-- symbolic values equal to concrete ones.
+symFieldLiteral :: WB.ExprBuilder t st fs
+                -> FieldLiteral ftp
+                -> IO (SymFieldLiteral t ftp)
+symFieldLiteral sym (FieldLiteral nm l) = SymFieldLiteral nm <$> symLiteral sym l
 
 -- | Symbolically evaluate an expression given a symbolic instance.
 symEvalExpr :: WB.ExprBuilder t st fs
@@ -183,62 +219,67 @@ symEvalExpr :: WB.ExprBuilder t st fs
 symEvalExpr sym symLit e = case e of
   LiteralExpr l -> symLiteral sym l
   SelfExpr -> return symLit
-  FieldExpr kd fld -> do
-    StructSym sfls <- symEvalExpr sym symLit kd
-    return $ symFieldLiteralValue (sfls ! fld)
+  FieldExpr strE fi -> do
+    SymLiteral (StructRepr ftps) str <- symEvalExpr sym symLit strE
+    fld <- WI.structField sym str undefined
+    return $ SymLiteral (fieldType (ftps ! fi)) fld
   EqExpr e1 e2 -> do
-    sv1 <- symEvalExpr sym symLit e1
-    sv2 <- symEvalExpr sym symLit e2
-    BoolSym <$> symLiteralEq sym sv1 sv2
+    sl1 <- symEvalExpr sym symLit e1
+    sl2 <- symEvalExpr sym symLit e2
+    SymLiteral BoolRepr <$> symLiteralEq sym sl1 sl2
   LteExpr e1 e2 -> do
-    IntSym sv1 <- symEvalExpr sym symLit e1
-    IntSym sv2 <- symEvalExpr sym symLit e2
-    BoolSym <$> WI.intLe sym sv1 sv2
+    SymLiteral IntRepr sv1 <- symEvalExpr sym symLit e1
+    SymLiteral IntRepr sv2 <- symEvalExpr sym symLit e2
+    SymLiteral BoolRepr <$> WI.intLe sym sv1 sv2
   MemberExpr e1 e2 -> do
-    EnumSym _ elt_bv <- symEvalExpr sym symLit e1
-    SetSym _ set_bv <- symEvalExpr sym symLit e2
+    SymLiteral (EnumRepr _) elt_bv <- symEvalExpr sym symLit e1
+    SymLiteral (SetRepr _) set_bv <- symEvalExpr sym symLit e2
     elt_bv_and_set_bv <- WI.bvAndBits sym elt_bv set_bv
     elt_bv_in_set_bv <- WI.bvEq sym elt_bv elt_bv_and_set_bv
-    return $ BoolSym elt_bv_in_set_bv
+    return $ SymLiteral BoolRepr elt_bv_in_set_bv
   ImpliesExpr e1 e2 -> do
-    BoolSym b1 <- symEvalExpr sym symLit e1
-    BoolSym b2 <- symEvalExpr sym symLit e2
-    BoolSym <$> WI.impliesPred sym b1 b2
+    SymLiteral BoolRepr b1 <- symEvalExpr sym symLit e1
+    SymLiteral BoolRepr b2 <- symEvalExpr sym symLit e2
+    SymLiteral BoolRepr <$> WI.impliesPred sym b1 b2
   NotExpr e' -> do
-    BoolSym b <- symEvalExpr sym symLit e'
-    BoolSym <$> WI.notPred sym b
+    SymLiteral BoolRepr b <- symEvalExpr sym symLit e'
+    SymLiteral BoolRepr <$> WI.notPred sym b
 
-groundEvalFieldLiteral :: WG.GroundEvalFn t
-                       -> SymFieldLiteral t ftp
-                       -> IO (FieldLiteral ftp)
-groundEvalFieldLiteral ge SymFieldLiteral{..} =
-  FieldLiteral symFieldLiteralName <$> groundEvalLiteral ge symFieldLiteralValue
+fieldLiteralFromGroundValue :: WG.GroundValueWrapper btp -> Some Literal
+fieldLiteralFromGroundValue = undefined
 
 groundEvalLiteral :: WG.GroundEvalFn t
                   -> SymLiteral t tp
                   -> IO (Literal tp)
-groundEvalLiteral ge@WG.GroundEvalFn{..} symLit = case symLit of
-  BoolSym sb -> BoolLit <$> groundEval sb
-  IntSym sx -> IntLit <$> groundEval sx
-  EnumSym cs sbv -> do
-    let n = ctxSize cs
-    bv <- groundEval sbv
-    ixNat <- return $ BV.asNatural (BV.ctz n bv)
-    Just (Some ix) <- return $ intIndex (fromIntegral ixNat) (size cs)
-    return $ EnumLit cs ix
-  SetSym cs sbv -> do
-    let n = ctxSize cs
-    bv <- groundEval sbv
-    ixNats <- return $
-      [ i | i' <- [0..toInteger (natValue n) - 1]
-          , let i = fromInteger i'
-          , BV.testBit' i bv ]
-    Just ixs <- return $
-      sequence (map (flip intIndex (size cs)) (fromIntegral <$> ixNats))
-    return $ SetLit cs ixs
-  StructSym sfls -> do
-    fls <- traverseFC (groundEvalFieldLiteral ge) sfls
-    return $ StructLit fls
+groundEvalLiteral ge@WG.GroundEvalFn{..} (SymLiteral tp e) = case tp of
+  _ -> undefined
+  -- BoolSym sb -> BoolLit <$> groundEval sb
+  -- IntSym sx -> IntLit <$> groundEval sx
+  -- EnumSym cs sbv -> do
+  --   let n = ctxSize cs
+  --   bv <- groundEval sbv
+  --   ixNat <- return $ BV.asNatural (BV.ctz n bv)
+  --   Just (Some ix) <- return $ intIndex (fromIntegral ixNat) (size cs)
+  --   return $ EnumLit cs ix
+  -- SetSym cs sbv -> do
+  --   let n = ctxSize cs
+  --   bv <- groundEval sbv
+  --   ixNats <- return $
+  --     [ i | i' <- [0..toInteger (natValue n) - 1]
+  --         , let i = fromInteger i'
+  --         , BV.testBit' i bv ]
+  --   Just ixs <- return $
+  --     sequence (map (flip intIndex (size cs)) (fromIntegral <$> ixNats))
+  --   return $ SetLit cs ixs
+  -- StructSym _ str -> do
+  --   gvws <- groundEval str
+  --   Some lit <- fmapFC literalFromGroundValue 
+  --   return $ StructLit _
+  --   -- return $ StructLit (fmapFC (exprSymLiteral . WG.unGVW) gvLits)
+  --   -- fls <- fmapFC (exprSymLiteral . WG.unGVW) gvLits
+  --   -- return $ StructLit fls
+  --   -- fls <- traverseFC (groundEvalFieldLiteral ge) sfls
+  --   -- return $ StructLit fls
 
 data BuilderState s = EmptyBuilderState
 
@@ -260,7 +301,7 @@ getInstance z3_path kd = do
     symLit <- freshSymLiteralConstant sym "" (kindType kd) session
     -- Add all the kind constraints to our list of assumptions
     forM_ (kindConstraints kd) $ \e -> do
-      BoolSym symConstraint <- symEvalExpr sym symLit e
+      SymLiteral BoolRepr symConstraint <- symEvalExpr sym symLit e
       WS.assume (WS.sessionWriter session) symConstraint
     WS.runCheckSat session $ \result ->
       case result of
@@ -282,7 +323,7 @@ getNextInstance sym session symLit = WS.runCheckSat session $ \result ->
     WS.Sat (ge,_) -> do
       inst <- groundEvalLiteral ge symLit
       let negateExpr = NotExpr (EqExpr SelfExpr (LiteralExpr inst))
-      BoolSym symConstraint <- symEvalExpr sym symLit negateExpr
+      SymLiteral BoolRepr symConstraint <- symEvalExpr sym symLit negateExpr
       WS.assume (WS.sessionWriter session) symConstraint
       return $ HasInstance inst
     WS.Unsat _ -> do return NoInstance
@@ -342,6 +383,6 @@ withSession k z3_path kd = do
   WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
     symLit <- freshSymLiteralConstant sym "" (kindType kd) session
     forM_ (kindConstraints kd) $ \e -> do
-      BoolSym symConstraint <- symEvalExpr sym symLit e
+      SymLiteral BoolRepr symConstraint <- symEvalExpr sym symLit e
       WS.assume (WS.sessionWriter session) symConstraint
     k sym session symLit
