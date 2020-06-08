@@ -33,12 +33,10 @@ module Lobot.Core.Instances
   , instanceSession
   ) where
 
-import Data.Parameterized.List.Length
 import Lobot.Core.Kind
 import Lobot.Core.Kind.Pretty
 
 import qualified Data.BitVector.Sized    as BV
-import qualified Data.Parameterized.List as PL
 import qualified What4.Expr.Builder      as WB
 import qualified What4.Config            as WC
 import qualified What4.Expr.GroundEval   as WG
@@ -51,7 +49,7 @@ import qualified What4.BaseTypes         as WT
 
 import Data.Foldable (forM_)
 import Data.IORef
-import Data.Parameterized.List
+import Data.Parameterized.Context
 import Data.Parameterized.NatRepr
 import Data.Parameterized.Nonce
 import Data.Parameterized.Some
@@ -59,20 +57,24 @@ import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 import Prelude hiding ((!!))
 
+ctxSize :: Assignment f tps -> NatRepr (CtxSize tps)
+ctxSize Empty = knownNat
+ctxSize (fs :> _) = (knownNat @1) `addNat` ctxSize fs
+
 -- | Symbolic 'Literal'.
 data SymLiteral t tp where
   BoolSym :: WB.BoolExpr t -> SymLiteral t BoolType
   IntSym  :: WB.IntegerExpr t -> SymLiteral t IntType
   -- | This implies a @bvPopCount == 1@ constraint.
-  EnumSym :: 1 <= Length cs
-          => List SymbolRepr cs
-          -> WB.BVExpr t (Length cs)
+  EnumSym :: 1 <= CtxSize cs
+          => Assignment SymbolRepr cs
+          -> WB.BVExpr t (CtxSize cs)
           -> SymLiteral t (EnumType cs)
-  SetSym  :: 1 <= Length cs
-          => List SymbolRepr cs
-          -> WB.BVExpr t (Length cs)
+  SetSym  :: 1 <= CtxSize cs
+          => Assignment SymbolRepr cs
+          -> WB.BVExpr t (CtxSize cs)
           -> SymLiteral t (SetType cs)
-  StructSym :: List (SymFieldLiteral t) ktps -> SymLiteral t (StructType ktps)
+  StructSym :: Assignment (SymFieldLiteral t) ktps -> SymLiteral t (StructType ktps)
 
 -- | Symbolic 'FieldLiteral'.
 data SymFieldLiteral t (p :: (Symbol, Type)) where
@@ -108,7 +110,7 @@ freshSymLiteralConstant sym prefix tp session = do
     EnumRepr cs -> do
       -- We represent individual enumeration constants as 1 << n for some n.
       -- Therefore, we add a constraint that the popcount of the bitvector is 1.
-      let n = ilength cs
+      let n = ctxSize cs
       c <- WI.freshConstant sym cSymbol (WT.BaseBVRepr n)
       c_popcount <- WI.bvPopcount sym c
       one <- WI.bvLit sym n (BV.one n)
@@ -116,7 +118,7 @@ freshSymLiteralConstant sym prefix tp session = do
       WS.assume (WS.sessionWriter session) c_popcount_1
       return $ EnumSym cs c
     SetRepr cs -> do
-      let n = ilength cs
+      let n = ctxSize cs
       c <- WI.freshConstant sym cSymbol (WT.BaseBVRepr n)
       return $ SetSym cs c
     StructRepr flds -> do
@@ -133,12 +135,12 @@ symLiteralEq sym (IntSym x1) (IntSym x2) = WI.intEq sym x1 x2
 symLiteralEq sym (EnumSym _ bv1) (EnumSym _ bv2) = WI.bvEq sym bv1 bv2
 symLiteralEq sym (SetSym _ bv1) (SetSym _ bv2) = WI.bvEq sym bv1 bv2
 symLiteralEq sym (StructSym sfls1) (StructSym sfls2) = sflsEq sfls1 sfls2
-  where sflsEq :: forall (sh :: [(Symbol, Type)]) .
-                  List (SymFieldLiteral t) sh
-               -> List (SymFieldLiteral t) sh
+  where sflsEq :: forall (sh :: Ctx (Symbol, Type)) .
+                  Assignment (SymFieldLiteral t) sh
+               -> Assignment (SymFieldLiteral t) sh
                -> IO (WB.BoolExpr t)
-        sflsEq Nil Nil = return $ WI.truePred sym
-        sflsEq (a :< as) (b :< bs)
+        sflsEq Empty Empty = return $ WI.truePred sym
+        sflsEq (as :> a) (bs :> b)
           | SymFieldLiteral _ _ <- a = do
               abEq <- symFieldLiteralValueEq sym a b
               rstEq <- sflsEq as bs
@@ -162,16 +164,16 @@ symLiteral sym l = case l of
   BoolLit False -> return $ BoolSym (WI.falsePred sym)
   IntLit x -> IntSym <$> WI.intLit sym x
   EnumLit cs i -> do
-    let n = ilength cs
+    let n = ctxSize cs
     EnumSym cs <$> WI.bvLit sym n (indexBit n (Some i))
   SetLit cs is -> do
-    let n = ilength cs
+    let n = ctxSize cs
     SetSym cs <$> WI.bvLit sym n (foldr BV.or (BV.zero n) (indexBit n <$> is))
   StructLit fls -> do
     symFieldLiteralValues <- forFC fls $ \fl@(FieldLiteral _ _) ->
       symFieldLiteral sym fl
     return $ StructSym symFieldLiteralValues
-  where indexBit n (Some i) = BV.bit' n (fromInteger (PL.indexValue i))
+  where indexBit n (Some i) = BV.bit' n (fromIntegral (indexVal i))
 
 -- | Symbolically evaluate an expression given a symbolic instance.
 symEvalExpr :: WB.ExprBuilder t st fs
@@ -183,7 +185,7 @@ symEvalExpr sym symLit e = case e of
   SelfExpr -> return symLit
   FieldExpr kd fld -> do
     StructSym sfls <- symEvalExpr sym symLit kd
-    return $ symFieldLiteralValue (sfls !! fld)
+    return $ symFieldLiteralValue (sfls ! fld)
   EqExpr e1 e2 -> do
     sv1 <- symEvalExpr sym symLit e1
     sv2 <- symEvalExpr sym symLit e2
@@ -219,21 +221,20 @@ groundEvalLiteral ge@WG.GroundEvalFn{..} symLit = case symLit of
   BoolSym sb -> BoolLit <$> groundEval sb
   IntSym sx -> IntLit <$> groundEval sx
   EnumSym cs sbv -> do
-    let n = ilength cs
+    let n = ctxSize cs
     bv <- groundEval sbv
-    Some ixNat <- return $ mkNatRepr (BV.asNatural (BV.ctz n bv))
-    Just (Some ix) <- return $ natReprToIndex cs ixNat
+    ixNat <- return $ BV.asNatural (BV.ctz n bv)
+    Just (Some ix) <- return $ intIndex (fromIntegral ixNat) (size cs)
     return $ EnumLit cs ix
   SetSym cs sbv -> do
-    let n = ilength cs
+    let n = ctxSize cs
     bv <- groundEval sbv
-    ixNats <- return $ map mkNatRepr
+    ixNats <- return $
       [ i | i' <- [0..toInteger (natValue n) - 1]
           , let i = fromInteger i'
           , BV.testBit' i bv ]
     Just ixs <- return $
-      sequence (map (viewSome (natReprToIndex cs))
-                ixNats)
+      sequence (map (flip intIndex (size cs)) (fromIntegral <$> ixNats))
     return $ SetLit cs ixs
   StructSym sfls -> do
     fls <- traverseFC (groundEvalFieldLiteral ge) sfls

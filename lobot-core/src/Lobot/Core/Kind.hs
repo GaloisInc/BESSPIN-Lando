@@ -53,13 +53,11 @@ module Lobot.Core.Kind
   , liftExpr
   ) where
 
-import Data.Parameterized.List.Length
-
 import Data.List (find)
 import Data.List.NonEmpty hiding ((!!))
 import Data.Parameterized.Some
 import Data.Parameterized.Classes
-import Data.Parameterized.List
+import Data.Parameterized.Context
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
@@ -68,10 +66,10 @@ import Prelude hiding ((!!))
 -- | Representation of a Lobot feature model, which we term a 'Kind' for
 -- brevity. A kind consists of a name, a type, a function environment, and a
 -- list of constraints that must hold for all instances of this kind.
-data Kind (env :: [FunctionType]) (tp :: Type) = Kind
+data Kind (env :: Ctx FunctionType) (tp :: Type) = Kind
   { kindName :: String
   , kindType :: TypeRepr tp
-  , kindFunctionEnv :: List FunctionTypeRepr env
+  , kindFunctionEnv :: Assignment FunctionTypeRepr env
   , kindConstraints :: [Expr env tp BoolType]
   }
   deriving Show
@@ -117,9 +115,9 @@ instance (KnownSymbol nm, KnownRepr TypeRepr tp) => KnownRepr FieldRepr '(nm, tp
 -- | The types of LOBOT.
 data Type = BoolType
           | IntType
-          | EnumType [Symbol]
-          | SetType [Symbol]
-          | StructType [(Symbol, Type)]
+          | EnumType (Ctx Symbol)
+          | SetType (Ctx Symbol)
+          | StructType (Ctx (Symbol, Type))
 
 type BoolType = 'BoolType
 type IntType = 'IntType
@@ -128,13 +126,13 @@ type SetType = 'SetType
 type StructType = 'StructType
 
 -- | Types for functions in Lobot.
-data FunctionType = FunType Symbol [Type] Type
+data FunctionType = FunType Symbol (Ctx Type) Type
 
 type FunType = 'FunType
 
 data FunctionTypeRepr fntp where
   FunctionTypeRepr :: SymbolRepr nm
-                   -> List TypeRepr args
+                   -> Assignment TypeRepr args
                    -> TypeRepr ret
                    -> FunctionTypeRepr (FunType nm args ret)
 
@@ -146,7 +144,7 @@ instance TestEquality FunctionTypeRepr where
       (Just Refl, Just Refl, Just Refl) -> Just Refl
       _ -> Nothing
 instance ( KnownSymbol nm
-         , KnownRepr (List TypeRepr) args
+         , KnownRepr (Assignment TypeRepr) args
          , KnownRepr TypeRepr ret
          ) => KnownRepr FunctionTypeRepr (FunType nm args ret) where
   knownRepr = FunctionTypeRepr knownRepr knownRepr knownRepr
@@ -155,13 +153,13 @@ instance ( KnownSymbol nm
 data TypeRepr tp where
   BoolRepr   :: TypeRepr BoolType
   IntRepr    :: TypeRepr IntType
-  EnumRepr   :: 1 <= (Length cs)
-             => List SymbolRepr cs
+  EnumRepr   :: 1 <= CtxSize cs
+             => Assignment SymbolRepr cs
              -> TypeRepr (EnumType cs)
-  SetRepr    :: 1 <= (Length cs)
-             => List SymbolRepr cs
+  SetRepr    :: 1 <= CtxSize cs
+             => Assignment SymbolRepr cs
              -> TypeRepr (SetType cs)
-  StructRepr :: List FieldRepr ftps
+  StructRepr :: Assignment FieldRepr ftps
              -> TypeRepr (StructType ftps)
 deriving instance Show (TypeRepr tp)
 instance ShowF TypeRepr
@@ -184,28 +182,22 @@ instance KnownRepr TypeRepr BoolType
   where knownRepr = BoolRepr
 instance KnownRepr TypeRepr IntType
   where knownRepr = IntRepr
-instance (1 <= Length cs, KnownRepr (List SymbolRepr) cs) =>
-  KnownRepr TypeRepr (EnumType cs)
+instance (1 <= CtxSize cs, KnownRepr (Assignment SymbolRepr) cs) => KnownRepr TypeRepr (EnumType cs)
   where knownRepr = EnumRepr knownRepr
-instance (1 <= Length cs, KnownRepr (List SymbolRepr) cs) =>
-  KnownRepr TypeRepr (SetType cs)
+instance (1 <= CtxSize cs, KnownRepr (Assignment SymbolRepr) cs) => KnownRepr TypeRepr (SetType cs)
   where knownRepr = SetRepr knownRepr
-instance KnownRepr (List FieldRepr) ftps => KnownRepr TypeRepr (StructType ftps)
+instance KnownRepr (Assignment FieldRepr) ftps => KnownRepr TypeRepr (StructType ftps)
   where knownRepr = StructRepr knownRepr
 
 -- | Concrete value inhabiting a type.
 data Literal tp where
   BoolLit   :: Bool -> Literal BoolType
   IntLit    :: Integer -> Literal IntType
-  EnumLit   :: 1 <= Length cs
-            => List SymbolRepr cs
-            -> Index cs c
-            -> Literal (EnumType cs)
-  SetLit    :: 1 <= Length cs
-            => List SymbolRepr cs
-            -> [Some (Index cs)]
-            -> Literal (SetType cs)
-  StructLit :: List FieldLiteral ftps -> Literal (StructType ftps)
+  EnumLit   :: 1 <= CtxSize cs
+            => Assignment SymbolRepr cs -> Index cs c -> Literal (EnumType cs)
+  SetLit    :: 1 <= CtxSize cs
+            => Assignment SymbolRepr cs -> [Some (Index cs)] -> Literal (SetType cs)
+  StructLit :: Assignment FieldLiteral ftps -> Literal (StructType ftps)
 deriving instance Show (Literal tp)
 
 -- | Get the type of a literal.
@@ -233,12 +225,12 @@ instance ShowF FieldLiteral
 
 data FunctionImpl m fntp where
   FunctionImpl :: { fnImplType :: FunctionTypeRepr (FunType nm args ret)
-                  , fnImplRun :: List Literal args -> m (Literal ret)
+                  , fnImplRun :: Assignment Literal args -> m (Literal ret)
                   } -> FunctionImpl m (FunType nm args ret)
 
 -- | A expression involving a particular kind, given a particular function
 -- environment.
-data Expr (env :: [FunctionType]) (ctx :: Type) (tp :: Type) where
+data Expr (env :: Ctx FunctionType) (ctx :: Type) (tp :: Type) where
   -- | An expression built from a literal value.
   LiteralExpr :: Literal tp -> Expr env ctx tp
   -- | An expression referring to an abstract instance of this kind.
@@ -247,7 +239,7 @@ data Expr (env :: [FunctionType]) (ctx :: Type) (tp :: Type) where
   FieldExpr   :: Expr env ctx (StructType ftps) -> Index ftps '(nm, tp) -> Expr env ctx tp
   -- | Function application.
   ApplyExpr   :: Index env (FunType nm args ret)
-              -> List (Expr env ctx) args
+              -> Assignment (Expr env ctx) args
               -> Expr env ctx ret
   -- | Equality of two expressions.
   EqExpr      :: Expr env ctx tp -> Expr env ctx tp -> Expr env ctx BoolType
@@ -273,10 +265,10 @@ litEq (EnumLit _ i1) (EnumLit _ i2) | Just Refl <- i1 `testEquality` i2 = True
 litEq (SetLit _ s1) (SetLit _ s2) = all (\i -> isJust (find (==i) s2)) s1 &&
                                     all (\i -> isJust (find (==i) s1)) s2
 litEq (StructLit fls1) (StructLit fls2) = fls1 `flsEq` fls2
-  where flsEq :: forall (ftps :: [(Symbol, Type)]) .
-                  List FieldLiteral ftps -> List FieldLiteral ftps -> Bool
-        flsEq Nil Nil = True
-        flsEq (a :< as) (b :< bs) | FieldLiteral _ _ <- a
+  where flsEq :: forall (ftps :: Ctx (Symbol, Type)) .
+                 Assignment FieldLiteral ftps -> Assignment FieldLiteral ftps -> Bool
+        flsEq Empty Empty = True
+        flsEq (as :> a) (bs :> b) | FieldLiteral _ _ <- a
           = a `fieldValueEq` b && flsEq as bs
 
 fieldValueEq :: FieldLiteral ftp -> FieldLiteral ftp -> Bool
@@ -285,7 +277,7 @@ fieldValueEq fv1@(FieldLiteral _ _) fv2 =
 
 -- | Determine whether a literal satisfies all the constraints of a kind.
 instanceOf :: MonadFail m
-           => List (FunctionImpl m) env
+           => Assignment (FunctionImpl m) env
            -> Literal tp
            -> Kind env tp
            -> m Bool
@@ -296,7 +288,7 @@ instanceOf env inst (Kind{..}) = and <$> traverse constraintHolds kindConstraint
 
 -- | Evaluate an expression given an instance of its function and type contexts.
 evalExpr :: MonadFail m
-         => List (FunctionImpl m) env
+         => Assignment (FunctionImpl m) env
          -> Literal ctx
          -> Expr env ctx tp
          -> m (Literal tp)
@@ -305,10 +297,10 @@ evalExpr fns inst e = case e of
   SelfExpr -> pure inst
   FieldExpr kd i -> do
     StructLit fls <- evalExpr fns inst kd
-    pure $ fieldLiteralValue (fls !! i)
+    pure $ fieldLiteralValue (fls ! i)
   ApplyExpr fi es -> do
     ls <- traverseFC (evalExpr fns inst) es
-    fnImplRun (fns !! fi) ls
+    fnImplRun (fns ! fi) ls
   EqExpr e1 e2 -> do
     l1 <- evalExpr fns inst e1
     l2 <- evalExpr fns inst e2

@@ -24,7 +24,7 @@ import Lobot.Core.Kind
 import qualified Text.PrettyPrint as PP
 import qualified Data.Text        as T
 
-import Data.Parameterized.List
+import Data.Parameterized.Context
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
@@ -75,47 +75,47 @@ ppLiteral :: Literal tp -> PP.Doc
 ppLiteral (BoolLit True) = PP.text "true"
 ppLiteral (BoolLit False) = PP.text "false"
 ppLiteral (IntLit x) = PP.integer x
-ppLiteral (EnumLit cs i) = symbolDoc (cs !! i)
+ppLiteral (EnumLit cs i) = symbolDoc (cs ! i)
 ppLiteral (SetLit cs is) =
-  PP.braces (commas (viewSome (symbolDoc . (cs !!)) <$> is))
+  PP.braces (commas (viewSome (symbolDoc . (cs !)) <$> is))
 ppLiteral (StructLit fls) = PP.text "instance" PP.<+> withClause
   where withClause = case fls of
-          Nil -> PP.empty
+          Empty -> PP.empty
           _ -> PP.text "with" PP.<+> commas (toListFC ppFieldLiteral fls)
 
 ppFieldLiteral :: FieldLiteral ftp -> PP.Doc
 ppFieldLiteral FieldLiteral{..} =
   symbolDoc fieldLiteralName PP.<+> PP.equals PP.<+> ppLiteral fieldLiteralValue
 
-exprStructFields :: List FunctionTypeRepr env
+exprStructFields :: Assignment FunctionTypeRepr env
                  -> TypeRepr ctx
                  -> Expr env ctx (StructType ftps)
-                 -> List FieldRepr ftps
+                 -> Assignment FieldRepr ftps
 exprStructFields _ _ (LiteralExpr (StructLit fls)) = fmapFC fieldLiteralType fls
 exprStructFields _ (StructRepr fls) SelfExpr = fls
 exprStructFields env tp (FieldExpr structExpr i) =
-  let StructRepr fls = fieldType (exprStructFields env tp structExpr !! i)
+  let StructRepr fls = fieldType (exprStructFields env tp structExpr ! i)
   in fls
 exprStructFields env _ (ApplyExpr fi _) =
-  let FunctionTypeRepr _ _ (StructRepr fls) = env !! fi
+  let FunctionTypeRepr _ _ (StructRepr fls) = env ! fi
   in fls
 
-ppExpr :: List FunctionTypeRepr env -> TypeRepr ctx -> Expr env ctx tp -> PP.Doc
+ppExpr :: Assignment FunctionTypeRepr env -> TypeRepr ctx -> Expr env ctx tp -> PP.Doc
 ppExpr = ppExpr' True
 
 ppExpr' :: Bool
-        -> List FunctionTypeRepr env
+        -> Assignment FunctionTypeRepr env
         -> TypeRepr ctx
         -> Expr env ctx tp -> PP.Doc
 ppExpr' _ _ _ (LiteralExpr l) = ppLiteral l
 ppExpr' _ _ _ SelfExpr = PP.text "self"
 ppExpr' _ _ (StructRepr flds) (FieldExpr SelfExpr i) =
-  symbolDoc (fieldName (flds !! i))
+  symbolDoc (fieldName (flds ! i))
 ppExpr' top env ctx (FieldExpr ctxExpr i) =
   ppExpr' top env ctx ctxExpr PP.<> PP.text "." PP.<>
-  symbolDoc (fieldName (exprStructFields env ctx ctxExpr !! i))
+  symbolDoc (fieldName (exprStructFields env ctx ctxExpr ! i))
 ppExpr' _ env ctx (ApplyExpr fi es) =
-  let FunctionTypeRepr fnm _ _ = env !! fi
+  let FunctionTypeRepr fnm _ _ = env ! fi
   in symbolDoc fnm PP.<>
      PP.parens (commas (toListFC (ppExpr' True env ctx) es))
 ppExpr' False env ctx e = PP.parens (ppExpr' True env ctx e)

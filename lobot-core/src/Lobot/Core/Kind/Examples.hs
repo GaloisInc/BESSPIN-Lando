@@ -27,14 +27,14 @@ module Lobot.Core.Kind.Examples
   , riscv
   , SimType, BluespecBuildType
   , bluespec_build
-    -- * Example 5
-  , ColorType, AustraliaColoringType
-  , australia_coloring
+  --   -- * Example 5
+  -- , ColorType, AustraliaColoringType
+  -- , australia_coloring
   ) where
 
 import Data.List.NonEmpty
 import Data.Parameterized.Classes
-import Data.Parameterized.List
+import Data.Parameterized.Context
 import Data.Parameterized.Some
 import Lobot.Core.Kind
 
@@ -43,18 +43,16 @@ import Lobot.Core.Kind
 -- posint kind of int
 --   where 0 <= self
 -- @
-posint :: Kind '[] IntType
+posint :: Kind EmptyCtx IntType
 posint = Kind { kindName = "posint"
               , kindType = knownRepr
-              , kindFunctionEnv = Nil
+              , kindFunctionEnv = Empty
               , kindConstraints =
                 [ LteExpr (LiteralExpr (IntLit 0)) SelfExpr
                 ]
               }
 
-type IntPairType = StructType '[ '("x", IntType)
-                               , '("y", IntType)
-                               ]
+type IntPairType = StructType (EmptyCtx ::> '("x", IntType) ::> '("y", IntType))
 
 -- |
 -- @
@@ -64,33 +62,33 @@ type IntPairType = StructType '[ '("x", IntType)
 --   where not (x = y),
 --         x <= y
 -- @
-unique_posint_pair :: Kind '[] IntPairType
-unique_posint_pair = liftConstraints index0 posint $
-                     liftConstraints index1 posint $
+unique_posint_pair :: Kind EmptyCtx IntPairType
+unique_posint_pair = liftConstraints i1of2 posint $
+                     liftConstraints i2of2 posint $
                      Kind { kindName = "unique_posint_pair"
                           , kindType = knownRepr
-                          , kindFunctionEnv = Nil
+                          , kindFunctionEnv = Empty
                           , kindConstraints =
                             [ NotExpr
                               (EqExpr
-                               (FieldExpr SelfExpr index0)
-                               (FieldExpr SelfExpr index1))
+                               (FieldExpr SelfExpr i1of2)
+                               (FieldExpr SelfExpr i2of2))
                             , LteExpr
-                              (FieldExpr SelfExpr index0)
-                              (FieldExpr SelfExpr index1)
+                              (FieldExpr SelfExpr i1of2)
+                              (FieldExpr SelfExpr i2of2)
                             ]
                           }
 
-type ABCType = SetType '["A", "B", "C"]
+type ABCType = SetType (EmptyCtx ::> "A" ::> "B" ::> "C")
 
 -- |
 -- @
 -- abc kind of subset {A, B, C}
 -- @
-abc :: Kind '[] ABCType
+abc :: Kind EmptyCtx ABCType
 abc = Kind { kindName = "abc"
            , kindType = knownRepr
-           , kindFunctionEnv = Nil
+           , kindFunctionEnv = Empty
            , kindConstraints = []
            }
 
@@ -98,10 +96,10 @@ abc = Kind { kindName = "abc"
 -- @
 -- abc_1 kind of abc where A in abc
 -- @
-abc_1 :: Kind '[] ABCType
+abc_1 :: Kind EmptyCtx ABCType
 abc_1 = derivedKind (abc :| []) "abc_1"
                   [ MemberExpr
-                    (LiteralExpr (EnumLit knownRepr index0))
+                    (LiteralExpr (EnumLit knownRepr i1of3))
                     SelfExpr
                   ]
 
@@ -109,14 +107,14 @@ abc_1 = derivedKind (abc :| []) "abc_1"
 -- @
 -- abc_2 kind of of abc where (A in abc) => (C in abc)
 -- @
-abc_2 :: Kind '[] ABCType
+abc_2 :: Kind EmptyCtx ABCType
 abc_2 = derivedKind (abc :| []) "abc_2"
              [ ImpliesExpr
                (MemberExpr
-                (LiteralExpr (EnumLit knownRepr index0))
+                (LiteralExpr (EnumLit knownRepr i1of3))
                 SelfExpr)
                (MemberExpr
-                (LiteralExpr (EnumLit knownRepr index2))
+                (LiteralExpr (EnumLit knownRepr i3of3))
                 SelfExpr)
              ]
 
@@ -124,16 +122,16 @@ abc_2 = derivedKind (abc :| []) "abc_2"
 -- @
 -- abc2 kind of abc_1 abc_2
 -- @
-abc_3 :: Kind '[] ABCType
+abc_3 :: Kind EmptyCtx ABCType
 abc_3 = derivedKind
   (abc_1 :| [abc_2])
   "abc_3"
   []
 
-type SexType = '["Male", "Female"]
-type PersonType = StructType '[ '("age", IntType)
-                              , '("sex", EnumType SexType)
-                              ]
+type SexType = EmptyCtx ::> "Male" ::> "Female"
+type PersonType = StructType (EmptyCtx
+                               ::> '("age", IntType)
+                               ::> '("sex", EnumType SexType))
 
 -- |
 -- @
@@ -142,14 +140,14 @@ type PersonType = StructType '[ '("age", IntType)
 --        sex : {Male, Female}
 --   where age >= 0
 -- @
-person :: Kind '[] PersonType
+person :: Kind EmptyCtx PersonType
 person = Kind { kindName = "person"
               , kindType = knownRepr
-              , kindFunctionEnv = Nil
+              , kindFunctionEnv = Empty
               , kindConstraints =
                   [ LteExpr
                     (LiteralExpr (IntLit 0))
-                    (FieldExpr SelfExpr index0)
+                    (FieldExpr SelfExpr i1of2)
                   ]
               }
 
@@ -159,19 +157,19 @@ person = Kind { kindName = "person"
 --   where 13 <= age,
 --         age <= 19
 -- @
-teenager :: Kind '[] PersonType
+teenager :: Kind EmptyCtx PersonType
 teenager = derivedKind (person :| []) "teenager"
                 [ LteExpr
                   (LiteralExpr (IntLit 13))
-                  (FieldExpr SelfExpr index0)
+                  (FieldExpr SelfExpr i1of2)
                 , LteExpr
-                  (FieldExpr SelfExpr index0)
+                  (FieldExpr SelfExpr i1of2)
                   (LiteralExpr (IntLit 19))
                 ]
 
-type CoupleType = StructType '[ '("person1", PersonType)
-                              , '("person2", PersonType)
-                              ]
+type CoupleType = StructType (EmptyCtx
+                              ::> '("person1", PersonType)
+                              ::> '("person2", PersonType))
 
 -- |
 -- @
@@ -179,10 +177,10 @@ type CoupleType = StructType '[ '("person1", PersonType)
 --   with person1 : person,
 --        person2 : person
 -- @
-couple :: Kind '[] CoupleType
+couple :: Kind EmptyCtx CoupleType
 couple = Kind { kindName = "couple"
               , kindType = knownRepr
-              , kindFunctionEnv = Nil
+              , kindFunctionEnv = Empty
               , kindConstraints = []
               }
 
@@ -191,12 +189,12 @@ couple = Kind { kindName = "couple"
 -- straight_couple kind of couple
 --   where not (person1.sex = person2.sex)
 -- @
-straight_couple :: Kind '[] CoupleType
+straight_couple :: Kind EmptyCtx CoupleType
 straight_couple = derivedKind (couple :| []) "straight_couple"
                        [ NotExpr
                          (EqExpr
-                          (FieldExpr (FieldExpr SelfExpr index0) index1)
-                          (FieldExpr (FieldExpr SelfExpr index1) index1))
+                          (FieldExpr (FieldExpr SelfExpr i1of2) i2of2)
+                          (FieldExpr (FieldExpr SelfExpr i2of2) i2of2))
                        ]
 
 -- |
@@ -204,25 +202,25 @@ straight_couple = derivedKind (couple :| []) "straight_couple"
 --     where person1 : teenager,
 --           person2 : teenager
 -- @
-teenage_couple :: Kind '[] CoupleType
-teenage_couple = liftConstraints index0 teenager $
-                      liftConstraints index1 teenager $
-                      derivedKind (couple :| []) "teenage_couple" []
+teenage_couple :: Kind EmptyCtx CoupleType
+teenage_couple = liftConstraints i1of2 teenager $
+                 liftConstraints i2of2 teenager $
+                 derivedKind (couple :| []) "teenage_couple" []
 
-type RegWidthType = '["RV32", "RV64"]
+type RegWidthType = EmptyCtx ::> "RV32" ::> "RV64"
 
-type ExtsType = '["M", "A", "F", "D", "C"]
+type ExtsType = EmptyCtx ::> "M" ::> "A" ::> "F" ::> "D" ::> "C"
 
-type PrivType = '["PrivM", "PrivS", "PrivU"]
+type PrivType = EmptyCtx ::> "PrivM" ::>  "PrivS" ::> "PrivU"
 
-type VMType = '["SVNone", "SV32", "SV39", "SV48"]
+type VMType = EmptyCtx ::> "SVNone" ::> "SV32" ::> "SV39" ::> "SV48"
 
-type RISCVType = StructType '[ '("reg_width", EnumType RegWidthType),
-                               '("xlen", IntType),
-                               '("exts", SetType ExtsType),
-                               '("privs", SetType PrivType),
-                               '("vm", EnumType VMType)
-                             ]
+type RISCVType = StructType (EmptyCtx
+                             ::> '("reg_width", EnumType RegWidthType)
+                             ::> '("xlen", IntType)
+                             ::> '("exts", SetType ExtsType)
+                             ::> '("privs", SetType PrivType)
+                             ::> '("vm", EnumType VMType))
 
 -- |
 -- @
@@ -240,70 +238,70 @@ type RISCVType = StructType '[ '("reg_width", EnumType RegWidthType),
 --         (PrivS in privs) => (not (vm = SVNone)),
 --         (not (PrivS in privs)) => (vm = SVNone)
 -- @
-riscv :: Kind '[] RISCVType
+riscv :: Kind EmptyCtx RISCVType
 riscv = Kind { kindName = "riscv"
              , kindType = knownRepr
-             , kindFunctionEnv = Nil
+             , kindFunctionEnv = Empty
              , kindConstraints =
                [ ImpliesExpr
                  (EqExpr
-                  (FieldExpr SelfExpr index0)
-                  (LiteralExpr (EnumLit knownRepr index0)))
+                  (FieldExpr SelfExpr i1of5)
+                  (LiteralExpr (EnumLit knownRepr i1of2)))
                  (EqExpr
-                  (FieldExpr SelfExpr index1)
+                  (FieldExpr SelfExpr i2of5)
                   (LiteralExpr (IntLit 32)))
                , ImpliesExpr
                  (EqExpr
-                  (FieldExpr SelfExpr index0)
-                  (LiteralExpr (EnumLit knownRepr index1)))
+                  (FieldExpr SelfExpr i1of5)
+                  (LiteralExpr (EnumLit knownRepr i2of2)))
                  (EqExpr
-                  (FieldExpr SelfExpr index1)
+                  (FieldExpr SelfExpr i2of5)
                   (LiteralExpr (IntLit 64)))
                , ImpliesExpr
                  (MemberExpr
-                  (LiteralExpr (EnumLit knownRepr index3))
-                  (FieldExpr SelfExpr index2))
+                  (LiteralExpr (EnumLit knownRepr i4of5))
+                  (FieldExpr SelfExpr i3of5))
                  (MemberExpr
-                  (LiteralExpr (EnumLit knownRepr index2))
-                  (FieldExpr SelfExpr index2))
+                  (LiteralExpr (EnumLit knownRepr i3of5))
+                  (FieldExpr SelfExpr i3of5))
                , MemberExpr
-                 (LiteralExpr (EnumLit knownRepr index0))
-                 (FieldExpr SelfExpr index3)
+                 (LiteralExpr (EnumLit knownRepr i1of3))
+                 (FieldExpr SelfExpr i4of5)
                , ImpliesExpr
                  (MemberExpr
-                  (LiteralExpr (EnumLit knownRepr index1))
-                  (FieldExpr SelfExpr index3))
+                  (LiteralExpr (EnumLit knownRepr i2of3))
+                  (FieldExpr SelfExpr i4of5))
                  (MemberExpr
-                  (LiteralExpr (EnumLit knownRepr index2))
-                  (FieldExpr SelfExpr index3))
+                  (LiteralExpr (EnumLit knownRepr i3of3))
+                  (FieldExpr SelfExpr i4of5))
                , ImpliesExpr
                  (MemberExpr
-                  (LiteralExpr (EnumLit knownRepr index1))
-                  (FieldExpr SelfExpr index3))
+                  (LiteralExpr (EnumLit knownRepr i2of3))
+                  (FieldExpr SelfExpr i4of5))
                  (NotExpr
                   (EqExpr
-                   (FieldExpr SelfExpr index4)
-                   (LiteralExpr (EnumLit knownRepr index0))))
+                   (FieldExpr SelfExpr i5of5)
+                   (LiteralExpr (EnumLit knownRepr i1of4))))
                , ImpliesExpr
                  (NotExpr
                   (MemberExpr
-                   (LiteralExpr (EnumLit knownRepr index1))
-                   (FieldExpr SelfExpr index3)))
+                   (LiteralExpr (EnumLit knownRepr i2of3))
+                   (FieldExpr SelfExpr i4of5)))
                  (EqExpr
-                  (FieldExpr SelfExpr index4)
-                  (LiteralExpr (EnumLit knownRepr index0)))
+                  (FieldExpr SelfExpr i5of5)
+                  (LiteralExpr (EnumLit knownRepr i1of4)))
                ]
              }
 
-index4 :: Index (x0:x1:x2:x3:x4:r) x4
-index4 = IndexThere index3
+type SimType = EnumType (EmptyCtx
+                         ::> "Bluesim"
+                         ::> "IVerilog"
+                         ::> "Verilator")
 
-type SimType = EnumType '[ "Bluesim", "IVerilog", "Verilator" ]
-
-type BluespecBuildType = StructType '[ '("riscv", RISCVType)
-                                     , '("sim", SimType)
-                                     , '("tv", BoolType)
-                                     ]
+type BluespecBuildType = StructType (EmptyCtx
+                                     ::> '("riscv", RISCVType)
+                                     ::> '("sim", SimType)
+                                     ::> '("tv", BoolType))
 
 -- |
 -- @
@@ -313,98 +311,98 @@ type BluespecBuildType = StructType '[ '("riscv", RISCVType)
 --        tv : bool
 --   where riscv.vm in {SVNone, SV32, SV39}
 -- @
-bluespec_build :: Kind '[] BluespecBuildType
-bluespec_build = liftConstraints index0 riscv k
+bluespec_build :: Kind EmptyCtx BluespecBuildType
+bluespec_build = liftConstraints i1of3 riscv k
   where k = Kind { kindName = "bluespec_build"
                  , kindType = knownRepr
-                 , kindFunctionEnv = Nil
+                 , kindFunctionEnv = Empty
                  , kindConstraints =
                    [ MemberExpr
-                     (FieldExpr (FieldExpr SelfExpr index0) index4)
-                     (LiteralExpr (SetLit knownRepr [ Some index0
-                                                    , Some index1
-                                                    , Some index2
+                     (FieldExpr (FieldExpr SelfExpr i1of3) i5of5)
+                     (LiteralExpr (SetLit knownRepr [ Some i1of4
+                                                    , Some i2of4
+                                                    , Some i3of4
                                                     ]))
                    ]
                  }
 
-type ColorType = EnumType '["Red", "Blue", "Yellow"]
-type AustraliaColoringType = StructType '[ '("WA", ColorType)
-                                         , '("NT", ColorType)
-                                         , '("SA", ColorType)
-                                         , '("Q", ColorType)
-                                         , '("NSW", ColorType)
-                                         , '("V", ColorType)
-                                         , '("T", ColorType)
-                                         ]
+-- type ColorType = EnumType (EmptyCtx
+--                            ::> "Red"
+--                            ::> "Blue"
+--                            ::> "Yellow")
+-- type AustraliaColoringType = StructType (EmptyCtx
+--                                          ::> '("WA", ColorType)
+--                                          ::> '("NT", ColorType)
+--                                          ::> '("SA", ColorType)
+--                                          ::> '("Q", ColorType)
+--                                          ::> '("NSW", ColorType)
+--                                          ::> '("V", ColorType)
+--                                          ::> '("T", ColorType))
 
--- |
--- This is a MiniZinc <https://www.minizinc.org/doc-2.4.3/en/modelling.html example>.
---
--- @
--- color is {Red, Blue, Yellow}
---
--- australia_coloring kind of struct
---   with WA : color,
---        NT : color,
---        SA : color,
---        Q : color,
---        NSW : color,
---        V : color,
---        T : color
---   where not (WA = NT),
---         not (WA = SA),
---         not (NT = SA),
---         not (NT = Q),
---         not (SA = Q),
---         not (SA = NSW),
---         not (SA = V),
---         not (Q = NSW),
---         not (NSW = V)
--- @
-australia_coloring :: Kind '[] AustraliaColoringType
-australia_coloring = Kind { kindName = "australia_coloring"
-                          , kindType = knownRepr
-                          , kindFunctionEnv = Nil
-                          , kindConstraints =
-                            [ NotExpr
-                              (EqExpr
-                               (FieldExpr SelfExpr index0)
-                               (FieldExpr SelfExpr index1))
-                            , NotExpr
-                              (EqExpr
-                               (FieldExpr SelfExpr index0)
-                               (FieldExpr SelfExpr index2))
-                            , NotExpr
-                              (EqExpr
-                               (FieldExpr SelfExpr index1)
-                               (FieldExpr SelfExpr index2))
-                            , NotExpr
-                              (EqExpr
-                               (FieldExpr SelfExpr index1)
-                               (FieldExpr SelfExpr index3))
-                            , NotExpr
-                              (EqExpr
-                               (FieldExpr SelfExpr index2)
-                               (FieldExpr SelfExpr index3))
-                            , NotExpr
-                              (EqExpr
-                               (FieldExpr SelfExpr index2)
-                               (FieldExpr SelfExpr index4))
-                            , NotExpr
-                              (EqExpr
-                               (FieldExpr SelfExpr index2)
-                               (FieldExpr SelfExpr index5))
-                            , NotExpr
-                              (EqExpr
-                               (FieldExpr SelfExpr index3)
-                               (FieldExpr SelfExpr index4))
-                            , NotExpr
-                              (EqExpr
-                               (FieldExpr SelfExpr index4)
-                               (FieldExpr SelfExpr index5))
-                            ]
-                          }
-
-index5 :: Index (x0:x1:x2:x3:x4:x5:r) x5
-index5 = IndexThere index4
+-- -- |
+-- -- This is a MiniZinc <https://www.minizinc.org/doc-2.4.3/en/modelling.html example>.
+-- --
+-- -- @
+-- -- color is {Red, Blue, Yellow}
+-- --
+-- -- australia_coloring kind of struct
+-- --   with WA : color,
+-- --        NT : color,
+-- --        SA : color,
+-- --        Q : color,
+-- --        NSW : color,
+-- --        V : color,
+-- --        T : color
+-- --   where not (WA = NT),
+-- --         not (WA = SA),
+-- --         not (NT = SA),
+-- --         not (NT = Q),
+-- --         not (SA = Q),
+-- --         not (SA = NSW),
+-- --         not (SA = V),
+-- --         not (Q = NSW),
+-- --         not (NSW = V)
+-- -- @
+-- australia_coloring :: Kind EmptyCtx AustraliaColoringType
+-- australia_coloring = Kind { kindName = "australia_coloring"
+--                           , kindType = knownRepr
+--                           , kindFunctionEnv = Empty
+--                           , kindConstraints =
+--                             [ NotExpr
+--                               (EqExpr
+--                                (FieldExpr SelfExpr index0)
+--                                (FieldExpr SelfExpr index1))
+--                             , NotExpr
+--                               (EqExpr
+--                                (FieldExpr SelfExpr index0)
+--                                (FieldExpr SelfExpr index2))
+--                             , NotExpr
+--                               (EqExpr
+--                                (FieldExpr SelfExpr index1)
+--                                (FieldExpr SelfExpr index2))
+--                             , NotExpr
+--                               (EqExpr
+--                                (FieldExpr SelfExpr index1)
+--                                (FieldExpr SelfExpr index3))
+--                             , NotExpr
+--                               (EqExpr
+--                                (FieldExpr SelfExpr index2)
+--                                (FieldExpr SelfExpr index3))
+--                             , NotExpr
+--                               (EqExpr
+--                                (FieldExpr SelfExpr index2)
+--                                (FieldExpr SelfExpr index4))
+--                             , NotExpr
+--                               (EqExpr
+--                                (FieldExpr SelfExpr index2)
+--                                (FieldExpr SelfExpr index5))
+--                             , NotExpr
+--                               (EqExpr
+--                                (FieldExpr SelfExpr index3)
+--                                (FieldExpr SelfExpr index4))
+--                             , NotExpr
+--                               (EqExpr
+--                                (FieldExpr SelfExpr index4)
+--                                (FieldExpr SelfExpr index5))
+--                             ]
+--                           }
