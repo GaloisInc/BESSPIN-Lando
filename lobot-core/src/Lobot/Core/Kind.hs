@@ -55,6 +55,7 @@ module Lobot.Core.Kind
 
 import Data.List (find)
 import Data.List.NonEmpty hiding ((!!))
+import Data.Text (Text)
 import Data.Parameterized.Some
 import Data.Parameterized.Classes
 import Data.Parameterized.Context
@@ -67,7 +68,7 @@ import Prelude hiding ((!!))
 -- brevity. A kind consists of a name, a type, a function environment, and a
 -- list of constraints that must hold for all instances of this kind.
 data Kind (env :: Ctx FunctionType) (tp :: Type) = Kind
-  { kindName :: String
+  { kindName :: Text
   , kindType :: TypeRepr tp
   , kindFunctionEnv :: Assignment FunctionTypeRepr env
   , kindConstraints :: [Expr env tp BoolType]
@@ -80,7 +81,7 @@ addConstraints kd cs =
   kd { kindConstraints = kindConstraints kd ++ cs }
 
 -- | Given a set of parent 'Kind's of the same type, create a derived 'Kind'.
-derivedKind :: NonEmpty (Kind env tp) -> String -> [Expr env tp BoolType] -> Kind env tp
+derivedKind :: NonEmpty (Kind env tp) -> Text -> [Expr env tp BoolType] -> Kind env tp
 derivedKind kds@(kd :| _) nm cs =
   kd { kindName = nm
      , kindConstraints = concatMap kindConstraints kds ++ cs
