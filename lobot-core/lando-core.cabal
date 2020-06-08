@@ -24,6 +24,7 @@ library
                        Lobot.Core.Instances
                        Lobot.Core.Syntax
                        Lobot.Core.TypeCheck
+                       Lobot.Core.Utils
 
                        Data.Parameterized.List.Length
   -- other-modules:
@@ -31,6 +32,8 @@ library
   build-depends:       base >=4.13 && <4.15,
                        bv-sized >= 1.0.1,
                        parameterized-utils >= 2.1.0 && < 2.2,
+                       hashmap,
+                       mtl,
                        pretty,
                        pretty-show,
                        text,
