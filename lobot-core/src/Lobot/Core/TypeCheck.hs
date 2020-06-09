@@ -23,14 +23,13 @@ This module defines the type checking algorithm for the Lobot AST.
 
 module Lobot.Core.TypeCheck
   ( SomeTypeOrString(..), TypeError(..)
-  , checkKindDecls, resolveType
+  , typeCheck, checkKindDecls, resolveType
   , inferExpr, checkExpr, inferLit, checkLit ) where
 
 import Data.Text (Text)
 import Control.Monad (forM)
 import Control.Monad.Trans (lift)
 import Control.Monad.State (StateT, get, modify, evalStateT)
-import Data.Maybe (mapMaybe)
 import Data.Parameterized.Some
 import Data.Parameterized.Pair
 import Data.Parameterized.Classes
@@ -38,7 +37,7 @@ import Data.Parameterized.Context
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableF
-import Prelude hiding (zipWith)
+import Prelude hiding (zipWith, unzip)
 
 import qualified Data.HashMap as H
 
@@ -53,7 +52,7 @@ data TypeError = TypeMismatchError S.Expr SomeTypeOrString SomeTypeOrString
                | EnumNameError Text (Some (Assignment SymbolRepr))
                | FieldNameError Text (Some (Assignment FieldRepr))
                | EmptyEnumOrSetError
-               | KindUnionMismatchError (Some K.TypeRepr) (Some K.TypeRepr)
+               | KindUnionMismatchError Text (Some K.TypeRepr) (Some K.TypeRepr)
                | KindNameNotInScope Text
                | InternalError Text
                deriving Show
@@ -63,66 +62,86 @@ data SomeTypeOrString :: * where
   TypeString :: Text -> SomeTypeOrString
 deriving instance Show SomeTypeOrString
 
--- | Given a list of kind declarations, produce a list of typed kinds.
-checkKindDecls :: Assignment K.FunctionTypeRepr env
-               -> [S.KindDecl] -> Either TypeError [Some (K.Kind env)]
-checkKindDecls env decls = evalStateT (mapM (checkKindDecl env) decls) H.empty
+-- | Given a list of kind declarations, produce a list of typed kinds. 
+typeCheck :: Assignment K.FunctionTypeRepr env
+          -> [S.KindDecl] -> Either TypeError [Some (K.Kind env)]
+typeCheck env decls = evalStateT (checkKindDecls env decls) H.empty
 
 
--- Validating a kind declaration
+-- Validating kind declarations
+
+checkKindDecls :: Assignment K.FunctionTypeRepr env -> [S.KindDecl]
+               -> StateT (DeclCtx env) (Either TypeError) [Some (K.Kind env)]
+checkKindDecls env decls = mapM (checkKindDecl env) decls
 
 checkKindDecl :: Assignment K.FunctionTypeRepr env -> S.KindDecl
-              -> StateT DeclCtx (Either TypeError) (Some (K.Kind env))
+              -> StateT (DeclCtx env) (Either TypeError) (Some (K.Kind env))
 checkKindDecl env KindDecl{..} = do
-  Some ctx <- resolveType kindDeclType
+  Pair ctx (Cns ctx_cns) <- resolveType env kindDeclType
   cns <- lift $ mapM (checkExpr env ctx K.BoolRepr) kindDeclConstraints
-  modify (H.insert kindDeclName (Some ctx))
-  pure $ Some (Kind kindDeclName ctx env cns)
+  let decl = Some (Kind kindDeclName ctx env (cns ++ ctx_cns))
+  modify (H.insert kindDeclName decl)
+  pure $ decl
 
+type DeclCtx env = H.Map Text (Some (Kind env))
 
-type DeclCtx = H.Map Text (Some K.TypeRepr)
-
-lookupType :: Text -> StateT DeclCtx (Either TypeError) (Some K.TypeRepr)
-lookupType k = do
+lookupKind :: Assignment K.FunctionTypeRepr env -> Text
+           -> StateT (DeclCtx env) (Either TypeError) (Some (K.Kind env))
+lookupKind _ k = do
   mb_k' <- H.lookup k <$> get
   case mb_k' of
     Just k' -> pure $ k'
     Nothing -> lift $ Left (KindNameNotInScope k)
 
 
--- Resolving all kind names in a `S.Type` to get a `K.Type`
+-- Resolving all kind names in a `S.Type` to get a `K.Type` and a list of
+-- additional constraints.
 
-resolveType :: S.Type -> StateT DeclCtx (Either TypeError) (Some K.TypeRepr)
+data Constraints env tp = Cns [K.Expr env tp K.BoolType]
 
-resolveType S.BoolType = pure $ Some K.BoolRepr
-resolveType S.IntType  = pure $ Some K.IntRepr
+resolveType :: Assignment K.FunctionTypeRepr env -> S.Type
+            -> StateT (DeclCtx env) (Either TypeError)
+                      (Pair TypeRepr (Constraints env))
 
-resolveType (S.EnumType cs) | Some cs' <- someSymbols cs =
+resolveType _ S.BoolType = pure $ Pair K.BoolRepr (Cns [])
+resolveType _ S.IntType  = pure $ Pair K.IntRepr  (Cns [])
+
+resolveType _ (S.EnumType cs) | Some cs' <- someSymbols cs =
   case decideLeq (knownNat @1) (sizeToCtxSize (size cs')) of
-    Left LeqProof -> pure $ Some (K.EnumRepr cs')
+    Left LeqProof -> pure $ Pair (K.EnumRepr cs') (Cns [])
     Right _ -> lift $ Left EmptyEnumOrSetError
-resolveType (S.SetType cs) | Some cs' <- someSymbols cs =
+resolveType _ (S.SetType cs) | Some cs' <- someSymbols cs =
   case decideLeq (knownNat @1) (sizeToCtxSize (size cs')) of
-    Left LeqProof -> pure $ Some (K.SetRepr cs')
+    Left LeqProof -> pure $ Pair (K.SetRepr cs') (Cns [])
     Right _ -> lift $ Left EmptyEnumOrSetError
-  
-resolveType (S.StructType fls) = do
-  Some fls' <- fromList <$> mapM resolveFieldType fls
-  pure $ Some (K.StructRepr fls')
-  
-resolveType (S.KindNames []) = lift $ Left (InternalError "empty kind union")
-resolveType (S.KindNames (k:ks)) = do
-  ktp  <- lookupType k
-  ktps <- mapM lookupType ks
-  case mapMaybe (\ktp' -> if ktp == ktp' then Nothing else Just ktp') ktps of
-    [] -> pure $ ktp
-    (ktp':_) -> lift $ Left (KindUnionMismatchError ktp ktp')
 
-resolveFieldType :: (Text, S.Type) -> StateT DeclCtx (Either TypeError) (Some FieldRepr)
-resolveFieldType (nm, ty) = do
+resolveType env (S.StructType fls) = do
+  Pair fls' cnss <- unzip <$> mapM (resolveFieldType env) fls
+  let cns = concat $ toListWithIndex (\i (Cns' cns') -> liftExpr i <$> cns') cnss
+  pure $ Pair (K.StructRepr fls') (Cns cns)
+  
+resolveType _ (S.KindNames []) =
+  lift $ Left (InternalError "empty kind union")
+resolveType env (S.KindNames [k]) = do
+  Some k' <- lookupKind env k
+  pure $ Pair (kindType k') (Cns (kindConstraints k'))
+resolveType env (S.KindNames (k:ks)) = do
+  Some k' <- lookupKind env k
+  Pair tp (Cns cns) <- resolveType env (S.KindNames ks)
+  case testEquality (kindType k') tp of
+    Just Refl -> pure $ Pair (kindType k') (Cns (kindConstraints k' ++ cns))
+    Nothing -> lift $ Left (KindUnionMismatchError (kindName k') (Some (kindType k')) (Some tp))
+
+data Constraints' env (pr :: (Symbol, K.Type)) where
+  Cns' :: [K.Expr env tp K.BoolType] -> Constraints' env '(nm, tp)
+
+resolveFieldType :: Assignment K.FunctionTypeRepr env -> (Text, S.Type)
+                 -> StateT (DeclCtx env) (Either TypeError)
+                           (Pair FieldRepr (Constraints' env))
+resolveFieldType env (nm,tp) = do
   Some nm' <- pure $ someSymbol nm
-  Some ty' <- resolveType ty
-  pure $ Some (FieldRepr nm' ty')
+  Pair tp' (Cns cns) <- resolveType env tp
+  pure $ Pair (FieldRepr nm' tp') (Cns' cns)
 
 
 -- Type inference and checking for expressions
