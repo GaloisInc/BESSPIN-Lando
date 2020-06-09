@@ -25,7 +25,7 @@ import Data.Text (Text)
 data KindDecl = KindDecl { kindDeclName :: Text
                          , kindDeclType :: Type
                          , kindDeclConstraints :: [Expr]
-                         }
+                         } deriving Show
 
 data Type = BoolType
           | IntType
@@ -33,6 +33,7 @@ data Type = BoolType
           | SetType [Text]
           | StructType [(Text, Type)]
           | KindNames [Text]
+          deriving Show
 
 data Expr = LiteralExpr Literal
           | SelfExpr
@@ -42,10 +43,12 @@ data Expr = LiteralExpr Literal
           | MemberExpr Expr Expr
           | ImpliesExpr Expr Expr
           | NotExpr Expr
-          | IsInstance Text Type -- ^ field : type (in a constraint)
+          | IsInstanceExpr Expr Type -- ^ expr : type (in a constraint)
+          deriving Show
 
 data Literal = BoolLit Bool
              | IntLit Integer
              | EnumLit Text
              | SetLit [Text]
              | StructLit [(Text, Expr)]
+             deriving Show

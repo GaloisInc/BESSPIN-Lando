@@ -22,7 +22,9 @@ library
                        Lobot.Core.Kind.Examples
                        Lobot.Core.Kind.Pretty
                        Lobot.Core.Instances
-                       Lobot.Core.Syntax,
+                       Lobot.Core.Syntax
+                       Lobot.Core.Lexer
+                       Lobot.Core.Parser
 
                        Data.Parameterized.List.Length
   -- other-modules:
@@ -30,10 +32,12 @@ library
   build-depends:       base >=4.13 && <4.15,
                        bv-sized >= 1.0.1,
                        parameterized-utils >= 2.1.0 && < 2.2,
+                       array,
                        pretty,
                        pretty-show,
                        text,
                        what4
   hs-source-dirs:      src
+  build-tools:         alex, happy
   default-language:    Haskell2010
   ghc-options:         -Wall
