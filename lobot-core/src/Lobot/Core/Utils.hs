@@ -29,12 +29,12 @@ import Data.Parameterized.SymbolRepr
 -- | Returns the index of the first element in the given assignment which is
 -- equal by 'testEquality' to the query element, or Nothing if there is no
 -- such element.
-elemIndex :: forall (f :: k -> *) ctx x. TestEquality f
+elemIndex :: forall k (f :: k -> *) ctx x. TestEquality f
           => f x -> Assignment f ctx -> Maybe (Index ctx x)
 elemIndex x ys = case traverseAndCollect (go x) ys of
                    Left i  -> Just i
                    Right _ -> Nothing
-  where go :: forall (f :: k -> *) ctx x y. TestEquality f
+  where go :: forall k (f :: k -> *) ctx x y. TestEquality f
            => f x -> Index ctx y -> f y -> Either (Index ctx x) ()
         go a i b | Just Refl <- testEquality a b = Left i
                  | otherwise = Right ()
