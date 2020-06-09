@@ -28,7 +28,6 @@ module Lobot.Core.Instances
   , SymFunction(..)
   , symEvalExpr
   , InstanceResult(..)
-  , getInstance
   , getNextInstance
   , countInstances
   , instanceSession
@@ -191,44 +190,6 @@ freshSymFieldLiteralExprs sym session prefix (ftps :> (FieldRepr nm tp)) = do
   SymLiteral _ e <- freshSymLiteralConstant sym session prefix' tp
   symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
   return $ symExprs :> e
-
--- assignmentIndices :: Assignment f tps
---                   -> Assignment (Index tps) tps
--- assignmentIndices Empty = Empty
-
--- symStructFields :: WB.ExprBuilder t st fs
---                 -> WB.Expr t (WT.BaseStructType tps)
---                 -> Assignment (WB.Expr t) tps
--- symStructFields sym str = undefined
-
--- constrainSymExpr :: WS.SMTLib2Tweaks solver
---                  => WB.ExprBuilder t st fs
---                  -> WS.Session t solver
---                  -> TypeRepr tp
---                  -> WB.Expr t (TypeBaseType tp)
---                  -> IO ()
--- constrainSymExpr sym session tp symExpr = case tp of
---   EnumRepr cs -> do
---     let n = ctxSize cs
---     c_popcount <- WI.bvPopcount sym symExpr
---     one <- WI.bvLit sym n (BV.one n)
---     c_popcount_1 <- WI.bvEq sym c_popcount one
---     WS.assume (WS.sessionWriter session) c_popcount_1
---   StructRepr ftps -> do
---     let fieldSymExprs = symStructFields sym symExpr
---     constrainSymExprs sym session ftps fieldSymExprs
---   _ -> return ()
-
--- constrainSymExprs :: WS.SMTLib2Tweaks solver
---                   => WB.ExprBuilder t st fs
---                   -> WS.Session t solver
---                   -> Assignment FieldRepr ftps
---                   -> Assignment (WB.Expr t) (FieldBaseTypes ftps)
---                   -> IO ()
--- constrainSymExprs _ _ Empty Empty = return ()
--- constrainSymExprs sym session (ftps :> ftp@(FieldRepr _ _)) (symExprs :> symExpr) = do
---   constrainSymExprs sym session ftps symExprs
---   constrainSymExpr sym session (fieldType ftp) symExpr
 
 -- | Check if two 'SymLiteral's are equal.
 symLiteralEq :: forall t st fs tp .
@@ -411,32 +372,6 @@ data InstanceResult tp = HasInstance (Literal tp)
   deriving Show
 
 -- TODO: Rewrite using 'withSession'
--- | Given a 'Kind', get a satisfying 'Instance' if we can determine whether one
--- exists.
-getInstance :: FilePath
-            -> Assignment FunctionTypeRepr env
-            -> Kind env ktps
-            -> IO (InstanceResult ktps)
-getInstance z3_path env kd = do
-  Some nonceGen <- newIONonceGenerator
-  sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
-  WC.extendConfig WS.z3Options (WI.getConfiguration sym)
-  WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
-    -- Create fresh uninterpreted functions for the environment
-    symFns <- traverseFC (freshUninterpSymFunction sym) env
-    -- Create a fresh symbolic instance of our kind
-    symLit <- freshSymLiteralConstant sym session "" (kindType kd)
-    -- Add all the kind constraints to our list of assumptions
-    forM_ (kindConstraints kd) $ \e -> do
-      SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLit e
-      WS.assume (WS.sessionWriter session) symConstraint
-    WS.runCheckSat session $ \result ->
-      case result of
-        WS.Sat (ge,_) -> do
-          inst <- groundEvalLiteral ge symLit
-          return $ HasInstance inst
-        WS.Unsat _ -> return NoInstance
-        WS.Unknown -> return Unknown
 
 -- | If there are any instances in the current session, retrieve it, and then
 -- negate that instance so we get a different result next time.
@@ -468,11 +403,12 @@ repeatIO k = do
 
 -- | Run an interactive session for instance generation. Every time the user
 -- hits \"Enter\", a new instance is provided.
-instanceSession :: FilePath
+instanceSession :: Assignment (FunctionImpl IO) env
+                -> FilePath
                 -> Assignment FunctionTypeRepr env
                 -> Kind env ktps
                 -> IO ()
-instanceSession = withSession $ \sym session symFns symInst -> do
+instanceSession fns = withSession $ \sym session kd symFns symInst -> do
   i <- newIORef (0 :: Integer)
   WS.runCheckSat session $ \_ -> repeatIO $ \_ -> do
     iVal <- readIORef i
@@ -481,16 +417,19 @@ instanceSession = withSession $ \sym session symFns symInst -> do
     res <- getNextInstance sym session symFns symInst
     case res of
       HasInstance inst -> do
-        putStrLn $ "Instance #" ++ show iVal' ++ ":"
+        isValid <- instanceOf fns inst kd
+        let validStr = if isValid then "valid" else "invalid"
+        putStrLn $ "Instance #" ++ show iVal' ++ " (" ++ validStr ++ "):"
+        -- Check the instance against our function bindings
         return $ Just (ppLiteral inst)
       _ -> return Nothing
 
 countInstances' :: Integer -> SolverSessionFn env ktps Integer
-countInstances' 0 _ _ _ _ = return 0
-countInstances' limit sym session symFns symLit = do
+countInstances' 0 _ _ _ _ _ = return 0
+countInstances' limit sym session kd symFns symLit = do
   nextInstance <- getNextInstance sym session symFns symLit
   case nextInstance of
-    HasInstance _ -> do n <- countInstances' (limit-1) sym session symFns symLit
+    HasInstance _ -> do n <- countInstances' (limit-1) sym session kd symFns symLit
                         return $ n + 1
     _ -> return 0
 
@@ -502,7 +441,7 @@ countInstances :: Integer -- ^ Maximum number to count to
                -> IO Integer
 countInstances limit = withSession (countInstances' limit)
 
-type SolverSessionFn env tp a = forall t . WB.ExprBuilder t BuilderState (WB.Flags WB.FloatIEEE) -> WS.Session t WS.Z3 -> Assignment (SymFunction t) env -> SymLiteral t tp -> IO a
+type SolverSessionFn env tp a = forall t . WB.ExprBuilder t BuilderState (WB.Flags WB.FloatIEEE) -> WS.Session t WS.Z3 -> Kind env tp -> Assignment (SymFunction t) env -> SymLiteral t tp -> IO a
 
 withSession :: SolverSessionFn env tp a
             -> FilePath
@@ -519,7 +458,4 @@ withSession k z3_path env kd = do
     forM_ (kindConstraints kd) $ \e -> do
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLit e
       WS.assume (WS.sessionWriter session) symConstraint
-    k sym session symFns symLit
--- freshUninterpSymFunction :: WB.ExprBuilder t st fs
---                          -> FunctionTypeRepr fntp
---                          -> IO (SymFunction t fntp)
+    k sym session kd symFns symLit
