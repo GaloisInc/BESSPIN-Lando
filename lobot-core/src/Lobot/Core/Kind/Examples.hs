@@ -339,6 +339,10 @@ is_even (Empty :> IntLit x) = return $ BoolLit (even x)
 evenEnv :: Assignment (FunctionImpl IO) EvenEnv
 evenEnv = Empty :> FunctionImpl knownRepr is_even
 
+-- |
+-- @
+-- even_int kind of int where is_even(self)
+-- @
 even_int :: Kind EvenEnv IntType
 even_int = Kind { kindName = "even_int"
                 , kindType = knownRepr

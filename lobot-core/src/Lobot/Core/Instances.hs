@@ -441,7 +441,13 @@ countInstances :: Integer -- ^ Maximum number to count to
                -> IO Integer
 countInstances limit = withSession (countInstances' limit)
 
-type SolverSessionFn env tp a = forall t . WB.ExprBuilder t BuilderState (WB.Flags WB.FloatIEEE) -> WS.Session t WS.Z3 -> Kind env tp -> Assignment (SymFunction t) env -> SymLiteral t tp -> IO a
+type SolverSessionFn env tp a = forall t .
+     WB.ExprBuilder t BuilderState (WB.Flags WB.FloatIEEE)
+  -> WS.Session t WS.Z3
+  -> Kind env tp
+  -> Assignment (SymFunction t) env
+  -> SymLiteral t tp
+  -> IO a
 
 withSession :: SolverSessionFn env tp a
             -> FilePath
