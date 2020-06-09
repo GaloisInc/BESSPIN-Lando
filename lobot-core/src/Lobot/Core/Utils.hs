@@ -7,14 +7,14 @@
 
 {-|
 Module      : Lobot.Core.Utils
-Description : The LOBOT type checker.
+Description : Useful functions.
 Copyright   : (c) Matt Yacavone, 2020
 License     : BSD3
 Maintainer  : myac@galois.com
 Stability   : experimental
 Portability : POSIX
 
-This module defines the type checking algorithm for the Lobot AST.
+This module defines some functions used elsewhere in Lobot Core.
 -}
 
 module Lobot.Core.Utils where

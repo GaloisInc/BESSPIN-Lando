@@ -74,6 +74,7 @@ data Kind (env :: Ctx FunctionType) (tp :: Type) = Kind
   , kindConstraints :: [Expr env tp BoolType]
   }
   deriving Show
+instance ShowF (Kind env)
 
 -- | Augment a 'Kind' with some additional constraints.
 addConstraints :: Kind env tp -> [Expr env tp BoolType] -> Kind env tp

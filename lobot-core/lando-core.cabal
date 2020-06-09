@@ -23,6 +23,7 @@ library
                        Lobot.Core.Kind.Pretty
                        Lobot.Core.Instances
                        Lobot.Core.Syntax
+                       Lobot.Core.Syntax.Examples
                        Lobot.Core.TypeCheck
                        Lobot.Core.Utils
 

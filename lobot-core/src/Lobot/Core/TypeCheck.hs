@@ -4,6 +4,7 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -21,7 +22,9 @@ This module defines the type checking algorithm for the Lobot AST.
 -}
 
 module Lobot.Core.TypeCheck
-  (SomeTypeOrString(..), TypeError(..), checkKindDecls) where
+  ( SomeTypeOrString(..), TypeError(..)
+  , checkKindDecls, resolveType
+  , inferExpr, checkExpr, inferLit, checkLit ) where
 
 import Data.Text (Text)
 import Control.Monad (forM)
@@ -53,10 +56,12 @@ data TypeError = TypeMismatchError S.Expr SomeTypeOrString SomeTypeOrString
                | KindUnionMismatchError (Some K.TypeRepr) (Some K.TypeRepr)
                | KindNameNotInScope Text
                | InternalError Text
+               deriving Show
 
 data SomeTypeOrString :: * where
   SomeType   :: K.TypeRepr tp -> SomeTypeOrString
   TypeString :: Text -> SomeTypeOrString
+deriving instance Show SomeTypeOrString
 
 -- | Given a list of kind declarations, produce a list of typed kinds.
 checkKindDecls :: Assignment K.FunctionTypeRepr env
