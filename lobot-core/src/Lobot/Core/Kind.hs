@@ -133,7 +133,7 @@ type FunType = 'FunType
 data FunctionTypeRepr fntp where
   FunctionTypeRepr :: { functionName :: SymbolRepr nm
                       , functionArgTypes :: Assignment TypeRepr args
-                      , functionRetType ::TypeRepr ret
+                      , functionRetType :: TypeRepr ret
                       } -> FunctionTypeRepr (FunType nm args ret)
 
 deriving instance Show (FunctionTypeRepr fntp)
