@@ -136,14 +136,16 @@ freshUninterpSymFunction sym fntp@FunctionTypeRepr{..} session = do
   symFn <- WI.freshTotalUninterpFn sym cSymbol baseArgTypes baseRetType
   return $ SymFunction fntp symFn
 
+-- TODO: After pulling out all the constraints into auxiliary functions we can
+-- probably simplyify this one.
 -- | Declare a fresh constant 'SymLiteral'.
 freshSymLiteralConstant :: WS.SMTLib2Tweaks solver
                         => WB.ExprBuilder t st fs
+                        -> WS.Session t solver
                         -> String
                         -> TypeRepr tp
-                        -> WS.Session t solver
                         -> IO (SymLiteral t tp)
-freshSymLiteralConstant sym prefix tp session = do
+freshSymLiteralConstant sym session prefix tp = do
   let cSymbol = WI.safeSymbol prefix
   case tp of
     BoolRepr -> do
@@ -153,8 +155,6 @@ freshSymLiteralConstant sym prefix tp session = do
       c <- WI.freshConstant sym cSymbol WT.BaseIntegerRepr
       return $ SymLiteral tp c
     EnumRepr cs -> do
-      -- We represent individual enumeration constants as 1 << n for some n.
-      -- Therefore, we add a constraint that the popcount of the bitvector is 1.
       let n = ctxSize cs
       c <- WI.freshConstant sym cSymbol (WT.BaseBVRepr n)
       c_popcount <- WI.bvPopcount sym c
@@ -166,9 +166,65 @@ freshSymLiteralConstant sym prefix tp session = do
       let n = ctxSize cs
       c <- WI.freshConstant sym cSymbol (WT.BaseBVRepr n)
       return $ SymLiteral tp c
-    StructRepr flds -> do
-      c <- WI.freshConstant sym cSymbol (WT.BaseStructRepr (fieldBaseTypes flds))
-      return $ SymLiteral tp c
+    StructRepr ftps -> do
+      symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
+      -- symLits <- freshSymFieldLiteralConstants sym session prefix ftps
+      -- let symExprs = symLiteralExprs symLits
+      structExpr <- WI.mkStruct sym symExprs
+      return $ SymLiteral tp structExpr
+      -- c <- WI.freshConstant sym cSymbol (WT.BaseStructRepr (fieldBaseTypes flds))
+      -- return $ SymLiteral tp c
+
+freshSymFieldLiteralExprs :: WS.SMTLib2Tweaks solver
+                          => WB.ExprBuilder t st fs
+                          -> WS.Session t solver
+                          -> String
+                          -> Assignment FieldRepr ftps
+                          -> IO (Assignment (WB.Expr t) (FieldBaseTypes ftps))
+freshSymFieldLiteralExprs _ _ _ Empty = return Empty
+freshSymFieldLiteralExprs sym session prefix (ftps :> (FieldRepr nm tp)) = do
+  let prefix' = prefix ++ "." ++ T.unpack (symbolRepr nm)
+  SymLiteral _ e <- freshSymLiteralConstant sym session prefix' tp
+  symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
+  return $ symExprs :> e
+
+-- assignmentIndices :: Assignment f tps
+--                   -> Assignment (Index tps) tps
+-- assignmentIndices Empty = Empty
+
+-- symStructFields :: WB.ExprBuilder t st fs
+--                 -> WB.Expr t (WT.BaseStructType tps)
+--                 -> Assignment (WB.Expr t) tps
+-- symStructFields sym str = undefined
+
+-- constrainSymExpr :: WS.SMTLib2Tweaks solver
+--                  => WB.ExprBuilder t st fs
+--                  -> WS.Session t solver
+--                  -> TypeRepr tp
+--                  -> WB.Expr t (TypeBaseType tp)
+--                  -> IO ()
+-- constrainSymExpr sym session tp symExpr = case tp of
+--   EnumRepr cs -> do
+--     let n = ctxSize cs
+--     c_popcount <- WI.bvPopcount sym symExpr
+--     one <- WI.bvLit sym n (BV.one n)
+--     c_popcount_1 <- WI.bvEq sym c_popcount one
+--     WS.assume (WS.sessionWriter session) c_popcount_1
+--   StructRepr ftps -> do
+--     let fieldSymExprs = symStructFields sym symExpr
+--     constrainSymExprs sym session ftps fieldSymExprs
+--   _ -> return ()
+
+-- constrainSymExprs :: WS.SMTLib2Tweaks solver
+--                   => WB.ExprBuilder t st fs
+--                   -> WS.Session t solver
+--                   -> Assignment FieldRepr ftps
+--                   -> Assignment (WB.Expr t) (FieldBaseTypes ftps)
+--                   -> IO ()
+-- constrainSymExprs _ _ Empty Empty = return ()
+-- constrainSymExprs sym session (ftps :> ftp@(FieldRepr _ _)) (symExprs :> symExpr) = do
+--   constrainSymExprs sym session ftps symExprs
+--   constrainSymExpr sym session (fieldType ftp) symExpr
 
 -- | Check if two 'SymLiteral's are equal.
 symLiteralEq :: forall t st fs tp .
@@ -334,7 +390,8 @@ groundEvalLiteral WG.GroundEvalFn{..} (SymLiteral tp e) = case tp of
     gvws <- groundEval e
     case literalsFromGroundValues' ftps (fieldBaseTypes ftps) gvws of
       Just fls -> return $ StructLit fls
-      Nothing -> error "PANIC: Lobot.Core.Instances.groundEvalLiteral"
+      Nothing -> error $
+        "PANIC: Lobot.Core.Instances.groundEvalLiteral: \n" ++ show ftps ++ "\n" ++ show (fieldBaseTypes ftps) ++ "\n" ++ show (ctxSize gvws)
 
 data BuilderState s = EmptyBuilderState
 
@@ -353,7 +410,7 @@ getInstance z3_path kd = do
   WC.extendConfig WS.z3Options (WI.getConfiguration sym)
   WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
     -- Create a fresh symbolic instance of our kind
-    symLit <- freshSymLiteralConstant sym "" (kindType kd) session
+    symLit <- freshSymLiteralConstant sym session "" (kindType kd)
     -- Add all the kind constraints to our list of assumptions
     forM_ (kindConstraints kd) $ \e -> do
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symLit e
@@ -436,7 +493,7 @@ withSession k z3_path kd = do
   sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
   WC.extendConfig WS.z3Options (WI.getConfiguration sym)
   WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
-    symLit <- freshSymLiteralConstant sym "" (kindType kd) session
+    symLit <- freshSymLiteralConstant sym session "" (kindType kd)
     forM_ (kindConstraints kd) $ \e -> do
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symLit e
       WS.assume (WS.sessionWriter session) symConstraint
