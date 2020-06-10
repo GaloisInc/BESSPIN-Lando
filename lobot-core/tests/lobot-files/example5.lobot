@@ -1,0 +1,20 @@
+color : kind of {Red, Yellow, Blue}
+
+australia_coloring : kind of struct
+  with { wa : color,
+         nt : color,
+         sa : color,
+         q : color,
+         nsw : color,
+         v : color,
+         t : color
+       }
+  where not (wa = nt),
+        not (wa = sa),
+        not (nt = sa),
+        not (nt = q),
+        not (sa = q),
+        not (sa = nsw),
+        not (sa = v),
+        not (q = nsw),
+        not (nsw = v)
