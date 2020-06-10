@@ -22,9 +22,20 @@ This module defines the type checking algorithm for the Lobot AST.
 -}
 
 module Lobot.Core.TypeCheck
-  ( CtxM, TypeError(..), SomeTypeOrString(..)
-  , typeCheck, checkKindDecls, resolveType
-  , inferExpr, checkExpr, inferLit, checkLit ) where
+  ( TypeError(..)
+  , typeCheck
+  , SomeTypeOrString(..)
+    -- * Internals
+  , CtxM
+  , checkKindDecls
+  , resolveType
+  , inferExpr
+  , checkExpr
+  , inferLit
+  , checkLit
+  ) where
+
+import qualified Data.HashMap as H
 
 import Data.Text (Text)
 import Control.Monad (forM)
@@ -38,8 +49,6 @@ import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableF
 import Prelude hiding (zipWith, unzip)
-
-import qualified Data.HashMap as H
 
 import Lobot.Core.Utils
 import Lobot.Core.Kind   as K
@@ -218,7 +227,7 @@ inferExpr env ctx (S.NotExpr x) = do
   x' <- checkExpr env ctx K.BoolRepr x
   pure $ Pair K.BoolRepr (K.NotExpr x')
 
-inferExpr env ctx (S.IsInstanceExpr x t) = do
+inferExpr _env _ctx (S.IsInstanceExpr _x _t) = do
   typeError (InternalError "IsInstance (:) expressions are not yet supported")
   -- Pair t' (Cns cns) <- resolveType env t
   -- x' <- checkExpr env ctx t' x
