@@ -54,7 +54,7 @@ abc = KindDecl { kindDeclName = "abc"
 
 abc_1 :: KindDecl
 abc_1 = KindDecl { kindDeclName = "abc_1"
-                 , kindDeclType = KindNames ["abc"] 
+                 , kindDeclType = KindNames ["abc"]
                  , kindDeclConstraints =
                    [ MemberExpr
                      (LiteralExpr (EnumLit "A"))
@@ -64,7 +64,7 @@ abc_1 = KindDecl { kindDeclName = "abc_1"
 
 abc_2 :: KindDecl
 abc_2 = KindDecl { kindDeclName = "abc_2"
-                 , kindDeclType = KindNames ["abc"] 
+                 , kindDeclType = KindNames ["abc"]
                  , kindDeclConstraints =
                    [ ImpliesExpr
                      (MemberExpr
@@ -78,7 +78,7 @@ abc_2 = KindDecl { kindDeclName = "abc_2"
 
 abc_3 :: KindDecl
 abc_3 = KindDecl { kindDeclName = "abc_3"
-                 , kindDeclType = KindNames ["abc_1", "abc_2"] 
+                 , kindDeclType = KindNames ["abc_1", "abc_2"]
                  , kindDeclConstraints = []
                  }
 

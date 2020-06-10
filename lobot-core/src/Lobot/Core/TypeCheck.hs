@@ -45,7 +45,8 @@ import Lobot.Core.Utils
 import Lobot.Core.Kind   as K
 import Lobot.Core.Syntax as S
 
-
+-- | State/error monad for type checking. We maintain a hashmap from names to
+-- 'K.Kind's as we iterate through a @[S.Kind]@.
 type CtxM env = StateT (H.Map Text (Some (Kind env))) (Either TypeError)
 
 data TypeError = TypeMismatchError S.Expr SomeTypeOrString SomeTypeOrString
@@ -64,7 +65,8 @@ data SomeTypeOrString :: * where
   TypeString :: Text -> SomeTypeOrString
 deriving instance Show SomeTypeOrString
 
-lookupKind :: Assignment K.FunctionTypeRepr env -> Text
+lookupKind :: Assignment K.FunctionTypeRepr env
+           -> Text
            -> CtxM env (Some (K.Kind env))
 lookupKind _ k = do
   mb_k' <- H.lookup k <$> get
@@ -79,19 +81,22 @@ try :: CtxM env a -> CtxM env (Either TypeError a)
 try x = evalStateT x <$> get
 
 
--- | Given a list of kind declarations, produce a list of typed kinds. 
+-- | Given a list of kind declarations, produce a list of typed kinds.
 typeCheck :: Assignment K.FunctionTypeRepr env
-          -> [S.KindDecl] -> Either TypeError [Some (K.Kind env)]
+          -> [S.KindDecl]
+          -> Either TypeError [Some (K.Kind env)]
 typeCheck env decls = evalStateT (checkKindDecls env decls) H.empty
 
 
 -- Validating kind declarations
 
-checkKindDecls :: Assignment K.FunctionTypeRepr env -> [S.KindDecl]
+checkKindDecls :: Assignment K.FunctionTypeRepr env
+               -> [S.KindDecl]
                -> CtxM env [Some (K.Kind env)]
 checkKindDecls env decls = mapM (checkKindDecl env) decls
 
-checkKindDecl :: Assignment K.FunctionTypeRepr env -> S.KindDecl
+checkKindDecl :: Assignment K.FunctionTypeRepr env
+              -> S.KindDecl
               -> CtxM env (Some (K.Kind env))
 checkKindDecl env KindDecl{..} = do
   Pair ctx (Cns ctx_cns) <- resolveType env kindDeclType
@@ -106,18 +111,19 @@ checkKindDecl env KindDecl{..} = do
 
 data Constraints env tp = Cns [K.Expr env tp K.BoolType]
 
-resolveType :: Assignment K.FunctionTypeRepr env -> S.Type
+resolveType :: Assignment K.FunctionTypeRepr env
+            -> S.Type
             -> CtxM env (Pair TypeRepr (Constraints env))
 
 resolveType _ S.BoolType = pure $ Pair K.BoolRepr (Cns [])
 resolveType _ S.IntType  = pure $ Pair K.IntRepr  (Cns [])
 
 resolveType _ (S.EnumType cs) | Some cs' <- someSymbols cs =
-  case decideLeq (knownNat @1) (sizeToCtxSize (size cs')) of
+  case decideLeq (knownNat @1) (ctxSizeNat (size cs')) of
     Left LeqProof -> pure $ Pair (K.EnumRepr cs') (Cns [])
     Right _ -> typeError EmptyEnumOrSetError
 resolveType _ (S.SetType cs) | Some cs' <- someSymbols cs =
-  case decideLeq (knownNat @1) (sizeToCtxSize (size cs')) of
+  case decideLeq (knownNat @1) (ctxSizeNat (size cs')) of
     Left LeqProof -> pure $ Pair (K.SetRepr cs') (Cns [])
     Right _ -> typeError EmptyEnumOrSetError
 
@@ -125,7 +131,7 @@ resolveType env (S.StructType fls) = do
   Pair fls' cnss <- unzip <$> mapM (resolveFieldType env) fls
   let cns = concat $ toListWithIndex (\i (Cns' cns') -> liftExpr i <$> cns') cnss
   pure $ Pair (K.StructRepr fls') (Cns cns)
-  
+
 resolveType _ (S.KindNames []) =
   typeError (InternalError "empty kind union")
 resolveType env (S.KindNames [k]) = do
@@ -164,7 +170,7 @@ inferExpr env ctx (S.FieldExpr x f) = do
       Just (SomeField tp i) -> pure $ Pair tp (K.FieldExpr x' i)
       Nothing -> typeError (FieldNameError f (Some ftps))
     _ -> typeError (TypeMismatchError x (TypeString "a struct") (SomeType xtp))
-  
+
 inferExpr env ctx (S.EqExpr x y) = do
   mb_x' <- try $ inferExpr env ctx x
   mb_y' <- try $ inferExpr env ctx y
@@ -202,12 +208,12 @@ inferExpr env ctx (S.MemberExpr x y) = do
       typeError (TypeMismatchError x (TypeString "an enum") (SomeType xtp))
     (_, Right (Pair ytp _)) ->
       typeError (TypeMismatchError y (TypeString "a set") (SomeType ytp))
-  
+
 inferExpr env ctx (S.ImpliesExpr x y) = do
   x' <- checkExpr env ctx K.BoolRepr x
   y' <- checkExpr env ctx K.BoolRepr y
   pure $ Pair K.BoolRepr (K.ImpliesExpr x' y')
-  
+
 inferExpr env ctx (S.NotExpr x) = do
   x' <- checkExpr env ctx K.BoolRepr x
   pure $ Pair K.BoolRepr (K.NotExpr x')
@@ -266,7 +272,7 @@ checkLit (K.EnumRepr cs) (S.EnumLit e) = do
 checkLit tp (S.EnumLit e) =
   typeError (TypeMismatchError (S.LiteralExpr (S.EnumLit e))
                           (SomeType tp) (TypeString "an enum"))
-  
+
 checkLit (K.SetRepr cs) (S.SetLit es) = do
   es' <- forM es (enumElemIndex cs)
   pure $ K.SetLit cs es'

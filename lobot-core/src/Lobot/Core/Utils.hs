@@ -46,10 +46,10 @@ someSymbols :: [Text] -> Some (Assignment SymbolRepr)
 someSymbols = fromList . fmap someSymbol
 
 -- | Converts a proof of 'Size' to a runtime representitive of 'CtxSize'.
-sizeToCtxSize :: Size ctx -> NatRepr (CtxSize ctx)
-sizeToCtxSize sz = case viewSize sz of
+ctxSizeNat :: Size ctx -> NatRepr (CtxSize ctx)
+ctxSizeNat sz = case viewSize sz of
   ZeroSize -> knownNat @0
-  IncSize sz' -> addNat (knownNat @1) (sizeToCtxSize sz')
+  IncSize sz' -> addNat (knownNat @1) (ctxSizeNat sz')
 
 -- | Create a pair of assignments from a list of pairs of values.
 -- Implementation is based on 'fromList'.
