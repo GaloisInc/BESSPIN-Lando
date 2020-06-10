@@ -134,10 +134,10 @@ data FunctionType = FunType Symbol (Ctx Type) Type
 type FunType = 'FunType
 
 data FunctionTypeRepr fntp where
-  FunctionTypeRepr :: SymbolRepr nm
-                   -> Assignment TypeRepr args
-                   -> TypeRepr ret
-                   -> FunctionTypeRepr (FunType nm args ret)
+  FunctionTypeRepr :: { functionName :: SymbolRepr nm
+                      , functionArgTypes :: Assignment TypeRepr args
+                      , functionRetType :: TypeRepr ret
+                      } -> FunctionTypeRepr (FunType nm args ret)
 
 deriving instance Show (FunctionTypeRepr fntp)
 instance ShowF FunctionTypeRepr

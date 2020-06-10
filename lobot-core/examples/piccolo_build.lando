@@ -1,7 +1,15 @@
-bluespec_build kind of struct
+import riscv
+import riscv_compliance
+
+bluespec_build : kind of struct
   with riscv : riscv,
        sim : {Bluesim, IVerilog, Verilator}
        tv : bool
   where riscv.vm in {SVNone, SV32, SV39}
 
-piccolo_build kind of bluespec_build
+piccolo_build : kind of bluespec_build
+  where reg_width = RV32
+
+abstract type bluespec_simulator : riscv_simulator
+
+build_piccolo : piccolo_build -> bluespec_simulator
