@@ -35,6 +35,7 @@ module Lobot.Core.Instances
 
 import Lobot.Core.Kind
 import Lobot.Core.Kind.Pretty
+import Lobot.Core.Utils
 
 import qualified Data.BitVector.Sized    as BV
 import qualified Data.Text               as T
@@ -58,10 +59,6 @@ import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 import Prelude hiding ((!!))
 import Unsafe.Coerce (unsafeCoerce) -- I know, I know.
-
-ctxSize :: Assignment f tps -> NatRepr (CtxSize tps)
-ctxSize Empty = knownNat
-ctxSize (fs :> _) = (knownNat @1) `addNat` ctxSize fs
 
 type family FieldBaseTypes (ftps :: Ctx (Symbol, Type)) :: Ctx WT.BaseType where
   FieldBaseTypes EmptyCtx = EmptyCtx
@@ -97,8 +94,8 @@ type family TypeBaseType (tp :: Type) :: WT.BaseType where
 typeBaseType :: TypeRepr tp -> WT.BaseTypeRepr (TypeBaseType tp)
 typeBaseType BoolRepr = WT.BaseBoolRepr
 typeBaseType IntRepr = WT.BaseIntegerRepr
-typeBaseType (EnumRepr cs) = WT.BaseBVRepr (ctxSize cs)
-typeBaseType (SetRepr cs) = WT.BaseBVRepr (ctxSize cs)
+typeBaseType (EnumRepr cs) = WT.BaseBVRepr (ctxSizeNat (size cs))
+typeBaseType (SetRepr cs) = WT.BaseBVRepr (ctxSizeNat (size cs))
 typeBaseType (StructRepr ftps) = WT.BaseStructRepr (fieldBaseTypes ftps)
 
 -- | Symbolic 'Literal'.
@@ -158,7 +155,7 @@ freshSymLiteralConstant sym session prefix tp = do
       c <- WI.freshConstant sym cSymbol WT.BaseIntegerRepr
       return $ SymLiteral tp c
     EnumRepr cs -> do
-      let n = ctxSize cs
+      let n = ctxSizeNat (size cs)
       c <- WI.freshConstant sym cSymbol (WT.BaseBVRepr n)
       c_popcount <- WI.bvPopcount sym c
       one <- WI.bvLit sym n (BV.one n)
@@ -166,7 +163,7 @@ freshSymLiteralConstant sym session prefix tp = do
       WS.assume (WS.sessionWriter session) c_popcount_1
       return $ SymLiteral tp c
     SetRepr cs -> do
-      let n = ctxSize cs
+      let n = ctxSizeNat (size cs)
       c <- WI.freshConstant sym cSymbol (WT.BaseBVRepr n)
       return $ SymLiteral tp c
     StructRepr ftps -> do
@@ -222,10 +219,10 @@ symExpr sym l = case l of
   BoolLit False -> return $ WI.falsePred sym
   IntLit x -> WI.intLit sym x
   EnumLit cs i -> do
-    let n = ctxSize cs
+    let n = ctxSizeNat (size cs)
     WI.bvLit sym n (indexBit n (Some i))
   SetLit cs is -> do
-    let n = ctxSize cs
+    let n = ctxSizeNat (size cs)
     WI.bvLit sym n (foldr BV.or (BV.zero n) (indexBit n <$> is))
   StructLit fls -> do
     symExprs <- symFieldLiteralExprs sym fls
@@ -296,12 +293,12 @@ literalFromGroundValue tp btp val = case (tp, btp) of
   (BoolRepr, WT.BaseBoolRepr) -> Just $ BoolLit val
   (IntRepr, WT.BaseIntegerRepr) -> Just $ IntLit val
   (EnumRepr cs, WT.BaseBVRepr n)
-    | Just Refl <- testEquality (ctxSize cs) n -> do
+    | Just Refl <- testEquality (ctxSizeNat (size cs)) n -> do
         ixNat <- return $ BV.asNatural (BV.ctz n val)
         Just (Some ix) <- return $ intIndex (fromIntegral ixNat) (size cs)
         return $ EnumLit cs ix
   (SetRepr cs, WT.BaseBVRepr n)
-    | Just Refl <- testEquality (ctxSize cs) n -> do
+    | Just Refl <- testEquality (ctxSizeNat (size cs)) n -> do
         ixNats <- return $
           [ i | i' <- [0..toInteger (natValue n) - 1]
               , let i = fromInteger i'
@@ -342,13 +339,13 @@ groundEvalLiteral WG.GroundEvalFn{..} (SymLiteral tp e) = case tp of
   BoolRepr -> BoolLit <$> groundEval e
   IntRepr -> IntLit <$> groundEval e
   EnumRepr cs -> do
-    let n = ctxSize cs
+    let n = ctxSizeNat (size cs)
     bv <- groundEval e
     ixNat <- return $ BV.asNatural (BV.ctz n bv)
     Just (Some ix) <- return $ intIndex (fromIntegral ixNat) (size cs)
     return $ EnumLit cs ix
   SetRepr cs -> do
-    let n = ctxSize cs
+    let n = ctxSizeNat (size cs)
     bv <- groundEval e
     ixNats <- return $
       [ i | i' <- [0..toInteger (natValue n) - 1]
@@ -362,7 +359,7 @@ groundEvalLiteral WG.GroundEvalFn{..} (SymLiteral tp e) = case tp of
     case literalsFromGroundValues' ftps (fieldBaseTypes ftps) gvws of
       Just fls -> return $ StructLit fls
       Nothing -> error $
-        "PANIC: Lobot.Core.Instances.groundEvalLiteral: \n" ++ show ftps ++ "\n" ++ show (fieldBaseTypes ftps) ++ "\n" ++ show (ctxSize gvws)
+        "PANIC: Lobot.Core.Instances.groundEvalLiteral: \n" ++ show ftps ++ "\n" ++ show (fieldBaseTypes ftps) ++ "\n" ++ show (ctxSizeNat (size gvws))
 
 data BuilderState s = EmptyBuilderState
 
