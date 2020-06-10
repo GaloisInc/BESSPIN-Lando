@@ -10,7 +10,9 @@ Portability : POSIX
 
 This module provides a parser for the Lobot sublanguage.
 -}
-module Lobot.Core.Parser where
+module Lobot.Core.Parser
+  ( parse )
+  where
 
 import Data.Text (Text, pack)
 

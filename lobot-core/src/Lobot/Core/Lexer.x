@@ -10,7 +10,10 @@ Portability : POSIX
 
 This module provides a lexer for the Lobot sublanguage.
 -}
-module Lobot.Core.Lexer where
+module Lobot.Core.Lexer
+  ( Token(..)
+  , lexLobot
+  ) where
 }
 
 %wrapper "basic"
