@@ -7,7 +7,6 @@ import Lobot.Core.Lexer
 import Lobot.Core.Parser
 import Lobot.Core.TypeCheck
 
-import Data.Foldable
 import Data.Parameterized.Context hiding (last)
 import Data.Parameterized.Some
 import Options.Applicative
@@ -35,7 +34,12 @@ ig Options{..} = do
     Left err -> do putStrLn $ "Type error."
                    print err
     Right [] -> print "No kinds in file"
-    Right ks -> do
-      putStrLn "Press enter to see a new instance."
-      case last ks of
-        Some k -> instanceSession Empty "/usr/local/bin/z3" Empty k
+    Right ks -> case last ks of
+      Some k -> do
+        putStrLn $
+          "Last kind in " ++ inFileName ++ ":"
+        putStrLn $ "----------------"
+        print $ ppKind k
+        putStrLn $ "----------------"
+        putStrLn "Press enter to see a new instance."
+        instanceSession Empty "/usr/local/bin/z3" Empty k
