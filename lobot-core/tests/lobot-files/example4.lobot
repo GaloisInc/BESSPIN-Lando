@@ -12,3 +12,10 @@ riscv : kind of struct
         (S in privs) => (U in privs),
         (S in privs) => (not (vm = SVNone)),
         (not (S in privs)) => (vm = SVNone)
+
+bluespec_build : kind of struct
+  with { riscv : riscv,
+         sim : {Bluesim, IVerilog, Verilator},
+         tv : bool
+       }
+  where not (riscv.vm = SV48)
