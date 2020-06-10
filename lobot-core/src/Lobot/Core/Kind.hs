@@ -50,6 +50,7 @@ module Lobot.Core.Kind
     -- * Expressions
   , Expr(..)
   , evalExpr
+  , giveSelf
   , liftExpr
   ) where
 
@@ -323,18 +324,23 @@ evalExpr fns inst e = case e of
     BoolLit b <- evalExpr fns inst e'
     pure $ BoolLit (not b)
 
+-- | Substitute a value for 'SelfExpr' in an expression. (This is composition
+-- of 'Expr's!)
+giveSelf :: Expr env a b -> Expr env b c -> Expr env a c
+giveSelf s e = case e of
+  LiteralExpr l -> LiteralExpr l
+  SelfExpr -> s
+  FieldExpr kd i' -> FieldExpr (giveSelf s kd) i'
+  ApplyExpr fi es -> ApplyExpr fi (fmapFC (giveSelf s) es)
+  EqExpr e1 e2 -> EqExpr (giveSelf s e1) (giveSelf s e2)
+  LteExpr e1 e2 -> LteExpr (giveSelf s e1) (giveSelf s e2)
+  MemberExpr e1 e2 -> MemberExpr (giveSelf s e1) (giveSelf s e2)
+  ImpliesExpr e1 e2 -> ImpliesExpr (giveSelf s e1) (giveSelf s e2)
+  NotExpr e' -> NotExpr (giveSelf s e')
+  
 -- | Lift an expression about a kind @K'@ into an expression about a kind @K@ which
 -- contains @K'@.
 liftExpr :: Index ftps '(nm, tp)
          -> Expr env tp tp'
          -> Expr env (StructType ftps) tp'
-liftExpr i e = case e of
-  LiteralExpr l -> LiteralExpr l
-  SelfExpr -> FieldExpr SelfExpr i
-  FieldExpr kd i' -> FieldExpr (liftExpr i kd) i'
-  ApplyExpr fi es -> ApplyExpr fi (fmapFC (liftExpr i) es)
-  EqExpr e1 e2 -> EqExpr (liftExpr i e1) (liftExpr i e2)
-  LteExpr e1 e2 -> LteExpr (liftExpr i e1) (liftExpr i e2)
-  MemberExpr e1 e2 -> MemberExpr (liftExpr i e1) (liftExpr i e2)
-  ImpliesExpr e1 e2 -> ImpliesExpr (liftExpr i e1) (liftExpr i e2)
-  NotExpr e' -> NotExpr (liftExpr i e')
+liftExpr i = giveSelf (FieldExpr SelfExpr i)

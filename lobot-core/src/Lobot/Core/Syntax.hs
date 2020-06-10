@@ -43,7 +43,7 @@ data Expr = LiteralExpr Literal
           | MemberExpr Expr Expr
           | ImpliesExpr Expr Expr
           | NotExpr Expr
-          | IsInstance Text Type -- ^ field : type (in a constraint)
+          | IsInstanceExpr Expr Type -- ^ expr : type (in a constraint)
           deriving Show
 
 data Literal = BoolLit Bool
