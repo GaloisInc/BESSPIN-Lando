@@ -118,11 +118,11 @@ lit : TRUE                            { BoolLit True }
     | "{" eids "}"                    { SetLit $2 }
     | STRUCT WITH "{" fieldvals "}"   { StructLit $4 }
 
-fieldvals :: { [(Text, Expr)] }
+fieldvals :: { [(Text, Literal)] }
 fieldvals : {- empty -}              { [] }
           | fieldval SEP fieldvals   { $1 : $3 }
 
-fieldval : ID "=" expr               { (pack $1, $3) }
+fieldval : ID "=" lit                { (pack $1, $3) }
 
 
 eids : {- empty -}    { [] }

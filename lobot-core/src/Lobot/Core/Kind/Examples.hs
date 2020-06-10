@@ -1,7 +1,9 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Lobot.Core.Kind.Examples
   ( -- * Example 1
@@ -27,6 +29,10 @@ module Lobot.Core.Kind.Examples
   , riscv
   , SimType, BluespecBuildType
   , bluespec_build
+    -- * Example 5
+  , EvenEnv
+  , evenEnv
+  , even_int
   --   -- * Example 5
   -- , ColorType, AustraliaColoringType
   -- , australia_coloring
@@ -325,6 +331,27 @@ bluespec_build = liftConstraints i1of3 riscv k
                                                     ]))
                    ]
                  }
+
+type EvenEnv = EmptyCtx ::> FunType "is_even" (EmptyCtx ::> IntType) BoolType
+
+is_even :: Assignment Literal (EmptyCtx ::> IntType) -> IO (Literal BoolType)
+is_even (Empty :> IntLit x) = return $ BoolLit (even x)
+
+evenEnv :: Assignment (FunctionImpl IO) EvenEnv
+evenEnv = Empty :> FunctionImpl knownRepr is_even
+
+-- |
+-- @
+-- even_int kind of int where is_even(self)
+-- @
+even_int :: Kind EvenEnv IntType
+even_int = Kind { kindName = "even_int"
+                , kindType = knownRepr
+                , kindFunctionEnv = knownRepr
+                , kindConstraints =
+                  [ (ApplyExpr baseIndex (Empty :> SelfExpr))
+                  ]
+                }
 
 -- type ColorType = EnumType (EmptyCtx
 --                            ::> "Red"

@@ -58,6 +58,26 @@ When importing the same module both qualified and unqualified, the unqualified
 import must not be the whole module, but must contain a parenthesized list of
 specific types, functions, etc. that will be imported unqualified.
 
+### Function signatures
+Argument lists are either all on one line, as in:
+```
+foo :: Arg1 -> Arg2 -> IO Arg3
+```
+or each argument is listed on a separate line, with `->` preceding the argument
+and lined up with the `::`, as in:
+```
+foo :: Arg1
+    -> Arg2
+    -> IO Arg3
+```
+Constraints and `forall` are lined up thusly:
+```
+foo :: forall a b . (Constraint1 a, Constraint2 b)
+    => a
+    -> b
+    -> IO C
+```
+
 ### Function and variable naming
 
 Functions must be camel case -- they cannot ever contain underscores. Variables

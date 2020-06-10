@@ -25,14 +25,19 @@ library
                        Lobot.Core.Syntax
                        Lobot.Core.Lexer
                        Lobot.Core.Parser
+                       Lobot.Core.Syntax.Examples
+                       Lobot.Core.TypeCheck
+                       Lobot.Core.Utils
 
                        Data.Parameterized.List.Length
   -- other-modules:
   -- other-extensions:
-  build-depends:       base >=4.13 && <4.15,
+  build-depends:       base >=4.13,
                        bv-sized >= 1.0.1,
-                       parameterized-utils >= 2.1.0 && < 2.2,
+                       parameterized-utils >= 2.1.0,
                        array,
+                       hashmap,
+                       mtl,
                        pretty,
                        pretty-show,
                        text,
@@ -41,3 +46,11 @@ library
   build-tools:         alex, happy
   default-language:    Haskell2010
   ghc-options:         -Wall
+
+executable lobotIG
+  hs-source-dirs:      exe
+  main-is:             LobotIG.hs
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  build-depends:       lobot-core,
+                       base

@@ -1,0 +1,6 @@
+import riscv_compliance
+import piccolo_build
+
+system : kind of struct
+  with proc : piccolo_build
+  where 

@@ -1,4 +1,4 @@
-riscv kind of struct
+riscv : kind of struct
   with reg_width : {RV32, RV64},
        xlen : int,
        exts : subset {M, A, F, D, C},

@@ -50,5 +50,5 @@ data Literal = BoolLit Bool
              | IntLit Integer
              | EnumLit Text
              | SetLit [Text]
-             | StructLit [(Text, Expr)]
+             | StructLit [(Text, Literal)]
              deriving Show

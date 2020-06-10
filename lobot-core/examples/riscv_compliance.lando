@@ -1,8 +1,8 @@
-riscv_device kind of struct
-  with riscv : riscv,
-       run_test : 
+import riscv
 
-riscv_compliance kind of struct
-  with device : riscv_device
-       is_compliant : riscv_device -> bool
-  where is_compliant(device.riscv)
+abstract type riscv_simulator // not pre-defined
+abstract type test            // pre-defined
+abstract type memory_trace    // pre-defined 
+
+run_test : (test, riscv_simulator) -> memory_trace // not pre-defined
+check_test : (test, memory_trace) -> bool          // pre-defined
