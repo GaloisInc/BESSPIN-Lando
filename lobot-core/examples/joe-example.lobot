@@ -1,0 +1,6 @@
+mkdir_config : kind of struct
+  with path : string
+
+ls_config : kind of struct
+  with path : string,
+       options : subset { l, a, R }
