@@ -99,7 +99,7 @@ expr : lit                { LiteralExpr $1 }
      | ID                 { FieldExpr SelfExpr (pack $1) }
      | expr "." ID        { FieldExpr $1 (pack $3) }
      | expr "=" expr      { EqExpr $1 $3 }
-     | expr "<=" expr     { LteExpr $1 $1 }
+     | expr "<=" expr     { LteExpr $1 $3 }
      | expr MEMBER expr   { MemberExpr $1 $3 }
      | expr "=>" expr     { ImpliesExpr $1 $3 }
      | NOT expr           { NotExpr $2 }

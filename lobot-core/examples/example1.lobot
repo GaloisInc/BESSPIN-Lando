@@ -1,0 +1,2 @@
+posint : kind of int
+  where self >= 0
