@@ -127,6 +127,7 @@ fieldval : ID "=" lit                { (pack $1, $3) }
 
 eids : {- empty -}    { [] }
      | EID SEP eids   { pack $1 : $3 }
+     | EID            { pack $1 : [] }
 
 ids : ID   { [pack $1] }
     | ID ids        { pack $1 : $2 }
