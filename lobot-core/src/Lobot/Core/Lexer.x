@@ -40,6 +40,7 @@ tokens :-
   "."         { const DOT }
   "="         { const EQUALS }
   "<="        { const LTE }
+  "+"         { const PLUS }
   in          { const MEMBER }
   "=>"        { const IMPLIES }
   not         { const NOT }
@@ -60,6 +61,7 @@ data Token = IDLC String | IDUC String
            | STRUCT | WITH | COLON | SEP
            | KIND | OF | WHERE
            | SELF | DOT | EQUALS | LTE
+           | PLUS
            | MEMBER | IMPLIES | NOT
            | TRUE | FALSE
            | INT Integer

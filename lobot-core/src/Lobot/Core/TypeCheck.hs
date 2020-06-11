@@ -198,6 +198,11 @@ inferExpr env ctx (S.LteExpr x y) = do
   y' <- checkExpr env ctx K.IntRepr y
   pure $ Pair K.BoolRepr (K.LteExpr x' y')
 
+inferExpr env ctx (S.PlusExpr x y) = do
+  x' <- checkExpr env ctx K.IntRepr x
+  y' <- checkExpr env ctx K.IntRepr y
+  pure $ Pair K.IntRepr (K.PlusExpr x' y')
+
 inferExpr env ctx (S.MemberExpr x y) = do
   mb_x' <- try $ inferExpr env ctx x
   mb_y' <- try $ inferExpr env ctx y

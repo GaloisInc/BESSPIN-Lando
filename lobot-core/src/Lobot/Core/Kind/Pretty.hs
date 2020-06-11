@@ -78,7 +78,7 @@ ppLiteral (IntLit x) = PP.integer x
 ppLiteral (EnumLit cs i) = symbolDoc (cs ! i)
 ppLiteral (SetLit cs is) =
   PP.braces (commas (viewSome (symbolDoc . (cs !)) <$> is))
-ppLiteral (StructLit fls) = PP.text "instance" PP.<+> withClause
+ppLiteral (StructLit fls) = PP.text "struct" PP.<+> withClause
   where withClause = case fls of
           Empty -> PP.empty
           _ -> PP.text "with" PP.<+> commas (toListFC ppFieldLiteral fls)
@@ -123,6 +123,8 @@ ppExpr' _ env ctx (EqExpr e1 e2) =
   ppExpr' False env ctx e1 PP.<+> PP.equals PP.<+> ppExpr' False env ctx e2
 ppExpr' _ env ctx (LteExpr e1 e2) =
   ppExpr' False env ctx e1 PP.<+> PP.text "<=" PP.<+> ppExpr' False env ctx e2
+ppExpr' _ env ctx (PlusExpr e1 e2) =
+  ppExpr' False env ctx e1 PP.<+> PP.text "+" PP.<+> ppExpr' False env ctx e2
 ppExpr' _ env ctx (MemberExpr e1 e2) =
   ppExpr' False env ctx e1 PP.<+> PP.text "in" PP.<+> ppExpr' False env ctx e2
 ppExpr' _ env ctx (ImpliesExpr e1 e2) =

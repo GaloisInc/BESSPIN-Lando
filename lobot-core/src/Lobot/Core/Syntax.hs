@@ -40,6 +40,7 @@ data Expr = LiteralExpr Literal
           | FieldExpr Expr Text -- ^ struct.field
           | EqExpr Expr Expr
           | LteExpr Expr Expr
+          | PlusExpr Expr Expr
           | MemberExpr Expr Expr
           | ImpliesExpr Expr Expr
           | NotExpr Expr

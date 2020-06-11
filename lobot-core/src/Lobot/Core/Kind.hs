@@ -248,6 +248,8 @@ data Expr (env :: Ctx FunctionType) (ctx :: Type) (tp :: Type) where
   EqExpr      :: Expr env ctx tp -> Expr env ctx tp -> Expr env ctx BoolType
   -- | Less-than-or-equal for two integer expressions.
   LteExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx BoolType
+  -- | Add two integer expression.
+  PlusExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
   -- | Set membership.
   MemberExpr  :: Expr env ctx (EnumType cs)
               -> Expr env ctx (SetType cs)
@@ -312,6 +314,10 @@ evalExpr fns inst e = case e of
     IntLit x1 <- evalExpr fns inst e1
     IntLit x2 <- evalExpr fns inst e2
     pure $ BoolLit (x1 <= x2)
+  PlusExpr e1 e2 -> do
+    IntLit x1 <- evalExpr fns inst e1
+    IntLit x2 <- evalExpr fns inst e2
+    pure $ IntLit (x1 + x2)
   MemberExpr e1 e2 -> do
     EnumLit _ i <- evalExpr fns inst e1
     SetLit _ s <- evalExpr fns inst e2
@@ -334,10 +340,11 @@ giveSelf s e = case e of
   ApplyExpr fi es -> ApplyExpr fi (fmapFC (giveSelf s) es)
   EqExpr e1 e2 -> EqExpr (giveSelf s e1) (giveSelf s e2)
   LteExpr e1 e2 -> LteExpr (giveSelf s e1) (giveSelf s e2)
+  PlusExpr e1 e2 -> PlusExpr (giveSelf s e1) (giveSelf s e2)
   MemberExpr e1 e2 -> MemberExpr (giveSelf s e1) (giveSelf s e2)
   ImpliesExpr e1 e2 -> ImpliesExpr (giveSelf s e1) (giveSelf s e2)
   NotExpr e' -> NotExpr (giveSelf s e')
-  
+
 -- | Lift an expression about a kind @K'@ into an expression about a kind @K@ which
 -- contains @K'@.
 liftExpr :: Index ftps '(nm, tp)
