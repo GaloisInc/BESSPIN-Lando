@@ -29,7 +29,6 @@ library
                        Lobot.Core.TypeCheck
                        Lobot.Core.Utils
 
-                       Data.Parameterized.List.Length
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.13,
