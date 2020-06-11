@@ -60,11 +60,11 @@ findIndices p xs = runIdentity (traverseAndCollect (go p) xs)
         go p' i x | p' x = Identity [Some i]
                   | otherwise = Identity []
 
--- | Generates an assignment of symbol representitves from a list.
+-- | Generates an assignment of symbol representatives from a list.
 someSymbols :: [Text] -> Some (Assignment SymbolRepr)
 someSymbols = fromList . fmap someSymbol
 
--- | Converts a proof of 'Size' to a runtime representitive of 'CtxSize'.
+-- | Converts a proof of 'Size' to a runtime representative of 'CtxSize'.
 ctxSizeNat :: Size ctx -> NatRepr (CtxSize ctx)
 ctxSizeNat sz = case viewSize sz of
   ZeroSize -> knownNat @0
