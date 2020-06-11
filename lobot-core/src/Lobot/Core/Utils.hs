@@ -35,31 +35,30 @@ import Data.Parameterized.TraversableFC
 -- equal by 'testEquality' to the query element, or Nothing if there is no
 -- such element.
 elemIndex :: TestEquality f => f x -> Assignment f ctx -> Maybe (Index ctx x)
-elemIndex x ys = case traverseAndCollect (go x) ys of
-                   Left i  -> Just i
-                   Right _ -> Nothing
-  where go :: forall k (f :: k -> *) ctx x y. TestEquality f
-           => f x -> Index ctx y -> f y -> Either (Index ctx x) ()
-        go a i b | Just Refl <- testEquality a b = Left i
-                 | otherwise = Right ()
+elemIndex x = listToMaybe . elemIndices x
+
+-- | Returns a list of indices that are equal by 'testEquality' to the query
+-- element.
+elemIndices :: TestEquality f => f x -> Assignment f ctx -> [Index ctx x]
+elemIndices x ys = runIdentity (traverseAndCollect (go x) ys)
+  where go :: forall k (f :: k -> *) x ctx' y . TestEquality f
+           => f x -> Index ctx' y -> f y -> Identity [Index ctx' x]
+        go a i b | Just Refl <- testEquality a b = Identity [i]
+                 | otherwise = Identity []
 
 -- | Returns the index of the first element in an assignment that satisfies the
 -- given predicate.
 findIndex :: (forall x . f x -> Bool)
-          -> Assignment f ctx
-          -> Maybe (Some (Index ctx))
+          -> Assignment f ctx -> Maybe (Some (Index ctx))
 findIndex p = listToMaybe . findIndices p
 
 -- | Returns a list of indices that satisfy a given predicate.
-findIndices :: forall k (f :: k -> *) ctx .
-               (forall x . f x -> Bool)
-            -> Assignment f ctx
-            -> [Some (Index ctx)]
-findIndices p xs = runIdentity (traverseAndCollect go xs)
-  where go :: forall ctx' x .
-              Index ctx' x -> f x -> Identity [Some (Index ctx')]
-        go i x | p x = Identity [Some i]
-               | otherwise = Identity []
+findIndices :: (forall x . f x -> Bool) -> Assignment f ctx -> [Some (Index ctx)]
+findIndices p xs = runIdentity (traverseAndCollect (go p) xs)
+  where go :: forall k (f :: k -> *) ctx' y .
+              (forall x . f x -> Bool) -> Index ctx' y -> f y -> Identity [Some (Index ctx')]
+        go p' i x | p' x = Identity [Some i]
+                  | otherwise = Identity []
 
 -- | Generates an assignment of symbol representitves from a list.
 someSymbols :: [Text] -> Some (Assignment SymbolRepr)
