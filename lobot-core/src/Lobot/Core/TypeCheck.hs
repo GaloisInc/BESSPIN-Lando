@@ -66,6 +66,8 @@ data TypeError = TypeMismatchError S.Expr SomeTypeOrString SomeTypeOrString
                | EmptyEnumOrSetError
                | KindUnionMismatchError Text (Some K.TypeRepr) (Some K.TypeRepr)
                | KindNameNotInScope Text
+               | UnknownFunctionError Text
+               | FunctionArgLengthError (Some FunctionTypeRepr) [S.Expr]
                | InternalError Text
                deriving Show
 
@@ -180,6 +182,16 @@ inferExpr env ctx (S.FieldExpr x f) = do
       Nothing -> typeError (FieldNameError f (Some ftps))
     _ -> typeError (TypeMismatchError x (TypeString "a struct") (SomeType xtp))
 
+inferExpr env ctx (S.ApplyExpr fn xs) = do
+  case functionIndex fn env of
+    Just (Some fi) -> do
+      fntp@FunctionTypeRepr{..} <- return $ env ! fi
+      mxs' <- checkExprs env ctx functionArgTypes xs
+      case mxs' of
+        Just xs' -> pure $ Pair functionRetType (K.ApplyExpr fi xs')
+        Nothing -> typeError (FunctionArgLengthError (Some fntp) xs)
+    Nothing -> typeError (UnknownFunctionError fn)
+
 inferExpr env ctx (S.EqExpr x y) = do
   mb_x' <- try $ inferExpr env ctx x
   mb_y' <- try $ inferExpr env ctx y
@@ -250,6 +262,19 @@ checkExpr env ctx tp x = do
     Just Refl -> pure x'
     _ -> typeError (TypeMismatchError x (SomeType tp) (SomeType tp'))
 
+checkExprs :: Assignment K.FunctionTypeRepr env
+           -> K.TypeRepr ctx
+           -> Assignment K.TypeRepr tps
+           -> [S.Expr]
+           -> CtxM env (Maybe (Assignment (K.Expr env ctx) tps))
+checkExprs _ _ Empty [] = pure $ Just Empty
+checkExprs env ctx (tps :> tp) (x:xs) = do
+  x' <- checkExpr env ctx tp x
+  mxs' <- checkExprs env ctx tps xs
+  case mxs' of
+    Just xs' -> pure $ Just (xs' :> x')
+    Nothing -> pure Nothing
+checkExprs _ _ _ _ = pure Nothing
 
 data SomeField (ftps :: Ctx (Symbol, K.Type)) (nm :: Symbol) :: * where
   SomeField :: K.TypeRepr tp -> Index ftps '(nm, tp) -> SomeField ftps nm
@@ -264,6 +289,11 @@ fieldIndex nm ftps = case traverseAndCollect (go nm) ftps of
           | Just Refl <- testEquality nm' nm'' = Left (SomeField tp i)
           | otherwise = Right ()
 
+functionIndex :: Text
+              -> Assignment FunctionTypeRepr fntps
+              -> Maybe (Some (Index fntps))
+functionIndex nm =
+  findIndexFC $ \FunctionTypeRepr{..} -> nm == symbolRepr functionName
 
 -- Type inference and checking for literals
 

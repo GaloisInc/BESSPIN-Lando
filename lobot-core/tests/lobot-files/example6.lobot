@@ -1,0 +1,1 @@
+even_int : kind of int where is_even(self)

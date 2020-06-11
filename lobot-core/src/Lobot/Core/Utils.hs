@@ -3,12 +3,13 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
 {-|
 Module      : Lobot.Core.Utils
 Description : Useful functions.
-Copyright   : (c) Matt Yacavone, 2020
+Copyright   : (c) Matt Yacavone, Ben Selfridge, 2020
 License     : BSD3
 Maintainer  : myac@galois.com
 Stability   : experimental
@@ -19,6 +20,8 @@ This module defines some functions used elsewhere in Lobot Core.
 
 module Lobot.Core.Utils where
 
+import Data.Functor.Identity
+import Data.Maybe (listToMaybe)
 import Data.Text (Text)
 import Data.Parameterized.Some
 import Data.Parameterized.Pair
@@ -31,8 +34,7 @@ import Data.Parameterized.TraversableFC
 -- | Returns the index of the first element in the given assignment which is
 -- equal by 'testEquality' to the query element, or Nothing if there is no
 -- such element.
-elemIndex :: forall k (f :: k -> *) ctx x. TestEquality f
-          => f x -> Assignment f ctx -> Maybe (Index ctx x)
+elemIndex :: TestEquality f => f x -> Assignment f ctx -> Maybe (Index ctx x)
 elemIndex x ys = case traverseAndCollect (go x) ys of
                    Left i  -> Just i
                    Right _ -> Nothing
@@ -40,6 +42,24 @@ elemIndex x ys = case traverseAndCollect (go x) ys of
            => f x -> Index ctx y -> f y -> Either (Index ctx x) ()
         go a i b | Just Refl <- testEquality a b = Left i
                  | otherwise = Right ()
+
+-- | Returns the index of the first element in an assignment that satisfies the
+-- given predicate.
+findIndexFC :: (forall x . f x -> Bool)
+            -> Assignment f ctx
+            -> Maybe (Some (Index ctx))
+findIndexFC p = listToMaybe . findIndicesFC p
+
+-- | Returns a list of indices that satisfy a given predicate.
+findIndicesFC :: forall k (f :: k -> *) ctx .
+                 (forall x . f x -> Bool)
+              -> Assignment f ctx
+              -> [Some (Index ctx)]
+findIndicesFC p xs = runIdentity (traverseAndCollect go xs)
+  where go :: forall ctx' x .
+              Index ctx' x -> f x -> Identity [Some (Index ctx')]
+        go i x | p x = Identity [Some i]
+               | otherwise = Identity []
 
 -- | Generates an assignment of symbol representitves from a list.
 someSymbols :: [Text] -> Some (Assignment SymbolRepr)

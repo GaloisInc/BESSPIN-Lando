@@ -38,6 +38,7 @@ data Type = BoolType
 data Expr = LiteralExpr Literal
           | SelfExpr
           | FieldExpr Expr Text -- ^ struct.field
+          | ApplyExpr Text [Expr]
           | EqExpr Expr Expr
           | LteExpr Expr Expr
           | PlusExpr Expr Expr

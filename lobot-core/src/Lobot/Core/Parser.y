@@ -106,8 +106,12 @@ expr : lit                { LiteralExpr $1 }
      | expr MEMBER expr   { MemberExpr $1 $3 }
      | expr "=>" expr     { ImpliesExpr $1 $3 }
      | NOT expr           { NotExpr $2 }
-     | expr ":" type      { IsInstanceExpr $1 $3 }
+     | ID "(" exprs0 ")"  { ApplyExpr (pack $1) $3 }
+     | expr ":" ids       { IsInstanceExpr $1 (KindNames $3) }
      | "(" expr ")"       { $2 }
+
+exprs0 : {- empty -} { [] }
+       | exprs       { $1 }
 
 exprs : expr             { [$1] }
       | expr SEP exprs   { $1 : $3 }
