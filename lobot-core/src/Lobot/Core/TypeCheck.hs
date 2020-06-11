@@ -293,7 +293,7 @@ functionIndex :: Text
               -> Assignment FunctionTypeRepr fntps
               -> Maybe (Some (Index fntps))
 functionIndex nm =
-  findIndexFC $ \FunctionTypeRepr{..} -> nm == symbolRepr functionName
+  findIndex $ \FunctionTypeRepr{..} -> nm == symbolRepr functionName
 
 -- Type inference and checking for literals
 

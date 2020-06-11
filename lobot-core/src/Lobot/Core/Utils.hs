@@ -45,17 +45,17 @@ elemIndex x ys = case traverseAndCollect (go x) ys of
 
 -- | Returns the index of the first element in an assignment that satisfies the
 -- given predicate.
-findIndexFC :: (forall x . f x -> Bool)
-            -> Assignment f ctx
-            -> Maybe (Some (Index ctx))
-findIndexFC p = listToMaybe . findIndicesFC p
+findIndex :: (forall x . f x -> Bool)
+          -> Assignment f ctx
+          -> Maybe (Some (Index ctx))
+findIndex p = listToMaybe . findIndices p
 
 -- | Returns a list of indices that satisfy a given predicate.
-findIndicesFC :: forall k (f :: k -> *) ctx .
-                 (forall x . f x -> Bool)
-              -> Assignment f ctx
-              -> [Some (Index ctx)]
-findIndicesFC p xs = runIdentity (traverseAndCollect go xs)
+findIndices :: forall k (f :: k -> *) ctx .
+               (forall x . f x -> Bool)
+            -> Assignment f ctx
+            -> [Some (Index ctx)]
+findIndices p xs = runIdentity (traverseAndCollect go xs)
   where go :: forall ctx' x .
               Index ctx' x -> f x -> Identity [Some (Index ctx')]
         go i x | p x = Identity [Some i]
