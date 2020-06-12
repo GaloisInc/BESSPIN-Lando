@@ -7,7 +7,6 @@ module Main where
 import Lobot.Core.Instances
 import Lobot.Core.Kind
 import Lobot.Core.Kind.Pretty
-import Lobot.Core.Lexer
 import Lobot.Core.Parser
 import Lobot.Core.TypeCheck
 
@@ -33,21 +32,21 @@ main = ig =<< execParser i
 ig :: Options -> IO ()
 ig Options{..} = do
   fileStr <- readFile inFileName
-  let tokens = lexLobot fileStr
-      decls = parse tokens
-  case typeCheck knownRepr decls of
-    Left err -> do putStrLn $ "Type error."
-                   print err
-    Right [] -> print "No kinds in file"
-    Right ks -> case last ks of
-      Some k -> do
-        putStrLn $
-          "Last kind in " ++ inFileName ++ ":"
-        putStrLn $ "----------------"
-        print $ ppKind k
-        putStrLn $ "----------------"
-        putStrLn "Press enter to see a new instance."
-        instanceSession evenEnv "/usr/local/bin/z3" knownRepr k
+  case parseDecls inFileName fileStr of
+    Left err -> putStrLn err
+    Right decls -> case typeCheck knownRepr decls of
+      Left err -> do putStrLn $ "Type error."
+                     print err
+      Right [] -> print "No kinds in file"
+      Right ks -> case last ks of
+        Some k -> do
+          putStrLn $
+            "Last kind in " ++ inFileName ++ ":"
+          putStrLn $ "----------------"
+          print $ ppKind k
+          putStrLn $ "----------------"
+          putStrLn "Press enter to see a new instance."
+          instanceSession evenEnv "/usr/local/bin/z3" knownRepr k
 
 -- Default function environment. This will change.
 type EvenEnv = EmptyCtx ::> FunType "is_even" (EmptyCtx ::> IntType) BoolType

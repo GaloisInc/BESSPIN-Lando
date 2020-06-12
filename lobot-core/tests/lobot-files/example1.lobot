@@ -2,9 +2,8 @@ posint : kind of int
   where 0 <= self
 
 unique_posint_pair : kind of struct
-  with { x : posint,
-         y : posint
-       }
+  with x : posint,
+       y : posint
   where x <= y
 
 posint_sum_10 : kind of unique_posint_pair

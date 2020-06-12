@@ -23,12 +23,7 @@ This module provides functions to enumerate instances of a kind via a
 what4-based SMT solver backend.
 -}
 module Lobot.Core.Instances
-  ( SymLiteral(..)
-  , SymFieldLiteral(..)
-  , SymFunction(..)
-  , symEvalExpr
-  , InstanceResult(..)
-  , getNextInstance
+  ( InstanceResult(..)
   , countInstances
   , instanceSession
   ) where
@@ -100,7 +95,7 @@ typeBaseType (StructRepr ftps) = WT.BaseStructRepr (fieldBaseTypes ftps)
 
 -- | Symbolic 'Literal'.
 data SymLiteral t tp =
-  SymLiteral { symLiteralType :: TypeRepr tp
+  SymLiteral { _symLiteralType :: TypeRepr tp
              , symLiteralExpr :: WB.Expr t (TypeBaseType tp)
              }
 
@@ -111,8 +106,8 @@ symLiteralExprs (symLits :> symLit) = symLiteralExprs symLits :> symLiteralExpr 
 
 -- | Symbolic 'FieldLiteral'.
 data SymFieldLiteral t (p :: (Symbol, Type)) where
-  SymFieldLiteral :: { symFieldLiteralName :: SymbolRepr nm
-                     , symFieldLiteralValue :: SymLiteral t tp
+  SymFieldLiteral :: { _symFieldLiteralName :: SymbolRepr nm
+                     , _symFieldLiteralValue :: SymLiteral t tp
                      } -> SymFieldLiteral t '(nm, tp)
 
 -- | Symbolic 'FunctionImpl'.
@@ -372,8 +367,6 @@ data InstanceResult tp = HasInstance (Literal tp)
                        | Unknown
   deriving Show
 
--- TODO: Rewrite using 'withSession'
-
 -- | If there are any instances in the current session, retrieve it, and then
 -- negate that instance so we get a different result next time.
 getNextInstance :: WS.SMTLib2Tweaks solver
@@ -418,10 +411,10 @@ instanceSession fns = withSession $ \sym session kd symFns symInst -> do
     res <- getNextInstance sym session symFns symInst
     case res of
       HasInstance inst -> do
+        -- Check the instance against our function bindings
         isValid <- instanceOf fns inst kd
         let validStr = if isValid then "valid" else "invalid"
         putStrLn $ "Instance #" ++ show iVal' ++ " (" ++ validStr ++ "):"
-        -- Check the instance against our function bindings
         return $ Just (ppLiteral inst)
       _ -> return Nothing
 

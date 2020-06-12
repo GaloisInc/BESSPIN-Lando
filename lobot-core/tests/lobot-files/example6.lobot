@@ -1,1 +1,4 @@
-even_int : kind of int where is_even(self)
+even_int : kind of int
+  where is_even(self),
+        0 <= self,
+        self <= 10

@@ -27,6 +27,7 @@ module Lobot.Core.TypeCheck
   , SomeTypeOrString(..)
     -- * Internals
   , CtxM
+  , Constraints(..)
   , checkKindDecls
   , resolveType
   , inferExpr
