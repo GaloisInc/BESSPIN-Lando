@@ -1,8 +1,7 @@
 person : kind of struct
-  with { age : int,
-         birth_assigned_sex : {Male, Female, Intersex},
-         gender : {Male, Female, NonBinary}
-       }
+  with age : int,
+       birth_assigned_sex : {Male, Female, Intersex},
+       gender : {Male, Female, NonBinary}
   where 0 <= age,
         age <= 122
 

@@ -1,10 +1,9 @@
 riscv : kind of struct
-  with { reg_width : {RV32, RV64},
-         xlen : int,
-         exts : subset {M, A, F, D, C},
-         privs : subset {M, S, U},
-         vm : {SVNone, SV32, SV39, SV48}
-       }
+  with reg_width : {RV32, RV64},
+       xlen : int,
+       exts : subset {M, A, F, D, C},
+       privs : subset {M, S, U},
+       vm : {SVNone, SV32, SV39, SV48}
   where (reg_width = RV32) => (xlen = 32),
         (reg_width = RV64) => (xlen = 64),
         (D in exts) => (F in exts),
@@ -14,8 +13,7 @@ riscv : kind of struct
         (not (S in privs)) => (vm = SVNone)
 
 bluespec_build : kind of struct
-  with { riscv : riscv,
-         sim : {Bluesim, IVerilog, Verilator},
-         tv : bool
-       }
+  with riscv : riscv,
+       sim : {Bluesim, IVerilog, Verilator},
+       tv : bool
   where not (riscv.vm = SV48)
