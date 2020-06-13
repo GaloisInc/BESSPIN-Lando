@@ -201,7 +201,9 @@ data Literal tp where
   SetLit    :: 1 <= CtxSize cs
             => Assignment SymbolRepr cs -> [Some (Index cs)] -> Literal (SetType cs)
   StructLit :: Assignment FieldLiteral ftps -> Literal (StructType ftps)
+
 deriving instance Show (Literal tp)
+instance ShowF Literal
 
 -- | Get the type of a literal.
 literalType :: Literal tp -> TypeRepr tp
