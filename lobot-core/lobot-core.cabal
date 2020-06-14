@@ -40,7 +40,6 @@ library
                        hashmap,
                        mtl,
                        pretty,
-                       pretty-show,
                        text,
                        what4
   hs-source-dirs:      src
@@ -66,6 +65,9 @@ test-suite lobot-tests
   ghc-options:        -Wall
   build-depends:      lobot-core,
                       base,
-                      hedgehog,
+                      bytestring,
+                      filepath,
+                      parameterized-utils,
+                      pretty-show,
                       tasty,
-                      tasty-hedgehog
+                      tasty-golden

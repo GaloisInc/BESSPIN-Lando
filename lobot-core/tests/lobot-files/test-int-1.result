@@ -1,0 +1,13 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "test_int_1"
+        , kindType = IntRepr
+        , kindFunctionEnv = []
+        , kindConstraints =
+            [ LteExpr (LiteralExpr (IntLit 0)) SelfExpr
+            , LteExpr SelfExpr (LiteralExpr (IntLit 100))
+            ]
+        }
+  , numInstances = 101
+  }
