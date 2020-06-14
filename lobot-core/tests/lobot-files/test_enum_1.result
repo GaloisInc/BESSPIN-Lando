@@ -6,5 +6,9 @@ TestResult
         , kindFunctionEnv = []
         , kindConstraints = []
         }
-  , numInstances = 3
+  , instances =
+      [ EnumLit [ A , B , C ] 0
+      , EnumLit [ A , B , C ] 1
+      , EnumLit [ A , B , C ] 2
+      ]
   }

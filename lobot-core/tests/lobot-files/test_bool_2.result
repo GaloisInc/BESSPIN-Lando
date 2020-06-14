@@ -6,5 +6,5 @@ TestResult
         , kindFunctionEnv = []
         , kindConstraints = []
         }
-  , numInstances = 2
+  , instances = [ BoolLit False , BoolLit True ]
   }
