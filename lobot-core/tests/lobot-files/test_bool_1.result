@@ -1,0 +1,10 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "test_bool_1"
+        , kindType = BoolRepr
+        , kindFunctionEnv = []
+        , kindConstraints = [ NotExpr SelfExpr ]
+        }
+  , numInstances = 1
+  }
