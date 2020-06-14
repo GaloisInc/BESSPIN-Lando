@@ -24,12 +24,10 @@ what4-based SMT solver backend.
 -}
 module Lobot.Core.Instances
   ( InstanceResult(..)
-  , countInstances
-  , instanceSession
+  , collectInstances
   ) where
 
 import Lobot.Core.Kind
-import Lobot.Core.Kind.Pretty
 import Lobot.Core.Utils
 
 import qualified Data.BitVector.Sized    as BV
@@ -45,13 +43,13 @@ import qualified What4.Solver.Z3         as WS
 import qualified What4.BaseTypes         as WT
 
 import Data.Foldable (forM_)
-import Data.IORef
 import Data.Parameterized.Context
 import Data.Parameterized.NatRepr
 import Data.Parameterized.Nonce
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
+import Numeric.Natural
 import Prelude hiding ((!!))
 import Unsafe.Coerce (unsafeCoerce) -- I know, I know.
 
@@ -367,6 +365,32 @@ data InstanceResult tp = HasInstance (Literal tp)
                        | Unknown
   deriving Show
 
+-- -- | Type of a function that 
+-- type SolverSessionFn env tp a = forall t .
+--      WB.ExprBuilder t BuilderState (WB.Flags WB.FloatIEEE)
+--   -> WS.Session t WS.Z3
+--   -> Kind env tp
+--   -> Assignment (SymFunction t) env
+--   -> SymLiteral t tp
+--   -> IO a
+
+-- traverseInstances :: FilePath
+--                   -> Assignment FunctionTypeRepr env
+--                   -> Kind env tp
+--                   -> SolverSessionFn env tp a
+--                   -> IO a
+-- traverseInstances z3_path env kd k = do
+--   Some nonceGen <- newIONonceGenerator
+--   sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
+--   WC.extendConfig WS.z3Options (WI.getConfiguration sym)
+--   WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
+--     symLit <- freshSymLiteralConstant sym session "" (kindType kd)
+--     symFns <- traverseFC (freshUninterpSymFunction sym) env
+--     forM_ (kindConstraints kd) $ \e -> do
+--       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLit e
+--       WS.assume (WS.sessionWriter session) symConstraint
+--     k sym session kd symFns symLit
+
 -- | If there are any instances in the current session, retrieve it, and then
 -- negate that instance so we get a different result next time.
 getNextInstance :: WS.SMTLib2Tweaks solver
@@ -386,69 +410,19 @@ getNextInstance sym session symFns symLit = WS.runCheckSat session $ \result ->
     WS.Unsat _ -> do return NoInstance
     WS.Unknown -> do return Unknown
 
-repeatIO :: Show a => (String -> IO (Maybe a)) -> IO ()
-repeatIO k = do
-  s <- getLine
-  ma <- k s
-  case ma of
-    Just a -> do print a
-                 repeatIO k
-    Nothing -> return ()
-
--- | Run an interactive session for instance generation. Every time the user
--- hits \"Enter\", a new instance is provided.
-instanceSession :: Assignment (FunctionImpl IO) env
-                -> FilePath
-                -> Assignment FunctionTypeRepr env
-                -> Kind env ktps
-                -> IO ()
-instanceSession fns = withSession $ \sym session kd symFns symInst -> do
-  i <- newIORef (0 :: Integer)
-  WS.runCheckSat session $ \_ -> repeatIO $ \_ -> do
-    iVal <- readIORef i
-    let iVal' = iVal + 1
-    writeIORef i iVal'
-    res <- getNextInstance sym session symFns symInst
-    case res of
-      HasInstance inst -> do
-        -- Check the instance against our function bindings
-        isValid <- instanceOf fns inst kd
-        let validStr = if isValid then "valid" else "invalid"
-        putStrLn $ "Instance #" ++ show iVal' ++ " (" ++ validStr ++ "):"
-        return $ Just (ppLiteral inst)
-      _ -> return Nothing
-
-countInstances' :: Integer -> SolverSessionFn env ktps Integer
-countInstances' 0 _ _ _ _ _ = return 0
-countInstances' limit sym session kd symFns symLit = do
-  nextInstance <- getNextInstance sym session symFns symLit
-  case nextInstance of
-    HasInstance _ -> do n <- countInstances' (limit-1) sym session kd symFns symLit
-                        return $ n + 1
-    _ -> return 0
-
--- | Count the total number of instances, up to a certain limit.
-countInstances :: Integer -- ^ Maximum number to count to
-               -> FilePath
-               -> Assignment FunctionTypeRepr env
-               -> Kind env ktps
-               -> IO Integer
-countInstances limit = withSession (countInstances' limit)
-
-type SolverSessionFn env tp a = forall t .
-     WB.ExprBuilder t BuilderState (WB.Flags WB.FloatIEEE)
-  -> WS.Session t WS.Z3
-  -> Kind env tp
-  -> Assignment (SymFunction t) env
-  -> SymLiteral t tp
-  -> IO a
-
-withSession :: SolverSessionFn env tp a
-            -> FilePath
-            -> Assignment FunctionTypeRepr env
-            -> Kind env tp
-            -> IO a
-withSession k z3_path env kd = do
+-- | Collect instances of a kind, without the guarantee that any of the
+-- instances satisfy any particular function environment (just that there is
+-- /some/ environment this instance satisfies).
+collectInstances :: FilePath
+                 -- ^ Path to z3 executable
+                 -> Assignment FunctionTypeRepr env
+                 -- ^ Type of function environment
+                 -> Kind env tp
+                 -- ^ Kind we are generating instances of
+                 -> Natural
+                 -- ^ Maximum number of instances to collect
+                 -> IO [Literal tp]
+collectInstances z3_path env kd limit = do
   Some nonceGen <- newIONonceGenerator
   sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
   WC.extendConfig WS.z3Options (WI.getConfiguration sym)
@@ -458,4 +432,19 @@ withSession k z3_path env kd = do
     forM_ (kindConstraints kd) $ \e -> do
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLit e
       WS.assume (WS.sessionWriter session) symConstraint
-    k sym session kd symFns symLit
+    collectInstances' sym session symFns symLit limit
+
+collectInstances' :: WS.SMTLib2Tweaks solver
+                  => WB.ExprBuilder t st fs
+                  -> WS.Session t solver
+                  -> Assignment (SymFunction t) env
+                  -> SymLiteral t tp
+                  -> Natural
+                  -> IO [Literal tp]
+collectInstances' _ _ _ _ 0 = return []
+collectInstances' sym session symFns symLit limit = do
+  r <- getNextInstance sym session symFns symLit
+  case r of
+    HasInstance l -> do ls <- collectInstances' sym session symFns symLit (limit-1)
+                        return (l : ls)
+    _ -> return []

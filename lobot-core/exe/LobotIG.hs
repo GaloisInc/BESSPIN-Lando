@@ -1,17 +1,20 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 module Main where
 
 import Lobot.Core.Instances
-import Lobot.Core.Kind
 import Lobot.Core.Kind.Pretty
 import Lobot.Core.Parser
 import Lobot.Core.TypeCheck
 
+import Control.Monad (void)
+import Data.Foldable (forM_)
+import Data.IORef
 import Data.Parameterized.Classes
-import Data.Parameterized.Context hiding (last)
+import Data.Parameterized.Context hiding (last, take)
 import Data.Parameterized.Some
 import Options.Applicative
 
@@ -45,14 +48,13 @@ ig Options{..} = do
           putStrLn $ "----------------"
           print $ ppKind k
           putStrLn $ "----------------"
-          putStrLn "Press enter to see a new instance."
-          instanceSession evenEnv "/usr/local/bin/z3" knownRepr k
-
--- Default function environment. This will change.
-type EvenEnv = EmptyCtx ::> FunType "is_even" (EmptyCtx ::> IntType) BoolType
-
-is_even :: Assignment Literal (EmptyCtx ::> IntType) -> IO (Literal BoolType)
-is_even (Empty :> IntLit x) = return $ BoolLit (even x)
-
-evenEnv :: Assignment (FunctionImpl IO) EvenEnv
-evenEnv = Empty :> FunctionImpl knownRepr is_even
+          insts <- collectInstances "/usr/local/bin/z3" Empty k 2000
+          let numInsts = length insts
+          iRef <- newIORef @Integer 1
+          forM_ insts $ \inst -> do
+            i <- readIORef iRef
+            modifyIORef iRef (+1)
+            putStrLn $ "Instance " ++ show i ++ "/" ++ show numInsts ++ ":"
+            print $ ppLiteral inst
+            putStrLn $ "Press enter to see the next instance."
+            void getLine
