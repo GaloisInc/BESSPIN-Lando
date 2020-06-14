@@ -57,3 +57,14 @@ executable lobotIG
                        base,
                        optparse-applicative,
                        parameterized-utils
+
+test-suite lobot-tests
+  hs-source-dirs:     tests
+  main-is:            Tests.hs
+  default-language:   Haskell2010
+  ghc-options:        -Wall
+  build-depends:      lobot-core,
+                      base,
+                      hedgehog,
+                      tasty,
+                      tasty-hedgehog
