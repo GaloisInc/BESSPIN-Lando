@@ -143,20 +143,22 @@ literalParseJSON = withObject "Some Literal" $ \o -> do
             Nothing -> fail $
               "invalid indices for set literal with " ++ show (size cs) ++
               "constructors: " ++ show iVals
-    -- "set" -> do
-    --   cTxts <- o .: "constructors"
-    --   Some cs <- return $ fromList (someSymbol <$> cTxts)
-    --   case isZeroOrGT1 (ctxSizeNat (size cs)) of
-    --     Left Refl -> fail "empty constructor list for set type"
-    --     Right LeqProof -> return $ Some (SetRepr cs)
-    -- "struct" -> do
-    --   fldValues <- o .: "fields"
-    --   someFlds <- traverse fieldParseJSON fldValues
-    --   Some flds <- return $ fromList someFlds
-    --   return $ Some (StructRepr flds)
-    -- _ -> fail $ "invalid type variant: " ++ T.unpack variant
+    "struct" -> do
+      fldValues <- o .: "fields"
+      someFlds <- traverse fieldLiteralParseJSON fldValues
+      Some flds <- return $ fromList someFlds
+      return $ Some (StructLit flds)
+    _ -> fail $ "invalid type variant: " ++ T.unpack variant
 
 fieldLiteralToJSON :: FieldLiteral ftp -> Value
 fieldLiteralToJSON (FieldLiteral nm l) = object [ "name" .= symbolRepr nm
                                                 , "value" .= literalToJSON l
                                                 ]
+
+fieldLiteralParseJSON :: Value -> Parser (Some FieldLiteral)
+fieldLiteralParseJSON = withObject "Some FieldLiteral" $ \o -> do
+  nmTxt <- o .: "name"
+  valValue <- o .: "value"
+  Some nm <- return $ someSymbol nmTxt
+  Some val <- literalParseJSON valValue
+  return $ Some (FieldLiteral nm val)
