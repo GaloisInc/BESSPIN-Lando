@@ -1,7 +1,7 @@
 abc : kind of subset {A, B, C}
 
-abc_1 : kind of abc where A in abc
+abc_1 : kind of abc where A in self
 
-abc_2 : kind of abc where (A in abc) => (C in abc)
+abc_2 : kind of abc where A in self => C in self
 
 abc_3 : kind of abc_1 abc_2

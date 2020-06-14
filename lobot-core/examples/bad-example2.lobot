@@ -1,0 +1,7 @@
+int_1 : kind of int where 100 <= self
+int_2 : kind of int where self <= 200
+
+ints : kind of struct
+  with i1 : int_1,
+       i2 : int_1 int_2,
+       i3 : int_1
