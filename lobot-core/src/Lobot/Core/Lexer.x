@@ -14,12 +14,16 @@ module Lobot.Core.Lexer
   ( TokenType(..)
   , TokenWPos(..)
   , Alex(..)
+  , AlexState(..)
+  , AlexPosn(..)
+  , AlexUserState(..)
+  , Byte
   , runAlexOnFile
   , alexMonadScanWPos
   , alexErrorWPos
   , lexer
   ) where
-  
+
 import Prelude hiding (lex)
 }
 
