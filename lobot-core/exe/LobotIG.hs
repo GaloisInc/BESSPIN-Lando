@@ -10,7 +10,7 @@ import Lobot.Core.Kind.Pretty
 import Lobot.Core.Parser
 import Lobot.Core.TypeCheck
 
-import Control.Monad (void)
+import Control.Monad (void, when)
 import Data.Foldable (forM_)
 import Data.IORef
 import Data.Parameterized.Classes
@@ -50,11 +50,12 @@ ig Options{..} = do
           putStrLn $ "----------------"
           insts <- collectInstances "/usr/local/bin/z3" Empty k 2000
           let numInsts = length insts
-          iRef <- newIORef @Integer 1
+          iRef <- newIORef 1
           forM_ insts $ \inst -> do
             i <- readIORef iRef
             modifyIORef iRef (+1)
             putStrLn $ "Instance " ++ show i ++ "/" ++ show numInsts ++ ":"
             print $ ppLiteral inst
-            putStrLn $ "Press enter to see the next instance."
-            void getLine
+            when (i < numInsts) $ do
+              putStrLn $ "Press enter to see the next instance."
+              void getLine
