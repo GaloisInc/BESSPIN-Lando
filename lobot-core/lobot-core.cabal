@@ -54,8 +54,11 @@ executable lobotIG
   ghc-options:         -Wall
   build-depends:       lobot-core,
                        base,
+                       aeson,
+                       bytestring,
                        optparse-applicative,
-                       parameterized-utils
+                       parameterized-utils,
+                       process
 
 test-suite lobot-tests
   type:               exitcode-stdio-1.0

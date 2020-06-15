@@ -18,7 +18,7 @@ import Test.Tasty.Golden (goldenVsString, findByExtension)
 import Text.Show.Pretty (ppShow)
 
 countLimit :: Natural
-countLimit = 2000
+countLimit = 1000
 
 z3 :: String
 z3 = "/usr/local/bin/z3"

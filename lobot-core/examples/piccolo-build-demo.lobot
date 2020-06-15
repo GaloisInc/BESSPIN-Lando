@@ -1,8 +1,10 @@
+type ext = {M, A, F, D, C}
+
 -- Definition of all RISC-V ISA instances.
 riscv : kind of struct
   with reg_width : {RV32, RV64},
        xlen : int,
-       exts : subset {M, A, F, D, C},
+       exts : subset ext,
        privs : subset {M, S, U},
        vm : {SVNone, SV32, SV39, SV48}
   where (reg_width = RV32) => (xlen = 32),
@@ -27,7 +29,7 @@ abstract type simulator
 -- Function for building a simulator from a bluespec config. This calls out to
 -- bsc by converting the config to a bunch of command-line flags, and returns
 -- the path to the generated simulator.
-build_bluespec : bluespec_config -> simulator
+abstract build_bluespec : bluespec_config -> simulator
 
 -- Abstract type for a RISC-V binary (under the hood, a path to the binary).
 abstract type riscv_program
@@ -35,22 +37,23 @@ abstract type riscv_program
 -- output).
 abstract type mem_trace
 
-run_riscv_program : (simulator, riscv_program) -> mem_trace
+abstract run_riscv_program : (simulator, riscv_program) -> mem_trace
 
 compliance_test : kind of struct
   with prog : riscv_program,
        trace : mem_trace
 
-get_compliance_test : int -> compliance_test
+abstract get_compliance_test : (riscv, int) -> compliance_test
 -- Each RISC-V configuration might have a different number of compliance tests.
-num_compliance_tests : riscv -> int
+abstract num_compliance_tests : riscv -> int
 
 -- Test every single RV32 machine-mode bluespec configuration for RISC-V
 -- compliance.
 check for cfg : bluespec_config,
           test_id : int,
-          test = compliance_test(test_id)
+          num_tests := num_compliance_tests(cfg.riscv)
+          test := get_compliance_test(cfg.riscv, test_id)
       where cfg.riscv.reg_width = RV32,
-            cfg.privs = M,
-            0 <= test_id <= num_compliance_tests(cfg.riscv)
+            cfg.privs = {M},
+            0 <= test_id <= num_tests
       that run_riscv_program(build_bluespec(cfg), test.prog) = test.trace

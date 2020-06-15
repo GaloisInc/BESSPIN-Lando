@@ -1,0 +1,21 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "abc_1"
+        , kindType = SetRepr [ A , B , C ]
+        , kindFunctionEnv = []
+        , kindConstraints =
+            [ ImpliesExpr
+                (MemberExpr (LiteralExpr (EnumLit [ A , B , C ] 0)) SelfExpr)
+                (MemberExpr (LiteralExpr (EnumLit [ A , B , C ] 1)) SelfExpr)
+            ]
+        }
+  , instances =
+      [ SetLit [ A , B , C ] []
+      , SetLit [ A , B , C ] [ 2 ]
+      , SetLit [ A , B , C ] [ 1 ]
+      , SetLit [ A , B , C ] [ 1 , 2 ]
+      , SetLit [ A , B , C ] [ 0 , 1 ]
+      , SetLit [ A , B , C ] [ 0 , 1 , 2 ]
+      ]
+  }
