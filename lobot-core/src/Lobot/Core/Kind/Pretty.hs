@@ -15,6 +15,8 @@ This module defines pretty printing functions for the core LOBOT types.
 
 module Lobot.Core.Kind.Pretty
   ( ppKind
+  , ppFieldRepr
+  , ppTypeRepr
   , ppExpr
   , ppLiteral
   ) where

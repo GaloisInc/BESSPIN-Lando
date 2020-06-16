@@ -49,8 +49,7 @@ ig Options{..} = do
   case parseDecls inFileName fileStr of
     Left err -> putStrLn err
     Right decls -> case typeCheck knownRepr decls of
-      Left err -> do putStrLn $ "Type error."
-                     print err
+      Left err -> print $ ppTypeError inFileName err
       Right [] -> print "No kinds in file"
       Right ks -> case last ks of
         Some k -> do

@@ -1,4 +1,6 @@
 {
+{-# LANGUAGE DeriveFunctor #-}
+
 {-|
 Module      : Lobot.Core.Lexer
 Description : A lexer for the untyped AST of the Lobot sublanguage.
@@ -12,14 +14,18 @@ This module provides a lexer for the Lobot sublanguage.
 -}
 module Lobot.Core.Lexer
   ( TokenType(..)
-  , TokenWPos(..)
+  , Token(..)
+  , Loc(..)
+  , loc
+  , LToken
+  , AlexPosn(..)
   , Alex(..)
   , AlexState(..)
-  , AlexPosn(..)
   , AlexUserState(..)
   , Byte
   , runAlexOnFile
   , alexMonadScanWPos
+  , errorPrefix
   , alexErrorWPos
   , lexer
   ) where
@@ -98,14 +104,21 @@ data TokenType = EOF
                | IDUC String
                deriving (Eq,Show)
 
-data TokenWPos = Token { tokenType :: TokenType
-                       , tokenString :: String
-                       , tokenPosn :: AlexPosn }
+data Token = Token { tokenType :: TokenType
+                   , tokenString :: String }
 
-tokStr :: (String -> TokenType) -> AlexAction TokenWPos
-tokStr t (p,_,_,s) len = pure $ Token (t (take len s)) (take len s) p
+data Loc a = L { getPos :: AlexPosn, unLoc :: a }
+           deriving (Show, Functor)
 
-tok :: TokenType -> AlexAction TokenWPos
+loc :: Loc a -> b -> Loc b
+loc (L p _) = L p
+
+type LToken = Loc Token
+
+tokStr :: (String -> TokenType) -> AlexAction LToken
+tokStr t (p,_,_,s) len = pure $ L p (Token (t (take len s)) (take len s))
+
+tok :: TokenType -> AlexAction LToken
 tok = tokStr . const
 
 
@@ -128,12 +141,12 @@ setFilePath fp = do
 -- Some necessary utility functions from:
 --  https://github.com/dagit/happy-plus-alex/blob/master/src/Lexer.x
 
-alexEOF :: Alex TokenWPos
+alexEOF :: Alex LToken
 alexEOF = do
   (p,_,_,_) <- alexGetInput
-  return $ Token EOF [] p
+  return $ L p (Token EOF "")
 
-alexMonadScanWPos :: Alex TokenWPos
+alexMonadScanWPos :: Alex LToken
 alexMonadScanWPos = do
   inp <- alexGetInput
   sc <- alexGetStartCode
@@ -148,15 +161,18 @@ alexMonadScanWPos = do
         alexSetInput inp'
         action (ignorePendingBytes inp) len
 
+errorPrefix :: FilePath -> AlexPosn -> String
+errorPrefix fp (AlexPn _ l c) = fp ++ ":" ++ show l ++ ":" ++ show c ++ ":"
+
 alexErrorWPos :: AlexPosn -> String -> Alex a
-alexErrorWPos (AlexPn _ l c) msg = do
+alexErrorWPos p msg = do
   fp <- getFilePath
-  alexError (fp ++ ":" ++ show l ++ ":" ++ show c ++ ": " ++ msg)
+  alexError (errorPrefix fp p ++ " " ++ msg)
 
 runAlexOnFile :: Alex a -> FilePath -> String -> Either String a
 runAlexOnFile a fp input = runAlex input (setFilePath fp >> a)
 
-lexer :: (TokenWPos -> Alex a) -> Alex a
+lexer :: (LToken -> Alex a) -> Alex a
 lexer = (alexMonadScanWPos >>=)
 
 }

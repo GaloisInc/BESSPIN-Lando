@@ -18,39 +18,57 @@ parsing a concrete syntax for Lobot, this is the data type we target. Then, this
 type passes through the type checker to produce the typed AST in
 'Lobot.Core.Kind'.
 -}
-module Lobot.Core.Syntax where
+module Lobot.Core.Syntax
+  ( Loc(..)
+  , KindDecl(..)
+  , Type(..)
+  , LType
+  , Expr(..)
+  , LExpr
+  , Literal(..)
+  , LLiteral
+  , LText
+  ) where
 
 import Data.Text (Text)
 
+import Lobot.Core.Lexer
+
 data KindDecl = KindDecl { kindDeclName :: Text
-                         , kindDeclType :: Type
-                         , kindDeclConstraints :: [Expr]
+                         , kindDeclType :: LType
+                         , kindDeclConstraints :: [LExpr]
                          } deriving Show
 
 data Type = BoolType
           | IntType
           | EnumType [Text]
           | SetType [Text]
-          | StructType [(Text, Type)]
-          | KindNames [Text]
+          | StructType [(LText, LType)]
+          | KindNames [LText]
           deriving Show
 
-data Expr = LiteralExpr Literal
+data Expr = LiteralExpr LLiteral
           | SelfExpr
-          | FieldExpr Expr Text -- ^ struct.field
-          | ApplyExpr Text [Expr]
-          | EqExpr Expr Expr
-          | LteExpr Expr Expr
-          | PlusExpr Expr Expr
-          | MemberExpr Expr Expr
-          | ImpliesExpr Expr Expr
-          | NotExpr Expr
-          | IsInstanceExpr Expr Type -- ^ expr : type (in a constraint)
+          | SelfFieldExpr LText
+          | FieldExpr LExpr LText -- ^ struct.field
+          | ApplyExpr LText [LExpr]
+          | EqExpr LExpr LExpr
+          | LteExpr LExpr LExpr
+          | PlusExpr LExpr LExpr
+          | MemberExpr LExpr LExpr
+          | ImpliesExpr LExpr LExpr
+          | NotExpr LExpr
+          | IsInstanceExpr LExpr LType -- ^ expr : type (in a constraint)
           deriving Show
 
 data Literal = BoolLit Bool
              | IntLit Integer
-             | EnumLit Text
-             | SetLit [Text]
-             | StructLit [(Text, Literal)]
+             | EnumLit LText
+             | SetLit [LText]
+             | StructLit [(LText, LLiteral)]
              deriving Show
+
+type LType    = Loc Type
+type LExpr    = Loc Expr
+type LLiteral = Loc Literal
+type LText    = Loc Text
