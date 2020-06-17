@@ -1,0 +1,45 @@
+-- Here, we can do a lot better than generating all possible pairs and filtering
+-- them. We can determine a nice ordering to generate these fields, and do them
+-- in a nested way, since once x is known, add1(x) becomes a constant.
+
+plus_1_pair : kind of struct
+  with x : int,
+       y : int
+  where x <= 100,
+        y = add1(x)
+
+-- This is not so straightforward; since every single constraint involves both y
+-- and x, there really isn't any obvious way to sort the fields and constraints
+-- to solve the problem more quickly.
+
+-- ex : kind of struct
+--   with x : int,
+--        y : int
+--   where x + y <= 100,
+--         y <= add1(x)
+
+-- Do we benefit from generating x first, then y?
+
+-- ex2 : kind of struct
+--   with x : int,
+--        y : int
+--   where x <= 50,
+--         x + y <= 100,
+--         y <= add1(x)
+
+-- What about here?
+
+-- ex3 : kind of struct
+--   with x : int,
+--        y : int
+--   where x <= 50,
+--         x + y <= 100,
+--         y = add1(x)
+
+-- Definitely not here...
+
+-- ex4 : kind of struct
+--   with x : int,
+--        y : int
+--   where not (x + y = x + y),
+--         y = add1(x)
