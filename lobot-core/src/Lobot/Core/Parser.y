@@ -85,6 +85,8 @@ decl : ident ':' 'kind' 'of' topType LAYEND                        { KindDecl (t
 topType :: { LType }
 topType : type                             { $1 }
         | 'struct' LAYEND 'with' fields    { loc $1 $ StructType $4 }
+        -- ^ Note: We don't need a LAYEND after the 'with' here as it's
+        --   handled by the LAYENDs in `decl`.
 
 type    : 'bool'                           { loc $1 $ BoolType }
         | 'int'                            { loc $1 $ IntType }
@@ -119,8 +121,8 @@ expr : lit                   { loc $1 $ LiteralExpr $1 }
      | expr ':' idents       { loc $1 $ IsInstanceExpr $1 (loc (head $3) $ KindNames $3) }
      | '(' expr ')'          { loc $1 $ unLoc $2 }
 
-exprs0 : {- empty -} { [] }
-       | exprs       { $1 }
+exprs0 : {- empty -}   { [] }
+       | exprs         { $1 }
 
 exprs : expr             { [$1] }
       | expr ',' exprs   { $1 : $3 }
