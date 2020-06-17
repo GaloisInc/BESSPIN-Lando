@@ -1,0 +1,7 @@
+nested : kind of struct
+  with f : struct with a : int, b : int
+       g : struct with x : int
+                       y : struct
+                            with
+                             z : int
+  where f.a = g.y.z

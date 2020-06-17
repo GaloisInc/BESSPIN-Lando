@@ -15,15 +15,13 @@ module Lobot.Core.Parser
   where
 
 import Data.Text (Text, pack)
-import Data.List (intercalate)
+import Data.List (concatMap, intercalate)
 
 import Lobot.Core.Syntax
 import Lobot.Core.Lexer
 }
 
-%expect 1
--- There is a shift/reduce conflict on the `ids` case of `type`, but for some
--- reason it's not a problem.
+%expect 0
 
 %name parseDeclsM decls
 
@@ -63,6 +61,7 @@ import Lobot.Core.Lexer
   int         { L _ (Token (INT _) _) }
   ident       { L _ (Token (IDLC _) _) }
   enumIdent   { L _ (Token (IDUC _) _) }
+  LAYEND      { L _ (Token (LAYEND _) _) }
 
 %nonassoc ':'
 %left     '=>'
@@ -75,31 +74,34 @@ import Lobot.Core.Lexer
 %%
 
 decls :: { [KindDecl] }
-decls : {- empty -}      { [] }
-      | decl decls       { $1 : $2 }
+decls : {- empty -}         { [] }
+      | decl LAYEND decls   { $1 : $3 }
 
 decl :: { KindDecl }
-decl : ident ':' 'kind' 'of' topType                 { KindDecl (tkText $1) $5 [] }
-     | ident ':' 'kind' 'of' topType 'where' exprs   { KindDecl (tkText $1) $5 $7 }
+decl : ident ':' 'kind' 'of' topType LAYEND                        { KindDecl (tkText $1) $5 [] }
+     | ident ':' 'kind' 'of' topType LAYEND 'where' exprs LAYEND   { KindDecl (tkText $1) $5 $8 }
 
 
 topType :: { LType }
 topType : type                             { $1 }
-        | 'struct' 'with' fields           { loc $1 $ StructType $3 }
+        | 'struct' LAYEND 'with' fields    { loc $1 $ StructType $4 }
 
 type    : 'bool'                           { loc $1 $ BoolType }
         | 'int'                            { loc $1 $ IntType }
         | '{' enumIdents '}'               { loc $1 $ EnumType (fmap unLoc $2) }
         | 'subset' '{' enumIdents '}'      { loc $1 $ SetType (fmap unLoc $3) }
-        | 'struct'                         { loc $1 $ StructType [] }
+        | 'struct' 'with' fields LAYEND    { loc $1 $ StructType $3 }
+        | 'struct' 'with' '{' '}'          { loc $1 $ StructType [] }
         | 'struct' 'with' '{' fields '}'   { loc $1 $ StructType $4 }
         | idents                           { loc (head $1) $ KindNames $1 }
 
 fields :: { [(LText, LType)] }
-fields : field                 { [$1] }
-       | field ',' fields      { $1 : $3 }
+fields : field                      { [$1] }
+       | field fields               { $1 : $2 }
 
-field : ident ':' type         { (locText $1, $3) }
+field : ident ':' type ','          { (locText $1, $3) }
+      | ident ':' type LAYEND       { (locText $1, $3) }
+      | ident ':' type LAYEND ','   { (locText $1, $3) }
 
 
 expr :: { LExpr }
@@ -164,13 +166,28 @@ tkInt (L _ (Token (INT z) _)) = z
 tkInt (L _ (Token _ s)) = read s
 
 parseError :: (LToken, [String]) -> Alex a
-parseError (L p (Token _ s), []) =
-  alexErrorWPos p ("parse error on input '" ++ s ++ "'")
-parseError (L p (Token _ s), [e]) =
-  alexErrorWPos p ("parse error on input '" ++ s ++ "', expected " ++ e)
-parseError (L p (Token _ s), exps) =
-  alexErrorWPos p ("parse error on input '" ++ s ++ "', "
-                   ++ "expected one of: " ++ intercalate ", " exps)
+parseError (L p (Token (LAYEND FromNewline) _), _) =
+  alexErrorWPos p ("expected more indentation")
+parseError (L p (Token (LAYEND FromOther) _), es) =
+  alexErrorWPos p ("unexpected layout change" ++ fmtExpected es)
+parseError (L p (Token (LAYEND FromEOF) s), es) =
+  alexErrorWPos p ("unexpected end of file (layout)" ++ fmtExpected es)
+parseError (L p (Token EOF s), es) =
+  alexErrorWPos p ("unexpected end of file" ++ fmtExpected es)
+parseError (L p (Token _ s), es) =
+  alexErrorWPos p ("parse error on input '" ++ s ++ "'" ++ fmtExpected es)
+
+fmtExpected :: [String] -> String
+fmtExpected = go . concatMap modifyStr
+  where modifyStr :: String -> [String]
+        modifyStr "LAYEND" = ["different indentation"]
+        modifyStr "EOF"    = []
+        modifyStr s        = [s]
+        go :: [String] -> String
+        go []       = ""
+        go [e]      = ", expected " ++ e
+        go [e1,e2]  = ", expected " ++ e1 ++ " or " ++ e2
+        go exps     = ", expected one of: " ++ intercalate ", " exps
 
 parseDecls :: FilePath -> String -> Either String [KindDecl]
 parseDecls = runAlexOnFile parseDeclsM

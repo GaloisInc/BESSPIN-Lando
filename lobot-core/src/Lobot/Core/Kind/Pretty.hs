@@ -43,12 +43,12 @@ vcommas = PP.vcat . PP.punctuate (PP.text ", ")
 
 ppKind :: Kind env tp -> PP.Doc
 ppKind kd@Kind{ kindType = StructRepr flds } =
-  PP.text (T.unpack $ kindName kd)
+  PP.text (T.unpack $ kindName kd) PP.<+> PP.colon
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> PP.text "struct"
   PP.$$ PP.nest 2 (ppWClause "with" (toListFC ppFieldRepr flds))
   PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
 ppKind kd =
-  PP.text (T.unpack $ kindName kd)
+  PP.text (T.unpack $ kindName kd) PP.<+> PP.colon
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> ppTypeRepr (kindType kd)
   PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
 
