@@ -5,7 +5,7 @@
 plus_1_pair : kind of struct
   with x : int,
        y : int
-  where x <= 100,
+  where 0 <= x, x <= 100,
         y = add1(x)
 
 -- This is not so straightforward; since every single constraint involves both y
@@ -15,7 +15,9 @@ plus_1_pair : kind of struct
 ex : kind of struct
   with x : int,
        y : int
-  where x + y <= 100,
+  where 0 <= x, x <= 100,
+        0 <= y, y <= 100,
+        x + y <= 100,
         y <= add1(x)
 
 -- Do we benefit from generating x first, then y?

@@ -22,6 +22,8 @@ import Data.IORef
 import Data.Parameterized.Classes
 import Data.Parameterized.Context hiding (last, take)
 import Data.Parameterized.Some
+import Data.Parameterized.SymbolRepr
+import Data.Parameterized.TraversableFC
 import Numeric.Natural
 import Options.Applicative
 import System.Exit
@@ -81,19 +83,34 @@ ig Options{..} = do
               putStrLn $ "Press enter to see the next instance."
               void getLine
 
-type FnEnv = EmptyCtx ::> FunType "add1" (EmptyCtx ::> IntType) IntType
+type FnEnv = EmptyCtx ::>
+  FunType "add1" (EmptyCtx ::> IntType) IntType ::>
+  FunType "square" (EmptyCtx ::> IntType) IntType
 
-add1 :: Assignment Literal (EmptyCtx ::> IntType) -> IO (Literal IntType)
-add1 (Empty :> l) = do
-  let std_in = BS.unpack (A.encode (literalToJSON l))
-      p = shell "add1"
+fnEnv :: Assignment (FunctionImpl IO) FnEnv
+fnEnv = canonicalEnv knownRepr
+
+canonicalEnv :: Assignment FunctionTypeRepr fntps
+             -> Assignment (FunctionImpl IO) fntps
+canonicalEnv Empty = Empty
+canonicalEnv (fntps :> fntp@FunctionTypeRepr{}) = canonicalEnv fntps :> canonicalFn fntp
+
+canonicalFn :: FunctionTypeRepr (FunType nm args ret)
+            -> FunctionImpl IO (FunType nm args ret)
+canonicalFn fntp = FunctionImpl fntp (run fntp)
+
+run :: FunctionTypeRepr (FunType nm args ret) -> Assignment Literal args -> IO (Literal ret)
+run FunctionTypeRepr{..} args = do
+  let json_args = A.toJSONList (toListFC literalToJSON args)
+      std_in = BS.unpack (A.encode json_args)
+      p = shell (T.unpack (symbolRepr functionName))
   (ec, std_out, std_err) <- readCreateProcessWithExitCode p std_in
   case ec of
     ExitSuccess -> case A.eitherDecode (BS.pack std_out) of
       Right v -> case literalFromJSON v of
-        A.Success (Some l') -> case testEquality IntRepr (literalType l') of
+        A.Success (Some l') -> case testEquality functionRetType (literalType l') of
           Just Refl -> return l'
-          Nothing -> do putStrLn $ "expected int, got " ++ show l'
+          Nothing -> do putStrLn $ "expected " ++ show functionRetType ++ ", got " ++ show l'
                         exitFailure
         A.Error e -> do putStrLn $ "error: " ++ e
                         exitFailure
@@ -103,6 +120,3 @@ add1 (Empty :> l) = do
                    exitFailure
     ExitFailure _ -> do putStrLn $ "error: " ++ std_err
                         exitFailure
-
-fnEnv :: Assignment (FunctionImpl IO) FnEnv
-fnEnv = Empty :> FunctionImpl knownRepr add1

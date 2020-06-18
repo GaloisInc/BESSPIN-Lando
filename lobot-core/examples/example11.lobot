@@ -1,0 +1,6 @@
+small_int : kind of int where 0 <= self, self <= 5
+
+pair : kind of struct
+  with x : small_int,
+       y : int
+  where 0 <= y, y <= square(x)

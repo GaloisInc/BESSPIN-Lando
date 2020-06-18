@@ -11,6 +11,6 @@ for line in sys.stdin:
 json_data = json.loads(json_str)
 
 i = json_data[0]['value']
-json_data[0]['value'] = i + 1
+json_data[0]['value'] = i * i
 
 print(json.dumps(json_data[0]))
