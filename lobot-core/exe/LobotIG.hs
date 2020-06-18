@@ -14,6 +14,7 @@ import Lobot.Core.TypeCheck
 
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy.Char8 as BS
+import qualified Data.Text as T
 
 import Control.Monad (void, when, filterM)
 import Data.Foldable (forM_)
@@ -59,7 +60,11 @@ ig Options{..} = do
           print $ ppKind k
           putStrLn $ "----------------"
           putStrLn $ "Generating instances..."
-          insts <- collectInstances "/usr/local/bin/z3" knownRepr k count
+          mInsts <- collectInstances "/usr/local/bin/z3" knownRepr k count
+          when (not (isJust mInsts)) $ do
+            putStrLn $ "Can't generate instances of abstract type " ++ T.unpack (kindName k)
+            exitFailure
+          let Just insts = mInsts
           putStrLn $ "Generated " ++ show (length insts) ++ " instances."
           putStrLn $ "Filtering for valid instances..."
           validInsts <- flip filterM insts $ \inst -> instanceOf fnEnv inst k

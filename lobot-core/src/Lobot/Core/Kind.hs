@@ -54,6 +54,8 @@ module Lobot.Core.Kind
   , liftExpr
   ) where
 
+import qualified Data.ByteString as BS
+
 import Data.List (find)
 import Data.List.NonEmpty hiding ((!!))
 import Data.Text (Text)
@@ -121,12 +123,14 @@ data Type = BoolType
           | EnumType (Ctx Symbol)
           | SetType (Ctx Symbol)
           | StructType (Ctx (Symbol, Type))
+          | AbsType Symbol
 
 type BoolType = 'BoolType
 type IntType = 'IntType
 type EnumType = 'EnumType
 type SetType = 'SetType
 type StructType = 'StructType
+type AbsType = 'AbsType
 
 -- | Types for functions in Lobot.
 data FunctionType = FunType Symbol (Ctx Type) Type
@@ -164,6 +168,7 @@ data TypeRepr tp where
              -> TypeRepr (SetType cs)
   StructRepr :: Assignment FieldRepr ftps
              -> TypeRepr (StructType ftps)
+  AbsRepr    :: SymbolRepr s -> TypeRepr (AbsType s)
 deriving instance Show (TypeRepr tp)
 instance ShowF TypeRepr
 
@@ -179,6 +184,9 @@ instance TestEquality TypeRepr where
   testEquality (StructRepr flds) (StructRepr flds') = case testEquality flds flds' of
     Just Refl -> Just Refl
     Nothing -> Nothing
+  testEquality (AbsRepr s) (AbsRepr s') = case testEquality s s' of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
   testEquality _ _ = Nothing
 
 instance KnownRepr TypeRepr BoolType
@@ -191,6 +199,8 @@ instance (1 <= CtxSize cs, KnownRepr (Assignment SymbolRepr) cs) => KnownRepr Ty
   where knownRepr = SetRepr knownRepr
 instance KnownRepr (Assignment FieldRepr) ftps => KnownRepr TypeRepr (StructType ftps)
   where knownRepr = StructRepr knownRepr
+instance KnownRepr SymbolRepr s => KnownRepr TypeRepr (AbsType s)
+  where knownRepr = AbsRepr knownRepr
 
 -- | Concrete value inhabiting a type.
 data Literal tp where
@@ -201,6 +211,7 @@ data Literal tp where
   SetLit    :: 1 <= CtxSize cs
             => Assignment SymbolRepr cs -> [Some (Index cs)] -> Literal (SetType cs)
   StructLit :: Assignment FieldLiteral ftps -> Literal (StructType ftps)
+  AbsLit    :: SymbolRepr s -> BS.ByteString -> Literal (AbsType s)
 
 deriving instance Show (Literal tp)
 instance ShowF Literal
@@ -212,6 +223,7 @@ literalType (IntLit _) = IntRepr
 literalType (EnumLit cs _) = EnumRepr cs
 literalType (SetLit cs _) = SetRepr cs
 literalType (StructLit fls) = StructRepr (fmapFC fieldLiteralType fls)
+literalType (AbsLit s _) = AbsRepr s
 
 -- | An instance of a particular field. This is just the field name paired with
 -- a concrete literal.
@@ -264,6 +276,7 @@ data Expr (env :: Ctx FunctionType) (ctx :: Type) (tp :: Type) where
 deriving instance Show (Expr env ctx tp)
 instance ShowF (Expr env ctx)
 
+-- | Equality of abstract literals is equality of the underlying bytestrings.
 litEq :: Literal tp -> Literal tp -> Bool
 litEq (BoolLit b1) (BoolLit b2) = b1 == b2
 litEq (IntLit x1) (IntLit x2) = x1 == x2
@@ -277,6 +290,7 @@ litEq (StructLit fls1) (StructLit fls2) = fls1 `flsEq` fls2
         flsEq Empty Empty = True
         flsEq (as :> a) (bs :> b) | FieldLiteral _ _ <- a
           = a `fieldValueEq` b && flsEq as bs
+litEq (AbsLit _ a1) (AbsLit _ a2) = a1 == a2
 
 fieldValueEq :: FieldLiteral ftp -> FieldLiteral ftp -> Bool
 fieldValueEq fv1@(FieldLiteral _ _) fv2 =

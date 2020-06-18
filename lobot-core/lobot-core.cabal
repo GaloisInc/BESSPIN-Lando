@@ -35,6 +35,7 @@ library
   build-depends:       base >=4.13,
                        aeson,
                        bv-sized >= 1.0.1,
+                       bytestring,
                        parameterized-utils >= 2.1.0,
                        array,
                        hashmap,
@@ -58,7 +59,8 @@ executable lobotIG
                        bytestring,
                        optparse-applicative,
                        parameterized-utils,
-                       process
+                       process,
+                       text
 
 test-suite lobot-tests
   type:               exitcode-stdio-1.0
