@@ -12,34 +12,34 @@ plus_1_pair : kind of struct
 -- and x, there really isn't any obvious way to sort the fields and constraints
 -- to solve the problem more quickly.
 
--- ex : kind of struct
---   with x : int,
---        y : int
---   where x + y <= 100,
---         y <= add1(x)
+ex : kind of struct
+  with x : int,
+       y : int
+  where x + y <= 100,
+        y <= add1(x)
 
 -- Do we benefit from generating x first, then y?
 
--- ex2 : kind of struct
---   with x : int,
---        y : int
---   where x <= 50,
---         x + y <= 100,
---         y <= add1(x)
+ex2 : kind of struct
+  with x : int,
+       y : int
+  where x <= 50,
+        x + y <= 100,
+        y <= add1(x)
 
 -- What about here?
 
--- ex3 : kind of struct
---   with x : int,
---        y : int
---   where x <= 50,
---         x + y <= 100,
---         y = add1(x)
+ex3 : kind of struct
+  with x : int,
+       y : int
+  where x <= 50,
+        x + y <= 100,
+        y = add1(x)
 
 -- Definitely not here...
 
--- ex4 : kind of struct
---   with x : int,
---        y : int
---   where not (x + y = x + y),
---         y = add1(x)
+ex4 : kind of struct
+  with x : int,
+       y : int
+  where not (x + y = x + y),
+        y = add1(x)

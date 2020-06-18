@@ -1,7 +1,10 @@
+bounded_int : kind of int where 0 <= self, self <= 10
+
 nested : kind of struct
-  with f : struct with a : int, b : int
-       g : struct with x : int
+  with f : struct with a : bounded_int, b : bounded_int
+       g : struct with x : bounded_int
                        y : struct
                             with
-                             z : int
-  where f.a = g.y.z
+                             z : bounded_int
+  where f.a = g.y.z,
+        f.b = 10

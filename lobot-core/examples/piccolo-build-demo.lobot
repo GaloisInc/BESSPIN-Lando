@@ -49,11 +49,23 @@ abstract num_compliance_tests : riscv -> int
 
 -- Test every single RV32 machine-mode bluespec configuration for RISC-V
 -- compliance.
-check for cfg : bluespec_config,
-          test_id : int,
-          num_tests := num_compliance_tests(cfg.riscv)
-          test := get_compliance_test(cfg.riscv, test_id)
-      where cfg.riscv.reg_width = RV32,
-            cfg.privs = {M},
-            0 <= test_id <= num_tests
-      that run_riscv_program(build_bluespec(cfg), test.prog) = test.trace
+test_run : kind of struct
+  with cfg : bluespec_config,
+       test_id : int,
+  where cfg.riscv.reg_width = RV32,
+        cfg.privs = {M},
+        0 <= test_id, test_id <= num_compliance_tests(cfg.riscv)
+
+check for run : test_run
+      that run_riscv_program( build_bluespec(run.cfg)
+                            , get_compliance_test(run.cfg.riscv, run.test_id) )
+           = get_compliance_test(run.cfg.riscv, run.test_id).trace
+
+-- check for cfg : bluespec_config,
+--           test_id : int,
+--           num_tests := num_compliance_tests(cfg.riscv)
+--           test := get_compliance_test(cfg.riscv, test_id)
+--       where cfg.riscv.reg_width = RV32,
+--             cfg.privs = {M},
+--             0 <= test_id <= num_tests
+--       that run_riscv_program(build_bluespec(cfg), test.prog) = test.trace

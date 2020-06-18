@@ -23,8 +23,7 @@ This module provides functions to enumerate instances of a kind via a
 what4-based SMT solver backend.
 -}
 module Lobot.Core.Instances
-  ( InstanceResult(..)
-  , collectInstances
+  ( collectInstances
   ) where
 
 import Lobot.Core.Kind
@@ -161,12 +160,8 @@ freshSymLiteralConstant sym session prefix tp = do
       return $ SymLiteral tp c
     StructRepr ftps -> do
       symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
-      -- symLits <- freshSymFieldLiteralConstants sym session prefix ftps
-      -- let symExprs = symLiteralExprs symLits
       structExpr <- WI.mkStruct sym symExprs
       return $ SymLiteral tp structExpr
-      -- c <- WI.freshConstant sym cSymbol (WT.BaseStructRepr (fieldBaseTypes flds))
-      -- return $ SymLiteral tp c
 
 freshSymFieldLiteralExprs :: WS.SMTLib2Tweaks solver
                           => WB.ExprBuilder t st fs
@@ -364,32 +359,6 @@ data InstanceResult tp = HasInstance (Literal tp)
                        | NoInstance
                        | Unknown
   deriving Show
-
--- -- | Type of a function that 
--- type SolverSessionFn env tp a = forall t .
---      WB.ExprBuilder t BuilderState (WB.Flags WB.FloatIEEE)
---   -> WS.Session t WS.Z3
---   -> Kind env tp
---   -> Assignment (SymFunction t) env
---   -> SymLiteral t tp
---   -> IO a
-
--- traverseInstances :: FilePath
---                   -> Assignment FunctionTypeRepr env
---                   -> Kind env tp
---                   -> SolverSessionFn env tp a
---                   -> IO a
--- traverseInstances z3_path env kd k = do
---   Some nonceGen <- newIONonceGenerator
---   sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
---   WC.extendConfig WS.z3Options (WI.getConfiguration sym)
---   WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
---     symLit <- freshSymLiteralConstant sym session "" (kindType kd)
---     symFns <- traverseFC (freshUninterpSymFunction sym) env
---     forM_ (kindConstraints kd) $ \e -> do
---       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLit e
---       WS.assume (WS.sessionWriter session) symConstraint
---     k sym session kd symFns symLit
 
 -- | If there are any instances in the current session, retrieve it, and then
 -- negate that instance so we get a different result next time.
