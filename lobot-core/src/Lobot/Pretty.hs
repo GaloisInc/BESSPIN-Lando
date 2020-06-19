@@ -17,7 +17,7 @@ module Lobot.Pretty
   ( ppKind
   , ppFieldRepr
   , ppTypeRepr
-  , ppExpr
+  , ppKindExpr
   , ppLiteral
   ) where
 
@@ -48,11 +48,11 @@ ppKind kd@Kind{ kindType = StructRepr flds } =
   PP.text (T.unpack $ kindName kd) PP.<+> PP.colon
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> PP.text "struct"
   PP.$$ PP.nest 2 (ppWClause "with" (toListFC ppFieldRepr flds))
-  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppKindExpr (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
 ppKind kd =
   PP.text (T.unpack $ kindName kd) PP.<+> PP.colon
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> ppTypeRepr (kindType kd)
-  PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppKindExpr (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
 
 ppWClause :: String -> [PP.Doc] -> PP.Doc
 ppWClause _ [] = PP.empty
@@ -94,45 +94,50 @@ ppFieldLiteral FieldLiteral{..} =
   symbolDoc fieldLiteralName PP.<+> PP.equals PP.<+> ppLiteral fieldLiteralValue
 
 exprStructFields :: Assignment FunctionTypeRepr env
-                 -> TypeRepr ctx
+                 -> Assignment TypeRepr ctx
                  -> Expr env ctx (StructType ftps)
                  -> Assignment FieldRepr ftps
 exprStructFields _ _ (LiteralExpr (StructLit fls)) = fmapFC fieldLiteralType fls
-exprStructFields _ (StructRepr fls) SelfExpr = fls
-exprStructFields env tp (FieldExpr structExpr i) =
-  let StructRepr fls = fieldType (exprStructFields env tp structExpr ! i)
+exprStructFields _ ctx (VarExpr i)
+  | StructRepr fls <- ctx ! i = fls
+exprStructFields env ctx (FieldExpr structExpr i) =
+  let StructRepr fls = fieldType (exprStructFields env ctx structExpr ! i)
   in fls
 exprStructFields env _ (ApplyExpr fi _) =
   let FunctionTypeRepr _ _ (StructRepr fls) = env ! fi
   in fls
 
-ppExpr :: Assignment FunctionTypeRepr env -> TypeRepr ctx -> Expr env ctx tp -> PP.Doc
-ppExpr = ppExpr' True
+ppKindExpr :: Assignment FunctionTypeRepr env
+           -> TypeRepr ktp
+           -> KindExpr env ktp tp
+           -> PP.Doc
+ppKindExpr = ppKindExpr' True
 
-ppExpr' :: Bool
-        -> Assignment FunctionTypeRepr env
-        -> TypeRepr ctx
-        -> Expr env ctx tp -> PP.Doc
-ppExpr' _ _ _ (LiteralExpr l) = ppLiteral l
-ppExpr' _ _ _ SelfExpr = PP.text "self"
-ppExpr' _ _ (StructRepr flds) (FieldExpr SelfExpr i) =
+ppKindExpr' :: Bool
+            -> Assignment FunctionTypeRepr env
+            -> TypeRepr ktp
+            -> KindExpr env ktp tp
+            -> PP.Doc
+ppKindExpr' _ _ _ (LiteralExpr l) = ppLiteral l
+ppKindExpr' _ _ _ (VarExpr _) = PP.text "self"
+ppKindExpr' _ _ (StructRepr flds) (FieldExpr SelfExpr i) =
   symbolDoc (fieldName (flds ! i))
-ppExpr' top env ctx (FieldExpr ctxExpr i) =
-  ppExpr' top env ctx ctxExpr PP.<> PP.text "." PP.<>
-  symbolDoc (fieldName (exprStructFields env ctx ctxExpr ! i))
-ppExpr' _ env ctx (ApplyExpr fi es) =
+ppKindExpr' top env ktp (FieldExpr ctxExpr i) =
+  ppKindExpr' top env ktp ctxExpr PP.<> PP.text "." PP.<>
+  symbolDoc (fieldName (exprStructFields env (Empty :> ktp) ctxExpr ! i))
+ppKindExpr' _ env ktp (ApplyExpr fi es) =
   let FunctionTypeRepr fnm _ _ = env ! fi
   in symbolDoc fnm PP.<>
-     PP.parens (commas (toListFC (ppExpr' True env ctx) es))
-ppExpr' False env ctx e = PP.parens (ppExpr' True env ctx e)
-ppExpr' _ env ctx (EqExpr e1 e2) =
-  ppExpr' False env ctx e1 PP.<+> PP.equals PP.<+> ppExpr' False env ctx e2
-ppExpr' _ env ctx (LteExpr e1 e2) =
-  ppExpr' False env ctx e1 PP.<+> PP.text "<=" PP.<+> ppExpr' False env ctx e2
-ppExpr' _ env ctx (PlusExpr e1 e2) =
-  ppExpr' False env ctx e1 PP.<+> PP.text "+" PP.<+> ppExpr' False env ctx e2
-ppExpr' _ env ctx (MemberExpr e1 e2) =
-  ppExpr' False env ctx e1 PP.<+> PP.text "in" PP.<+> ppExpr' False env ctx e2
-ppExpr' _ env ctx (ImpliesExpr e1 e2) =
-  ppExpr' False env ctx e1 PP.<+> PP.text "=>" PP.<+> ppExpr' False env ctx e2
-ppExpr' _ env ctx (NotExpr e) = PP.text "not" PP.<+> ppExpr' False env ctx e
+     PP.parens (commas (toListFC (ppKindExpr' True env ktp) es))
+ppKindExpr' False env ktp e = PP.parens (ppKindExpr' True env ktp e)
+ppKindExpr' _ env ktp (EqExpr e1 e2) =
+  ppKindExpr' False env ktp e1 PP.<+> PP.equals PP.<+> ppKindExpr' False env ktp e2
+ppKindExpr' _ env ktp (LteExpr e1 e2) =
+  ppKindExpr' False env ktp e1 PP.<+> PP.text "<=" PP.<+> ppKindExpr' False env ktp e2
+ppKindExpr' _ env ktp (PlusExpr e1 e2) =
+  ppKindExpr' False env ktp e1 PP.<+> PP.text "+" PP.<+> ppKindExpr' False env ktp e2
+ppKindExpr' _ env ktp (MemberExpr e1 e2) =
+  ppKindExpr' False env ktp e1 PP.<+> PP.text "in" PP.<+> ppKindExpr' False env ktp e2
+ppKindExpr' _ env ktp (ImpliesExpr e1 e2) =
+  ppKindExpr' False env ktp e1 PP.<+> PP.text "=>" PP.<+> ppKindExpr' False env ktp e2
+ppKindExpr' _ env ktp (NotExpr e) = PP.text "not" PP.<+> ppKindExpr' False env ktp e

@@ -43,13 +43,13 @@ import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 import GHC.TypeLits
 
--- | A expression involving a particular kind, given a particular function
--- environment.
-data Expr (env :: Ctx FunctionType) (ctx :: Type) (tp :: Type) where
+-- | A expression involving a particular variable context, given a particular
+-- function environment.
+data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   -- | An expression built from a literal value.
   LiteralExpr :: Literal tp -> Expr env ctx tp
-  -- | An expression referring to an abstract instance of this kind.
-  SelfExpr    :: Expr env ctx ctx
+  -- | An expression referring to a particular value in the current context.
+  VarExpr     :: Index ctx tp -> Expr env ctx tp
   -- | An expression referring to a field of an instance of some kind.
   FieldExpr   :: Expr env ctx (StructType ftps) -> Index ftps '(nm, tp) -> Expr env ctx tp
   -- | Function application.
@@ -77,40 +77,40 @@ instance ShowF (Expr env ctx)
 -- | Evaluate an expression given an instance of its function and type contexts.
 evalExpr :: MonadFail m
          => Assignment (FunctionImpl m) env
-         -> Literal ctx
+         -> Assignment Literal ctx
          -> Expr env ctx tp
          -> m (Literal tp)
-evalExpr fns inst e = case e of
+evalExpr fns ls e = case e of
   LiteralExpr l -> pure l
-  SelfExpr -> pure inst
+  VarExpr i -> pure (ls ! i)
   FieldExpr kd i -> do
-    StructLit fls <- evalExpr fns inst kd
+    StructLit fls <- evalExpr fns ls kd
     pure $ fieldLiteralValue (fls ! i)
   ApplyExpr fi es -> do
-    ls <- traverseFC (evalExpr fns inst) es
-    fnImplRun (fns ! fi) ls
+    ls' <- traverseFC (evalExpr fns ls) es
+    fnImplRun (fns ! fi) ls'
   EqExpr e1 e2 -> do
-    l1 <- evalExpr fns inst e1
-    l2 <- evalExpr fns inst e2
+    l1 <- evalExpr fns ls e1
+    l2 <- evalExpr fns ls e2
     pure $ BoolLit (litEq l1 l2)
   LteExpr e1 e2 -> do
-    IntLit x1 <- evalExpr fns inst e1
-    IntLit x2 <- evalExpr fns inst e2
+    IntLit x1 <- evalExpr fns ls e1
+    IntLit x2 <- evalExpr fns ls e2
     pure $ BoolLit (x1 <= x2)
   PlusExpr e1 e2 -> do
-    IntLit x1 <- evalExpr fns inst e1
-    IntLit x2 <- evalExpr fns inst e2
+    IntLit x1 <- evalExpr fns ls e1
+    IntLit x2 <- evalExpr fns ls e2
     pure $ IntLit (x1 + x2)
   MemberExpr e1 e2 -> do
-    EnumLit _ i <- evalExpr fns inst e1
-    SetLit _ s <- evalExpr fns inst e2
+    EnumLit _ i <- evalExpr fns ls e1
+    SetLit _ s <- evalExpr fns ls e2
     pure $ BoolLit (isJust (find (== Some i) s))
   ImpliesExpr e1 e2 -> do
-    BoolLit b1 <- evalExpr fns inst e1
-    BoolLit b2 <- evalExpr fns inst e2
+    BoolLit b1 <- evalExpr fns ls e1
+    BoolLit b2 <- evalExpr fns ls e2
     pure $ BoolLit (not b1 || b2)
   NotExpr e' -> do
-    BoolLit b <- evalExpr fns inst e'
+    BoolLit b <- evalExpr fns ls e'
     pure $ BoolLit (not b)
 
 -- | Concrete value inhabiting a type.

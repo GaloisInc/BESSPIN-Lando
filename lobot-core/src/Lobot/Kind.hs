@@ -1,9 +1,11 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -13,6 +15,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {-|
 Module      : Lobot.Kind
@@ -29,6 +32,8 @@ Lobot.
 module Lobot.Kind
   ( -- * Kinds
     Kind(..)
+  , KindExpr
+  , pattern SelfExpr
   , instanceOf
   , addConstraints
   , derivedKind
@@ -47,6 +52,8 @@ import Data.Parameterized.Context
 import Data.Parameterized.TraversableFC
 import Prelude hiding ((!!))
 
+type KindExpr env tp = Expr env (EmptyCtx ::> tp)
+
 -- | Representation of a Lobot feature model, which we term a 'Kind' for
 -- brevity. A kind consists of a name, a type, a function environment, and a
 -- list of constraints that must hold for all instances of this kind.
@@ -54,18 +61,21 @@ data Kind (env :: Ctx FunctionType) (tp :: Type) = Kind
   { kindName :: Text
   , kindType :: TypeRepr tp
   , kindFunctionEnv :: Assignment FunctionTypeRepr env
-  , kindConstraints :: [Expr env tp BoolType]
+  , kindConstraints :: [KindExpr env tp BoolType]
   }
   deriving Show
 instance ShowF (Kind env)
 
 -- | Augment a 'Kind' with some additional constraints.
-addConstraints :: Kind env tp -> [Expr env tp BoolType] -> Kind env tp
+addConstraints :: Kind env tp -> [KindExpr env tp BoolType] -> Kind env tp
 addConstraints kd cs =
   kd { kindConstraints = kindConstraints kd ++ cs }
 
 -- | Given a set of parent 'Kind's of the same type, create a derived 'Kind'.
-derivedKind :: NonEmpty (Kind env tp) -> Text -> [Expr env tp BoolType] -> Kind env tp
+derivedKind :: NonEmpty (Kind env tp)
+            -> Text
+            -> [KindExpr env tp BoolType]
+            -> Kind env tp
 derivedKind kds@(kd :| _) nm cs =
   kd { kindName = nm
      , kindConstraints = concatMap kindConstraints kds ++ cs
@@ -87,12 +97,12 @@ instanceOf :: MonadFail m
            -> m Bool
 instanceOf env inst (Kind{..}) = and <$> traverse constraintHolds kindConstraints
   where constraintHolds e = do
-          BoolLit b <- evalExpr env inst e
+          BoolLit b <- evalExpr env (Empty :> inst) e
           return b
 
--- | Substitute a value for 'SelfExpr' in an expression. (This is composition
--- of 'Expr's!)
-giveSelf :: Expr env a b -> Expr env b c -> Expr env a c
+-- | Substitute a value for 'self' in a kind expression. (This is composition of
+-- 'Expr's!)
+giveSelf :: KindExpr env a b -> KindExpr env b c -> KindExpr env a c
 giveSelf s e = case e of
   LiteralExpr l -> LiteralExpr l
   SelfExpr -> s
@@ -105,9 +115,20 @@ giveSelf s e = case e of
   ImpliesExpr e1 e2 -> ImpliesExpr (giveSelf s e1) (giveSelf s e2)
   NotExpr e' -> NotExpr (giveSelf s e')
 
+singletonIndexRefl :: forall tp tp' . Index (EmptyCtx ::> tp') tp -> tp :~: tp'
+singletonIndexRefl i = case viewIndex knownSize i of
+  IndexViewLast _ -> Refl
+  IndexViewInit i' -> case viewIndex knownSize i' of { }
+
+-- | Convenient pattern for matching on 'KindExpr' variables.
+pattern SelfExpr :: () => (tp' ~ tp) => KindExpr env tp' tp
+pattern SelfExpr <- VarExpr (singletonIndexRefl -> Refl)
+  where SelfExpr = VarExpr baseIndex
+{-# COMPLETE LiteralExpr, SelfExpr, FieldExpr, ApplyExpr, EqExpr, LteExpr, PlusExpr, MemberExpr, ImpliesExpr, NotExpr #-}
+
 -- | Lift an expression about a kind @K'@ into an expression about a kind @K@ which
 -- contains @K'@.
 liftExpr :: Index ftps '(nm, tp)
-         -> Expr env tp tp'
-         -> Expr env (StructType ftps) tp'
-liftExpr i = giveSelf (FieldExpr SelfExpr i)
+         -> KindExpr env tp tp'
+         -> KindExpr env (StructType ftps) tp'
+liftExpr i = giveSelf (FieldExpr (VarExpr baseIndex) i)

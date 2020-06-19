@@ -248,45 +248,45 @@ convertFieldIndex i = unsafeCoerce i
 -- | Symbolically evaluate an expression given a symbolic instance.
 symEvalExpr :: WB.ExprBuilder t st fs
             -> Assignment (SymFunction t) env
-            -> SymLiteral t tp
-            -> Expr env tp tp'
+            -> Assigmnet (SymLiteral t) ctx
+            -> Expr env ctx tp'
             -> IO (SymLiteral t tp')
-symEvalExpr sym symFns symLit e = case e of
+symEvalExpr sym symFns symLits e = case e of
   LiteralExpr l -> symLiteral sym l
-  SelfExpr -> return symLit
+  VarExpr i -> return $ symLits ! i
   FieldExpr strE fi -> do
-    SymLiteral (StructRepr ftps) str <- symEvalExpr sym symFns symLit strE
+    SymLiteral (StructRepr ftps) str <- symEvalExpr sym symFns symLits strE
     fld <- WI.structField sym str (convertFieldIndex fi)
     return $ SymLiteral (fieldType (ftps ! fi)) fld
   ApplyExpr fi es -> do
     let SymFunction{..} = symFns ! fi
-    args <- traverseFC (symEvalExpr sym symFns symLit) es
+    args <- traverseFC (symEvalExpr sym symFns symLits) es
     ret <- WI.applySymFn sym symFunctionValue (symLiteralExprs args)
     return $ SymLiteral (functionRetType symFunctionType) ret
   EqExpr e1 e2 -> do
-    sl1 <- symEvalExpr sym symFns symLit e1
-    sl2 <- symEvalExpr sym symFns symLit e2
+    sl1 <- symEvalExpr sym symFns symLits e1
+    sl2 <- symEvalExpr sym symFns symLits e2
     SymLiteral BoolRepr <$> symLiteralEq sym sl1 sl2
   LteExpr e1 e2 -> do
-    SymLiteral IntRepr sv1 <- symEvalExpr sym symFns symLit e1
-    SymLiteral IntRepr sv2 <- symEvalExpr sym symFns symLit e2
+    SymLiteral IntRepr sv1 <- symEvalExpr sym symFns symLits e1
+    SymLiteral IntRepr sv2 <- symEvalExpr sym symFns symLits e2
     SymLiteral BoolRepr <$> WI.intLe sym sv1 sv2
   PlusExpr e1 e2 -> do
-    SymLiteral IntRepr sv1 <- symEvalExpr sym symFns symLit e1
-    SymLiteral IntRepr sv2 <- symEvalExpr sym symFns symLit e2
+    SymLiteral IntRepr sv1 <- symEvalExpr sym symFns symLits e1
+    SymLiteral IntRepr sv2 <- symEvalExpr sym symFns symLits e2
     SymLiteral IntRepr <$> WI.intAdd sym sv1 sv2
   MemberExpr e1 e2 -> do
-    SymLiteral (EnumRepr _) elt_bv <- symEvalExpr sym symFns symLit e1
-    SymLiteral (SetRepr _) set_bv <- symEvalExpr sym symFns symLit e2
+    SymLiteral (EnumRepr _) elt_bv <- symEvalExpr sym symFns symLits e1
+    SymLiteral (SetRepr _) set_bv <- symEvalExpr sym symFns symLits e2
     elt_bv_and_set_bv <- WI.bvAndBits sym elt_bv set_bv
     elt_bv_in_set_bv <- WI.bvEq sym elt_bv elt_bv_and_set_bv
     return $ SymLiteral BoolRepr elt_bv_in_set_bv
   ImpliesExpr e1 e2 -> do
-    SymLiteral BoolRepr b1 <- symEvalExpr sym symFns symLit e1
-    SymLiteral BoolRepr b2 <- symEvalExpr sym symFns symLit e2
+    SymLiteral BoolRepr b1 <- symEvalExpr sym symFns symLits e1
+    SymLiteral BoolRepr b2 <- symEvalExpr sym symFns symLits e2
     SymLiteral BoolRepr <$> WI.impliesPred sym b1 b2
   NotExpr e' -> do
-    SymLiteral BoolRepr b <- symEvalExpr sym symFns symLit e'
+    SymLiteral BoolRepr b <- symEvalExpr sym symFns symLits e'
     SymLiteral BoolRepr <$> WI.notPred sym b
 
 literalFromGroundValue :: TypeRepr tp
