@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeOperators #-}
 module Main where
 
+import Lobot.Expr
 import Lobot.Instances
 import Lobot.JSON
 import Lobot.Kind

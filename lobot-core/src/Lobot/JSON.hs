@@ -22,7 +22,7 @@ module Lobot.JSON
   , literalFromJSON
   ) where
 
-import Lobot.Kind
+import Lobot.Expr
 import Lobot.Types
 import Lobot.Utils
 

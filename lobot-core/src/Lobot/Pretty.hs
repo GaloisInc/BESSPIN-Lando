@@ -21,6 +21,7 @@ module Lobot.Pretty
   , ppLiteral
   ) where
 
+import Lobot.Expr
 import Lobot.Kind
 import Lobot.Types
 
@@ -73,6 +74,7 @@ ppTypeRepr tp = case tp of
     PP.braces (commas (toListFC symbolDoc syms))
   StructRepr flds -> PP.text "struct" PP.<+> withClause
     where withClause = ppWClause "with" (toListFC ppFieldRepr flds)
+  AbsRepr s -> PP.text (T.unpack (symbolRepr s))
 
 ppLiteral :: Literal tp -> PP.Doc
 ppLiteral (BoolLit True) = PP.text "true"
@@ -85,6 +87,7 @@ ppLiteral (StructLit fls) = PP.text "struct" PP.<+> withClause
   where withClause = case fls of
           Empty -> PP.empty
           _ -> PP.text "with" PP.<+> commas (toListFC ppFieldLiteral fls)
+ppLiteral (AbsLit s _) = PP.text "<" PP.<> PP.text (T.unpack (symbolRepr s)) PP.<> PP.text ">"
 
 ppFieldLiteral :: FieldLiteral ftp -> PP.Doc
 ppFieldLiteral FieldLiteral{..} =

@@ -55,10 +55,11 @@ import Prelude hiding (zipWith, unzip)
 
 import Lobot.Utils
 import Lobot.Lexer (AlexPosn, errorPrefix)
-import Lobot.Kind   as K
+import Lobot.Expr as E
+import Lobot.Kind as K
 import Lobot.Syntax as S
 import Lobot.Types as T
-import Lobot.Pretty   as P
+import Lobot.Pretty as P
 import Lobot.Syntax.Pretty as S
 
 -- | State/error monad for type checking. We maintain a hashmap from names to
@@ -168,7 +169,7 @@ checkKindDecl env KindDecl{..} = do
 -- Resolving all kind names in a `S.Type` to get a `T.Type` and a list of
 -- additional constraints.
 
-data Constraints env tp = Cns [K.Expr env tp T.BoolType]
+data Constraints env tp = Cns [E.Expr env tp T.BoolType]
 
 resolveType :: Assignment T.FunctionTypeRepr env
             -> S.LType
@@ -204,7 +205,7 @@ resolveType env (L p (S.KindNames (k:ks))) = do
     Nothing -> typeError (KindUnionMismatchError k (Some tp) (Some (kindType k')))
 
 data Constraints' env (pr :: (Symbol, T.Type)) where
-  Cns' :: [K.Expr env tp T.BoolType] -> Constraints' env '(nm, tp)
+  Cns' :: [E.Expr env tp T.BoolType] -> Constraints' env '(nm, tp)
 
 resolveFieldType :: Assignment T.FunctionTypeRepr env -> (LText, S.LType)
                  -> CtxM env (Pair FieldRepr (Constraints' env))
@@ -217,15 +218,15 @@ resolveFieldType env (L _ nm,tp) = do
 -- Type inference and checking for expressions
 
 inferExpr :: Assignment T.FunctionTypeRepr env -> T.TypeRepr ctx
-          -> S.LExpr -> CtxM env (Pair T.TypeRepr (K.Expr env ctx))
+          -> S.LExpr -> CtxM env (Pair T.TypeRepr (E.Expr env ctx))
 
-inferExpr _ _ (L _ (S.LiteralExpr l)) = fmapF K.LiteralExpr <$> inferLit l
-inferExpr _ ctx (L _ S.SelfExpr) = pure $ Pair ctx K.SelfExpr
+inferExpr _ _ (L _ (S.LiteralExpr l)) = fmapF E.LiteralExpr <$> inferLit l
+inferExpr _ ctx (L _ S.SelfExpr) = pure $ Pair ctx E.SelfExpr
 
 inferExpr _ (T.StructRepr ftps) (L _ (S.SelfFieldExpr (L p f)))
   | Some f' <- someSymbol f =
       case fieldIndex f' ftps of
-        Just (SomeField tp i) -> pure $ Pair tp (K.FieldExpr K.SelfExpr i)
+        Just (SomeField tp i) -> pure $ Pair tp (E.FieldExpr E.SelfExpr i)
         Nothing -> typeError (FieldNameError (L p f) (Some ftps))
 inferExpr _ _ (L _ (S.SelfFieldExpr f)) =
   typeError (FieldNameError f (Some Empty))
@@ -234,7 +235,7 @@ inferExpr env ctx (L _ (S.FieldExpr x (L p f))) = do
   Pair xtp x' <- inferExpr env ctx x
   case (xtp, someSymbol f) of
     (StructRepr ftps, Some f') -> case fieldIndex f' ftps of
-      Just (SomeField tp i) -> pure $ Pair tp (K.FieldExpr x' i)
+      Just (SomeField tp i) -> pure $ Pair tp (E.FieldExpr x' i)
       Nothing -> typeError (FieldNameError (L p f) (Some ftps))
     _ -> typeError (TypeMismatchError x (TypeString "a struct")
                                         (Just $ SomeType xtp))
@@ -245,7 +246,7 @@ inferExpr env ctx (L _ (S.ApplyExpr (L p fn) xs)) = do
       fntp@FunctionTypeRepr{..} <- return $ env ! fi
       mxs' <- checkExprs env ctx functionArgTypes xs
       case mxs' of
-        Just xs' -> pure $ Pair functionRetType (K.ApplyExpr fi xs')
+        Just xs' -> pure $ Pair functionRetType (E.ApplyExpr fi xs')
         Nothing -> typeError (FunctionArgLengthError (L p fn) (Some fntp) xs)
     Nothing -> typeError (UnknownFunctionError (L p fn))
 
@@ -255,22 +256,22 @@ inferExpr env ctx (L _ (S.EqExpr x y)) = do
   case (mb_x', mb_y') of
     (Left _, Left _) -> typeError (TypeInferenceError x)
     (Right (Pair xtp x'), Left _) -> do y' <- checkExpr env ctx xtp y
-                                        pure $ Pair T.BoolRepr (K.EqExpr x' y')
+                                        pure $ Pair T.BoolRepr (E.EqExpr x' y')
     (Left _, Right (Pair ytp y')) -> do x' <- checkExpr env ctx ytp x
-                                        pure $ Pair T.BoolRepr (K.EqExpr x' y')
+                                        pure $ Pair T.BoolRepr (E.EqExpr x' y')
     (Right (Pair xtp x'), Right (Pair ytp y')) -> case testEquality xtp ytp of
-      Just Refl -> pure $ Pair T.BoolRepr (K.EqExpr x' y')
+      Just Refl -> pure $ Pair T.BoolRepr (E.EqExpr x' y')
       _ -> typeError (TypeMismatchError y (SomeType xtp) (Just $ SomeType ytp))
 
 inferExpr env ctx (L _ (S.LteExpr x y)) = do
   x' <- checkExpr env ctx T.IntRepr x
   y' <- checkExpr env ctx T.IntRepr y
-  pure $ Pair T.BoolRepr (K.LteExpr x' y')
+  pure $ Pair T.BoolRepr (E.LteExpr x' y')
 
 inferExpr env ctx (L _ (S.PlusExpr x y)) = do
   x' <- checkExpr env ctx T.IntRepr x
   y' <- checkExpr env ctx T.IntRepr y
-  pure $ Pair T.IntRepr (K.PlusExpr x' y')
+  pure $ Pair T.IntRepr (E.PlusExpr x' y')
 
 inferExpr env ctx (L _ (S.MemberExpr x y)) = do
   mb_x' <- try $ inferExpr env ctx x
@@ -279,13 +280,13 @@ inferExpr env ctx (L _ (S.MemberExpr x y)) = do
     (Left _, Left _) -> typeError (TypeInferenceError x)
     (Right (Pair (EnumRepr cs) x'), Left _) -> do
       y' <- checkExpr env ctx (SetRepr cs) y
-      pure $ Pair T.BoolRepr (K.MemberExpr x' y')
+      pure $ Pair T.BoolRepr (E.MemberExpr x' y')
     (Left _, Right (Pair (SetRepr cs) y')) -> do
       x' <- checkExpr env ctx (EnumRepr cs) x
-      pure $ Pair T.BoolRepr (K.MemberExpr x' y')
+      pure $ Pair T.BoolRepr (E.MemberExpr x' y')
     (Right (Pair (EnumRepr xcs) x'), Right (Pair (SetRepr ycs) y')) ->
       case testEquality xcs ycs of
-        Just Refl -> pure $ Pair T.BoolRepr (K.MemberExpr x' y')
+        Just Refl -> pure $ Pair T.BoolRepr (E.MemberExpr x' y')
         _ -> typeError (TypeMismatchError y (SomeType (SetRepr xcs))
                                             (Just $ SomeType (SetRepr ycs)))
     (Right (Pair xtp _), _) ->
@@ -298,11 +299,11 @@ inferExpr env ctx (L _ (S.MemberExpr x y)) = do
 inferExpr env ctx (L _ (S.ImpliesExpr x y)) = do
   x' <- checkExpr env ctx T.BoolRepr x
   y' <- checkExpr env ctx T.BoolRepr y
-  pure $ Pair T.BoolRepr (K.ImpliesExpr x' y')
+  pure $ Pair T.BoolRepr (E.ImpliesExpr x' y')
 
 inferExpr env ctx (L _ (S.NotExpr x)) = do
   x' <- checkExpr env ctx T.BoolRepr x
-  pure $ Pair T.BoolRepr (K.NotExpr x')
+  pure $ Pair T.BoolRepr (E.NotExpr x')
 
 inferExpr _env _ctx (L p (S.IsInstanceExpr _x _t)) = do
   typeError (InternalError p "IsInstance (:) expressions are not yet supported")
@@ -312,9 +313,9 @@ inferExpr _env _ctx (L p (S.IsInstanceExpr _x _t)) = do
 
 checkExpr :: Assignment T.FunctionTypeRepr env -> T.TypeRepr ctx
           -> T.TypeRepr tp -> S.LExpr
-          -> CtxM env (K.Expr env ctx tp)
+          -> CtxM env (E.Expr env ctx tp)
 
-checkExpr _ _ tp (L _ (S.LiteralExpr l)) = K.LiteralExpr <$> checkLit tp l
+checkExpr _ _ tp (L _ (S.LiteralExpr l)) = E.LiteralExpr <$> checkLit tp l
 
 checkExpr env ctx tp x = do
   Pair tp' x' <- inferExpr env ctx x
@@ -326,7 +327,7 @@ checkExprs :: Assignment T.FunctionTypeRepr env
            -> T.TypeRepr ctx
            -> Assignment T.TypeRepr tps
            -> [S.LExpr]
-           -> CtxM env (Maybe (Assignment (K.Expr env ctx) tps))
+           -> CtxM env (Maybe (Assignment (E.Expr env ctx) tps))
 checkExprs _ _ Empty [] = pure $ Just Empty
 checkExprs env ctx (tps :> tp) (x:xs) = do
   x' <- checkExpr env ctx tp x
@@ -357,29 +358,29 @@ functionIndex nm =
 
 -- Type inference and checking for literals
 
-inferLit :: S.LLiteral -> CtxM env (Pair T.TypeRepr K.Literal)
+inferLit :: S.LLiteral -> CtxM env (Pair T.TypeRepr E.Literal)
 
-inferLit (L _ (S.BoolLit b)) = pure $ Pair T.BoolRepr (K.BoolLit b)
-inferLit (L _ (S.IntLit z))  = pure $ Pair T.IntRepr  (K.IntLit z)
+inferLit (L _ (S.BoolLit b)) = pure $ Pair T.BoolRepr (E.BoolLit b)
+inferLit (L _ (S.IntLit z))  = pure $ Pair T.IntRepr  (E.IntLit z)
 
 inferLit (L _ (S.StructLit ls)) = do
   Some fls <- fromList <$> mapM inferFieldLit ls
-  pure $ Pair (K.literalType (K.StructLit fls)) (K.StructLit fls)
+  pure $ Pair (E.literalType (E.StructLit fls)) (E.StructLit fls)
 
 inferLit lit@(L p _) = typeError (TypeInferenceError (L p (S.LiteralExpr lit)))
 
-checkLit :: T.TypeRepr tp -> S.LLiteral -> CtxM env (K.Literal tp)
+checkLit :: T.TypeRepr tp -> S.LLiteral -> CtxM env (E.Literal tp)
 
 checkLit (T.EnumRepr cs) (L _ (S.EnumLit e)) = do
   Some i <- enumElemIndex cs e
-  pure $ K.EnumLit cs i
+  pure $ E.EnumLit cs i
 checkLit tp lit@(L p (S.EnumLit _)) =
   typeError (TypeMismatchError (L p (S.LiteralExpr lit)) (SomeType tp)
                                (Just $ TypeString "an enum"))
 
 checkLit (T.SetRepr cs) (L _ (S.SetLit es)) = do
   es' <- forM es (enumElemIndex cs)
-  pure $ K.SetLit cs es'
+  pure $ E.SetLit cs es'
 checkLit tp lit@(L p (S.SetLit _)) =
   typeError (TypeMismatchError (L p (S.LiteralExpr lit)) (SomeType tp)
                                (Just $ TypeString "a set"))
@@ -395,7 +396,7 @@ inferFieldLit :: (LText, S.LLiteral) -> CtxM env (Some FieldLiteral)
 inferFieldLit (L _ s, l) = do
   Pair _ l' <- inferLit l
   Some s' <- pure $ someSymbol s
-  pure $ Some (K.FieldLiteral s' l')
+  pure $ Some (E.FieldLiteral s' l')
 
 
 enumElemIndex :: 1 <= CtxSize cs => Assignment SymbolRepr cs -> LText

@@ -26,6 +26,7 @@ module Lobot.Instances
   ( collectInstances
   ) where
 
+import Lobot.Expr
 import Lobot.Kind
 import Lobot.Types
 import Lobot.Utils
