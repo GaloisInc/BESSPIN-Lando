@@ -1,9 +1,9 @@
 module Main where
 
-import Lobot.Core.Instances
-import Lobot.Core.Kind
-import Lobot.Core.Parser
-import Lobot.Core.TypeCheck
+import Lobot.Instances
+import Lobot.Kind
+import Lobot.Parser
+import Lobot.TypeCheck
 
 import qualified Data.ByteString.Lazy.Char8 as LBS
 
@@ -44,7 +44,7 @@ testLobotFile fileName = do
                      exitFailure
       Right ks -> case last ks of
         Some k -> do
-          insts <- collectInstances z3 Empty k countLimit
+          Just insts <- collectInstances z3 Empty k countLimit
           return $ TestResult (Some k) (Some <$> insts)
 
 goldenTests :: IO TestTree
