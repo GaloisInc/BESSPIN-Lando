@@ -27,6 +27,7 @@ import Lobot.Types
 import Lobot.Utils
 
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
 import Data.Aeson
 import Data.Aeson.Types
@@ -49,13 +50,14 @@ typeToJSON tp = case tp of
   StructRepr flds -> object [ "variant" .= T.pack "struct"
                             , "fields" .= toListFC fieldToJSON flds
                             ]
+  AbsRepr s -> object [ "variant" .= symbolRepr s ]
 
 typeFromJSON :: Value -> Result (Some TypeRepr)
 typeFromJSON = parse typeParseJSON
 
 typeParseJSON :: Value -> Parser (Some TypeRepr)
 typeParseJSON = withObject "Some TypeRepr" $ \o -> do
-  variant :: T.Text <- o .: "variant"
+  variant <- o .: "variant"
   case variant of
     "bool" -> return $ Some BoolRepr
     "int" -> return $ Some IntRepr
@@ -76,7 +78,7 @@ typeParseJSON = withObject "Some TypeRepr" $ \o -> do
       someFlds <- traverse fieldParseJSON fldValues
       Some flds <- return $ fromList someFlds
       return $ Some (StructRepr flds)
-    _ -> fail $ "invalid type variant: " ++ T.unpack variant
+    _ -> return $ viewSome (Some . AbsRepr) (someSymbol variant)
 
 fieldToJSON :: FieldRepr ftp -> Value
 fieldToJSON (FieldRepr nm tp) = object [ "name" .= symbolRepr nm
@@ -110,6 +112,9 @@ literalToJSON tp = case tp of
   StructLit flds -> object [ "variant" .= T.pack "struct"
                            , "fields" .= toListFC fieldLiteralToJSON flds
                            ]
+  AbsLit s bs -> object [ "variant" .= symbolRepr s
+                        , "value" .= T.decodeUtf8 bs
+                        ]
 
 literalFromJSON :: Value -> Result (Some Literal)
 literalFromJSON = parse literalParseJSON
@@ -149,7 +154,10 @@ literalParseJSON = withObject "Some Literal" $ \o -> do
       someFlds <- traverse fieldLiteralParseJSON fldValues
       Some flds <- return $ fromList someFlds
       return $ Some (StructLit flds)
-    _ -> fail $ "invalid type variant: " ++ T.unpack variant
+    _ -> do
+      Some s <- return $ someSymbol variant
+      bs <- T.encodeUtf8 <$> o .: "value"
+      return $ Some (AbsLit s bs)
 
 fieldLiteralToJSON :: FieldLiteral ftp -> Value
 fieldLiteralToJSON (FieldLiteral nm l) = object [ "name" .= symbolRepr nm
