@@ -1,0 +1,5 @@
+foo : kind of struct
+  with x : int
+
+bar : kind of foo
+  with x : int

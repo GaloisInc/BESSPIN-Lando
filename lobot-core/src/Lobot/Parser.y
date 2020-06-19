@@ -61,7 +61,11 @@ import Lobot.Lexer
   int         { L _ (Token (INT _) _) }
   ident       { L _ (Token (IDLC _) _) }
   enumIdent   { L _ (Token (IDUC _) _) }
-  LAYEND      { L _ (Token (LAYEND _) _) }
+  -- LAYEND tokens are handled differently
+  LAYEND_WHERE  { L _ (Token (LAYEND (FromOther WHERE)) _) }
+  LAYEND_RBRACE { L _ (Token (LAYEND (FromOther RBRACE)) _) }
+  LAYEND_OTHER  { L _ (Token (LAYEND (FromOther _)) _) }
+  LAYEND_NL     { L _ (Token (LAYEND _) _) }
 
 %nonassoc ':'
 %left     '=>'
@@ -74,36 +78,36 @@ import Lobot.Lexer
 %%
 
 decls :: { [KindDecl] }
-decls : {- empty -}         { [] }
-      | decl LAYEND decls   { $1 : $3 }
+decls : {- empty -}            { [] }
+      | decl nlLAYEND decls   { $1 : $3 }
 
 decl :: { KindDecl }
-decl : ident ':' 'kind' 'of' topType LAYEND                        { KindDecl (tkText $1) $5 [] }
-     | ident ':' 'kind' 'of' topType LAYEND 'where' exprs LAYEND   { KindDecl (tkText $1) $5 $8 }
+decl : ident ':' 'kind' 'of' topType nlLAYEND                             { KindDecl (tkText $1) $5 [] }
+     | ident ':' 'kind' 'of' topType whereLAYEND 'where' exprs nlLAYEND   { KindDecl (tkText $1) $5 $8 }
 
 
 topType :: { LType }
-topType : type                             { $1 }
-        | 'struct' LAYEND 'with' fields    { loc $1 $ StructType $4 }
+topType : type                               { $1 }
+        | 'struct' nlLAYEND 'with' fields    { loc $1 $ StructType $4 }
         -- ^ Note: We don't need a LAYEND after the 'with' here as it's
         --   handled by the LAYENDs in `decl`.
 
-type    : 'bool'                           { loc $1 $ BoolType }
-        | 'int'                            { loc $1 $ IntType }
-        | '{' enumIdents '}'               { loc $1 $ EnumType (fmap unLoc $2) }
-        | 'subset' '{' enumIdents '}'      { loc $1 $ SetType (fmap unLoc $3) }
-        | 'struct' 'with' fields LAYEND    { loc $1 $ StructType $3 }
-        | 'struct' 'with' '{' '}'          { loc $1 $ StructType [] }
-        | 'struct' 'with' '{' fields '}'   { loc $1 $ StructType $4 }
-        | idents                           { loc (head $1) $ KindNames $1 }
+type    : 'bool'                             { loc $1 $ BoolType }
+        | 'int'                              { loc $1 $ IntType }
+        | '{' enumIdents '}'                 { loc $1 $ EnumType (fmap unLoc $2) }
+        | 'subset' '{' enumIdents '}'        { loc $1 $ SetType (fmap unLoc $3) }
+        | 'struct' 'with' fields anyLAYEND   { loc $1 $ StructType $3 }
+        | 'struct' 'with' '{' '}'            { loc $1 $ StructType [] }
+        | 'struct' 'with' '{' fields '}'     { loc $1 $ StructType $4 }
+        | idents                             { loc (head $1) $ KindNames $1 }
 
 fields :: { [(LText, LType)] }
-fields : field                      { [$1] }
-       | field fields               { $1 : $2 }
+fields : field                        { [$1] }
+       | field fields                 { $1 : $2 }
 
-field : ident ':' type ','          { (locText $1, $3) }
-      | ident ':' type LAYEND       { (locText $1, $3) }
-      | ident ':' type LAYEND ','   { (locText $1, $3) }
+field : ident ':' type ','            { (locText $1, $3) }
+      | ident ':' type anyLAYEND      { (locText $1, $3) }
+      | ident ':' type nlLAYEND ','   { (locText $1, $3) }
 
 
 expr :: { LExpr }
@@ -153,6 +157,10 @@ idents : ident          { locText $1 : [] }
        | ident idents   { locText $1 : $2 }
 
 
+nlLAYEND    : LAYEND_NL {}
+whereLAYEND : LAYEND_NL {} | LAYEND_WHERE {}
+anyLAYEND   : LAYEND_NL {} | LAYEND_WHERE {} | LAYEND_RBRACE {} | LAYEND_OTHER {}
+
 {
 
 locText :: LToken -> LText
@@ -170,10 +178,14 @@ tkInt (L _ (Token _ s)) = read s
 parseError :: (LToken, [String]) -> Alex a
 parseError (L p (Token (LAYEND FromNewline) _), _) =
   alexErrorWPos p ("expected more indentation")
-parseError (L p (Token (LAYEND FromOther) _), es) =
-  alexErrorWPos p ("unexpected layout change" ++ fmtExpected es)
+parseError (L p (Token (LAYEND (FromOther WHERE)) _), es) =
+  alexErrorWPos p ("(layout) parse error on input 'where'" ++ fmtExpected es)
+parseError (L p (Token (LAYEND (FromOther RBRACE)) _), es) =
+  alexErrorWPos p ("(layout) parse error on input '}'" ++ fmtExpected es)
+parseError (L p (Token (LAYEND (FromOther tk)) _), es) =
+  alexErrorWPos p ("(layout) parse error on token " ++ show tk ++ fmtExpected es)
 parseError (L p (Token (LAYEND FromEOF) s), es) =
-  alexErrorWPos p ("unexpected end of file (layout)" ++ fmtExpected es)
+  alexErrorWPos p ("(layout) unexpected end of file" ++ fmtExpected es)
 parseError (L p (Token EOF s), es) =
   alexErrorWPos p ("unexpected end of file" ++ fmtExpected es)
 parseError (L p (Token _ s), es) =
@@ -182,9 +194,12 @@ parseError (L p (Token _ s), es) =
 fmtExpected :: [String] -> String
 fmtExpected = go . concatMap modifyStr
   where modifyStr :: String -> [String]
-        modifyStr "LAYEND" = ["different indentation"]
-        modifyStr "EOF"    = []
-        modifyStr s        = [s]
+        modifyStr "LAYEND_WHERE"  = ["'where'"]
+        modifyStr "LAYEND_RBRACE" = []
+        modifyStr "LAYEND_OTHER"  = []
+        modifyStr "LAYEND_NL"     = ["different indentation"]
+        modifyStr "EOF"           = []
+        modifyStr s               = [s]
         go :: [String] -> String
         go []       = ""
         go [e]      = ", expected " ++ e
