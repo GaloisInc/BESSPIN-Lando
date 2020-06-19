@@ -2,8 +2,8 @@
 {-# LANGUAGE RecordWildCards #-}
 
 {-|
-Module      : Lobot.Core.Syntax.Pretty
-Description : Pretty printing functions for types defined in 'Lobot.Core.Syntax'.
+Module      : Lobot.Syntax.Pretty
+Description : Pretty printing functions for types defined in 'Lobot.Syntax'.
 Copyright   : (c) Matthew Yacavone, 2020
 License     : BSD3
 Maintainer  : myac@galois.com
@@ -13,7 +13,7 @@ Portability : POSIX
 This module defines pretty printing functions for the core LOBOT untyped syntax.
 -}
 
-module Lobot.Core.Syntax.Pretty
+module Lobot.Syntax.Pretty
   ( ppKindDecl
   , ppLType
   , ppType
@@ -25,7 +25,7 @@ module Lobot.Core.Syntax.Pretty
   , ppLText
   ) where
 
-import Lobot.Core.Syntax
+import Lobot.Syntax
 
 import qualified Text.PrettyPrint as PP
 import qualified Data.Text        as T

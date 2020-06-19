@@ -1,6 +1,6 @@
 {
 {-|
-Module      : Lobot.Core.Parser
+Module      : Lobot.Parser
 Description : A parser for the untyped AST of the Lobot sublanguage.
 Copyright   : (c) Matthew Yacavone, 2020
 License     : BSD3
@@ -10,15 +10,15 @@ Portability : POSIX
 
 This module provides a parser for the Lobot sublanguage.
 -}
-module Lobot.Core.Parser
+module Lobot.Parser
   ( parseDecls )
   where
 
 import Data.Text (Text, pack)
 import Data.List (concatMap, intercalate)
 
-import Lobot.Core.Syntax
-import Lobot.Core.Lexer
+import Lobot.Syntax
+import Lobot.Lexer
 }
 
 %expect 0

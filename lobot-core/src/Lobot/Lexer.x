@@ -3,7 +3,7 @@
 {-# LANGUAGE LambdaCase #-}
 
 {-|
-Module      : Lobot.Core.Lexer
+Module      : Lobot.Lexer
 Description : A lexer for the untyped AST of the Lobot sublanguage.
 Copyright   : (c) Matthew Yacavone, 2020
 License     : BSD3
@@ -13,7 +13,7 @@ Portability : POSIX
 
 This module provides a lexer for the Lobot sublanguage.
 -}
-module Lobot.Core.Lexer
+module Lobot.Lexer
   ( TokenType(..)
   , LAYENDType(..)
   , Token(..)

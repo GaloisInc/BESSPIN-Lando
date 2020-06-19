@@ -15,7 +15,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 {-|
-Module      : Lobot.Core.Kind
+Module      : Lobot.Kind
 Description : The core data type for representing feature models in Lobot.
 Copyright   : (c) Ben Selfridge, 2020
 License     : BSD3
@@ -26,7 +26,7 @@ Portability : POSIX
 This module defines the core data type for representing a feature model in
 Lobot.
 -}
-module Lobot.Core.Kind
+module Lobot.Kind
   ( -- * Types
     Type(..), BoolType, IntType, EnumType, SetType, StructType
   , TypeRepr(..)

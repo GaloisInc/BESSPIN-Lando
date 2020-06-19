@@ -10,7 +10,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 {-|
-Module      : Lobot.Core.TypeCheck
+Module      : Lobot.TypeCheck
 Description : The LOBOT type checker.
 Copyright   : (c) Matt Yacavone, 2020
 License     : BSD3
@@ -21,7 +21,7 @@ Portability : POSIX
 This module defines the type checking algorithm for the Lobot AST.
 -}
 
-module Lobot.Core.TypeCheck
+module Lobot.TypeCheck
   ( TypeError(..)
   , typeCheck
   , SomeTypeOrString(..)
@@ -53,12 +53,12 @@ import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableF
 import Prelude hiding (zipWith, unzip)
 
-import Lobot.Core.Utils
-import Lobot.Core.Lexer (AlexPosn, errorPrefix)
-import Lobot.Core.Kind   as K
-import Lobot.Core.Syntax as S
-import Lobot.Core.Kind.Pretty   as K
-import Lobot.Core.Syntax.Pretty as S
+import Lobot.Utils
+import Lobot.Lexer (AlexPosn, errorPrefix)
+import Lobot.Kind   as K
+import Lobot.Syntax as S
+import Lobot.Kind.Pretty   as K
+import Lobot.Syntax.Pretty as S
 
 -- | State/error monad for type checking. We maintain a hashmap from names to
 -- 'K.Kind's as we iterate through a @[S.Kind]@.

@@ -5,12 +5,12 @@
 {-# LANGUAGE TypeOperators #-}
 module Main where
 
-import Lobot.Core.Instances
-import Lobot.Core.Kind
-import Lobot.Core.Kind.JSON
-import Lobot.Core.Kind.Pretty
-import Lobot.Core.Parser
-import Lobot.Core.TypeCheck
+import Lobot.Instances
+import Lobot.Kind
+import Lobot.Kind.JSON
+import Lobot.Kind.Pretty
+import Lobot.Parser
+import Lobot.TypeCheck
 
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy.Char8 as BS

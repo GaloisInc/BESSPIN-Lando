@@ -18,17 +18,16 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 library
-  exposed-modules:     Lobot.Core.Kind
-                       Lobot.Core.Kind.Examples
-                       Lobot.Core.Kind.JSON
-                       Lobot.Core.Kind.Pretty
-                       Lobot.Core.Instances
-                       Lobot.Core.Syntax
-                       Lobot.Core.Syntax.Pretty
-                       Lobot.Core.Lexer
-                       Lobot.Core.Parser
-                       Lobot.Core.TypeCheck
-                       Lobot.Core.Utils
+  exposed-modules:     Lobot.Kind
+                       Lobot.Kind.JSON
+                       Lobot.Kind.Pretty
+                       Lobot.Instances
+                       Lobot.Syntax
+                       Lobot.Syntax.Pretty
+                       Lobot.Lexer
+                       Lobot.Parser
+                       Lobot.TypeCheck
+                       Lobot.Utils
 
   -- other-modules:
   -- other-extensions:

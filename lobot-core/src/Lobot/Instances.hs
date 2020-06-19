@@ -11,7 +11,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 {-|
-Module      : Lobot.Core.Instances
+Module      : Lobot.Instances
 Description : Enumerating instances via what4/Z3.
 Copyright   : (c) Ben Selfridge, 2020
 License     : BSD3
@@ -22,12 +22,12 @@ Portability : POSIX
 This module provides functions to enumerate instances of a kind via a
 what4-based SMT solver backend.
 -}
-module Lobot.Core.Instances
+module Lobot.Instances
   ( collectInstances
   ) where
 
-import Lobot.Core.Kind
-import Lobot.Core.Utils
+import Lobot.Kind
+import Lobot.Utils
 
 import qualified Data.BitVector.Sized    as BV
 import qualified Data.Text               as T
@@ -361,7 +361,7 @@ groundEvalLiteral WG.GroundEvalFn{..} (SymLiteral tp e) = case tp of
     case literalsFromGroundValues' ftps (fieldBaseTypes ftps) gvws of
       Just fls -> return $ StructLit fls
       Nothing -> error $
-        "PANIC: Lobot.Core.Instances.groundEvalLiteral: \n" ++ show ftps ++ "\n" ++ show (fieldBaseTypes ftps) ++ "\n" ++ show (ctxSizeNat (size gvws))
+        "PANIC: Lobot.Instances.groundEvalLiteral: \n" ++ show ftps ++ "\n" ++ show (fieldBaseTypes ftps) ++ "\n" ++ show (ctxSizeNat (size gvws))
   AbsRepr _ -> error "called groundEvalLiteral on abstract type"
 
 data BuilderState s = EmptyBuilderState

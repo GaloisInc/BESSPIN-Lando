@@ -7,7 +7,7 @@
 {-# LANGUAGE TypeApplications #-}
 
 {-|
-Module      : Lobot.Core.Utils
+Module      : Lobot.Utils
 Description : Useful functions.
 Copyright   : (c) Matt Yacavone, Ben Selfridge, 2020
 License     : BSD3
@@ -18,7 +18,7 @@ Portability : POSIX
 This module defines some functions used elsewhere in Lobot Core.
 -}
 
-module Lobot.Core.Utils where
+module Lobot.Utils where
 
 import Data.Functor.Identity
 import Data.Maybe (listToMaybe)
