@@ -33,7 +33,7 @@ data Options = Options { inFileName :: String }
   deriving Show
 
 count :: Natural
-count = 500
+count = 100
 
 options :: Parser Options
 options = Options
@@ -85,7 +85,8 @@ ig Options{..} = do
 
 type FnEnv = EmptyCtx ::>
   FunType "add1" (EmptyCtx ::> IntType) IntType ::>
-  FunType "square" (EmptyCtx ::> IntType) IntType
+  FunType "square" (EmptyCtx ::> IntType) IntType ::>
+  FunType "double" (EmptyCtx ::> IntType) IntType
 
 fnEnv :: Assignment (FunctionImpl IO) FnEnv
 fnEnv = canonicalEnv knownRepr
