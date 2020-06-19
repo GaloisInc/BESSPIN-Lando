@@ -248,7 +248,7 @@ convertFieldIndex i = unsafeCoerce i
 -- | Symbolically evaluate an expression given a symbolic instance.
 symEvalExpr :: WB.ExprBuilder t st fs
             -> Assignment (SymFunction t) env
-            -> Assigmnet (SymLiteral t) ctx
+            -> Assignment (SymLiteral t) ctx
             -> Expr env ctx tp'
             -> IO (SymLiteral t tp')
 symEvalExpr sym symFns symLits e = case e of
@@ -386,7 +386,7 @@ getNextInstance sym session symFns symLit = WS.runCheckSat session $ \result ->
     WS.Sat (ge,_) -> do
       inst <- groundEvalLiteral ge symLit
       let negateExpr = NotExpr (EqExpr SelfExpr (LiteralExpr inst))
-      SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLit negateExpr
+      SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns (Empty :> symLit) negateExpr
       WS.assume (WS.sessionWriter session) symConstraint
       return $ HasInstance inst
     WS.Unsat _ -> do return NoInstance
@@ -415,7 +415,7 @@ collectInstances z3_path env kd limit = do
       Just symLit -> do
         symFns <- traverseFC (freshUninterpSymFunction sym) env
         forM_ (kindConstraints kd) $ \e -> do
-          SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLit e
+          SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns (Empty :> symLit) e
           WS.assume (WS.sessionWriter session) symConstraint
         Just <$> collectInstances' sym session symFns symLit limit
       Nothing -> return Nothing

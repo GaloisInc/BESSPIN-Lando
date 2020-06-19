@@ -169,7 +169,7 @@ checkKindDecl env KindDecl{..} = do
 -- Resolving all kind names in a `S.Type` to get a `T.Type` and a list of
 -- additional constraints.
 
-data Constraints env tp = Cns [E.Expr env tp T.BoolType]
+data Constraints env tp = Cns [K.KindExpr env tp T.BoolType]
 
 resolveType :: Assignment T.FunctionTypeRepr env
             -> S.LType
@@ -205,7 +205,7 @@ resolveType env (L p (S.KindNames (k:ks))) = do
     Nothing -> typeError (KindUnionMismatchError k (Some tp) (Some (kindType k')))
 
 data Constraints' env (pr :: (Symbol, T.Type)) where
-  Cns' :: [E.Expr env tp T.BoolType] -> Constraints' env '(nm, tp)
+  Cns' :: [K.KindExpr env tp T.BoolType] -> Constraints' env '(nm, tp)
 
 resolveFieldType :: Assignment T.FunctionTypeRepr env -> (LText, S.LType)
                  -> CtxM env (Pair FieldRepr (Constraints' env))
@@ -217,16 +217,18 @@ resolveFieldType env (L _ nm,tp) = do
 
 -- Type inference and checking for expressions
 
-inferExpr :: Assignment T.FunctionTypeRepr env -> T.TypeRepr ctx
-          -> S.LExpr -> CtxM env (Pair T.TypeRepr (E.Expr env ctx))
+inferExpr :: Assignment T.FunctionTypeRepr env
+          -> T.TypeRepr ctx
+          -> S.LExpr
+          -> CtxM env (Pair T.TypeRepr (K.KindExpr env ctx))
 
 inferExpr _ _ (L _ (S.LiteralExpr l)) = fmapF E.LiteralExpr <$> inferLit l
-inferExpr _ ctx (L _ S.SelfExpr) = pure $ Pair ctx E.SelfExpr
+inferExpr _ ctx (L _ S.SelfExpr) = pure $ Pair ctx K.SelfExpr
 
 inferExpr _ (T.StructRepr ftps) (L _ (S.SelfFieldExpr (L p f)))
   | Some f' <- someSymbol f =
       case fieldIndex f' ftps of
-        Just (SomeField tp i) -> pure $ Pair tp (E.FieldExpr E.SelfExpr i)
+        Just (SomeField tp i) -> pure $ Pair tp (E.FieldExpr K.SelfExpr i)
         Nothing -> typeError (FieldNameError (L p f) (Some ftps))
 inferExpr _ _ (L _ (S.SelfFieldExpr f)) =
   typeError (FieldNameError f (Some Empty))
@@ -313,7 +315,7 @@ inferExpr _env _ctx (L p (S.IsInstanceExpr _x _t)) = do
 
 checkExpr :: Assignment T.FunctionTypeRepr env -> T.TypeRepr ctx
           -> T.TypeRepr tp -> S.LExpr
-          -> CtxM env (E.Expr env ctx tp)
+          -> CtxM env (K.KindExpr env ctx tp)
 
 checkExpr _ _ tp (L _ (S.LiteralExpr l)) = E.LiteralExpr <$> checkLit tp l
 
@@ -327,7 +329,7 @@ checkExprs :: Assignment T.FunctionTypeRepr env
            -> T.TypeRepr ctx
            -> Assignment T.TypeRepr tps
            -> [S.LExpr]
-           -> CtxM env (Maybe (Assignment (E.Expr env ctx) tps))
+           -> CtxM env (Maybe (Assignment (K.KindExpr env ctx) tps))
 checkExprs _ _ Empty [] = pure $ Just Empty
 checkExprs env ctx (tps :> tp) (x:xs) = do
   x' <- checkExpr env ctx tp x
