@@ -50,8 +50,8 @@ abstract fn num_compliance_tests : riscv -> int
 -- Test every single RV32 machine-mode bluespec configuration for RISC-V
 -- compliance.
 piccolo_build_check : check
-  for cfg : bluespec_config,
-      test_id : int
+  on cfg : bluespec_config,
+     test_id : int
   where 0 <= test_id, test_id <= num_compliance_tests(cfg.riscv)
   that run_riscv_program( build_bluespec(run.cfg)
                         , get_compliance_test(run.cfg.riscv, run.test_id) )
