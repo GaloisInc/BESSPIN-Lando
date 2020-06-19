@@ -94,10 +94,10 @@ tokens :-
     @identupper   { tokStr IDUC }
   }
 
-  <popWhile_where>  () { do_popWhile (not . isIDLC . snd)
+  <popWhile_where>  () { do_popWhile (not . isIDLC . snd) WHERE
                                      (tokAnd pushLayout WHERE) }
   
-  <popWhile_RBRACE> () { do_popWhile (not . (== LBRACE) . snd)
+  <popWhile_RBRACE> () { do_popWhile (not . (== LBRACE) . snd) RBRACE
                                      (tokAnd (popLayout LBRACE) RBRACE) }
 
 {
@@ -133,7 +133,7 @@ data TokenType = BOOL
                | EOF
                deriving (Eq,Show)
 
-data LAYENDType = FromNewline | FromEOF | FromOther
+data LAYENDType = FromNewline | FromEOF | FromOther TokenType
                   deriving (Eq,Show)
 
 isIDLC :: TokenType -> Bool
@@ -276,11 +276,13 @@ begin_popWhile popWhile_state inp len = do
   begin popWhile_state inp len
 
 -- | Pops all layouts on the stack which satisfy the given condition, emitting
--- LAYEND tokens for each, then executes the given action on the inputs saved
--- from 'begin_popWhile' and switches back to the main lexing state.
-do_popWhile :: ((Int,TokenType) -> Bool) -> AlexAction LToken -> AlexAction LToken
-do_popWhile cnd when_done inp len =
-  tryPopLayout cnd (tok (LAYEND FromOther) inp len) $ do
+-- LAYEND (FromOther tk) tokens for each, where tk is the given token, then
+-- executes the given action on the inputs saved from 'begin_popWhile' and
+-- switches back to the main lexing state.
+do_popWhile :: ((Int,TokenType) -> Bool) -> TokenType -> AlexAction LToken
+            -> AlexAction LToken
+do_popWhile cnd tk when_done inp len =
+  tryPopLayout cnd (tok (LAYEND (FromOther tk)) inp len) $ do
     (inp', len') <- getAndClearPopWhileLastInput
     (when_done `andBegin` main) inp' len'
 
@@ -327,7 +329,7 @@ lexer :: (LToken -> Alex a) -> Alex a
 lexer = (alexMonadScanWPos >>=)
 
 
-debug_lexer = False
+debug_lexer = True
 
 print_debug_line :: LToken -> Alex LToken
 print_debug_line tk | debug_lexer = do
