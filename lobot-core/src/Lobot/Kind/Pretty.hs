@@ -22,6 +22,7 @@ module Lobot.Kind.Pretty
   ) where
 
 import Lobot.Kind
+import Lobot.Types
 
 import qualified Text.PrettyPrint as PP
 import qualified Data.Text        as T

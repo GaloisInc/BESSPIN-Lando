@@ -23,6 +23,7 @@ module Lobot.Kind.JSON
   ) where
 
 import Lobot.Kind
+import Lobot.Types
 import Lobot.Utils
 
 import qualified Data.Text as T

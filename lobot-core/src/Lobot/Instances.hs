@@ -27,6 +27,7 @@ module Lobot.Instances
   ) where
 
 import Lobot.Kind
+import Lobot.Types
 import Lobot.Utils
 
 import qualified Data.BitVector.Sized    as BV

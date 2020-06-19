@@ -27,15 +27,8 @@ This module defines the core data type for representing a feature model in
 Lobot.
 -}
 module Lobot.Kind
-  ( -- * Types
-    Type(..), BoolType, IntType, EnumType, SetType, StructType
-  , TypeRepr(..)
-    -- * Functions
-  , FunctionType(..), FunType
-  , FunctionTypeRepr(..)
-    -- * Kinds
-  , Kind(..)
-  , FieldRepr(..)
+  ( -- * Kinds
+    Kind(..)
   , addConstraints
   , derivedKind
   , liftConstraints
@@ -53,6 +46,8 @@ module Lobot.Kind
   , giveSelf
   , liftExpr
   ) where
+
+import Lobot.Types
 
 import qualified Data.ByteString as BS
 
@@ -98,109 +93,6 @@ liftConstraints :: Index ktps '(nm, tp)
                 -> Kind env (StructType ktps)
                 -> Kind env (StructType ktps)
 liftConstraints i k' k = addConstraints k (liftExpr i <$> kindConstraints k')
-
--- | A 'FieldRepr' is a key, type pair. Note that since both the key and the type
--- are tracked at the type level, this is a singleton type that lets you know
--- everything you could possibly need to know about the field at compile time.
-data FieldRepr (pr :: (Symbol, Type)) where
-  FieldRepr :: { fieldName :: SymbolRepr nm
-               , fieldType :: TypeRepr tp } -> FieldRepr '(nm, tp)
-
-instance TestEquality FieldRepr where
-  testEquality (FieldRepr nm tp) (FieldRepr nm' tp') =
-    case (testEquality nm nm', testEquality tp tp') of
-      (Just Refl, Just Refl) -> Just Refl
-      _ -> Nothing
-
-deriving instance Show (FieldRepr pr)
-instance ShowF FieldRepr
-instance (KnownSymbol nm, KnownRepr TypeRepr tp) => KnownRepr FieldRepr '(nm, tp) where
-  knownRepr = FieldRepr knownRepr knownRepr
-
--- | The types of LOBOT.
-data Type = BoolType
-          | IntType
-          | EnumType (Ctx Symbol)
-          | SetType (Ctx Symbol)
-          | StructType (Ctx (Symbol, Type))
-          | AbsType Symbol
-
-type BoolType = 'BoolType
-type IntType = 'IntType
-type EnumType = 'EnumType
-type SetType = 'SetType
-type StructType = 'StructType
-type AbsType = 'AbsType
-
--- | Types for functions in Lobot.
-data FunctionType = FunType Symbol (Ctx Type) Type
-
-type FunType = 'FunType
-
-data FunctionTypeRepr fntp where
-  FunctionTypeRepr :: { functionName :: SymbolRepr nm
-                      , functionArgTypes :: Assignment TypeRepr args
-                      , functionRetType :: TypeRepr ret
-                      } -> FunctionTypeRepr (FunType nm args ret)
-
-deriving instance Show (FunctionTypeRepr fntp)
-instance ShowF FunctionTypeRepr
-instance TestEquality FunctionTypeRepr where
-  testEquality (FunctionTypeRepr nm args ret) (FunctionTypeRepr nm' args' ret')=
-    case (testEquality nm nm', testEquality args args', testEquality ret ret') of
-      (Just Refl, Just Refl, Just Refl) -> Just Refl
-      _ -> Nothing
-instance ( KnownSymbol nm
-         , KnownRepr (Assignment TypeRepr) args
-         , KnownRepr TypeRepr ret
-         ) => KnownRepr FunctionTypeRepr (FunType nm args ret) where
-  knownRepr = FunctionTypeRepr knownRepr knownRepr knownRepr
-
--- | Term-level representative of a type.
-data TypeRepr tp where
-  BoolRepr   :: TypeRepr BoolType
-  IntRepr    :: TypeRepr IntType
-  EnumRepr   :: 1 <= CtxSize cs
-             => Assignment SymbolRepr cs
-             -> TypeRepr (EnumType cs)
-  SetRepr    :: 1 <= CtxSize cs
-             => Assignment SymbolRepr cs
-             -> TypeRepr (SetType cs)
-  StructRepr :: Assignment FieldRepr ftps
-             -> TypeRepr (StructType ftps)
-  AbsRepr    :: SymbolRepr s -> TypeRepr (AbsType s)
-deriving instance Show (TypeRepr tp)
-instance ShowF TypeRepr
-
-instance TestEquality TypeRepr where
-  testEquality BoolRepr BoolRepr = Just Refl
-  testEquality IntRepr IntRepr = Just Refl
-  testEquality (EnumRepr cs) (EnumRepr cs') = case testEquality cs cs' of
-    Just Refl -> Just Refl
-    Nothing -> Nothing
-  testEquality (SetRepr cs) (SetRepr cs') = case testEquality cs cs' of
-    Just Refl -> Just Refl
-    Nothing -> Nothing
-  testEquality (StructRepr flds) (StructRepr flds') = case testEquality flds flds' of
-    Just Refl -> Just Refl
-    Nothing -> Nothing
-  testEquality (AbsRepr s) (AbsRepr s') = case testEquality s s' of
-    Just Refl -> Just Refl
-    Nothing -> Nothing
-  testEquality _ _ = Nothing
-
-instance KnownRepr TypeRepr BoolType
-  where knownRepr = BoolRepr
-instance KnownRepr TypeRepr IntType
-  where knownRepr = IntRepr
-instance (1 <= CtxSize cs, KnownRepr (Assignment SymbolRepr) cs) => KnownRepr TypeRepr (EnumType cs)
-  where knownRepr = EnumRepr knownRepr
-instance (1 <= CtxSize cs, KnownRepr (Assignment SymbolRepr) cs) => KnownRepr TypeRepr (SetType cs)
-  where knownRepr = SetRepr knownRepr
-instance KnownRepr (Assignment FieldRepr) ftps => KnownRepr TypeRepr (StructType ftps)
-  where knownRepr = StructRepr knownRepr
-instance KnownRepr SymbolRepr s => KnownRepr TypeRepr (AbsType s)
-  where knownRepr = AbsRepr knownRepr
 
 -- | Concrete value inhabiting a type.
 data Literal tp where

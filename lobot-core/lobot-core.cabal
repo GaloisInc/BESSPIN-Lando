@@ -27,6 +27,7 @@ library
                        Lobot.Lexer
                        Lobot.Parser
                        Lobot.TypeCheck
+                       Lobot.Types
                        Lobot.Utils
 
   -- other-modules:

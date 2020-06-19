@@ -11,6 +11,7 @@ import Lobot.Kind.JSON
 import Lobot.Kind.Pretty
 import Lobot.Parser
 import Lobot.TypeCheck
+import Lobot.Types
 
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy.Char8 as BS
