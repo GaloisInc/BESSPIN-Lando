@@ -58,7 +58,7 @@ import Lobot.Lexer (AlexPosn, errorPrefix)
 import Lobot.Kind   as K
 import Lobot.Syntax as S
 import Lobot.Types as T
-import Lobot.Kind.Pretty   as K
+import Lobot.Pretty   as P
 import Lobot.Syntax.Pretty as S
 
 -- | State/error monad for type checking. We maintain a hashmap from names to

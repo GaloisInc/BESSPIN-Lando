@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 {-|
-Module      : Lobot.Kind.JSON
+Module      : Lobot.JSON
 Description : Conversion of Lobot types to/from JSON.
 Copyright   : (c) Ben Selfridge, 2020
 License     : BSD3
@@ -13,7 +13,7 @@ Portability : POSIX
 
 This module provides functions for serializing and parsing JSON values.
 -}
-module Lobot.Kind.JSON
+module Lobot.JSON
   ( -- * Types
     typeToJSON
   , typeFromJSON

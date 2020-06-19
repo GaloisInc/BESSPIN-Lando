@@ -19,13 +19,13 @@ extra-source-files:  CHANGELOG.md
 
 library
   exposed-modules:     Lobot.Kind
-                       Lobot.Kind.JSON
-                       Lobot.Kind.Pretty
+                       Lobot.JSON
                        Lobot.Instances
                        Lobot.Syntax
                        Lobot.Syntax.Pretty
                        Lobot.Lexer
                        Lobot.Parser
+                       Lobot.Pretty
                        Lobot.TypeCheck
                        Lobot.Types
                        Lobot.Utils

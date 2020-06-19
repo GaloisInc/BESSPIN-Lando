@@ -6,10 +6,10 @@
 module Main where
 
 import Lobot.Instances
+import Lobot.JSON
 import Lobot.Kind
-import Lobot.Kind.JSON
-import Lobot.Kind.Pretty
 import Lobot.Parser
+import Lobot.Pretty
 import Lobot.TypeCheck
 import Lobot.Types
 
