@@ -329,7 +329,7 @@ lexer :: (LToken -> Alex a) -> Alex a
 lexer = (alexMonadScanWPos >>=)
 
 
-debug_lexer = True
+debug_lexer = False
 
 print_debug_line :: LToken -> Alex LToken
 print_debug_line tk | debug_lexer = do
