@@ -67,10 +67,8 @@ ig Options{..} = do
           case isAbstractType (kindType k) of
             FalseRepr -> do
               putStrLn $ "Generating instances..."
-              insts <- collectInstances "/usr/local/bin/z3" knownRepr k count
-              putStrLn $ "Generated " ++ show (length insts) ++ " instances."
-              putStrLn $ "Filtering for valid instances..."
-              validInsts <- flip filterM insts $ \inst -> instanceOf fnEnv inst k
+              validInsts <-
+                collectAndFilterInstances "/usr/local/bin/z3" knownRepr fnEnv k count
               putStrLn $ show (length validInsts) ++ " valid instances."
               let numInsts = length validInsts
               iRef <- newIORef 1
@@ -104,7 +102,9 @@ canonicalFn :: FunctionTypeRepr (FunType nm args ret)
             -> FunctionImpl IO (FunType nm args ret)
 canonicalFn fntp = FunctionImpl fntp (run fntp)
 
-run :: FunctionTypeRepr (FunType nm args ret) -> Assignment Literal args -> IO (Literal ret)
+run :: FunctionTypeRepr (FunType nm args ret)
+    -> Assignment Literal args
+    -> IO (Literal ret)
 run FunctionTypeRepr{..} args = do
   let json_args = A.toJSONList (toListFC literalToJSON args)
       std_in = BS.unpack (A.encode json_args)

@@ -24,6 +24,7 @@ what4-based SMT solver backend.
 -}
 module Lobot.Instances
   ( collectInstances
+  , collectAndFilterInstances
   ) where
 
 import Lobot.Expr
@@ -43,7 +44,7 @@ import qualified What4.Solver            as WS
 import qualified What4.Solver.Z3         as WS
 import qualified What4.BaseTypes         as WT
 
-import Data.Foldable (forM_)
+import Data.Foldable (forM_, traverse_)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Context
 import Data.Parameterized.NatRepr
@@ -226,7 +227,19 @@ symLiteral :: IsAbstractType tp ~ 'False
            -> IO (SymLiteral t tp)
 symLiteral sym l = SymLiteral (literalType l) <$> symExpr sym l
 
--- | Convert an 'Assignment' of 'FieldLiteral's to an 'Assignment' of 'WB.Expr's by calling 'symFieldLiteral' on each element.
+symLiterals :: AnyAbstractTypes tps ~ 'False
+            => WB.ExprBuilder t st fs
+            -> Assignment Literal tps
+            -> IO (Assignment (SymLiteral t) tps)
+symLiterals _ Empty = return empty
+symLiterals sym (ls :> l)
+  | FalseRepr <- isAbstractType (literalType l) = do
+      sl <- symLiteral sym l
+      sls <- symLiterals sym ls
+      return $ sls :> sl
+
+-- | Convert an 'Assignment' of 'FieldLiteral's to an 'Assignment' of 'WB.Expr's
+-- by calling 'symFieldLiteral' on each element.
 symFieldLiteralExprs :: AnyAbstractFields ftps ~ 'False
                      => WB.ExprBuilder t st fs
                      -> Assignment FieldLiteral ftps
@@ -400,8 +413,7 @@ getNextInstance sym session symFns symLit = WS.runCheckSat session $ \result ->
 
 -- | Collect instances of a kind, without the guarantee that any of the
 -- instances satisfy any particular function environment (just that there is
--- /some/ environment this instance satisfies). If the kind's type is abstract,
--- return 'Nothing'.
+-- /some/ environment this instance satisfies).
 collectInstances :: IsAbstractType tp ~ 'False
                  => FilePath
                  -- ^ Path to z3 executable
@@ -438,3 +450,79 @@ collectInstances' sym session symFns symLit limit = do
     HasInstance l -> do ls <- collectInstances' sym session symFns symLit (limit-1)
                         return (l : ls)
     _ -> return []
+
+-- | Collect instances of a kind, only returning those instances that satisfy
+-- the given function environment. Each time the solver returns an instance, we
+-- check whether it is actually an instance and discard it if not; we also
+-- collect all concrete function calls evaluated during the course of this check
+-- and add the results to the SMT solver's assumptions. This has the effect of
+-- "teaching" the solver about the pointwise values of the functions.
+collectAndFilterInstances :: IsAbstractType tp ~ 'False
+                          => FilePath
+                          -- ^ Path to z3 executable
+                          -> Assignment FunctionTypeRepr env
+                          -- ^ Type of function environment
+                          -> Assignment (FunctionImpl IO) env
+                          -- ^ Concrete functions
+                          -> Kind env tp
+                          -- ^ Kind we are generating instances of
+                          -> Natural
+                          -- ^ Maximum number of instances to collect
+                          -> IO [Literal tp]
+collectAndFilterInstances z3_path env fns kd limit = do
+  Some nonceGen <- newIONonceGenerator
+  sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
+  WC.extendConfig WS.z3Options (WI.getConfiguration sym)
+  WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
+    symLit <- freshSymLiteralConstant sym session "" (kindType kd)
+    symFns <- traverseFC (freshUninterpSymFunction sym) env
+    forM_ (kindConstraints kd) $ \e -> do
+      SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns (Empty :> symLit) e
+      WS.assume (WS.sessionWriter session) symConstraint
+    collectAndFilterInstances' sym session fns kd symFns symLit limit
+
+collectAndFilterInstances' :: (IsAbstractType tp ~ 'False, WS.SMTLib2Tweaks solver)
+                           => WB.ExprBuilder t st fs
+                           -> WS.Session t solver
+                           -> Assignment (FunctionImpl IO) env
+                           -> Kind env tp
+                           -> Assignment (SymFunction t) env
+                           -> SymLiteral t tp
+                           -> Natural
+                           -> IO [Literal tp]
+collectAndFilterInstances' _ _ _ _ _ _ 0 = return []
+collectAndFilterInstances' sym session fns kd symFns symLit limit = do
+  r <- getNextInstance sym session symFns symLit
+  case r of
+    HasInstance l -> do
+      (isInst, calls) <- instanceOf fns l kd
+      traverse_ (assumeCall sym session symFns) calls
+      ls <- collectAndFilterInstances' sym session fns kd symFns symLit (limit-1)
+      case isInst of
+        True -> return (l:ls)
+        False -> return ls
+    _ -> return []
+
+-- | Assumes the result of a function call. If any of the functions arguments
+-- are abstract, or if its return type is abstract, this is a no-op.
+assumeCall :: WS.SMTLib2Tweaks solver
+           => WB.ExprBuilder t st fs
+           -> WS.Session t solver
+           -> Assignment (SymFunction t) env
+           -> FunctionCallResult env
+           -> IO ()
+assumeCall sym session symFns (FunctionCallResult fi args ret)
+  | SymFunction{..} <- symFns ! fi
+  , FalseRepr <- anyAbstractTypes (functionArgTypes symFunctionType)
+  , FalseRepr <- isAbstractType (functionRetType symFunctionType) = do
+      symArgs <- symLiterals sym args
+      symRet <- symLiteral sym ret
+      symApply <- WI.applySymFn sym symFunctionValue (symLiteralExprs symArgs)
+      symRes <- case functionRetType symFunctionType of
+        BoolRepr -> WI.eqPred sym symApply (symLiteralExpr symRet)
+        IntRepr -> WI.intEq sym symApply (symLiteralExpr symRet)
+        EnumRepr _ -> WI.bvEq sym symApply (symLiteralExpr symRet)
+        SetRepr _ -> WI.bvEq sym symApply (symLiteralExpr symRet)
+        StructRepr _ -> WI.structEq sym symApply (symLiteralExpr symRet)
+      WS.assume (WS.sessionWriter session) symRes
+  | otherwise = return ()

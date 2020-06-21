@@ -4,12 +4,7 @@ small_int : kind of int
 pos_int : kind of int
   where 0 <= self
 
-ex1 : kind of struct
-  with x : small_int,
-       y : small_int
-  where y + y <= x
-
-ex2 : kind of struct
+ex : kind of struct
   with x : small_int
-       y : pos_int
-  where double(y) <= x,
+       y : int
+  where y = add1(x)
