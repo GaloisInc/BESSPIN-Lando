@@ -176,12 +176,12 @@ freshSymFieldLiteralExprs :: (AnyAbstractFields ftps ~ 'False, WS.SMTLib2Tweaks 
                           -> Assignment FieldRepr ftps
                           -> IO (Assignment (WB.Expr t) (FieldBaseTypes ftps))
 freshSymFieldLiteralExprs _ _ _ Empty = return Empty
-freshSymFieldLiteralExprs sym session prefix (ftps :> FieldRepr nm tp) = do
-  let prefix' = prefix ++ "." ++ T.unpack (symbolRepr nm)
-  FalseRepr <- return $ isAbstractType tp
-  SymLiteral _ e <- freshSymLiteralConstant sym session prefix' tp
-  symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
-  return $ symExprs :> e
+freshSymFieldLiteralExprs sym session prefix (ftps :> FieldRepr nm tp)
+  | FalseRepr <- isAbstractType tp = do
+      let prefix' = prefix ++ "." ++ T.unpack (symbolRepr nm)
+      SymLiteral _ e <- freshSymLiteralConstant sym session prefix' tp
+      symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
+      return $ symExprs :> e
 
 -- | Check if two 'SymLiteral's are equal.
 symLiteralEq :: forall t st fs tp .
@@ -197,19 +197,12 @@ symLiteralEq sym (SymLiteral tp e1) (SymLiteral _ e2) = case tp of
   SetRepr _ -> WI.bvEq sym e1 e2
   StructRepr _ -> WI.structEq sym e1 e2
 
--- | Convert an 'Assignment' of 'FieldLiteral's to an 'Assignment' of 'WB.Expr's by calling 'symFieldLiteral' on each element.
-symFieldLiteralExprs :: WB.ExprBuilder t st fs
-                     -> Assignment FieldLiteral ftps
-                     -> IO (Assignment (WB.Expr t) (FieldBaseTypes ftps))
-symFieldLiteralExprs _ Empty = return empty
-symFieldLiteralExprs sym (fls :> fl) = do
-  sfl <- symFieldLiteral sym fl
-  sfls <- symFieldLiteralExprs sym fls
-  return $ sfls :> symFieldLiteralExpr sfl
-
 -- | Inject a 'Literal' into a 'WB.Expr' by initiating the symbolic values to
 -- concrete ones.
-symExpr :: WB.ExprBuilder t st fs -> Literal tp -> IO (WB.Expr t (TypeBaseType tp))
+symExpr :: IsAbstractType tp ~ 'False
+        => WB.ExprBuilder t st fs
+        -> Literal tp
+        -> IO (WB.Expr t (TypeBaseType tp))
 symExpr sym l = case l of
   BoolLit True -> return $ WI.truePred sym
   BoolLit False -> return $ WI.falsePred sym
@@ -223,17 +216,32 @@ symExpr sym l = case l of
   StructLit fls -> do
     symExprs <- symFieldLiteralExprs sym fls
     WI.mkStruct sym symExprs
-  AbsLit _ _ -> error "PANIC: called symExpr on abstract type"
   where indexBit n (Some i) = BV.bit' n (fromIntegral (indexVal i))
 
 -- | Inject a 'Literal' into a 'SymLiteral' by initiating the symbolic values to
 -- concrete ones.
-symLiteral :: WB.ExprBuilder t st fs -> Literal tp -> IO (SymLiteral t tp)
+symLiteral :: IsAbstractType tp ~ 'False
+           => WB.ExprBuilder t st fs
+           -> Literal tp
+           -> IO (SymLiteral t tp)
 symLiteral sym l = SymLiteral (literalType l) <$> symExpr sym l
+
+-- | Convert an 'Assignment' of 'FieldLiteral's to an 'Assignment' of 'WB.Expr's by calling 'symFieldLiteral' on each element.
+symFieldLiteralExprs :: AnyAbstractFields ftps ~ 'False
+                     => WB.ExprBuilder t st fs
+                     -> Assignment FieldLiteral ftps
+                     -> IO (Assignment (WB.Expr t) (FieldBaseTypes ftps))
+symFieldLiteralExprs _ Empty = return empty
+symFieldLiteralExprs sym (fls :> fl)
+  | FalseRepr <- isAbstractField (fieldLiteralType fl) = do
+      sfl <- symFieldLiteral sym fl
+      sfls <- symFieldLiteralExprs sym fls
+      return $ sfls :> symFieldLiteralExpr sfl
 
 -- | Inject a 'FieldLiteral' into a 'SymFieldLiteral' by setting the
 -- symbolic values equal to concrete ones.
-symFieldLiteral :: WB.ExprBuilder t st fs
+symFieldLiteral :: IsAbstractField ftp ~ 'False
+                => WB.ExprBuilder t st fs
                 -> FieldLiteral ftp
                 -> IO (SymFieldLiteral t ftp)
 symFieldLiteral sym (FieldLiteral nm l) = SymFieldLiteral nm <$> symLiteral sym l
@@ -333,7 +341,8 @@ literalFromGroundValue' :: FieldRepr '(nm, tp)
 literalFromGroundValue' (FieldRepr nm tp) btp val =
   FieldLiteral nm <$> literalFromGroundValue tp btp val
 
-groundEvalLiteral :: WG.GroundEvalFn t
+groundEvalLiteral :: IsAbstractType tp ~ 'False
+                  => WG.GroundEvalFn t
                   -> SymLiteral t tp
                   -> IO (Literal tp)
 groundEvalLiteral WG.GroundEvalFn{..} (SymLiteral tp e) = case tp of
@@ -361,7 +370,6 @@ groundEvalLiteral WG.GroundEvalFn{..} (SymLiteral tp e) = case tp of
       Just fls -> return $ StructLit fls
       Nothing -> error $
         "PANIC: Lobot.Instances.groundEvalLiteral: \n" ++ show ftps ++ "\n" ++ show (fieldBaseTypes ftps) ++ "\n" ++ show (ctxSizeNat (size gvws))
-  AbsRepr _ -> error "called groundEvalLiteral on abstract type"
 
 data BuilderState s = EmptyBuilderState
 
