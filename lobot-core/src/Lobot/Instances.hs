@@ -370,7 +370,8 @@ data InstanceResult tp = HasInstance (Literal tp)
 
 -- | If there are any instances in the current session, retrieve it, and then
 -- negate that instance so we get a different result next time.
-getNextInstance :: WS.SMTLib2Tweaks solver
+getNextInstance :: (IsAbstract tp ~ 'False)
+                => WS.SMTLib2Tweaks solver
                 => WB.ExprBuilder t st fs
                 -> WS.Session t solver
                 -> Assignment (SymFunction t) env
@@ -413,7 +414,7 @@ collectInstances z3_path env kd limit = do
       WS.assume (WS.sessionWriter session) symConstraint
     collectInstances' sym session symFns symLit limit
 
-collectInstances' :: WS.SMTLib2Tweaks solver
+collectInstances' :: (IsAbstract tp ~ 'False, WS.SMTLib2Tweaks solver)
                   => WB.ExprBuilder t st fs
                   -> WS.Session t solver
                   -> Assignment (SymFunction t) env

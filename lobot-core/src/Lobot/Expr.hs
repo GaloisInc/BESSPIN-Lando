@@ -57,7 +57,7 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
               -> Assignment (Expr env ctx) args
               -> Expr env ctx ret
   -- | Equality of two expressions.
-  EqExpr      :: Expr env ctx tp -> Expr env ctx tp -> Expr env ctx BoolType
+  EqExpr      :: IsAbstract tp ~ 'False => Expr env ctx tp -> Expr env ctx tp -> Expr env ctx BoolType
   -- | Less-than-or-equal for two integer expressions.
   LteExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx BoolType
   -- | Add two integer expression.

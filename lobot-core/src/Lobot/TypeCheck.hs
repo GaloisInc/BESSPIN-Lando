@@ -44,9 +44,9 @@ import Data.Text (Text)
 import Control.Monad (forM)
 import Control.Monad.Trans (lift)
 import Control.Monad.State (StateT, get, modify, evalStateT)
+import Data.Parameterized.BoolRepr
 import Data.Parameterized.Some
 import Data.Parameterized.Pair
-import Data.Parameterized.Classes
 import Data.Parameterized.Context
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
@@ -68,6 +68,7 @@ type CtxM env = StateT (H.Map Text (Some (Kind env))) (Either TypeError)
 
 data TypeError = TypeMismatchError S.LExpr SomeTypeOrString (Maybe SomeTypeOrString)
                  -- ^ argument order: expr, expected type, actual type
+               | AbstractEqualityError S.LExpr SomeTypeOrString
                | TypeInferenceError S.LExpr
                | FieldNameError LText (Some (Assignment FieldRepr))
                | EmptyEnumOrSetError S.LType
@@ -87,6 +88,10 @@ ppTypeError fp (TypeMismatchError (L p x) exp_tp Nothing) =
 ppTypeError fp (TypeMismatchError x exp_tp (Just act_tp)) =
   ppTypeError fp (TypeMismatchError x exp_tp Nothing)
   PP.$$ PP.nest 2 (PP.text "  Actual type:") PP.<+> PP.nest 6 (ppSomeTypeOrString act_tp)
+ppTypeError fp (AbstractEqualityError (L p x) tp) =
+  PP.text (errorPrefix fp p)
+  PP.<+> PP.text "Equality comparison on abstract type:" PP.<+> ppSomeTypeOrString tp
+  PP.$$ PP.nest 2 (PP.text "  In expression:" PP.<+> S.ppExpr x)
 ppTypeError fp (TypeInferenceError (L p x)) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "Could not infer the type of expression:" PP.<+> S.ppExpr x
@@ -257,13 +262,19 @@ inferExpr env ctx (L _ (S.EqExpr x y)) = do
   mb_y' <- try $ inferExpr env ctx y
   case (mb_x', mb_y') of
     (Left _, Left _) -> typeError (TypeInferenceError x)
-    (Right (Pair xtp x'), Left _) -> do y' <- checkExpr env ctx xtp y
-                                        pure $ Pair T.BoolRepr (E.EqExpr x' y')
-    (Left _, Right (Pair ytp y')) -> do x' <- checkExpr env ctx ytp x
-                                        pure $ Pair T.BoolRepr (E.EqExpr x' y')
-    (Right (Pair xtp x'), Right (Pair ytp y')) -> case testEquality xtp ytp of
-      Just Refl -> pure $ Pair T.BoolRepr (E.EqExpr x' y')
-      _ -> typeError (TypeMismatchError y (SomeType xtp) (Just $ SomeType ytp))
+    (Right (Pair xtp x'), Left _)
+      | FalseRepr <- isAbstract xtp -> do y' <- checkExpr env ctx xtp y
+                                          pure $ Pair T.BoolRepr (E.EqExpr x' y')
+      | otherwise -> typeError (AbstractEqualityError x (SomeType xtp))
+    (Left _, Right (Pair ytp y'))
+      | FalseRepr <- isAbstract ytp -> do x' <- checkExpr env ctx ytp x
+                                          pure $ Pair T.BoolRepr (E.EqExpr x' y')
+      | otherwise -> typeError (AbstractEqualityError y (SomeType ytp))
+    (Right (Pair xtp x'), Right (Pair ytp y'))
+      | FalseRepr <- isAbstract xtp -> case testEquality xtp ytp of
+          Just Refl -> pure $ Pair T.BoolRepr (E.EqExpr x' y')
+          _ -> typeError (TypeMismatchError y (SomeType xtp) (Just $ SomeType ytp))
+      | otherwise -> typeError (AbstractEqualityError x (SomeType xtp))
 
 inferExpr env ctx (L _ (S.LteExpr x y)) = do
   x' <- checkExpr env ctx T.IntRepr x
