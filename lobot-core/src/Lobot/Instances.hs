@@ -44,6 +44,7 @@ import qualified What4.Solver.Z3         as WS
 import qualified What4.BaseTypes         as WT
 
 import Data.Foldable (forM_)
+import Data.Parameterized.BoolRepr
 import Data.Parameterized.Context
 import Data.Parameterized.NatRepr
 import Data.Parameterized.Nonce
@@ -84,6 +85,7 @@ type family TypeBaseType (tp :: Type) :: WT.BaseType where
   TypeBaseType (EnumType cs) = WT.BaseBVType (CtxSize cs)
   TypeBaseType (SetType cs) = WT.BaseBVType (CtxSize cs)
   TypeBaseType (StructType ftps) = WT.BaseStructType (FieldBaseTypes ftps)
+  TypeBaseType (AbsType _) = WT.BaseIntegerType
 
 typeBaseType :: TypeRepr tp -> WT.BaseTypeRepr (TypeBaseType tp)
 typeBaseType BoolRepr = WT.BaseBoolRepr
@@ -91,7 +93,7 @@ typeBaseType IntRepr = WT.BaseIntegerRepr
 typeBaseType (EnumRepr cs) = WT.BaseBVRepr (ctxSizeNat (size cs))
 typeBaseType (SetRepr cs) = WT.BaseBVRepr (ctxSizeNat (size cs))
 typeBaseType (StructRepr ftps) = WT.BaseStructRepr (fieldBaseTypes ftps)
-typeBaseType (AbsRepr _) = error "called typeBaseType on abstract type"
+typeBaseType (AbsRepr _) = WT.BaseIntegerRepr
 
 -- | Symbolic 'Literal'.
 data SymLiteral t tp =
@@ -135,7 +137,7 @@ freshUninterpSymFunction sym fntp@FunctionTypeRepr{..} = do
 -- probably simplyify this one.
 -- | Declare a fresh constant 'SymLiteral'. If this type is abstract, or
 -- contains any abstract types, return 'Nothing'.
-freshSymLiteralConstant :: (IsAbstract tp ~ 'False, WS.SMTLib2Tweaks solver)
+freshSymLiteralConstant :: (IsAbstractType tp ~ 'False, WS.SMTLib2Tweaks solver)
                         => WB.ExprBuilder t st fs
                         -> WS.Session t solver
                         -> String
@@ -167,7 +169,7 @@ freshSymLiteralConstant sym session prefix tp = do
       structExpr <- WI.mkStruct sym symExprs
       return $ SymLiteral tp structExpr
 
-freshSymFieldLiteralExprs :: (AnyFieldsAbstract ftps ~ 'False, WS.SMTLib2Tweaks solver)
+freshSymFieldLiteralExprs :: (AnyAbstractFields ftps ~ 'False, WS.SMTLib2Tweaks solver)
                           => WB.ExprBuilder t st fs
                           -> WS.Session t solver
                           -> String
@@ -176,14 +178,15 @@ freshSymFieldLiteralExprs :: (AnyFieldsAbstract ftps ~ 'False, WS.SMTLib2Tweaks 
 freshSymFieldLiteralExprs _ _ _ Empty = return Empty
 freshSymFieldLiteralExprs sym session prefix (ftps :> FieldRepr nm tp) = do
   let prefix' = prefix ++ "." ++ T.unpack (symbolRepr nm)
-  Refl <- return $ lastNotAbstract (ftps :> FieldRepr nm tp)
+  FalseRepr <- return $ isAbstractType tp
   SymLiteral _ e <- freshSymLiteralConstant sym session prefix' tp
   symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
   return $ symExprs :> e
 
 -- | Check if two 'SymLiteral's are equal.
 symLiteralEq :: forall t st fs tp .
-                WB.ExprBuilder t st fs
+                IsAbstractType tp ~ 'False
+             => WB.ExprBuilder t st fs
              -> SymLiteral t tp
              -> SymLiteral t tp
              -> IO (WB.BoolExpr t)
@@ -193,7 +196,6 @@ symLiteralEq sym (SymLiteral tp e1) (SymLiteral _ e2) = case tp of
   EnumRepr _ -> WI.bvEq sym e1 e2
   SetRepr _ -> WI.bvEq sym e1 e2
   StructRepr _ -> WI.structEq sym e1 e2
-  AbsRepr _ -> error "called symLiteralEq on abstract type"
 
 -- | Convert an 'Assignment' of 'FieldLiteral's to an 'Assignment' of 'WB.Expr's by calling 'symFieldLiteral' on each element.
 symFieldLiteralExprs :: WB.ExprBuilder t st fs
@@ -221,7 +223,7 @@ symExpr sym l = case l of
   StructLit fls -> do
     symExprs <- symFieldLiteralExprs sym fls
     WI.mkStruct sym symExprs
-  AbsLit _ _ -> error "called symExpr on abstract type"
+  AbsLit _ _ -> error "PANIC: called symExpr on abstract type"
   where indexBit n (Some i) = BV.bit' n (fromIntegral (indexVal i))
 
 -- | Inject a 'Literal' into a 'SymLiteral' by initiating the symbolic values to
@@ -370,7 +372,7 @@ data InstanceResult tp = HasInstance (Literal tp)
 
 -- | If there are any instances in the current session, retrieve it, and then
 -- negate that instance so we get a different result next time.
-getNextInstance :: (IsAbstract tp ~ 'False)
+getNextInstance :: (IsAbstractType tp ~ 'False)
                 => WS.SMTLib2Tweaks solver
                 => WB.ExprBuilder t st fs
                 -> WS.Session t solver
@@ -392,7 +394,7 @@ getNextInstance sym session symFns symLit = WS.runCheckSat session $ \result ->
 -- instances satisfy any particular function environment (just that there is
 -- /some/ environment this instance satisfies). If the kind's type is abstract,
 -- return 'Nothing'.
-collectInstances :: IsAbstract tp ~ 'False
+collectInstances :: IsAbstractType tp ~ 'False
                  => FilePath
                  -- ^ Path to z3 executable
                  -> Assignment FunctionTypeRepr env
@@ -414,7 +416,7 @@ collectInstances z3_path env kd limit = do
       WS.assume (WS.sessionWriter session) symConstraint
     collectInstances' sym session symFns symLit limit
 
-collectInstances' :: (IsAbstract tp ~ 'False, WS.SMTLib2Tweaks solver)
+collectInstances' :: (IsAbstractType tp ~ 'False, WS.SMTLib2Tweaks solver)
                   => WB.ExprBuilder t st fs
                   -> WS.Session t solver
                   -> Assignment (SymFunction t) env

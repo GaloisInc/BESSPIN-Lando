@@ -30,10 +30,14 @@ module Lobot.Types
   , FunctionType(..), FunType
   , FunctionTypeRepr(..)
     -- * Abstract type utilities
-  , IsAbstract
-  , AnyFieldsAbstract
-  , isAbstract
-  , lastNotAbstract
+  , IsAbstractType
+  , AnyAbstractTypes
+  , IsAbstractField
+  , AnyAbstractFields
+  , isAbstractType
+  , anyAbstractTypes
+  , isAbstractField
+  , anyAbstractFields
   ) where
 
 import Data.Parameterized.BoolRepr
@@ -145,30 +149,38 @@ instance ( KnownSymbol nm
          ) => KnownRepr FunctionTypeRepr (FunType nm args ret) where
   knownRepr = FunctionTypeRepr knownRepr knownRepr knownRepr
 
-type family IsAbstract (tp :: Type) :: Bool where
-  IsAbstract (AbsType _) = 'True
-  IsAbstract (StructType ftps) = AnyFieldsAbstract ftps
-  IsAbstract _ = 'False
-
-type family AnyFieldsAbstract (tps :: Ctx (Symbol, Type)) :: Bool where
-  AnyFieldsAbstract EmptyCtx = 'False
-  AnyFieldsAbstract (tps ::> '(nm, tp)) = IsAbstract tp || AnyFieldsAbstract tps
+type family IsAbstractType (tp :: Type) :: Bool where
+  IsAbstractType (AbsType _) = 'True
+  IsAbstractType (StructType ftps) = AnyAbstractFields ftps
+  IsAbstractType _ = 'False
 
 -- | Determine if a type is abstract.
-isAbstract :: TypeRepr tp -> BoolRepr (IsAbstract tp)
-isAbstract (AbsRepr _) = TrueRepr
-isAbstract (StructRepr ftps) = anyFieldsAbstract ftps
-isAbstract BoolRepr = FalseRepr
-isAbstract IntRepr = FalseRepr
-isAbstract (EnumRepr _) = FalseRepr
-isAbstract (SetRepr _) = FalseRepr
+isAbstractType :: TypeRepr tp -> BoolRepr (IsAbstractType tp)
+isAbstractType (AbsRepr _) = TrueRepr
+isAbstractType (StructRepr ftps) = anyAbstractFields ftps
+isAbstractType BoolRepr = FalseRepr
+isAbstractType IntRepr = FalseRepr
+isAbstractType (EnumRepr _) = FalseRepr
+isAbstractType (SetRepr _) = FalseRepr
 
-anyFieldsAbstract :: Assignment FieldRepr ftps -> BoolRepr (AnyFieldsAbstract ftps)
-anyFieldsAbstract Empty = FalseRepr
-anyFieldsAbstract (ftps :> FieldRepr _ tp) = isAbstract tp %|| anyFieldsAbstract ftps
+type family IsAbstractField (ftp :: (Symbol, Type)) :: Bool where
+  IsAbstractField '(_, tp) = IsAbstractType tp
 
-lastNotAbstract :: AnyFieldsAbstract (ftps ::> '(nm, tp)) ~ 'False
-                           => Assignment FieldRepr (ftps ::> '(nm, tp))
-                           -> IsAbstract tp :~: 'False
-lastNotAbstract (_ :> FieldRepr _ tp) = case isAbstract tp of
-  FalseRepr -> Refl
+isAbstractField :: FieldRepr ftp -> BoolRepr (IsAbstractField ftp)
+isAbstractField (FieldRepr _ tp) = isAbstractType tp
+
+type family AnyAbstractTypes (tps :: Ctx Type) :: Bool where
+  AnyAbstractTypes EmptyCtx = 'False
+  AnyAbstractTypes (tps ::> tp) = IsAbstractType tp || AnyAbstractTypes tps
+
+anyAbstractTypes :: Assignment TypeRepr tps -> BoolRepr (AnyAbstractTypes tps)
+anyAbstractTypes Empty = FalseRepr
+anyAbstractTypes (tps :> tp) = isAbstractType tp %|| anyAbstractTypes tps
+
+type family AnyAbstractFields (ftps :: Ctx (Symbol, Type)) :: Bool where
+  AnyAbstractFields EmptyCtx = 'False
+  AnyAbstractFields (ftps ::> ftp) = IsAbstractField ftp || AnyAbstractFields ftps
+
+anyAbstractFields :: Assignment FieldRepr ftps -> BoolRepr (AnyAbstractFields ftps)
+anyAbstractFields Empty = FalseRepr
+anyAbstractFields (ftps :> ftp) = isAbstractField ftp %|| anyAbstractFields ftps

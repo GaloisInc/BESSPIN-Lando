@@ -50,7 +50,6 @@ import Data.Parameterized.Pair
 import Data.Parameterized.Context
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
-import Data.Parameterized.TraversableF
 import Prelude hiding (zipWith, unzip)
 
 import Lobot.Utils
@@ -226,10 +225,10 @@ inferExpr :: Assignment T.FunctionTypeRepr env
           -> T.TypeRepr ctx
           -> S.LExpr
           -> CtxM env (Pair T.TypeRepr (K.KindExpr env ctx))
-
-inferExpr _ _ (L _ (S.LiteralExpr l)) = fmapF E.LiteralExpr <$> inferLit l
+inferExpr _ _ (L _ (S.LiteralExpr l)) = do
+  InferLit tp l' <- inferLit l
+  return $ Pair tp (E.LiteralExpr l')
 inferExpr _ ctx (L _ S.SelfExpr) = pure $ Pair ctx K.SelfExpr
-
 inferExpr _ (T.StructRepr ftps) (L _ (S.SelfFieldExpr (L p f)))
   | Some f' <- someSymbol f =
       case fieldIndex f' ftps of
@@ -237,7 +236,6 @@ inferExpr _ (T.StructRepr ftps) (L _ (S.SelfFieldExpr (L p f)))
         Nothing -> typeError (FieldNameError (L p f) (Some ftps))
 inferExpr _ _ (L _ (S.SelfFieldExpr f)) =
   typeError (FieldNameError f (Some Empty))
-
 inferExpr env ctx (L _ (S.FieldExpr x (L p f))) = do
   Pair xtp x' <- inferExpr env ctx x
   case (xtp, someSymbol f) of
@@ -246,7 +244,6 @@ inferExpr env ctx (L _ (S.FieldExpr x (L p f))) = do
       Nothing -> typeError (FieldNameError (L p f) (Some ftps))
     _ -> typeError (TypeMismatchError x (TypeString "a struct")
                                         (Just $ SomeType xtp))
-
 inferExpr env ctx (L _ (S.ApplyExpr (L p fn) xs)) = do
   case functionIndex fn env of
     Just (Some fi) -> do
@@ -256,36 +253,32 @@ inferExpr env ctx (L _ (S.ApplyExpr (L p fn) xs)) = do
         Just xs' -> pure $ Pair functionRetType (E.ApplyExpr fi xs')
         Nothing -> typeError (FunctionArgLengthError (L p fn) (Some fntp) xs)
     Nothing -> typeError (UnknownFunctionError (L p fn))
-
 inferExpr env ctx (L _ (S.EqExpr x y)) = do
   mb_x' <- try $ inferExpr env ctx x
   mb_y' <- try $ inferExpr env ctx y
   case (mb_x', mb_y') of
     (Left _, Left _) -> typeError (TypeInferenceError x)
     (Right (Pair xtp x'), Left _)
-      | FalseRepr <- isAbstract xtp -> do y' <- checkExpr env ctx xtp y
-                                          pure $ Pair T.BoolRepr (E.EqExpr x' y')
+      | FalseRepr <- isAbstractType xtp -> do y' <- checkExpr env ctx xtp y
+                                              pure $ Pair T.BoolRepr (E.EqExpr x' y')
       | otherwise -> typeError (AbstractEqualityError x (SomeType xtp))
     (Left _, Right (Pair ytp y'))
-      | FalseRepr <- isAbstract ytp -> do x' <- checkExpr env ctx ytp x
-                                          pure $ Pair T.BoolRepr (E.EqExpr x' y')
+      | FalseRepr <- isAbstractType  ytp -> do x' <- checkExpr env ctx ytp x
+                                               pure $ Pair T.BoolRepr (E.EqExpr x' y')
       | otherwise -> typeError (AbstractEqualityError y (SomeType ytp))
     (Right (Pair xtp x'), Right (Pair ytp y'))
-      | FalseRepr <- isAbstract xtp -> case testEquality xtp ytp of
+      | FalseRepr <- isAbstractType xtp -> case testEquality xtp ytp of
           Just Refl -> pure $ Pair T.BoolRepr (E.EqExpr x' y')
           _ -> typeError (TypeMismatchError y (SomeType xtp) (Just $ SomeType ytp))
       | otherwise -> typeError (AbstractEqualityError x (SomeType xtp))
-
 inferExpr env ctx (L _ (S.LteExpr x y)) = do
   x' <- checkExpr env ctx T.IntRepr x
   y' <- checkExpr env ctx T.IntRepr y
   pure $ Pair T.BoolRepr (E.LteExpr x' y')
-
 inferExpr env ctx (L _ (S.PlusExpr x y)) = do
   x' <- checkExpr env ctx T.IntRepr x
   y' <- checkExpr env ctx T.IntRepr y
   pure $ Pair T.IntRepr (E.PlusExpr x' y')
-
 inferExpr env ctx (L _ (S.MemberExpr x y)) = do
   mb_x' <- try $ inferExpr env ctx x
   mb_y' <- try $ inferExpr env ctx y
@@ -308,28 +301,27 @@ inferExpr env ctx (L _ (S.MemberExpr x y)) = do
     (_, Right (Pair ytp _)) ->
       typeError (TypeMismatchError y (TypeString "a set")
                                      (Just $ SomeType ytp))
-
 inferExpr env ctx (L _ (S.ImpliesExpr x y)) = do
   x' <- checkExpr env ctx T.BoolRepr x
   y' <- checkExpr env ctx T.BoolRepr y
   pure $ Pair T.BoolRepr (E.ImpliesExpr x' y')
-
 inferExpr env ctx (L _ (S.NotExpr x)) = do
   x' <- checkExpr env ctx T.BoolRepr x
   pure $ Pair T.BoolRepr (E.NotExpr x')
-
 inferExpr _env _ctx (L p (S.IsInstanceExpr _x _t)) = do
   typeError (InternalError p "IsInstance (:) expressions are not yet supported")
   -- Pair t' (Cns cns) <- resolveType env t
   -- x' <- checkExpr env ctx t' x
   -- pure $ Pair T.BoolRepr (foldr1 K.AndExpr (giveSelf x' <$> cns))
 
-checkExpr :: Assignment T.FunctionTypeRepr env -> T.TypeRepr ctx
-          -> T.TypeRepr tp -> S.LExpr
+checkExpr :: Assignment T.FunctionTypeRepr env
+          -> T.TypeRepr ctx
+          -> T.TypeRepr tp
+          -> S.LExpr
           -> CtxM env (K.KindExpr env ctx tp)
-
-checkExpr _ _ tp (L _ (S.LiteralExpr l)) = E.LiteralExpr <$> checkLit tp l
-
+checkExpr _ _ tp (L _ (S.LiteralExpr l)) = do
+  CheckLit l' <- checkLit tp l
+  return $ E.LiteralExpr l'
 checkExpr env ctx tp x = do
   Pair tp' x' <- inferExpr env ctx x
   case testEquality tp tp' of
@@ -371,46 +363,60 @@ functionIndex nm =
 
 -- Type inference and checking for literals
 
-inferLit :: S.LLiteral -> CtxM env (Pair T.TypeRepr E.Literal)
+data InferLit where
+  InferLit :: IsAbstractType tp ~ 'False => T.TypeRepr tp -> E.Literal tp -> InferLit
 
-inferLit (L _ (S.BoolLit b)) = pure $ Pair T.BoolRepr (E.BoolLit b)
-inferLit (L _ (S.IntLit z))  = pure $ Pair T.IntRepr  (E.IntLit z)
-
+-- | Infer the type of a literal without any knowledge of what its type should be.
+inferLit :: S.LLiteral -> CtxM env InferLit
+inferLit (L _ (S.BoolLit b)) = pure $ InferLit T.BoolRepr (E.BoolLit b)
+inferLit (L _ (S.IntLit z))  = pure $ InferLit T.IntRepr  (E.IntLit z)
 inferLit (L _ (S.StructLit ls)) = do
-  Some fls <- fromList <$> mapM inferFieldLit ls
-  pure $ Pair (E.literalType (E.StructLit fls)) (E.StructLit fls)
-
+  InferFieldLits fls <- toInferFieldLits <$> mapM inferFieldLit ls
+  pure $ InferLit (E.literalType (E.StructLit fls)) (E.StructLit fls)
 inferLit lit@(L p _) = typeError (TypeInferenceError (L p (S.LiteralExpr lit)))
 
-checkLit :: T.TypeRepr tp -> S.LLiteral -> CtxM env (E.Literal tp)
+data CheckLit tp where
+  CheckLit :: IsAbstractType tp ~ 'False => E.Literal tp -> CheckLit tp
 
+-- | Check that the type of a literal is equal to some known type.
+checkLit :: T.TypeRepr tp -> S.LLiteral -> CtxM env (CheckLit tp)
 checkLit (T.EnumRepr cs) (L _ (S.EnumLit e)) = do
   Some i <- enumElemIndex cs e
-  pure $ E.EnumLit cs i
+  pure $ CheckLit (E.EnumLit cs i)
 checkLit tp lit@(L p (S.EnumLit _)) =
   typeError (TypeMismatchError (L p (S.LiteralExpr lit)) (SomeType tp)
                                (Just $ TypeString "an enum"))
-
 checkLit (T.SetRepr cs) (L _ (S.SetLit es)) = do
   es' <- forM es (enumElemIndex cs)
-  pure $ E.SetLit cs es'
+  pure $ CheckLit (E.SetLit cs es')
 checkLit tp lit@(L p (S.SetLit _)) =
   typeError (TypeMismatchError (L p (S.LiteralExpr lit)) (SomeType tp)
                                (Just $ TypeString "a set"))
-
 checkLit tp lit@(L p _) = do
-  Pair tp' lit' <- inferLit lit
+  InferLit tp' lit' <- inferLit lit
   case testEquality tp tp' of
-    Just Refl -> pure lit'
+    Just Refl -> pure $ CheckLit lit'
     _ -> typeError (TypeMismatchError (L p (S.LiteralExpr lit)) (SomeType tp)
                                       (Just $ SomeType tp'))
 
-inferFieldLit :: (LText, S.LLiteral) -> CtxM env (Some FieldLiteral)
-inferFieldLit (L _ s, l) = do
-  Pair _ l' <- inferLit l
-  Some s' <- pure $ someSymbol s
-  pure $ Some (E.FieldLiteral s' l')
+data InferFieldLit where
+  InferFieldLit :: IsAbstractType tp ~ 'False => FieldLiteral '(nm, tp) -> InferFieldLit
 
+inferFieldLit :: (LText, S.LLiteral) -> CtxM env InferFieldLit
+inferFieldLit (L _ s, l) = do
+  InferLit _ l' <- inferLit l
+  Some s' <- pure $ someSymbol s
+  pure $ InferFieldLit (E.FieldLiteral s' l')
+
+data InferFieldLits where
+  InferFieldLits :: AnyAbstractFields ftps ~ 'False
+                 => Assignment FieldLiteral ftps
+                 -> InferFieldLits
+
+toInferFieldLits :: [InferFieldLit] -> InferFieldLits
+toInferFieldLits [] = InferFieldLits Empty
+toInferFieldLits (InferFieldLit fl : ifls)
+  | InferFieldLits fls <- toInferFieldLits ifls = InferFieldLits (fls :> fl)
 
 enumElemIndex :: 1 <= CtxSize cs => Assignment SymbolRepr cs -> LText
               -> CtxM env (Some (Index cs))

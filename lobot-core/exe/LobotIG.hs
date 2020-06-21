@@ -64,7 +64,7 @@ ig Options{..} = do
           putStrLn $ "----------------"
           print $ ppKind k
           putStrLn $ "----------------"
-          case isAbstract (kindType k) of
+          case isAbstractType (kindType k) of
             FalseRepr -> do
               putStrLn $ "Generating instances..."
               insts <- collectInstances "/usr/local/bin/z3" knownRepr k count

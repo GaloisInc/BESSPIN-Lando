@@ -47,7 +47,7 @@ import GHC.TypeLits
 -- function environment.
 data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   -- | An expression built from a literal value.
-  LiteralExpr :: Literal tp -> Expr env ctx tp
+  LiteralExpr :: IsAbstractType tp ~ 'False => Literal tp -> Expr env ctx tp
   -- | An expression referring to a particular value in the current context.
   VarExpr     :: Index ctx tp -> Expr env ctx tp
   -- | An expression referring to a field of an instance of some kind.
@@ -57,7 +57,7 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
               -> Assignment (Expr env ctx) args
               -> Expr env ctx ret
   -- | Equality of two expressions.
-  EqExpr      :: IsAbstract tp ~ 'False => Expr env ctx tp -> Expr env ctx tp -> Expr env ctx BoolType
+  EqExpr      :: IsAbstractType tp ~ 'False => Expr env ctx tp -> Expr env ctx tp -> Expr env ctx BoolType
   -- | Less-than-or-equal for two integer expressions.
   LteExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx BoolType
   -- | Add two integer expression.
