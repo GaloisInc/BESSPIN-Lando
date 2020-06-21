@@ -21,7 +21,6 @@ This modules defines the core expression data type we use for constraints.
 module Lobot.Expr
   ( -- * Expressions
     Expr(..)
-  , evalExpr
     -- * Literals
   , FieldLiteral(..)
   , fieldLiteralType
@@ -31,9 +30,10 @@ module Lobot.Expr
     -- * Function implementation
   , FunctionImpl(..)
     -- * Evaluation
+  , evalExpr
   , EvalM(..)
-  , runEvalM
   , evalExpr'
+  , runEvalM
   , FunctionCallResult(..)
   ) where
 

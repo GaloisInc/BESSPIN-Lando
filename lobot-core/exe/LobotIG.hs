@@ -18,7 +18,7 @@ import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy.Char8 as BS
 import qualified Data.Text as T
 
-import Control.Monad (void, when, filterM)
+import Control.Monad (void, when)
 import Data.Foldable (forM_)
 import Data.IORef
 import Data.Parameterized.BoolRepr
