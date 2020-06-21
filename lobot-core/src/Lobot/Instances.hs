@@ -135,21 +135,21 @@ freshUninterpSymFunction sym fntp@FunctionTypeRepr{..} = do
 -- probably simplyify this one.
 -- | Declare a fresh constant 'SymLiteral'. If this type is abstract, or
 -- contains any abstract types, return 'Nothing'.
-freshSymLiteralConstant :: WS.SMTLib2Tweaks solver
+freshSymLiteralConstant :: (IsAbstract tp ~ 'False, WS.SMTLib2Tweaks solver)
                         => WB.ExprBuilder t st fs
                         -> WS.Session t solver
                         -> String
                         -> TypeRepr tp
-                        -> IO (Maybe (SymLiteral t tp))
+                        -> IO (SymLiteral t tp)
 freshSymLiteralConstant sym session prefix tp = do
   let cSymbol = WI.safeSymbol prefix
   case tp of
     BoolRepr -> do
       c <- WI.freshConstant sym cSymbol WT.BaseBoolRepr
-      return $ Just (SymLiteral tp c)
+      return $ SymLiteral tp c
     IntRepr -> do
       c <- WI.freshConstant sym cSymbol WT.BaseIntegerRepr
-      return $ Just (SymLiteral tp c)
+      return $ SymLiteral tp c
     EnumRepr cs -> do
       let n = ctxSizeNat (size cs)
       c <- WI.freshConstant sym cSymbol (WT.BaseBVRepr n)
@@ -157,34 +157,29 @@ freshSymLiteralConstant sym session prefix tp = do
       one <- WI.bvLit sym n (BV.one n)
       c_popcount_1 <- WI.bvEq sym c_popcount one
       WS.assume (WS.sessionWriter session) c_popcount_1
-      return $ Just (SymLiteral tp c)
+      return $ SymLiteral tp c
     SetRepr cs -> do
       let n = ctxSizeNat (size cs)
       c <- WI.freshConstant sym cSymbol (WT.BaseBVRepr n)
-      return $ Just (SymLiteral tp c)
+      return $ SymLiteral tp c
     StructRepr ftps -> do
-      mSymExprs <- freshSymFieldLiteralExprs sym session prefix ftps
-      case mSymExprs of
-        Just symExprs -> do
-          structExpr <- WI.mkStruct sym symExprs
-          return $ Just (SymLiteral tp structExpr)
-        Nothing -> return Nothing
-    AbsRepr _ -> return Nothing
+      symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
+      structExpr <- WI.mkStruct sym symExprs
+      return $ SymLiteral tp structExpr
 
-freshSymFieldLiteralExprs :: WS.SMTLib2Tweaks solver
+freshSymFieldLiteralExprs :: (AnyFieldsAbstract ftps ~ 'False, WS.SMTLib2Tweaks solver)
                           => WB.ExprBuilder t st fs
                           -> WS.Session t solver
                           -> String
                           -> Assignment FieldRepr ftps
-                          -> IO (Maybe (Assignment (WB.Expr t) (FieldBaseTypes ftps)))
-freshSymFieldLiteralExprs _ _ _ Empty = return (Just Empty)
-freshSymFieldLiteralExprs sym session prefix (ftps :> (FieldRepr nm tp)) = do
+                          -> IO (Assignment (WB.Expr t) (FieldBaseTypes ftps))
+freshSymFieldLiteralExprs _ _ _ Empty = return Empty
+freshSymFieldLiteralExprs sym session prefix (ftps :> FieldRepr nm tp) = do
   let prefix' = prefix ++ "." ++ T.unpack (symbolRepr nm)
-  mSymLit <- freshSymLiteralConstant sym session prefix' tp
-  mSymExprs <- freshSymFieldLiteralExprs sym session prefix ftps
-  case (mSymLit, mSymExprs) of
-    (Just (SymLiteral _ e), Just symExprs) -> return $ Just (symExprs :> e)
-    _ -> return Nothing
+  Refl <- return $ lastNotAbstract (ftps :> FieldRepr nm tp)
+  SymLiteral _ e <- freshSymLiteralConstant sym session prefix' tp
+  symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
+  return $ symExprs :> e
 
 -- | Check if two 'SymLiteral's are equal.
 symLiteralEq :: forall t st fs tp .
@@ -396,7 +391,8 @@ getNextInstance sym session symFns symLit = WS.runCheckSat session $ \result ->
 -- instances satisfy any particular function environment (just that there is
 -- /some/ environment this instance satisfies). If the kind's type is abstract,
 -- return 'Nothing'.
-collectInstances :: FilePath
+collectInstances :: IsAbstract tp ~ 'False
+                 => FilePath
                  -- ^ Path to z3 executable
                  -> Assignment FunctionTypeRepr env
                  -- ^ Type of function environment
@@ -404,21 +400,18 @@ collectInstances :: FilePath
                  -- ^ Kind we are generating instances of
                  -> Natural
                  -- ^ Maximum number of instances to collect
-                 -> IO (Maybe [Literal tp])
+                 -> IO [Literal tp]
 collectInstances z3_path env kd limit = do
   Some nonceGen <- newIONonceGenerator
   sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
   WC.extendConfig WS.z3Options (WI.getConfiguration sym)
   WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
-    mSymLit <- freshSymLiteralConstant sym session "" (kindType kd)
-    case mSymLit of
-      Just symLit -> do
-        symFns <- traverseFC (freshUninterpSymFunction sym) env
-        forM_ (kindConstraints kd) $ \e -> do
-          SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns (Empty :> symLit) e
-          WS.assume (WS.sessionWriter session) symConstraint
-        Just <$> collectInstances' sym session symFns symLit limit
-      Nothing -> return Nothing
+    symLit <- freshSymLiteralConstant sym session "" (kindType kd)
+    symFns <- traverseFC (freshUninterpSymFunction sym) env
+    forM_ (kindConstraints kd) $ \e -> do
+      SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns (Empty :> symLit) e
+      WS.assume (WS.sessionWriter session) symConstraint
+    collectInstances' sym session symFns symLit limit
 
 collectInstances' :: WS.SMTLib2Tweaks solver
                   => WB.ExprBuilder t st fs

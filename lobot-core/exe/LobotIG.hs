@@ -21,6 +21,7 @@ import qualified Data.Text as T
 import Control.Monad (void, when, filterM)
 import Data.Foldable (forM_)
 import Data.IORef
+import Data.Parameterized.BoolRepr
 import Data.Parameterized.Classes
 import Data.Parameterized.Context hiding (last, take)
 import Data.Parameterized.Some
@@ -53,7 +54,7 @@ ig Options{..} = do
   fileStr <- readFile inFileName
   case parseDecls inFileName fileStr of
     Left err -> putStrLn err
-    Right decls -> case typeCheck knownRepr decls of
+    Right decls -> case typeCheck (knownRepr :: Assignment FunctionTypeRepr FnEnv) decls of
       Left err -> print $ ppTypeError inFileName err
       Right [] -> print "No kinds in file"
       Right ks -> case last ks of
@@ -63,27 +64,28 @@ ig Options{..} = do
           putStrLn $ "----------------"
           print $ ppKind k
           putStrLn $ "----------------"
-          putStrLn $ "Generating instances..."
-          mInsts <- collectInstances "/usr/local/bin/z3" knownRepr k count
-          when (not (isJust mInsts)) $ do
-            putStrLn $ "Can't generate instances of abstract type " ++ T.unpack (kindName k)
-            exitFailure
-          let Just insts = mInsts
-          putStrLn $ "Generated " ++ show (length insts) ++ " instances."
-          putStrLn $ "Filtering for valid instances..."
-          validInsts <- flip filterM insts $ \inst -> instanceOf fnEnv inst k
-          putStrLn $ show (length validInsts) ++ " valid instances."
-          let numInsts = length validInsts
-          iRef <- newIORef 1
-          forM_ validInsts $ \inst -> do
-            i <- readIORef iRef
-            modifyIORef iRef (+1)
-            putStrLn $
-              "Instance " ++ show i ++ "/" ++ show numInsts ++ ":"
-            print $ ppLiteral inst
-            when (i < numInsts) $ do
-              putStrLn $ "Press enter to see the next instance."
-              void getLine
+          case isAbstract (kindType k) of
+            FalseRepr -> do
+              putStrLn $ "Generating instances..."
+              insts <- collectInstances "/usr/local/bin/z3" knownRepr k count
+              putStrLn $ "Generated " ++ show (length insts) ++ " instances."
+              putStrLn $ "Filtering for valid instances..."
+              validInsts <- flip filterM insts $ \inst -> instanceOf fnEnv inst k
+              putStrLn $ show (length validInsts) ++ " valid instances."
+              let numInsts = length validInsts
+              iRef <- newIORef 1
+              forM_ validInsts $ \inst -> do
+                i <- readIORef iRef
+                modifyIORef iRef (+1)
+                putStrLn $
+                  "Instance " ++ show i ++ "/" ++ show numInsts ++ ":"
+                print $ ppLiteral inst
+                when (i < numInsts) $ do
+                  putStrLn $ "Press enter to see the next instance."
+                  void getLine
+            TrueRepr -> do
+              putStrLn $ "Cannot generate instances of abstract type."
+              exitFailure
 
 type FnEnv = EmptyCtx ::>
   FunType "add1" (EmptyCtx ::> IntType) IntType ::>

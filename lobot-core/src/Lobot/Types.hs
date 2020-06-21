@@ -4,6 +4,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -28,8 +29,14 @@ module Lobot.Types
     -- * Functions
   , FunctionType(..), FunType
   , FunctionTypeRepr(..)
+    -- * Abstract type utilities
+  , IsAbstract
+  , AnyFieldsAbstract
+  , isAbstract
+  , lastNotAbstract
   ) where
 
+import Data.Parameterized.BoolRepr
 import Data.Parameterized.Classes
 import Data.Parameterized.Context
 import Data.Parameterized.SymbolRepr
@@ -137,3 +144,31 @@ instance ( KnownSymbol nm
          , KnownRepr TypeRepr ret
          ) => KnownRepr FunctionTypeRepr (FunType nm args ret) where
   knownRepr = FunctionTypeRepr knownRepr knownRepr knownRepr
+
+type family IsAbstract (tp :: Type) :: Bool where
+  IsAbstract (AbsType _) = 'True
+  IsAbstract (StructType ftps) = AnyFieldsAbstract ftps
+  IsAbstract _ = 'False
+
+type family AnyFieldsAbstract (tps :: Ctx (Symbol, Type)) :: Bool where
+  AnyFieldsAbstract EmptyCtx = 'False
+  AnyFieldsAbstract (tps ::> '(nm, tp)) = IsAbstract tp || AnyFieldsAbstract tps
+
+-- | Determine if a type is abstract.
+isAbstract :: TypeRepr tp -> BoolRepr (IsAbstract tp)
+isAbstract (AbsRepr _) = TrueRepr
+isAbstract (StructRepr ftps) = anyFieldsAbstract ftps
+isAbstract BoolRepr = FalseRepr
+isAbstract IntRepr = FalseRepr
+isAbstract (EnumRepr _) = FalseRepr
+isAbstract (SetRepr _) = FalseRepr
+
+anyFieldsAbstract :: Assignment FieldRepr ftps -> BoolRepr (AnyFieldsAbstract ftps)
+anyFieldsAbstract Empty = FalseRepr
+anyFieldsAbstract (ftps :> FieldRepr _ tp) = isAbstract tp %|| anyFieldsAbstract ftps
+
+lastNotAbstract :: AnyFieldsAbstract (ftps ::> '(nm, tp)) ~ 'False
+                           => Assignment FieldRepr (ftps ::> '(nm, tp))
+                           -> IsAbstract tp :~: 'False
+lastNotAbstract (_ :> FieldRepr _ tp) = case isAbstract tp of
+  FalseRepr -> Refl
