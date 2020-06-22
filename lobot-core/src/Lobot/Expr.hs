@@ -30,10 +30,9 @@ module Lobot.Expr
     -- * Function implementation
   , FunctionImpl(..)
     -- * Evaluation
-  , evalExpr
   , EvalM(..)
   , EvalResult(..)
-  , evalExpr'
+  , evalExpr
   , runEvalM
   , FunctionCallResult(..)
   ) where
@@ -86,16 +85,6 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
 deriving instance Show (Expr env ctx tp)
 instance ShowF (Expr env ctx)
 
--- | Evaluate an expression given an instance of its function and type contexts.
--- We also return the results of all functions called in the course of
--- evaluating the expression.
-evalExpr :: MonadFail m
-         => Assignment (FunctionImpl m) env
-         -> Assignment Literal ctx
-         -> Expr env ctx tp
-         -> m (EvalResult env ctx tp, [FunctionCallResult env ctx])
-evalExpr fns ls e = runEvalM (evalExpr' fns ls e)
-
 data FunctionCallResult env ctx where
   FunctionCallResult :: IsAbstractType ret ~ 'False
                      => Index env (FunType nm args ret)
@@ -137,12 +126,12 @@ litEvalResult :: IsAbstractType tp ~ 'False
               -> EvalResult env ctx tp
 litEvalResult l = EvalResult l (LiteralExpr l)
 
-evalExpr' :: MonadFail m
-          => Assignment (FunctionImpl m) env
-          -> Assignment Literal ctx
-          -> Expr env ctx tp
-          -> EvalM env ctx m (EvalResult env ctx tp)
-evalExpr' fns ls e = case e of
+evalExpr :: MonadFail m
+         => Assignment (FunctionImpl m) env
+         -> Assignment Literal ctx
+         -> Expr env ctx tp
+         -> EvalM env ctx m (EvalResult env ctx tp)
+evalExpr fns ls e = case e of
   LiteralExpr l -> pure $ litEvalResult l
   VarExpr i -> do
     let l = ls ! i
@@ -151,7 +140,7 @@ evalExpr' fns ls e = case e of
                TrueRepr -> VarExpr i
     pure $ EvalResult l e'
   FieldExpr se i -> do
-    EvalResult (StructLit fls) se' <- evalExpr' fns ls se
+    EvalResult (StructLit fls) se' <- evalExpr fns ls se
     let l = fieldLiteralValue (fls ! i)
         e' = case isAbstractType (literalType l) of
                FalseRepr -> LiteralExpr l
@@ -159,7 +148,7 @@ evalExpr' fns ls e = case e of
     pure $ EvalResult l e'
   ApplyExpr fi es -> do
     let fn = fns ! fi
-    evalArgs <- traverseFC (evalExpr' fns ls) es
+    evalArgs <- traverseFC (evalExpr fns ls) es
     let argLits = fmapFC evalResultLit evalArgs
         argEs = fmapFC evalResultExpr evalArgs
     l <- lift $ fnImplRun fn argLits
@@ -172,27 +161,27 @@ evalExpr' fns ls e = case e of
       FalseRepr -> addCall fi argEs l
     return $ EvalResult l e'
   EqExpr e1 e2 -> do
-    EvalResult l1 _ <- evalExpr' fns ls e1
-    EvalResult l2 _ <- evalExpr' fns ls e2
+    EvalResult l1 _ <- evalExpr fns ls e1
+    EvalResult l2 _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (litEq l1 l2))
   LteExpr e1 e2 -> do
-    EvalResult (IntLit x1) _ <- evalExpr' fns ls e1
-    EvalResult (IntLit x2) _ <- evalExpr' fns ls e2
+    EvalResult (IntLit x1) _ <- evalExpr fns ls e1
+    EvalResult (IntLit x2) _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (x1 <= x2))
   PlusExpr e1 e2 -> do
-    EvalResult (IntLit x1) _ <- evalExpr' fns ls e1
-    EvalResult (IntLit x2) _ <- evalExpr' fns ls e2
+    EvalResult (IntLit x1) _ <- evalExpr fns ls e1
+    EvalResult (IntLit x2) _ <- evalExpr fns ls e2
     pure $ litEvalResult (IntLit (x1 + x2))
   MemberExpr e1 e2 -> do
-    EvalResult (EnumLit _ i) _ <- evalExpr' fns ls e1
-    EvalResult (SetLit _ s) _ <- evalExpr' fns ls e2
+    EvalResult (EnumLit _ i) _ <- evalExpr fns ls e1
+    EvalResult (SetLit _ s) _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (isJust (find (== Some i) s)))
   ImpliesExpr e1 e2 -> do
-    EvalResult (BoolLit b1) _ <- evalExpr' fns ls e1
-    EvalResult (BoolLit b2) _ <- evalExpr' fns ls e2
+    EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
+    EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (not b1 || b2))
   NotExpr e' -> do
-    EvalResult (BoolLit b) _ <- evalExpr' fns ls e'
+    EvalResult (BoolLit b) _ <- evalExpr fns ls e'
     pure $ litEvalResult (BoolLit (not b))
 
 -- | Concrete value inhabiting a type.

@@ -104,7 +104,7 @@ instanceOf' :: MonadFail m
             -> EvalM env (EmptyCtx ::> tp) m Bool
 instanceOf' env inst (Kind{..}) = and <$> traverse constraintHolds kindConstraints
   where constraintHolds e = do
-          EvalResult (BoolLit b) _ <- evalExpr' env (Empty :> inst) e
+          EvalResult (BoolLit b) _ <- evalExpr env (Empty :> inst) e
           return b
 
 -- | Substitute a value for 'self' in a kind expression. (This is composition of
