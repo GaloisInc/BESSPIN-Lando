@@ -43,6 +43,7 @@ import qualified Control.Monad.State as S
 import qualified Data.ByteString as BS
 
 import Data.List (find)
+import Data.Parameterized.BoolRepr
 import Data.Parameterized.Classes
 import Data.Parameterized.Context
 import Data.Parameterized.Some
@@ -95,7 +96,8 @@ evalExpr :: MonadFail m
 evalExpr fns ls e = runEvalM (evalExpr' fns ls e)
 
 data FunctionCallResult env where
-  FunctionCallResult :: Index env (FunType nm args ret)
+  FunctionCallResult :: IsAbstractType ret ~ 'False
+                     => Index env (FunType nm args ret)
                      -> Assignment Literal args
                      -> Literal ret
                      -> FunctionCallResult env
@@ -116,7 +118,7 @@ runEvalM k = S.runStateT (unEvalM k) []
 lift :: Monad m => m a -> EvalM env m a
 lift = EvalM . S.lift
 
-addCall :: Monad m
+addCall :: (IsAbstractType ret ~ 'False, Monad m)
         => Index env (FunType nm args ret)
         -> Assignment Literal args
         -> Literal ret
@@ -136,9 +138,13 @@ evalExpr' fns ls e = case e of
     StructLit fls <- evalExpr' fns ls kd
     pure $ fieldLiteralValue (fls ! i)
   ApplyExpr fi es -> do
+    let fn = fns ! fi
     args <- traverseFC (evalExpr' fns ls) es
-    ret <- lift $ fnImplRun (fns ! fi) args
-    addCall fi args ret
+    ret <- lift $ fnImplRun fn args
+    -- TODO: Is there a way to clean this up?
+    () <- case isAbstractType (functionRetType (fnImplType fn)) of
+      TrueRepr -> return ()
+      FalseRepr -> addCall fi args ret
     return ret
   EqExpr e1 e2 -> do
     l1 <- evalExpr' fns ls e1

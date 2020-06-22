@@ -513,8 +513,7 @@ assumeCall :: WS.SMTLib2Tweaks solver
            -> IO ()
 assumeCall sym session symFns (FunctionCallResult fi args ret)
   | SymFunction{..} <- symFns ! fi
-  , FalseRepr <- anyAbstractTypes (functionArgTypes symFunctionType)
-  , FalseRepr <- isAbstractType (functionRetType symFunctionType) = do
+  , FalseRepr <- anyAbstractTypes (functionArgTypes symFunctionType) = do
       symArgs <- symLiterals sym args
       symRet <- symLiteral sym ret
       symApply <- WI.applySymFn sym symFunctionValue (symLiteralExprs symArgs)
