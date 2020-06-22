@@ -69,9 +69,9 @@ tokens :-
     int           { tok INTTYPE }
     subset        { tok SET }
     struct        { tok STRUCT }
-    with          { tokAnd pushLayout WITH }
+    with          { tokAnd pushLinesLayout WITH }
     ":"           { tokAnd pushLayout COLON }
-    ","           { tokAnd (popLayout COLON) COMMA }
+    ","           { begin_popWhile popWhile_comma }
     kind          { tok KIND }
     of            { tok OF }
     where         { begin_popWhile popWhile_where }
@@ -85,20 +85,26 @@ tokens :-
     not           { tok NOT }
     true          { tok TRUE }
     false         { tok FALSE }
-    "{"           { tokAnd (popLayout WITH >> pushLayout) LBRACE }
+    "{"           { tokAnd (popLayoutOfToken WITH >> pushLinesLayout) LBRACE }
     "}"           { begin_popWhile popWhile_RBRACE }
-    "("           { tok LPAREN }
-    ")"           { tok RPAREN }
+    "("           { tokAnd pushLinesLayout LPAREN }
+    ")"           { begin_popWhile popWhile_RPAREN }
     @int          { tokStr (INT . read) }
-    @identlower   { tokStrAnd pushLayoutIfTopLevel IDLC }
+    @identlower   { tokStr IDLC }
     @identupper   { tokStr IDUC }
   }
 
-  <popWhile_where>  () { do_popWhile (not . isIDLC . snd) WHERE
-                                     (tokAnd pushLayout WHERE) }
+  <popWhile_comma>  () { do_popWhile (\top -> layCtxType top /= LinesLayCtx)
+                                     (tok COMMA) COMMA }
+
+  <popWhile_where>  () { do_popWhile (\top -> layCtxType top /= TopLevelCtx)
+                                     (tokAnd pushLinesLayout WHERE) WHERE }
   
-  <popWhile_RBRACE> () { do_popWhile (not . (== LBRACE) . snd) RBRACE
-                                     (tokAnd (popLayout LBRACE) RBRACE) }
+  <popWhile_RBRACE> () { do_popWhile (\top -> layCtxToken top /= LBRACE)
+                                     (tokAnd popLayout RBRACE) RBRACE }
+  
+  <popWhile_RPAREN> () { do_popWhile (\top -> layCtxToken top /= LPAREN)
+                                     (tokAnd popLayout RPAREN) RPAREN }
 
 {
 
@@ -130,15 +136,12 @@ data TokenType = BOOL
                | IDLC String
                | IDUC String
                | LAYEND LAYENDType
+               | LAYSEP
                | EOF
                deriving (Eq,Show)
 
 data LAYENDType = FromNewline | FromEOF | FromOther TokenType
                   deriving (Eq,Show)
-
-isIDLC :: TokenType -> Bool
-isIDLC (IDLC _) = True
-isIDLC _ = False
 
 -- | We include with a token the string that generated it, for use in error messages.
 data Token = Token { tokenType :: TokenType
@@ -162,28 +165,31 @@ loc (L p _) = L p
 type LToken = Loc Token
 
 
--- Generating tokens in the lexer
-
-tokStr :: (String -> TokenType) -> AlexAction LToken
-tokStr t (p,_,_,s) len = pure $ L p (Token (t (take len s)) (take len s))
-
-tok :: TokenType -> AlexAction LToken
-tok = tokStr . const
-
-tokStrAnd :: (LToken -> Alex ()) -> (String -> TokenType) -> AlexAction LToken
-tokStrAnd action t inp len = do
-  tk <- tokStr t inp len
-  action tk
-  pure tk
-
-tokAnd :: (LToken -> Alex ()) -> TokenType -> AlexAction LToken
-tokAnd action = tokStrAnd action . const
-
-
 -- The user state of the Alex monad
 
+data LayoutCtxType = NormalLayCtx
+                   | LinesLayCtx 
+                     -- ^ a context which contains a series of phrases,
+                     --   separated by commas or properly indented newlines
+                   | TopLevelCtx
+                     -- ^ the context of a top-level declaration
+                   deriving (Eq, Show)
+
+data LayoutCtx = LayCtx { layCtxCol :: Int
+                        , layCtxToken :: TokenType
+                        , layCtxType :: LayoutCtxType }
+                        deriving (Eq)
+
+instance Show LayoutCtx where
+  show (LayCtx c tktp laytp) =
+    "LayCtx " ++ show c ++ " " ++ show tktp ++ " " ++ show laytp
+
+topLayoutCtxType :: [LayoutCtx] -> LayoutCtxType
+topLayoutCtxType [] = TopLevelCtx
+topLayoutCtxType (ctx:_) = layCtxType ctx
+
 data AlexUserState = AlexUserState { filePath :: FilePath
-                                   , layoutStack :: [(Int,TokenType)]
+                                   , layoutStack :: [LayoutCtx]
                                    , popWhileLastInput :: Maybe (AlexInput, Int) }
 
 alexInitUserState :: AlexUserState
@@ -197,15 +203,15 @@ setFilePath fp = do
   oldState <- alexGetUserState
   alexSetUserState $ oldState { filePath = fp }
 
-getLayoutStack :: Alex [(Int,TokenType)]
+getLayoutStack :: Alex [LayoutCtx]
 getLayoutStack = layoutStack <$> alexGetUserState
 
-setLayoutStack :: [(Int,TokenType)] -> Alex ()
+setLayoutStack :: [LayoutCtx] -> Alex ()
 setLayoutStack stk = do
   oldState <- alexGetUserState
   alexSetUserState $ oldState { layoutStack = stk }
 
-modifyLayoutStack :: ([(Int,TokenType)] -> [(Int,TokenType)]) -> Alex ()
+modifyLayoutStack :: ([LayoutCtx] -> [LayoutCtx]) -> Alex ()
 modifyLayoutStack f = do
   stk <- getLayoutStack
   setLayoutStack (f stk)
@@ -222,34 +228,75 @@ getAndClearPopWhileLastInput = do
   pure (inp, len)
 
 
--- Actions used in the lexer that modify the user state
+-- Generating tokens
 
--- | Push a layout context associated to the given token on to the stack 
-pushLayout :: LToken -> Alex ()
-pushLayout (L (AlexPn _ _ c) (Token tktp _)) =
-  modifyLayoutStack (\stk -> (c,tktp) : stk)
-
--- | Push a layout only if the stack is currently empty
-pushLayoutIfTopLevel :: LToken -> Alex ()
-pushLayoutIfTopLevel tk = do
+-- | Emit a token using the given input string.
+tokStr :: (String -> TokenType) -> AlexAction LToken
+tokStr t (p,_,_,s) len = do
+  let tk = L p (Token (t (take len s)) (take len s))
   stk <- getLayoutStack
   case stk of
-    [] -> pushLayout tk
+    [] -> pushLayoutOfType TopLevelCtx     tk
     _  -> pure ()
+  pure tk
+
+-- | Emit a token that doesn't need the input string.
+tok :: TokenType -> AlexAction LToken
+tok t@(LAYEND _) (p,_,_,s) len =
+  pure $ L p (Token t (take len s))
+tok t inp len = tokStr (const t) inp len
+
+-- | Emit a token using `tokStr` then execute the given action on the
+-- generated token.
+tokStrAnd :: (LToken -> Alex ()) -> (String -> TokenType) -> AlexAction LToken
+tokStrAnd action t inp len = do
+  tk <- tokStr t inp len
+  action tk
+  pure tk
+
+-- | Emit a token using `tok` then execute the given action on the
+-- generated token.
+tokAnd :: (LToken -> Alex ()) -> TokenType -> AlexAction LToken
+tokAnd action = tokStrAnd action . const
+
+
+-- Actions used in the lexer that modify the user state
+
+-- | Push a lines layout context associated to the given token and of the
+-- given type on to the stack 
+pushLayoutOfType :: LayoutCtxType -> LToken -> Alex ()
+pushLayoutOfType layTp (L (AlexPn _ _ c) (Token tktp _)) =
+  modifyLayoutStack (\stk -> (LayCtx c tktp layTp):stk)
+
+-- | Push a normal layout context associated to the given token on to the stack 
+pushLayout :: LToken -> Alex ()
+pushLayout = pushLayoutOfType NormalLayCtx
+
+-- | Push a lines layout context associated to the given token on to the stack 
+pushLinesLayout :: LToken -> Alex ()
+pushLinesLayout = pushLayoutOfType LinesLayCtx
+
+-- | Pop the top of the layout stack.
+popLayout :: LToken -> Alex ()
+popLayout _ =
+  modifyLayoutStack (\case
+    _:stk -> stk
+    stk   -> stk)
 
 -- | Pop the top of the layout stack only if it is a context associated to
 -- the given token.
-popLayout :: TokenType -> LToken -> Alex ()
-popLayout to_pop _ =
+popLayoutOfToken :: TokenType -> LToken -> Alex ()
+popLayoutOfToken to_pop _ =
   modifyLayoutStack (\case
-    (_,tktp):stk | tktp == to_pop -> stk
-    stk                           -> stk)
+    (LayCtx _ tktp _):stk | tktp == to_pop -> stk
+    stk                                    -> stk)
 
 -- | Check if the top of the layout stack satisfies the given predicate. If it
 -- does, pop it and execute the first given action, otherwise execute the
 -- second given action.
-tryPopLayout :: ((Int,TokenType) -> Bool) -> Alex LToken -> Alex LToken -> Alex LToken
-tryPopLayout cnd do_if do_else = do
+popLayoutAndDoIf :: (LayoutCtx -> Bool) -> Alex LToken -> Alex LToken
+                 -> Alex LToken
+popLayoutAndDoIf cnd do_if do_else = do
   stk <- getLayoutStack
   case stk of
     top:stk' | cnd top  -> do setLayoutStack stk'
@@ -266,8 +313,15 @@ do_bol inp@(AlexPn _ _ c,_,_,_) len = do
   if null stk && c > 1 then do
     (p,_,_,_) <- alexGetInput
     alexErrorWPos p "unexpected whitespace at the start of a line"
-  else tryPopLayout ((c <=) . fst) (tok (LAYEND FromNewline) inp len)
-                                   (begin main inp len)
+  else popLayoutAndDoIf ((c <=) . layCtxCol)
+                        (tok (LAYEND FromNewline) inp len)
+                        ((addOptLAYSEP `andBegin` main) inp len)
+  where addOptLAYSEP :: AlexAction LToken
+        addOptLAYSEP inp' len' = do
+          tp <- topLayoutCtxType <$> getLayoutStack
+          case tp of
+            LinesLayCtx -> tok LAYSEP inp' len'
+            _ -> skip inp' len'
 
 -- | Saves the current 'AlexAction' input, then switches to the given state.
 begin_popWhile :: Int -> AlexAction LToken
@@ -279,10 +333,10 @@ begin_popWhile popWhile_state inp len = do
 -- LAYEND (FromOther tk) tokens for each, where tk is the given token, then
 -- executes the given action on the inputs saved from 'begin_popWhile' and
 -- switches back to the main lexing state.
-do_popWhile :: ((Int,TokenType) -> Bool) -> TokenType -> AlexAction LToken
+do_popWhile :: (LayoutCtx -> Bool) -> AlexAction LToken -> TokenType
             -> AlexAction LToken
-do_popWhile cnd tk when_done inp len =
-  tryPopLayout cnd (tok (LAYEND (FromOther tk)) inp len) $ do
+do_popWhile cnd when_done tk inp len =
+  popLayoutAndDoIf cnd (tok (LAYEND (FromOther tk)) inp len) $ do
     (inp', len') <- getAndClearPopWhileLastInput
     (when_done `andBegin` main) inp' len'
 
@@ -295,8 +349,9 @@ do_popWhile cnd tk when_done inp len =
 alexEOF :: Alex LToken
 alexEOF = do
   (p,_,_,_) <- alexGetInput
-  tryPopLayout (const True) (pure $ L p (Token (LAYEND FromEOF) ""))
-                            (pure $ L p (Token EOF ""))
+  popLayoutAndDoIf (const True)
+                   (pure $ L p (Token (LAYEND FromEOF) ""))
+                   (pure $ L p (Token EOF ""))
 
 alexMonadScanWPos :: Alex LToken
 alexMonadScanWPos = do
