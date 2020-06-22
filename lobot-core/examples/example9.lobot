@@ -6,5 +6,7 @@ nested : kind of struct
                        y : struct
                             with
                              z : bounded_int
-  where f.a = g.y.z,
-        f.b = 10
+  where f.a = g.y.z
+        f.a : bounded_int
+              bounded_int
+        f.b <= d.a
