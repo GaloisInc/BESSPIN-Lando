@@ -14,7 +14,7 @@ This module defines pretty printing functions for the core LOBOT untyped syntax.
 -}
 
 module Lobot.Syntax.Pretty
-  ( ppKindDecl
+  ( ppDecl
   , ppLType
   , ppType
   , ppLExpr
@@ -42,16 +42,21 @@ commas = PP.cat . PP.punctuate (PP.text ", ")
 vcommas :: [PP.Doc] -> PP.Doc
 vcommas = PP.vcat . PP.punctuate (PP.text ", ")
 
-ppKindDecl :: KindDecl -> PP.Doc
-ppKindDecl kd@KindDecl{ kindDeclType = L _ (StructType flds) } =
-  ppText (kindDeclName kd) PP.<+> PP.colon
+ppDecl :: Decl -> PP.Doc
+ppDecl (KindDecl kd@Kind{ kindType = L _ (StructType flds) }) =
+  ppText (kindName kd) PP.<+> PP.colon
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> PP.text "struct"
   PP.$$ PP.nest 2 (ppWClause "with" (fmap ppField flds))
-  PP.$$ PP.nest 2 (ppWClause "where" (ppLExpr <$> kindDeclConstraints kd))
-ppKindDecl kd =
-  ppText (kindDeclName kd) PP.<+> PP.colon
-  PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> ppLType (kindDeclType kd)
-  PP.$$ PP.nest 2 (ppWClause "where" (ppLExpr <$> kindDeclConstraints kd))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppLExpr <$> kindConstraints kd))
+ppDecl (KindDecl kd) =
+  ppText (kindName kd) PP.<+> PP.colon
+  PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> ppLType (kindType kd)
+  PP.$$ PP.nest 2 (ppWClause "where" (ppLExpr <$> kindConstraints kd))
+ppDecl (TypeSynDecl nm tp) =
+  PP.text "type" PP.<+> ppText nm PP.<+> PP.text "=" PP.<+> ppLType tp
+ppDecl (AbsTypeDecl nm) =
+  PP.text "abstract" PP.<+> PP.text "type" PP.<+> ppText nm
+
 
 ppWClause :: String -> [PP.Doc] -> PP.Doc
 ppWClause _ [] = PP.empty

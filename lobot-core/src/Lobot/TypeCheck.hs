@@ -29,7 +29,7 @@ module Lobot.TypeCheck
     -- * Internals
   , CtxM
   , Constraints(..)
-  , checkKindDecls
+  , checkDecls
   , resolveType
   , inferExpr
   , checkExpr
@@ -63,7 +63,7 @@ import Lobot.Syntax.Pretty as S
 
 -- | State/error monad for type checking. We maintain a hashmap from names to
 -- 'K.Kind's as we iterate through a @[S.Kind]@.
-type CtxM env = StateT (H.Map Text (Some (Kind env))) (Either TypeError)
+type CtxM env = StateT (H.Map Text (Some (K.Kind env))) (Either TypeError)
 
 data TypeError = TypeMismatchError S.LExpr SomeTypeOrString (Maybe SomeTypeOrString)
                  -- ^ argument order: expr, expected type, actual type
@@ -145,29 +145,38 @@ try :: CtxM env a -> CtxM env (Either TypeError a)
 try x = evalStateT x <$> get
 
 
--- | Given a list of kind declarations, produce a list of typed kinds.
+-- | Given a list of declarations, produce a list of typed kinds.
 typeCheck :: Assignment T.FunctionTypeRepr env
-          -> [S.KindDecl]
+          -> [S.Decl]
           -> Either TypeError [Some (K.Kind env)]
-typeCheck env decls = evalStateT (checkKindDecls env decls) H.empty
+typeCheck env decls = evalStateT (checkDecls env decls) H.empty
 
 
--- Validating kind declarations
+-- Validating declarations
 
-checkKindDecls :: Assignment T.FunctionTypeRepr env
-               -> [S.KindDecl]
-               -> CtxM env [Some (K.Kind env)]
-checkKindDecls env decls = mapM (checkKindDecl env) decls
+checkDecls :: Assignment T.FunctionTypeRepr env
+           -> [S.Decl]
+           -> CtxM env [Some (K.Kind env)]
+checkDecls env decls = mapM (checkDecl env) decls
 
-checkKindDecl :: Assignment T.FunctionTypeRepr env
-              -> S.KindDecl
-              -> CtxM env (Some (K.Kind env))
-checkKindDecl env KindDecl{..} = do
-  Pair ctx (Cns ctx_cns) <- resolveType env kindDeclType
-  cns' <- mapM (checkExpr env ctx T.BoolRepr) kindDeclConstraints
-  let decl = Some (Kind kindDeclName ctx env (cns' ++ ctx_cns))
-  modify (H.insert kindDeclName decl)
+checkDecl :: Assignment T.FunctionTypeRepr env
+          -> S.Decl
+          -> CtxM env (Some (K.Kind env))
+checkDecl env (S.KindDecl S.Kind{..}) = do
+  Pair ctx (Cns ctx_cns) <- resolveType env kindType
+  cns' <- mapM (checkExpr env ctx T.BoolRepr) kindConstraints
+  let decl = Some (K.Kind kindName ctx env (cns' ++ ctx_cns))
+  modify (H.insert kindName decl)
   pure $ decl
+checkDecl env (S.TypeSynDecl nm tp) = do
+  -- for now, we just handle type synonyms as kinds with no constraints
+  checkDecl env (S.KindDecl (S.Kind nm tp []))
+checkDecl env (S.AbsTypeDecl nm) | Some nmSymb <- someSymbol nm = do
+  -- for now, we also handle abstract types as kinds
+  let decl = Some (K.Kind nm (T.AbsRepr nmSymb) env [])
+  modify (H.insert nm decl)
+  pure $ decl
+  
 
 
 -- Resolving all kind names in a `S.Type` to get a `T.Type` and a list of
@@ -200,13 +209,13 @@ resolveType _ (L p (S.KindNames [])) =
   typeError (InternalError p "empty kind union")
 resolveType env (L _ (S.KindNames [k])) = do
   Some k' <- lookupKind env k
-  pure $ Pair (kindType k') (Cns (kindConstraints k'))
+  pure $ Pair (K.kindType k') (Cns (K.kindConstraints k'))
 resolveType env (L p (S.KindNames (k:ks))) = do
   Some k' <- lookupKind env k
   Pair tp (Cns cns) <- resolveType env (L p (S.KindNames ks))
-  case testEquality (kindType k') tp of
-    Just Refl -> pure $ Pair (kindType k') (Cns (kindConstraints k' ++ cns))
-    Nothing -> typeError (KindUnionMismatchError k (Some tp) (Some (kindType k')))
+  case testEquality (K.kindType k') tp of
+    Just Refl -> pure $ Pair (K.kindType k') (Cns (K.kindConstraints k' ++ cns))
+    Nothing -> typeError (KindUnionMismatchError k (Some tp) (Some (K.kindType k')))
 
 data Constraints' env (pr :: (Symbol, T.Type)) where
   Cns' :: [K.KindExpr env tp T.BoolType] -> Constraints' env '(nm, tp)

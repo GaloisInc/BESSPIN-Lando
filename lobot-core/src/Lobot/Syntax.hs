@@ -20,7 +20,8 @@ type passes through the type checker to produce the typed AST in
 -}
 module Lobot.Syntax
   ( Loc(..)
-  , KindDecl(..)
+  , Decl(..)
+  , Kind(..)
   , Type(..)
   , LType
   , Expr(..)
@@ -34,10 +35,14 @@ import Data.Text (Text)
 
 import Lobot.Lexer
 
-data KindDecl = KindDecl { kindDeclName :: Text
-                         , kindDeclType :: LType
-                         , kindDeclConstraints :: [LExpr]
-                         } deriving Show
+data Decl = KindDecl Kind
+          | TypeSynDecl Text LType
+          | AbsTypeDecl Text
+
+data Kind = Kind { kindName :: Text
+                 , kindType :: LType
+                 , kindConstraints :: [LExpr]
+                 } deriving Show
 
 data Type = BoolType
           | IntType

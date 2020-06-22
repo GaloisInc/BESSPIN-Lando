@@ -75,6 +75,8 @@ tokens :-
     kind          { tok KIND }
     of            { tok OF }
     where         { begin_popWhile popWhile_where }
+    type          { tok TYPE }
+    abstract      { tok ABSTRACT }
     self          { tok SELF }
     "."           { tok DOT }
     "="           { tok EQUALS }
@@ -118,6 +120,8 @@ data TokenType = BOOL
                | KIND
                | OF
                | WHERE
+               | TYPE
+               | ABSTRACT
                | SELF
                | DOT
                | EQUALS

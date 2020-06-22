@@ -44,6 +44,8 @@ import Lobot.Lexer
   'kind'      { L _ (Token KIND _) }
   'of'        { L _ (Token OF _) }
   'where'     { L _ (Token WHERE _) }
+  'type'      { L _ (Token TYPE _) }
+  'abstract'  { L _ (Token ABSTRACT _) }
   'self'      { L _ (Token SELF _) }
   '.'         { L _ (Token DOT _) }
   '='         { L _ (Token EQUALS _) }
@@ -78,28 +80,30 @@ import Lobot.Lexer
 
 %%
 
-decls :: { [KindDecl] }
+decls :: { [Decl] }
 decls : {- empty -}           { [] }
       | decl nlLAYEND decls   { $1 : $3 }
 
-decl :: { KindDecl }
-decl : ident ':' kindType   { KindDecl (tkText $1) (fst $3) (snd $3) }
+decl :: { Decl }
+decl : ident ':' kindDeclType    { KindDecl $ Kind (tkText $1) (fst $3) (snd $3) }
+decl : 'type' ident '=' type     { TypeSynDecl (tkText $2) $4 }
+decl : 'abstract' 'type' ident   { AbsTypeDecl (tkText $3) }
 
 
-kindType :: { (LType,[LExpr]) }
-kindType : 'kind' 'of' topType nlLAYEND                                     { ($3,[]) }
-         | 'kind' 'of' topType whereLAYEND 'where' optLAYSEP cns nlLAYEND   { ($3,$7) }
+kindDeclType :: { (LType,[LExpr]) }
+kindDeclType : 'kind' 'of' kindType nlLAYEND                                     { ($3,[]) }
+             | 'kind' 'of' kindType whereLAYEND 'where' optLAYSEP cns nlLAYEND   { ($3,$7) }
+
+kindType :: { LType }
+kindType : type                                         { $1 }
+         | 'struct' nlLAYEND 'with' optLAYSEP fields    { loc $1 $ StructType $5 }
+         -- ^ Note: We don't need a LAYEND after the 'with' here as it's
+         --   handled by the LAYENDs in `kindDeclType`.
 
 cns : expr              { [$1] }
     | expr anySep       { [$1] }
     | expr anySep cns   { $1 : $3 }
 
-
-topType :: { LType }
-topType : type                                         { $1 }
-        | 'struct' nlLAYEND 'with' optLAYSEP fields    { loc $1 $ StructType $5 }
-        -- ^ Note: We don't need a LAYEND after the 'with' here as it's
-        --   handled by the LAYENDs in `kindType`.
 
 type    : 'bool'                                       { loc $1 $ BoolType }
         | 'int'                                        { loc $1 $ IntType }
@@ -223,7 +227,7 @@ fmtExpected = go . concatMap modifyStr
         go [e1,e2]  = ", expected " ++ e1 ++ " or " ++ e2
         go exps     = ", expected one of: " ++ intercalate ", " exps
 
-parseDecls :: FilePath -> String -> Either String [KindDecl]
+parseDecls :: FilePath -> String -> Either String [Decl]
 parseDecls = runAlexOnFile parseDeclsM
 
 }
