@@ -1,4 +1,4 @@
-color : kind of {Red, Yellow, Blue}
+type color = {Red, Yellow, Blue}
 
 australia_coloring : kind of struct
   with wa : color,
