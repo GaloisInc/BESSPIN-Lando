@@ -1,0 +1,36 @@
+#!/usr/bin/python3
+
+import json
+import sys
+import os
+
+json_str = ""
+
+for line in sys.stdin:
+  json_str += line
+
+json_data = json.loads(json_str)
+
+filepath = json_data[0]['value']
+wc_config = json_data[1]['constructors'][json_data[1]['value']]
+
+command = "wc "
+if wc_config == "C":
+  command += "-c"
+elif wc_config == "L":
+  command += "-l"
+elif wc_config == "M":
+  command += "-m"
+elif wc_config == "W":
+  command += "-w"
+command += " " + filepath
+
+words = os.popen(command).read().split()
+x = int(words[0])
+
+json_output = {
+  "variant": "int",
+  "value": x
+}
+
+print(json.dumps(json_output))

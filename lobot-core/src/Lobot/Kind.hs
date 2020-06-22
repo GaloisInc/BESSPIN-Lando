@@ -94,17 +94,17 @@ instanceOf :: MonadFail m
            => Assignment (FunctionImpl m) env
            -> Literal tp
            -> Kind env tp
-           -> m (Bool, [FunctionCallResult env])
+           -> m (Bool, [FunctionCallResult env (EmptyCtx ::> tp)])
 instanceOf env inst kd = runEvalM (instanceOf' env inst kd)
 
 instanceOf' :: MonadFail m
             => Assignment (FunctionImpl m) env
             -> Literal tp
             -> Kind env tp
-            -> EvalM env m Bool
+            -> EvalM env (EmptyCtx ::> tp) m Bool
 instanceOf' env inst (Kind{..}) = and <$> traverse constraintHolds kindConstraints
   where constraintHolds e = do
-          BoolLit b <- evalExpr' env (Empty :> inst) e
+          EvalResult (BoolLit b) _ <- evalExpr' env (Empty :> inst) e
           return b
 
 -- | Substitute a value for 'self' in a kind expression. (This is composition of

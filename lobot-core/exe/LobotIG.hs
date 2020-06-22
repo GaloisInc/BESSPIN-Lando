@@ -87,8 +87,11 @@ ig Options{..} = do
 
 type FnEnv = EmptyCtx ::>
   FunType "add1" (EmptyCtx ::> IntType) IntType ::>
-  FunType "square" (EmptyCtx ::> IntType) IntType ::>
-  FunType "double" (EmptyCtx ::> IntType) IntType
+  FunType "write_nlines_file" (EmptyCtx ::> IntType) (AbsType "filepath") ::>
+  FunType "run_wc" (EmptyCtx
+                    ::> AbsType "filepath"
+                    ::> EnumType (EmptyCtx ::> "C" ::> "L" ::> "M" ::> "W"))
+           IntType
 
 fnEnv :: Assignment (FunctionImpl IO) FnEnv
 fnEnv = canonicalEnv knownRepr

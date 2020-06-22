@@ -1,0 +1,29 @@
+-- abstract type filepath
+
+-- write_nlines_file : int -> filepath
+
+-- Options to the 'wc' command
+wc_config : kind of {C, L, M, W}
+
+-- run_wc : (wc_config, filepath) -> int
+
+wc_l_check : kind of int
+  where 0 <= self, self <= 10,
+        run_wc(L, write_nlines_file(self)) = self
+
+wc_l_struct : kind of struct
+  with x : int,
+       y : int
+  where 0 <= x, x <= 10,
+        0 <= y, y <= run_wc(L, write_nlines_file(x))
+        -- run_wc(L, write_nlines_file(0)) = 0,
+        -- run_wc(L, write_nlines_file(1)) = 1,
+        -- run_wc(L, write_nlines_file(2)) = 2,
+        -- run_wc(L, write_nlines_file(3)) = 3,
+        -- run_wc(L, write_nlines_file(4)) = 4,
+        -- run_wc(L, write_nlines_file(5)) = 5,
+        -- run_wc(L, write_nlines_file(6)) = 6,
+        -- run_wc(L, write_nlines_file(7)) = 7,
+        -- run_wc(L, write_nlines_file(8)) = 8,
+        -- run_wc(L, write_nlines_file(9)) = 9,
+        -- run_wc(L, write_nlines_file(10)) = 10

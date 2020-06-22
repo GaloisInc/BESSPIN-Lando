@@ -32,6 +32,7 @@ module Lobot.Expr
     -- * Evaluation
   , evalExpr
   , EvalM(..)
+  , EvalResult(..)
   , evalExpr'
   , runEvalM
   , FunctionCallResult(..)
@@ -92,83 +93,107 @@ evalExpr :: MonadFail m
          => Assignment (FunctionImpl m) env
          -> Assignment Literal ctx
          -> Expr env ctx tp
-         -> m (Literal tp, [FunctionCallResult env])
+         -> m (EvalResult env ctx tp, [FunctionCallResult env ctx])
 evalExpr fns ls e = runEvalM (evalExpr' fns ls e)
 
-data FunctionCallResult env where
+data FunctionCallResult env ctx where
   FunctionCallResult :: IsAbstractType ret ~ 'False
                      => Index env (FunType nm args ret)
-                     -> Assignment Literal args
+                     -> Assignment (Expr env ctx) args
                      -> Literal ret
-                     -> FunctionCallResult env
+                     -> FunctionCallResult env ctx
 
-newtype EvalM env m a =
-  EvalM { unEvalM :: S.StateT [FunctionCallResult env] m a }
+newtype EvalM env ctx m a =
+  EvalM { unEvalM :: S.StateT [FunctionCallResult env ctx] m a }
   deriving ( Functor
            , Applicative
            , Monad
-           , S.MonadState [FunctionCallResult env]
+           , S.MonadState [FunctionCallResult env ctx]
            , MonadFail
            )
 
-runEvalM :: EvalM env m a -> m (a, [FunctionCallResult env])
+runEvalM :: EvalM env ctx m a -> m (a, [FunctionCallResult env ctx])
 runEvalM k = S.runStateT (unEvalM k) []
 
 -- | Lift a value from the underlying monad into 'EvalM'.
-lift :: Monad m => m a -> EvalM env m a
+lift :: Monad m => m a -> EvalM env ctx m a
 lift = EvalM . S.lift
 
 addCall :: (IsAbstractType ret ~ 'False, Monad m)
         => Index env (FunType nm args ret)
-        -> Assignment Literal args
+        -> Assignment (Expr env ctx) args
         -> Literal ret
-        -> EvalM env m ()
+        -> EvalM env ctx m ()
 addCall fi args ret = S.modify (call:)
   where call = FunctionCallResult fi args ret
+
+data EvalResult env ctx tp =
+  EvalResult { evalResultLit :: Literal tp
+             , evalResultExpr :: Expr env ctx tp
+             }
+
+litEvalResult :: IsAbstractType tp ~ 'False
+              => Literal tp
+              -> EvalResult env ctx tp
+litEvalResult l = EvalResult l (LiteralExpr l)
 
 evalExpr' :: MonadFail m
           => Assignment (FunctionImpl m) env
           -> Assignment Literal ctx
           -> Expr env ctx tp
-          -> EvalM env m (Literal tp)
+          -> EvalM env ctx m (EvalResult env ctx tp)
 evalExpr' fns ls e = case e of
-  LiteralExpr l -> pure l
-  VarExpr i -> pure (ls ! i)
-  FieldExpr kd i -> do
-    StructLit fls <- evalExpr' fns ls kd
-    pure $ fieldLiteralValue (fls ! i)
+  LiteralExpr l -> pure $ litEvalResult l
+  VarExpr i -> do
+    let l = ls ! i
+        e' = case isAbstractType (literalType l) of
+               FalseRepr -> LiteralExpr l
+               TrueRepr -> VarExpr i
+    pure $ EvalResult l e'
+  FieldExpr se i -> do
+    EvalResult (StructLit fls) se' <- evalExpr' fns ls se
+    let l = fieldLiteralValue (fls ! i)
+        e' = case isAbstractType (literalType l) of
+               FalseRepr -> LiteralExpr l
+               TrueRepr -> FieldExpr se' i
+    pure $ EvalResult l e'
   ApplyExpr fi es -> do
     let fn = fns ! fi
-    args <- traverseFC (evalExpr' fns ls) es
-    ret <- lift $ fnImplRun fn args
+    evalArgs <- traverseFC (evalExpr' fns ls) es
+    let argLits = fmapFC evalResultLit evalArgs
+        argEs = fmapFC evalResultExpr evalArgs
+    l <- lift $ fnImplRun fn argLits
+    let e' = case isAbstractType (literalType l) of
+               FalseRepr -> LiteralExpr l
+               TrueRepr -> ApplyExpr fi argEs
     -- TODO: Is there a way to clean this up?
     () <- case isAbstractType (functionRetType (fnImplType fn)) of
       TrueRepr -> return ()
-      FalseRepr -> addCall fi args ret
-    return ret
+      FalseRepr -> addCall fi argEs l
+    return $ EvalResult l e'
   EqExpr e1 e2 -> do
-    l1 <- evalExpr' fns ls e1
-    l2 <- evalExpr' fns ls e2
-    pure $ BoolLit (litEq l1 l2)
+    EvalResult l1 _ <- evalExpr' fns ls e1
+    EvalResult l2 _ <- evalExpr' fns ls e2
+    pure $ litEvalResult (BoolLit (litEq l1 l2))
   LteExpr e1 e2 -> do
-    IntLit x1 <- evalExpr' fns ls e1
-    IntLit x2 <- evalExpr' fns ls e2
-    pure $ BoolLit (x1 <= x2)
+    EvalResult (IntLit x1) _ <- evalExpr' fns ls e1
+    EvalResult (IntLit x2) _ <- evalExpr' fns ls e2
+    pure $ litEvalResult (BoolLit (x1 <= x2))
   PlusExpr e1 e2 -> do
-    IntLit x1 <- evalExpr' fns ls e1
-    IntLit x2 <- evalExpr' fns ls e2
-    pure $ IntLit (x1 + x2)
+    EvalResult (IntLit x1) _ <- evalExpr' fns ls e1
+    EvalResult (IntLit x2) _ <- evalExpr' fns ls e2
+    pure $ litEvalResult (IntLit (x1 + x2))
   MemberExpr e1 e2 -> do
-    EnumLit _ i <- evalExpr' fns ls e1
-    SetLit _ s <- evalExpr' fns ls e2
-    pure $ BoolLit (isJust (find (== Some i) s))
+    EvalResult (EnumLit _ i) _ <- evalExpr' fns ls e1
+    EvalResult (SetLit _ s) _ <- evalExpr' fns ls e2
+    pure $ litEvalResult (BoolLit (isJust (find (== Some i) s)))
   ImpliesExpr e1 e2 -> do
-    BoolLit b1 <- evalExpr' fns ls e1
-    BoolLit b2 <- evalExpr' fns ls e2
-    pure $ BoolLit (not b1 || b2)
+    EvalResult (BoolLit b1) _ <- evalExpr' fns ls e1
+    EvalResult (BoolLit b2) _ <- evalExpr' fns ls e2
+    pure $ litEvalResult (BoolLit (not b1 || b2))
   NotExpr e' -> do
-    BoolLit b <- evalExpr' fns ls e'
-    pure $ BoolLit (not b)
+    EvalResult (BoolLit b) _ <- evalExpr' fns ls e'
+    pure $ litEvalResult (BoolLit (not b))
 
 -- | Concrete value inhabiting a type.
 data Literal tp where

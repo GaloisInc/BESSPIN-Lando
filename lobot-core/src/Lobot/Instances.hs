@@ -227,15 +227,15 @@ symLiteral :: IsAbstractType tp ~ 'False
            -> IO (SymLiteral t tp)
 symLiteral sym l = SymLiteral (literalType l) <$> symExpr sym l
 
-symLiterals :: AnyAbstractTypes tps ~ 'False
+_symLiterals :: AnyAbstractTypes tps ~ 'False
             => WB.ExprBuilder t st fs
             -> Assignment Literal tps
             -> IO (Assignment (SymLiteral t) tps)
-symLiterals _ Empty = return empty
-symLiterals sym (ls :> l)
+_symLiterals _ Empty = return empty
+_symLiterals sym (ls :> l)
   | FalseRepr <- isAbstractType (literalType l) = do
       sl <- symLiteral sym l
-      sls <- symLiterals sym ls
+      sls <- _symLiterals sym ls
       return $ sls :> sl
 
 -- | Convert an 'Assignment' of 'FieldLiteral's to an 'Assignment' of 'WB.Expr's
@@ -496,7 +496,7 @@ collectAndFilterInstances' sym session fns kd symFns symLit limit = do
   case r of
     HasInstance l -> do
       (isInst, calls) <- instanceOf fns l kd
-      traverse_ (assumeCall sym session symFns) calls
+      traverse_ (assumeCall sym session symFns (Empty :> symLit)) calls
       ls <- collectAndFilterInstances' sym session fns kd symFns symLit (limit-1)
       case isInst of
         True -> return (l:ls)
@@ -509,12 +509,13 @@ assumeCall :: WS.SMTLib2Tweaks solver
            => WB.ExprBuilder t st fs
            -> WS.Session t solver
            -> Assignment (SymFunction t) env
-           -> FunctionCallResult env
+           -> Assignment (SymLiteral t) ctx
+           -> FunctionCallResult env ctx
            -> IO ()
-assumeCall sym session symFns (FunctionCallResult fi args ret)
-  | SymFunction{..} <- symFns ! fi
-  , FalseRepr <- anyAbstractTypes (functionArgTypes symFunctionType) = do
-      symArgs <- symLiterals sym args
+assumeCall sym session symFns symLits (FunctionCallResult fi args ret)
+  | SymFunction{..} <- symFns ! fi = do
+      -- symArgs <- symLiterals sym args
+      symArgs <- traverseFC (symEvalExpr sym symFns symLits) args
       symRet <- symLiteral sym ret
       symApply <- WI.applySymFn sym symFunctionValue (symLiteralExprs symArgs)
       symRes <- case functionRetType symFunctionType of
@@ -524,4 +525,3 @@ assumeCall sym session symFns (FunctionCallResult fi args ret)
         SetRepr _ -> WI.bvEq sym symApply (symLiteralExpr symRet)
         StructRepr _ -> WI.structEq sym symApply (symLiteralExpr symRet)
       WS.assume (WS.sessionWriter session) symRes
-  | otherwise = return ()
