@@ -93,7 +93,10 @@ ppLiteral (IntLit x) = PP.integer x
 ppLiteral (EnumLit e) = ppLText e
 ppLiteral (SetLit es) =
   PP.braces (commas (ppLText <$> es))
-ppLiteral (StructLit tp fls) =
+ppLiteral (StructLit Nothing fls) =
+  PP.text "struct" PP.<+> PP.text "with"
+  PP.<+> PP.braces (commas (fmap ppFieldLiteral fls))
+ppLiteral (StructLit (Just tp) fls) =
   ppLType tp PP.<+> PP.text "with"
   PP.<+> PP.braces (commas (fmap ppFieldLiteral fls))
 

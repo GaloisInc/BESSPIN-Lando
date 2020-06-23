@@ -19,6 +19,7 @@ module Lobot.Pretty
   , ppTypeRepr
   , ppKindExpr
   , ppLiteral
+  , ppLiteralWithKindName
   ) where
 
 import Lobot.Expr
@@ -84,9 +85,15 @@ ppLiteral (EnumLit cs i) = symbolDoc (cs ! i)
 ppLiteral (SetLit cs is) =
   PP.braces (commas (viewSome (symbolDoc . (cs !)) <$> is))
 ppLiteral (StructLit fls) =
-  PP.text "struct {..}" PP.<+> PP.text "with"
+  PP.text "struct" PP.<+> PP.text "with"
   PP.<+> PP.braces (commas (toListFC ppFieldLiteral fls))
 ppLiteral (AbsLit s _) = PP.text "<" PP.<> PP.text (T.unpack (symbolRepr s)) PP.<> PP.text ">"
+
+ppLiteralWithKindName :: T.Text -> Literal tp -> PP.Doc
+ppLiteralWithKindName knm (StructLit fls) =
+  PP.text (T.unpack knm) PP.<+> PP.text "with"
+  PP.<+> PP.braces (commas (toListFC ppFieldLiteral fls))
+ppLiteralWithKindName _ l = ppLiteral l
 
 ppFieldLiteral :: FieldLiteral ftp -> PP.Doc
 ppFieldLiteral FieldLiteral{..} =

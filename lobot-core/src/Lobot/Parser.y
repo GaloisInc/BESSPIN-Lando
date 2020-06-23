@@ -112,7 +112,7 @@ type    : 'bool'                                       { loc $1 $ BoolType }
         | 'struct' 'with' optLAYSEP fields anyLAYEND   { loc $1 $ StructType $4 }
         | 'struct' 'with' optLAYSEP '{' '}'            { loc $1 $ StructType [] }
         | 'struct' 'with' optLAYSEP '{' fields '}'     { loc $1 $ StructType $5 }
-        | idents                                       { loc (head $1) $ KindNames $1 }
+        | kindNames                                    { $1 }
 
 fields :: { [(LText, LType)] }
 fields : field                   { [$1] }
@@ -120,6 +120,8 @@ fields : field                   { [$1] }
        | field anySep fields   { $1 : $3 }
 
 field : ident ':' type anyLAYEND { (locText $1, $3) }
+
+kindNames : idents { loc (head $1) $ KindNames $1 }
 
 
 expr :: { LExpr }
@@ -148,7 +150,8 @@ lit : 'true'                              { loc $1 $ BoolLit True }
     | int                                 { loc $1 $ IntLit (tkInt $1) }
     | enumIdent                           { loc $1 $ EnumLit (locText $1) }
     | '{' enumIdents '}'                  { loc $1 $ SetLit $2 }
-    | type 'with' '{' fieldvals '}'       { loc $1 $ StructLit $1 $4 }
+    | 'struct' 'with' '{' fieldvals '}'   { loc $1 $ StructLit Nothing $4 }
+    | kindNames 'with' '{' fieldvals '}'  { loc $1 $ StructLit (Just $1) $4 }
 
 fieldvals :: { [(LText, LLiteral)] }
 fieldvals : {- empty -}                   { [] }

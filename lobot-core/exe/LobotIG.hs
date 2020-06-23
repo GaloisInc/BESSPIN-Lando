@@ -77,7 +77,7 @@ ig Options{..} = do
                 modifyIORef iRef (+1)
                 putStrLn $
                   "Instance " ++ show i ++ "/" ++ show numInsts ++ ":"
-                print $ ppLiteral inst
+                print $ ppLiteralWithKindName (kindName k) inst
                 when (i < numInsts) $ do
                   putStrLn $ "Press enter to see the next instance."
                   void getLine

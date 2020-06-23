@@ -83,7 +83,7 @@ data LiteralP t = BoolLit Bool
                 | IntLit Integer
                 | EnumLit LText
                 | SetLit [LText]
-                | StructLit t [(LText, LLiteralP t)]
+                | StructLit (Maybe t) [(LText, LLiteralP t)]
                 deriving (Show, Eq)
 
 type Literal = LiteralP LType

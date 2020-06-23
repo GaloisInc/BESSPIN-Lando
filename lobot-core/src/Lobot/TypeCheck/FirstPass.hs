@@ -27,7 +27,7 @@ import qualified Data.HashMap as H
 import qualified Data.HashSet as HS
 
 import Data.Text (Text)
-import Control.Monad (unless, forM_)
+import Control.Monad (when, forM_)
 import Control.Monad.State (get, modify)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Some
@@ -191,7 +191,7 @@ checkExpr enms (L p (ApplyExpr fn args)) = do
 
 -- the remaining cases are mechanical
 checkExpr enms (L p (LiteralExpr l)) = do
-  l' <- checkLiteral enms l
+  l' <- checkLiteral (Just enms) l
   pure $ L p (LiteralExpr l')
 checkExpr _ (L p SelfExpr) = do
   pure $ L p SelfExpr
@@ -222,20 +222,28 @@ checkExpr enms (L p (NotExpr x)) = do
   x' <- checkExpr enms x
   pure $ L p (NotExpr x')
 
-checkLiteral :: EnumNameSet -> S.LLiteral -> CtxM1 ILLiteral
+checkLiteral :: Maybe EnumNameSet -> S.LLiteral -> CtxM1 ILLiteral
 
 checkLiteral _ (L p (BoolLit b)) = pure $ L p (BoolLit b)
 checkLiteral _ (L p (IntLit  i)) = pure $ L p (IntLit  i)
 
-checkLiteral enms (L p (EnumLit e)) = do
-  unless (unLoc e `HS.member` enms) $ typeError (EnumNameNotInScope e)
+checkLiteral mb_enms (L p (EnumLit e)) = do
+  when (maybe False (\enms -> unLoc e `HS.member` enms) mb_enms) $
+    typeError (EnumNameNotInScope e)
   pure $ L p (EnumLit e)
-checkLiteral enms (L p (SetLit es)) = do
+checkLiteral mb_enms (L p (SetLit es)) = do
   forM_ es $ \e ->
-    unless (unLoc e `HS.member` enms) $ typeError (EnumNameNotInScope e)
+    when (maybe False (\enms -> unLoc e `HS.member` enms) mb_enms) $
+      typeError (EnumNameNotInScope e)
   pure $ L p (SetLit es)
 
-checkLiteral enms (L p (StructLit tp fvs)) = do
+checkLiteral mb_enms (L p (StructLit (Just tp) fvs)) = do
   (tp', dcns, enms') <- checkType tp
-  fvs' <- mapM (mapM (checkLiteral (enms `HS.union` enms'))) fvs
-  pure $ L p (StructLit (tp', dcns) fvs')
+  let enms'' = fmap (\enms -> enms `HS.union` enms') mb_enms
+  fvs' <- mapM (mapM (checkLiteral enms'')) fvs
+  pure $ L p (StructLit (Just (tp', dcns)) fvs')
+-- if there's no explict type given for the literal we can't do any sensible
+--  enum scope checking yet, so we leave everything to the second pass
+checkLiteral _ (L p (StructLit Nothing fvs)) = do
+  fvs' <- mapM (mapM (checkLiteral Nothing)) fvs
+  pure $ L p (StructLit Nothing fvs')
