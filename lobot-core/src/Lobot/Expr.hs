@@ -30,10 +30,10 @@ module Lobot.Expr
     -- * Function implementation
   , FunctionImpl(..)
     -- * Evaluation
-  , EvalM(..)
-  , EvalResult(..)
   , evalExpr
   , runEvalM
+  , EvalM
+  , EvalResult(..)
   , FunctionCallResult(..)
   ) where
 
@@ -85,13 +85,21 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
 deriving instance Show (Expr env ctx tp)
 instance ShowF (Expr env ctx)
 
+-- | The result of a function call on a particular set of argument expressions,
+-- whose return type is not abstract. This is used for refining the solver's
+-- model of the function to improve its search during instance generation.
 data FunctionCallResult env ctx where
   FunctionCallResult :: IsAbstractType ret ~ 'False
                      => Index env (FunType nm args ret)
+                     -- ^ Index of the called function
                      -> Assignment (Expr env ctx) args
+                     -- ^ Argument expressions
                      -> Literal ret
+                     -- ^ Literal value of result
                      -> FunctionCallResult env ctx
 
+-- | Expression evaluation monad. Every time we evaluate a function, we record
+-- the call as a 'FunctionCallResult' that can be collected after evaluation.
 newtype EvalM env ctx m a =
   EvalM { unEvalM :: S.StateT [FunctionCallResult env ctx] m a }
   deriving ( Functor
@@ -101,6 +109,9 @@ newtype EvalM env ctx m a =
            , MonadFail
            )
 
+-- | Unwrap an 'EvalM' computation, collecting both the result of the evaluation
+-- and a list of all of the 'FunctionCallResult's computed as the result of
+-- calling concrete functions.
 runEvalM :: EvalM env ctx m a -> m (a, [FunctionCallResult env ctx])
 runEvalM k = S.runStateT (unEvalM k) []
 
@@ -126,6 +137,16 @@ litEvalResult :: IsAbstractType tp ~ 'False
               -> EvalResult env ctx tp
 litEvalResult l = EvalResult l (LiteralExpr l)
 
+-- | Evaluate an expression.
+--
+-- When we evaluate an expression, there are two things we might want back. The
+-- first and most obvious is a 'Literal', i.e. the literal result of evaluating
+-- the expression. The second is another 'Expr', consisting of what the
+-- expression becomes after all non-abstract subexpressions have been evaluated.
+--
+-- If the expression's type is non-abstract, we simply return the literal as a
+-- 'LiteralExpr'. If it is abstract, we reconstruct the original expression
+-- after all sub-expressions have been simplified in this manner.
 evalExpr :: MonadFail m
          => Assignment (FunctionImpl m) env
          -> Assignment Literal ctx

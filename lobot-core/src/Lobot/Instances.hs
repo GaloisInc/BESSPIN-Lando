@@ -89,12 +89,12 @@ type family TypeBaseType (tp :: Type) :: WT.BaseType where
   TypeBaseType (AbsType _) = WT.BaseIntegerType
 
 typeBaseType :: TypeRepr tp -> WT.BaseTypeRepr (TypeBaseType tp)
-typeBaseType BoolRepr = WT.BaseBoolRepr
-typeBaseType IntRepr = WT.BaseIntegerRepr
-typeBaseType (EnumRepr cs) = WT.BaseBVRepr (ctxSizeNat (size cs))
-typeBaseType (SetRepr cs) = WT.BaseBVRepr (ctxSizeNat (size cs))
+typeBaseType BoolRepr          = WT.BaseBoolRepr
+typeBaseType IntRepr           = WT.BaseIntegerRepr
+typeBaseType (EnumRepr cs)     = WT.BaseBVRepr (ctxSizeNat (size cs))
+typeBaseType (SetRepr cs)      = WT.BaseBVRepr (ctxSizeNat (size cs))
 typeBaseType (StructRepr ftps) = WT.BaseStructRepr (fieldBaseTypes ftps)
-typeBaseType (AbsRepr _) = WT.BaseIntegerRepr
+typeBaseType (AbsRepr _)       = WT.BaseIntegerRepr
 
 -- | Symbolic 'Literal'.
 data SymLiteral t tp =
@@ -514,14 +514,13 @@ assumeCall :: WS.SMTLib2Tweaks solver
            -> IO ()
 assumeCall sym session symFns symLits (FunctionCallResult fi args ret)
   | SymFunction{..} <- symFns ! fi = do
-      -- symArgs <- symLiterals sym args
-      symArgs <- traverseFC (symEvalExpr sym symFns symLits) args
-      symRet <- symLiteral sym ret
+      symArgs  <- traverseFC (symEvalExpr sym symFns symLits) args
+      symRet   <- symLiteral sym ret
       symApply <- WI.applySymFn sym symFunctionValue (symLiteralExprs symArgs)
       symRes <- case functionRetType symFunctionType of
-        BoolRepr -> WI.eqPred sym symApply (symLiteralExpr symRet)
-        IntRepr -> WI.intEq sym symApply (symLiteralExpr symRet)
-        EnumRepr _ -> WI.bvEq sym symApply (symLiteralExpr symRet)
-        SetRepr _ -> WI.bvEq sym symApply (symLiteralExpr symRet)
+        BoolRepr     -> WI.eqPred   sym symApply (symLiteralExpr symRet)
+        IntRepr      -> WI.intEq    sym symApply (symLiteralExpr symRet)
+        EnumRepr   _ -> WI.bvEq     sym symApply (symLiteralExpr symRet)
+        SetRepr    _ -> WI.bvEq     sym symApply (symLiteralExpr symRet)
         StructRepr _ -> WI.structEq sym symApply (symLiteralExpr symRet)
       WS.assume (WS.sessionWriter session) symRes
