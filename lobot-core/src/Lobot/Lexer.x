@@ -162,6 +162,9 @@ instance Show a => Show (Loc a) where
   show (L (AlexPn _ l c) x) =
     show x ++ " @(" ++ show l ++ "," ++ show c ++ ")"
 
+instance Eq a => Eq (Loc a) where
+  (L _ x) == (L _ y) = x == y
+
 -- | 'loc a b' applies the 'AlexPosn' of 'a' to 'b'
 loc :: Loc a -> b -> Loc b
 loc (L p _) = L p

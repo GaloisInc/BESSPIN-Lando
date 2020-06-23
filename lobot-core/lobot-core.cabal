@@ -28,10 +28,14 @@ library
                        Lobot.Parser
                        Lobot.Pretty
                        Lobot.TypeCheck
+                       Lobot.TypeCheck.Types
+                       Lobot.TypeCheck.FirstPass
                        Lobot.Types
                        Lobot.Utils
 
-  -- other-modules:
+  -- other-modules:       Lobot.TypeCheck.Types
+  --                      Lobot.TypeCheck.FirstPass
+  --                      Lobot.TypeCheck.SecondPass
   -- other-extensions:
   build-depends:       base >=4.13,
                        aeson,

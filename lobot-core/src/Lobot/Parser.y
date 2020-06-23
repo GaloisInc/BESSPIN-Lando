@@ -85,9 +85,9 @@ decls : {- empty -}           { [] }
       | decl nlLAYEND decls   { $1 : $3 }
 
 decl :: { Decl }
-decl : ident ':' kindDeclType    { KindDecl $ Kind (tkText $1) (fst $3) (snd $3) }
-decl : 'type' ident '=' type     { TypeSynDecl (tkText $2) $4 }
-decl : 'abstract' 'type' ident   { AbsTypeDecl (tkText $3) }
+decl : ident ':' kindDeclType    { KindDecl $ Kind (locText $1) (fst $3) (snd $3) }
+decl : 'type' ident '=' type     { TypeSynDecl (locText $2) $4 }
+decl : 'abstract' 'type' ident   { AbsTypeDecl (locText $3) }
 
 
 kindDeclType :: { (LType,[LExpr]) }
@@ -125,7 +125,7 @@ field : ident ':' type anyLAYEND { (locText $1, $3) }
 expr :: { LExpr }
 expr : lit                         { loc $1 $ LiteralExpr $1 }
      | 'self'                      { loc $1 $ SelfExpr }
-     | ident                       { loc $1 $ SelfFieldExpr (locText $1) }
+     | ident                       { loc $1 $ VarExpr (locText $1) }
      | expr '.' ident              { loc $1 $ FieldExpr $1 (locText $3) }
      | expr '=' expr               { loc $1 $ EqExpr $1 $3 }
      | expr '<=' expr              { loc $1 $ LteExpr $1 $3 }
@@ -148,7 +148,7 @@ lit : 'true'                              { loc $1 $ BoolLit True }
     | int                                 { loc $1 $ IntLit (tkInt $1) }
     | enumIdent                           { loc $1 $ EnumLit (locText $1) }
     | '{' enumIdents '}'                  { loc $1 $ SetLit $2 }
-    | 'struct' 'with' '{' fieldvals '}'   { loc $1 $ StructLit $4 }
+    | type 'with' '{' fieldvals '}'       { loc $1 $ StructLit $1 $4 }
 
 fieldvals :: { [(LText, LLiteral)] }
 fieldvals : {- empty -}                   { [] }

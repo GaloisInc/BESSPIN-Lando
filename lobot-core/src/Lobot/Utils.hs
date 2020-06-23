@@ -22,6 +22,7 @@ module Lobot.Utils where
 
 import Data.Functor.Identity
 import Data.Maybe (listToMaybe)
+import Data.List (foldl', union)
 import Data.Text (Text)
 import Data.Parameterized.Some
 import Data.Parameterized.Pair
@@ -30,6 +31,24 @@ import Data.Parameterized.Context
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
+
+mapFst :: (a -> b) -> (a, c) -> (b, c)
+mapFst f (a,c) = (f a, c)
+
+mapSnd :: (a -> b) -> (c, a) -> (c, b)
+mapSnd f (c,a) = (c, f a)
+
+mapFst3 :: (a -> d) -> (a, b, c) -> (d, b, c)
+mapFst3 f (a, b, c) = (f a, b, c)
+
+mapSnd3 :: (b -> d) -> (a, b, c) -> (a, d, c)
+mapSnd3 f (a, b, c) = (a, f b, c)
+
+mapThird3 :: (c -> d) -> (a, b, c) -> (a, b, d)
+mapThird3 f (a, b, c) = (a, b, f c)
+
+unions :: (Foldable t, Eq a) => t [a] -> [a]
+unions = foldl' union []
 
 -- | Returns the index of the first element in the given assignment which is
 -- equal by 'testEquality' to the query element, or Nothing if there is no

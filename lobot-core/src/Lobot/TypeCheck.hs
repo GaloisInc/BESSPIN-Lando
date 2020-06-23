@@ -165,13 +165,13 @@ checkDecl :: Assignment T.FunctionTypeRepr env
 checkDecl env (S.KindDecl S.Kind{..}) = do
   Pair ctx (Cns ctx_cns) <- resolveType env kindType
   cns' <- mapM (checkExpr env ctx T.BoolRepr) kindConstraints
-  let decl = Some (K.Kind kindName ctx env (cns' ++ ctx_cns))
-  modify (H.insert kindName decl)
+  let decl = Some (K.Kind (unLoc kindName) ctx env (cns' ++ ctx_cns))
+  modify (H.insert (unLoc kindName) decl)
   pure $ decl
 checkDecl env (S.TypeSynDecl nm tp) = do
   -- for now, we just handle type synonyms as kinds with no constraints
   checkDecl env (S.KindDecl (S.Kind nm tp []))
-checkDecl env (S.AbsTypeDecl nm) | Some nmSymb <- someSymbol nm = do
+checkDecl env (S.AbsTypeDecl (L _ nm)) | Some nmSymb <- someSymbol nm = do
   -- for now, we also handle abstract types as kinds
   let decl = Some (K.Kind nm (T.AbsRepr nmSymb) env [])
   modify (H.insert nm decl)
@@ -234,16 +234,16 @@ inferExpr :: Assignment T.FunctionTypeRepr env
           -> T.TypeRepr ctx
           -> S.LExpr
           -> CtxM env (Pair T.TypeRepr (K.KindExpr env ctx))
-inferExpr _ _ (L _ (S.LiteralExpr l)) = do
-  InferLit tp l' <- inferLit l
+inferExpr env _ (L _ (S.LiteralExpr l)) = do
+  InferLit tp l' <- inferLit env l
   return $ Pair tp (E.LiteralExpr l')
 inferExpr _ ctx (L _ S.SelfExpr) = pure $ Pair ctx K.SelfExpr
-inferExpr _ (T.StructRepr ftps) (L _ (S.SelfFieldExpr (L p f)))
+inferExpr _ (T.StructRepr ftps) (L _ (S.VarExpr (L p f)))
   | Some f' <- someSymbol f =
       case fieldIndex f' ftps of
         Just (SomeField tp i) -> pure $ Pair tp (E.FieldExpr K.SelfExpr i)
         Nothing -> typeError (FieldNameError (L p f) (Some ftps))
-inferExpr _ _ (L _ (S.SelfFieldExpr f)) =
+inferExpr _ _ (L _ (S.VarExpr f)) =
   typeError (FieldNameError f (Some Empty))
 inferExpr env ctx (L _ (S.FieldExpr x (L p f))) = do
   Pair xtp x' <- inferExpr env ctx x
@@ -328,8 +328,8 @@ checkExpr :: Assignment T.FunctionTypeRepr env
           -> T.TypeRepr tp
           -> S.LExpr
           -> CtxM env (K.KindExpr env ctx tp)
-checkExpr _ _ tp (L _ (S.LiteralExpr l)) = do
-  CheckLit l' <- checkLit tp l
+checkExpr env _ tp (L _ (S.LiteralExpr l)) = do
+  CheckLit l' <- checkLit env tp l
   return $ E.LiteralExpr l'
 checkExpr env ctx tp x = do
   Pair tp' x' <- inferExpr env ctx x
@@ -376,33 +376,36 @@ data InferLit where
   InferLit :: IsAbstractType tp ~ 'False => T.TypeRepr tp -> E.Literal tp -> InferLit
 
 -- | Infer the type of a literal without any knowledge of what its type should be.
-inferLit :: S.LLiteral -> CtxM env InferLit
-inferLit (L _ (S.BoolLit b)) = pure $ InferLit T.BoolRepr (E.BoolLit b)
-inferLit (L _ (S.IntLit z))  = pure $ InferLit T.IntRepr  (E.IntLit z)
-inferLit (L _ (S.StructLit ls)) = do
-  InferFieldLits fls <- toInferFieldLits <$> mapM inferFieldLit ls
+inferLit :: Assignment T.FunctionTypeRepr env 
+         -> S.LLiteral -> CtxM env InferLit
+inferLit _ (L _ (S.BoolLit b)) = pure $ InferLit T.BoolRepr (E.BoolLit b)
+inferLit _ (L _ (S.IntLit z))  = pure $ InferLit T.IntRepr  (E.IntLit z)
+inferLit env (L _ (S.StructLit _tp ls)) = do
+  -- Pair tp' _ <- resolveType env tp
+  InferFieldLits fls <- toInferFieldLits <$> mapM (inferFieldLit env) ls
   pure $ InferLit (E.literalType (E.StructLit fls)) (E.StructLit fls)
-inferLit lit@(L p _) = typeError (TypeInferenceError (L p (S.LiteralExpr lit)))
+inferLit _ lit@(L p _) = typeError (TypeInferenceError (L p (S.LiteralExpr lit)))
 
 data CheckLit tp where
   CheckLit :: IsAbstractType tp ~ 'False => E.Literal tp -> CheckLit tp
 
 -- | Check that the type of a literal is equal to some known type.
-checkLit :: T.TypeRepr tp -> S.LLiteral -> CtxM env (CheckLit tp)
-checkLit (T.EnumRepr cs) (L _ (S.EnumLit e)) = do
+checkLit :: Assignment T.FunctionTypeRepr env
+         -> T.TypeRepr tp -> S.LLiteral -> CtxM env (CheckLit tp)
+checkLit _ (T.EnumRepr cs) (L _ (S.EnumLit e)) = do
   Some i <- enumElemIndex cs e
   pure $ CheckLit (E.EnumLit cs i)
-checkLit tp lit@(L p (S.EnumLit _)) =
+checkLit _ tp lit@(L p (S.EnumLit _)) =
   typeError (TypeMismatchError (L p (S.LiteralExpr lit)) (SomeType tp)
                                (Just $ TypeString "an enum"))
-checkLit (T.SetRepr cs) (L _ (S.SetLit es)) = do
+checkLit _ (T.SetRepr cs) (L _ (S.SetLit es)) = do
   es' <- forM es (enumElemIndex cs)
   pure $ CheckLit (E.SetLit cs es')
-checkLit tp lit@(L p (S.SetLit _)) =
+checkLit _ tp lit@(L p (S.SetLit _)) =
   typeError (TypeMismatchError (L p (S.LiteralExpr lit)) (SomeType tp)
                                (Just $ TypeString "a set"))
-checkLit tp lit@(L p _) = do
-  InferLit tp' lit' <- inferLit lit
+checkLit env tp lit@(L p _) = do
+  InferLit tp' lit' <- inferLit env lit
   case testEquality tp tp' of
     Just Refl -> pure $ CheckLit lit'
     _ -> typeError (TypeMismatchError (L p (S.LiteralExpr lit)) (SomeType tp)
@@ -411,9 +414,10 @@ checkLit tp lit@(L p _) = do
 data InferFieldLit where
   InferFieldLit :: IsAbstractType tp ~ 'False => FieldLiteral '(nm, tp) -> InferFieldLit
 
-inferFieldLit :: (LText, S.LLiteral) -> CtxM env InferFieldLit
-inferFieldLit (L _ s, l) = do
-  InferLit _ l' <- inferLit l
+inferFieldLit :: Assignment T.FunctionTypeRepr env 
+              -> (LText, S.LLiteral) -> CtxM env InferFieldLit
+inferFieldLit env (L _ s, l) = do
+  InferLit _ l' <- inferLit env l
   Some s' <- pure $ someSymbol s
   pure $ InferFieldLit (E.FieldLiteral s' l')
 

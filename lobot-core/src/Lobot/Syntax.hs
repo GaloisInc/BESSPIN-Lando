@@ -9,7 +9,7 @@ Module      : Lobot.Syntax
 Description : The untyped AST for the Lobot Lobot sublanguage.
 Copyright   : (c) Ben Selfridge, Matthew Yacavone, 2020
 License     : BSD3
-Maintainer  : benselfridge@galois.com
+Maintainer  : myac@galoicom
 Stability   : experimental
 Portability : POSIX
 
@@ -22,11 +22,16 @@ module Lobot.Syntax
   ( Loc(..)
   , Decl(..)
   , Kind(..)
+  , FunctionType(..)
   , Type(..)
   , LType
-  , Expr(..)
+  , ExprP(..)
+  , Expr
+  , LExprP
   , LExpr
-  , Literal(..)
+  , LiteralP(..)
+  , Literal
+  , LLiteralP
   , LLiteral
   , LText
   ) where
@@ -36,13 +41,18 @@ import Data.Text (Text)
 import Lobot.Lexer
 
 data Decl = KindDecl Kind
-          | TypeSynDecl Text LType
-          | AbsTypeDecl Text
+          | TypeSynDecl LText LType
+          | AbsTypeDecl LText
+          | AbsFunctionDecl LText FunctionType
+          deriving (Show, Eq)
 
-data Kind = Kind { kindName :: Text
+data Kind = Kind { kindName :: LText
                  , kindType :: LType
                  , kindConstraints :: [LExpr]
-                 } deriving Show
+                 } deriving (Show, Eq)
+
+data FunctionType = FunType LText [LType] LType
+                  deriving (Show, Eq)
 
 data Type = BoolType
           | IntType
@@ -50,30 +60,37 @@ data Type = BoolType
           | SetType [Text]
           | StructType [(LText, LType)]
           | KindNames [LText]
-          deriving Show
+          deriving (Show, Eq)
 
-data Expr = LiteralExpr LLiteral
-          | SelfExpr
-          | SelfFieldExpr LText
-          | FieldExpr LExpr LText -- ^ struct.field
-          | ApplyExpr LText [LExpr]
-          | EqExpr LExpr LExpr
-          | LteExpr LExpr LExpr
-          | PlusExpr LExpr LExpr
-          | MemberExpr LExpr LExpr
-          | ImpliesExpr LExpr LExpr
-          | NotExpr LExpr
-          | IsInstanceExpr LExpr LType -- ^ expr : type (in a constraint)
-          deriving Show
+data ExprP t = LiteralExpr (LLiteralP t)
+             | SelfExpr
+             | VarExpr LText
+          -- | SelfFieldExpr LText
+             | FieldExpr (LExprP t) LText -- ^ struct.field
+             | ApplyExpr LText [LExprP t]
+             | EqExpr (LExprP t) (LExprP t)
+             | LteExpr (LExprP t) (LExprP t)
+             | PlusExpr (LExprP t) (LExprP t)
+             | MemberExpr (LExprP t) (LExprP t)
+             | ImpliesExpr (LExprP t) (LExprP t)
+             | NotExpr (LExprP t)
+             | IsInstanceExpr (LExprP t) t -- ^ expr : type (in a constraint)
+             deriving (Show, Eq)
 
-data Literal = BoolLit Bool
-             | IntLit Integer
-             | EnumLit LText
-             | SetLit [LText]
-             | StructLit [(LText, LLiteral)]
-             deriving Show
+type Expr = ExprP LType
 
-type LType    = Loc Type
-type LExpr    = Loc Expr
-type LLiteral = Loc Literal
-type LText    = Loc Text
+data LiteralP t = BoolLit Bool
+                | IntLit Integer
+                | EnumLit LText
+                | SetLit [LText]
+                | StructLit t [(LText, LLiteralP t)]
+                deriving (Show, Eq)
+
+type Literal = LiteralP LType
+
+type LType       = Loc Type
+type LExprP t    = Loc (ExprP t)
+type LExpr       = Loc Expr
+type LLiteralP t = Loc (LiteralP t)
+type LLiteral    = Loc Literal
+type LText       = Loc Text

@@ -44,18 +44,18 @@ vcommas = PP.vcat . PP.punctuate (PP.text ", ")
 
 ppDecl :: Decl -> PP.Doc
 ppDecl (KindDecl kd@Kind{ kindType = L _ (StructType flds) }) =
-  ppText (kindName kd) PP.<+> PP.colon
+  ppLText (kindName kd) PP.<+> PP.colon
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> PP.text "struct"
   PP.$$ PP.nest 2 (ppWClause "with" (fmap ppField flds))
   PP.$$ PP.nest 2 (ppWClause "where" (ppLExpr <$> kindConstraints kd))
 ppDecl (KindDecl kd) =
-  ppText (kindName kd) PP.<+> PP.colon
+  ppLText (kindName kd) PP.<+> PP.colon
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> ppLType (kindType kd)
   PP.$$ PP.nest 2 (ppWClause "where" (ppLExpr <$> kindConstraints kd))
 ppDecl (TypeSynDecl nm tp) =
-  PP.text "type" PP.<+> ppText nm PP.<+> PP.text "=" PP.<+> ppLType tp
+  PP.text "type" PP.<+> ppLText nm PP.<+> PP.text "=" PP.<+> ppLType tp
 ppDecl (AbsTypeDecl nm) =
-  PP.text "abstract" PP.<+> PP.text "type" PP.<+> ppText nm
+  PP.text "abstract" PP.<+> PP.text "type" PP.<+> ppLText nm
 
 
 ppWClause :: String -> [PP.Doc] -> PP.Doc
@@ -93,10 +93,9 @@ ppLiteral (IntLit x) = PP.integer x
 ppLiteral (EnumLit e) = ppLText e
 ppLiteral (SetLit es) =
   PP.braces (commas (ppLText <$> es))
-ppLiteral (StructLit fls) = PP.text "struct" PP.<+> withClause
-  where withClause = case fls of
-          [] -> PP.empty
-          _ -> PP.text "with" PP.<+> commas (fmap ppFieldLiteral fls)
+ppLiteral (StructLit tp fls) =
+  ppLType tp PP.<+> PP.text "with"
+  PP.<+> PP.braces (commas (fmap ppFieldLiteral fls))
 
 ppFieldLiteral :: (LText, LLiteral) -> PP.Doc
 ppFieldLiteral (fieldLiteralName, fieldLiteralValue) =
@@ -116,7 +115,7 @@ ppExpr' :: Bool
         -> Expr -> PP.Doc
 ppExpr' _ (LiteralExpr l) = ppLLiteral l
 ppExpr' _ SelfExpr = PP.text "self"
-ppExpr' _ (SelfFieldExpr f) = ppLText f
+ppExpr' _ (VarExpr f) = ppLText f
 ppExpr' top (FieldExpr ctxExpr f) =
   ppLExpr' top ctxExpr PP.<> PP.text "." PP.<> ppLText f
 ppExpr' _ (ApplyExpr fn es) =

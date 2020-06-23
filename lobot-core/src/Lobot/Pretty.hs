@@ -83,10 +83,9 @@ ppLiteral (IntLit x) = PP.integer x
 ppLiteral (EnumLit cs i) = symbolDoc (cs ! i)
 ppLiteral (SetLit cs is) =
   PP.braces (commas (viewSome (symbolDoc . (cs !)) <$> is))
-ppLiteral (StructLit fls) = PP.text "struct" PP.<+> withClause
-  where withClause = case fls of
-          Empty -> PP.empty
-          _ -> PP.text "with" PP.<+> commas (toListFC ppFieldLiteral fls)
+ppLiteral (StructLit fls) =
+  PP.text "struct {..}" PP.<+> PP.text "with"
+  PP.<+> PP.braces (commas (toListFC ppFieldLiteral fls))
 ppLiteral (AbsLit s _) = PP.text "<" PP.<> PP.text (T.unpack (symbolRepr s)) PP.<> PP.text ">"
 
 ppFieldLiteral :: FieldLiteral ftp -> PP.Doc
