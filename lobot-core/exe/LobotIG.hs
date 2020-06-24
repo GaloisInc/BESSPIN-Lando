@@ -29,6 +29,7 @@ import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 import Numeric.Natural
 import Options.Applicative
+import System.Directory
 import System.Exit
 import System.Process
 
@@ -51,6 +52,11 @@ main = ig =<< execParser i
 
 ig :: Options -> IO ()
 ig Options{..} = do
+  mz3 <- findExecutable "z3"
+  when (not (isJust mz3)) $ do
+    putStrLn $ "ERROR -- z3 executable must be on your path."
+    exitFailure
+  let Just z3 = mz3
   fileStr <- readFile inFileName
   case parseDecls inFileName fileStr of
     Left err -> putStrLn err
@@ -68,7 +74,7 @@ ig Options{..} = do
             FalseRepr -> do
               putStrLn $ "Generating instances..."
               validInsts <-
-                collectAndFilterInstances "/usr/local/bin/z3" knownRepr fnEnv k count
+                collectAndFilterInstances z3 knownRepr fnEnv k count
               putStrLn $ show (length validInsts) ++ " valid instances."
               let numInsts = length validInsts
               iRef <- newIORef 1
