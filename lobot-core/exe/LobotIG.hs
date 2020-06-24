@@ -73,9 +73,9 @@ ig Options{..} = do
           case isAbstractType (kindType k) of
             FalseRepr -> do
               putStrLn $ "Generating instances..."
-              validInsts <-
+              (validInsts, totalInsts) <-
                 collectAndFilterInstances z3 knownRepr fnEnv k count
-              putStrLn $ show (length validInsts) ++ " valid instances."
+              putStrLn $ show (length validInsts) ++ " valid instances, enumerated " ++ show totalInsts
               let numInsts = length validInsts
               iRef <- newIORef 1
               forM_ validInsts $ \inst -> do
