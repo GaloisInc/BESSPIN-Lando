@@ -93,6 +93,7 @@ ig Options{..} = do
 
 type FnEnv = EmptyCtx ::>
   FunType "add1" (EmptyCtx ::> IntType) IntType ::>
+  FunType "square" (EmptyCtx ::> IntType) IntType ::>
   FunType "write_nlines_file" (EmptyCtx ::> IntType) (AbsType "filepath") ::>
   FunType "run_wc" (EmptyCtx
                     ::> AbsType "filepath"
