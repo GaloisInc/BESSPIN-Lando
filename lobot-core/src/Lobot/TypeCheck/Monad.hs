@@ -4,27 +4,28 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 {-|
-Module      : Lobot.TypeCheck.Types
-Description : Some Haskell types used during LOBOT type checking.
+Module      : Lobot.TypeCheck.Monad
+Description : The monad used during LOBOT type checking.
 Copyright   : (c) Matt Yacavone, 2020
 License     : BSD3
 Maintainer  : myac@galois.com
 Stability   : experimental
 Portability : POSIX
 
-This module defines a number of Haskell types used while type checking the Lobot AST.
+This module defines the monad used while type checking the Lobot AST.
 -}
 
-module Lobot.TypeCheck.Types where
+module Lobot.TypeCheck.Monad where
 
 import qualified Data.HashMap as H
 import qualified Data.HashSet as HS
 import qualified Text.PrettyPrint as PP
 
 import Data.Text (Text)
+import Data.Either (either)
 import Control.Monad (foldM_)
 import Control.Monad.Trans (lift)
-import Control.Monad.State (StateT, get, evalStateT)
+import Control.Monad.State (StateT, state, runStateT, evalStateT)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Some
 import Data.Parameterized.Context
@@ -35,40 +36,23 @@ import Lobot.Syntax as S
 import Lobot.Types as T
 import Lobot.Pretty as P
 import Lobot.Syntax.Pretty as S
-
-
-data DerivedConstraint = FromKind LText
-                       | FromField LText [DerivedConstraint]
-                       deriving Show
-
-type IExpr     = ExprP (Some TypeRepr, [DerivedConstraint])
-type ILiteral  = LiteralP (Some TypeRepr, [DerivedConstraint])
-type ILExpr    = Loc IExpr
-type ILLiteral = Loc ILiteral
-
-data IKind = IKind { ikindType ::  Some T.TypeRepr
-                   , ikindConstraints :: [ILExpr]
-                   , ikindDerivedConstraints :: [DerivedConstraint]
-                   } deriving Show
-
-data IFunctionType = IFunType { ifunType :: Some FunctionTypeRepr
-                              , ifunArgConstraints :: [[DerivedConstraint]]
-                              , ifunRetConstraints :: [DerivedConstraint]
-                              } deriving Show
-
+import Lobot.Utils
 
 type CtxM t err = StateT (H.Map Text t) (Either err)
+
+runCtxM :: CtxM t err a -> Either err (a, H.Map Text t)
+runCtxM x = runStateT x H.empty
 
 evalCtxM :: CtxM t err a -> Either err a
 evalCtxM x = evalStateT x H.empty
 
-try :: CtxM t err a -> CtxM t err (Either err a)
-try x = evalStateT x <$> get
+try :: CtxM t err a -> CtxM t err' (Either err a)
+try x = state (\s -> (evalStateT x s, s))
 
-typeError :: TypeError -> CtxM t TypeError a
+typeError :: err -> CtxM t err a
 typeError = lift . Left
 
-ensureUnique :: (a -> Text) -> [a] -> (a -> TypeError) -> CtxM t TypeError ()
+ensureUnique :: (a -> Text) -> [a] -> (a -> err) -> CtxM t err ()
 ensureUnique f xs err =
   foldM_ (\xset x -> if (f x) `HS.notMember` xset
                      then pure $ HS.insert (f x) xset
@@ -83,15 +67,20 @@ data TypeError = TypeMismatchError S.LExpr SomeTypeOrString (Maybe SomeTypeOrStr
                | DuplicateEnumNameError S.LType Text
                | EmptyEnumOrSetError S.LType
                | KindUnionMismatchError LText (Some T.TypeRepr) (Some T.TypeRepr)
+               | StructLiteralTypeError S.LType
+               | StructLiteralNameMismatchError LText Text
+               | StructLiteralLengthError AlexPosn (Some (Assignment FieldRepr)) [LText]
                  -- ^ argument order: kind name, expected type, actual type
                | KindNameNotInScope LText
                | FunctionNameNotInScope LText
                | FieldNameNotInScope LText
                | EnumNameNotInScope LText
+               | OtherNameNotInScope LText
                | KindNameAlreadyDefined LText
                | FunctionNameAlreadyDefined LText
                | FieldNameAlreadyDefined LText
                | FunctionArgLengthError LText (Some FunctionTypeRepr) [S.LExpr]
+               | UnexpectedSelfError AlexPosn
                | InternalError AlexPosn Text
                deriving Show
 
@@ -121,6 +110,17 @@ ppTypeError fp (KindUnionMismatchError (L p k) (Some exp_tp) (Some act_tp)) =
   PP.<+> PP.text "In a kind union, type mismatch on kind name:" PP.<+> S.ppText k
   PP.$$ PP.nest 2 (PP.text "Expected type:") PP.<+> PP.nest 6 (ppTypeRepr exp_tp)
   PP.$$ PP.nest 2 (PP.text "  Actual type:") PP.<+> PP.nest 6 (ppTypeRepr act_tp)
+ppTypeError fp (StructLiteralTypeError (L p tp)) =
+  PP.text (errorPrefix fp p)
+  PP.<+> PP.text "Type given for a struct literal is not a struct:" PP.<+> S.ppType tp
+ppTypeError fp (StructLiteralNameMismatchError (L p s1) s2) =
+  PP.text (errorPrefix fp p)
+  PP.<+> PP.text "Field in struct literal" PP.<+> S.ppText s1
+  PP.<+> PP.text "does not match the exepcted field" PP.<+> S.ppText s2
+ppTypeError fp (StructLiteralLengthError p (Some ftps) fvs) =
+  PP.text (errorPrefix fp p)
+  PP.<+> PP.text "Struct literal should have" PP.<+> PP.int (sizeInt . size $ ftps)
+  PP.<+> PP.text "fields, but has" PP.<+> PP.int (length fvs)
 ppTypeError fp (KindNameNotInScope (L p k)) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "Kind name" PP.<+> S.ppText k PP.<+> PP.text "not in scope."
@@ -133,6 +133,9 @@ ppTypeError fp (FieldNameNotInScope (L p f)) =
 ppTypeError fp (EnumNameNotInScope (L p fn)) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "Enum name" PP.<+> S.ppText fn PP.<+> PP.text "not in scope."
+ppTypeError fp (OtherNameNotInScope (L p nm)) =
+  PP.text (errorPrefix fp p)
+  PP.<+> PP.text "Identifier" PP.<+> S.ppText nm PP.<+> PP.text "not in scope."
 ppTypeError fp (KindNameAlreadyDefined (L p k)) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "A kind with name" PP.<+> S.ppText k PP.<+> PP.text "is already defined."
@@ -147,6 +150,8 @@ ppTypeError fp (FunctionArgLengthError (L p fn) (Some (FunctionTypeRepr{..})) ar
   PP.<+> PP.text "Function" PP.<+> S.ppText fn
   PP.<+> PP.text "expects" PP.<+> PP.int (sizeInt . size $ functionArgTypes)
   PP.<+> PP.text "arguments, but was given" PP.<+> PP.int (length args)
+ppTypeError fp (UnexpectedSelfError p) =
+  PP.text (errorPrefix fp p) PP.<+> PP.text "Unexpected 'self'."
 ppTypeError fp (InternalError p str) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "Internal error!" PP.$$ PP.nest 2 (S.ppText str)

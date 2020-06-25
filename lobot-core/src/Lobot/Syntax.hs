@@ -25,13 +25,9 @@ module Lobot.Syntax
   , FunctionType(..)
   , Type(..)
   , LType
-  , ExprP(..)
-  , Expr
-  , LExprP
+  , Expr(..)
   , LExpr
-  , LiteralP(..)
-  , Literal
-  , LLiteralP
+  , Literal(..)
   , LLiteral
   , LText
   ) where
@@ -62,35 +58,27 @@ data Type = BoolType
           | KindNames [LText]
           deriving (Show, Eq)
 
-data ExprP t = LiteralExpr (LLiteralP t)
-             | SelfExpr
-             | VarExpr LText
-          -- | SelfFieldExpr LText
-             | FieldExpr (LExprP t) LText -- ^ struct.field
-             | ApplyExpr LText [LExprP t]
-             | EqExpr (LExprP t) (LExprP t)
-             | LteExpr (LExprP t) (LExprP t)
-             | PlusExpr (LExprP t) (LExprP t)
-             | MemberExpr (LExprP t) (LExprP t)
-             | ImpliesExpr (LExprP t) (LExprP t)
-             | NotExpr (LExprP t)
-             | IsInstanceExpr (LExprP t) t -- ^ expr : type (in a constraint)
+data Expr = LiteralExpr LLiteral
+          | SelfExpr
+          | VarExpr LText
+          | FieldExpr LExpr LText -- ^ struct.field
+          | ApplyExpr LText [LExpr]
+          | EqExpr LExpr LExpr
+          | LteExpr LExpr LExpr
+          | PlusExpr LExpr LExpr
+          | MemberExpr LExpr LExpr
+          | ImpliesExpr LExpr LExpr
+          | NotExpr LExpr
+          | IsInstanceExpr LExpr LType -- ^ expr : type (in a constraint)
+          deriving (Show, Eq)
+
+data Literal = BoolLit Bool
+             | IntLit Integer
+             | EnumLit LText
+             | SetLit [LText]
+             | StructLit (Maybe LType) [(LText, LLiteral)]
              deriving (Show, Eq)
 
-type Expr = ExprP LType
-
-data LiteralP t = BoolLit Bool
-                | IntLit Integer
-                | EnumLit LText
-                | SetLit [LText]
-                | StructLit (Maybe t) [(LText, LLiteralP t)]
-                deriving (Show, Eq)
-
-type Literal = LiteralP LType
-
 type LType       = Loc Type
-type LExprP t    = Loc (ExprP t)
 type LExpr       = Loc Expr
-type LLiteralP t = Loc (LiteralP t)
 type LLiteral    = Loc Literal
-type LText       = Loc Text

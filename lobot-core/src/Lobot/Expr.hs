@@ -77,6 +77,10 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   MemberExpr  :: Expr env ctx (EnumType cs)
               -> Expr env ctx (SetType cs)
               -> Expr env ctx BoolType
+  -- | Logical and.
+  AndExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
+  -- | Logical or.
+  OrExpr      :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical implication.
   ImpliesExpr :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical negation.

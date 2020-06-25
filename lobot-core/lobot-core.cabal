@@ -28,8 +28,10 @@ library
                        Lobot.Parser
                        Lobot.Pretty
                        Lobot.TypeCheck
-                       Lobot.TypeCheck.Types
+                       Lobot.TypeCheck.Monad
+                       Lobot.TypeCheck.ISyntax
                        Lobot.TypeCheck.FirstPass
+                       Lobot.TypeCheck.SecondPass
                        Lobot.Types
                        Lobot.Utils
 

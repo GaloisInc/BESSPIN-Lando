@@ -144,6 +144,10 @@ ppKindExpr' _ env ktp (PlusExpr e1 e2) =
   ppKindExpr' False env ktp e1 PP.<+> PP.text "+" PP.<+> ppKindExpr' False env ktp e2
 ppKindExpr' _ env ktp (MemberExpr e1 e2) =
   ppKindExpr' False env ktp e1 PP.<+> PP.text "in" PP.<+> ppKindExpr' False env ktp e2
+ppKindExpr' _ env ktp (AndExpr e1 e2) =
+  ppKindExpr' False env ktp e1 PP.<+> PP.text "and" PP.<+> ppKindExpr' False env ktp e2
+ppKindExpr' _ env ktp (OrExpr e1 e2) =
+  ppKindExpr' False env ktp e1 PP.<+> PP.text "or" PP.<+> ppKindExpr' False env ktp e2
 ppKindExpr' _ env ktp (ImpliesExpr e1 e2) =
   ppKindExpr' False env ktp e1 PP.<+> PP.text "=>" PP.<+> ppKindExpr' False env ktp e2
 ppKindExpr' _ env ktp (NotExpr e) = PP.text "not" PP.<+> ppKindExpr' False env ktp e

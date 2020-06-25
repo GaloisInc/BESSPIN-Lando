@@ -107,9 +107,8 @@ instanceOf' env inst (Kind{..}) = and <$> traverse constraintHolds kindConstrain
           EvalResult (BoolLit b) _ <- evalExpr env (Empty :> inst) e
           return b
 
--- | Substitute a value for 'self' in a kind expression. (This is composition of
--- 'Expr's!)
-giveSelf :: KindExpr env a b -> KindExpr env b c -> KindExpr env a c
+-- | Substitute a value for 'self' in a kind expression.
+giveSelf :: Expr env ctx a -> KindExpr env a b -> Expr env ctx b
 giveSelf s e = case e of
   LiteralExpr l -> LiteralExpr l
   SelfExpr -> s
@@ -119,6 +118,8 @@ giveSelf s e = case e of
   LteExpr e1 e2 -> LteExpr (giveSelf s e1) (giveSelf s e2)
   PlusExpr e1 e2 -> PlusExpr (giveSelf s e1) (giveSelf s e2)
   MemberExpr e1 e2 -> MemberExpr (giveSelf s e1) (giveSelf s e2)
+  AndExpr e1 e2 -> AndExpr (giveSelf s e1) (giveSelf s e2)
+  OrExpr e1 e2 -> OrExpr (giveSelf s e1) (giveSelf s e2)
   ImpliesExpr e1 e2 -> ImpliesExpr (giveSelf s e1) (giveSelf s e2)
   NotExpr e' -> NotExpr (giveSelf s e')
 
@@ -131,7 +132,7 @@ singletonIndexRefl i = case viewIndex knownSize i of
 pattern SelfExpr :: () => (tp' ~ tp) => KindExpr env tp' tp
 pattern SelfExpr <- VarExpr (singletonIndexRefl -> Refl)
   where SelfExpr = VarExpr baseIndex
-{-# COMPLETE LiteralExpr, SelfExpr, FieldExpr, ApplyExpr, EqExpr, LteExpr, PlusExpr, MemberExpr, ImpliesExpr, NotExpr #-}
+{-# COMPLETE LiteralExpr, SelfExpr, FieldExpr, ApplyExpr, EqExpr, LteExpr, PlusExpr, MemberExpr, AndExpr, OrExpr, ImpliesExpr, NotExpr #-}
 
 -- | Lift an expression about a kind @K'@ into an expression about a kind @K@ which
 -- contains @K'@.

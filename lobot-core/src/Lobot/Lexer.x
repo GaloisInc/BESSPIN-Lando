@@ -20,6 +20,7 @@ module Lobot.Lexer
   , Loc(..)
   , loc
   , LToken
+  , LText
   , AlexPosn(..)
   , Alex(..)
   , AlexState(..)
@@ -34,6 +35,7 @@ module Lobot.Lexer
 
 import Prelude hiding (lex)
 import Data.Maybe (fromJust)
+import Data.Text (Text)
 import Debug.Trace
 }
 
@@ -170,6 +172,7 @@ loc :: Loc a -> b -> Loc b
 loc (L p _) = L p
 
 type LToken = Loc Token
+type LText  = Loc Text
 
 
 -- The user state of the Alex monad
