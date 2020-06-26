@@ -1,4 +1,4 @@
-#!/usr/bin/python3                                                                                                                                                                                    
+#!/usr/bin/python3
 
 import json
 import sys
@@ -14,17 +14,17 @@ def main (argv = None):
 
     bluespec_build = json_data[0]
 
-    # RISC-V configuration                                                                                                                                                                            
+    # RISC-V configuration
     riscv = bluespec_build["fields"][0]["value"]
     reg_width = riscv["fields"][0]["value"]
     exts = riscv["fields"][1]["value"]
     privs = riscv["fields"][2]["value"]
     vm = riscv["fields"][3]["value"]
 
-    # Backend simulator                                                                                                                                                                               
+    # Backend simulator
     sim = bluespec_build["fields"][1]["value"]
 
-    # Tandem verification flag                                                                                                                                                                        
+    # Tandem verification flag
     tv = bluespec_build["fields"][2]["value"]
 
     reg_width_str = mk_reg_width_str(reg_width)
