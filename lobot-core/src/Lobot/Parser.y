@@ -174,6 +174,7 @@ fieldval : ident '=' lit                  { (locText $1, $3) }
 enumIdents :: { [LText] }
 enumIdents : enumIdent commaSep enumIdents   { locText $1 : $3 }
            | enumIdent                       { locText $1 : [] }
+           | {- empty -}                     { [] }
 
 idents :: { [LText] }
 idents : ident          { locText $1 : [] }
