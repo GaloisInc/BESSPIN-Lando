@@ -3,6 +3,7 @@
 import json
 import sys
 import os
+import subprocess
 
 def main (argv = None):
     json_str = ""
@@ -35,19 +36,23 @@ def main (argv = None):
 
     piccolo_path = "/home/galois/Piccolo"
     mkBuild_Dir = piccolo_path + "/builds/Resources/mkBuild_Dir.py"
-    cmd = (mkBuild_Dir + " " + piccolo_path + " " +
-           reg_width_str + exts_str + privs_str + " " +
-           sim_str + " " + tv_str)
 
-    result = os.system(cmd)
-    if result == 0:
-        result_valid = True
+    with open(os.devnull, 'wb') as devnull:
+        result = subprocess.run([mkBuild_Dir,
+                                 piccolo_path,
+                                 reg_width_str + exts_str + privs_str,
+                                 sim_str] + tv_str,
+                                stdout=devnull,
+				stderr=devnull)
+
+    if result.returncode == 0:
+	result_valid = True
     else:
         result_valid = False
 
     json_output = {
-        "variant": "bool",
-        "value": result_valid
+	"variant": "bool",
+	"value": result_valid
     }
 
     print(json.dumps(json_output))
@@ -57,13 +62,13 @@ def mk_reg_width_str(reg_width):
 
 def mk_exts_str(exts):
     str = "I"
-    for i in exts["value"]:
+    for i in exts["values"]:
         str += exts["constructors"][i]
     return str
 
 def mk_privs_str(privs):
     str = ""
-    for i in privs["value"]:
+    for i in privs["values"]:
         str += privs["constructors"][i]
     return str
 
@@ -72,9 +77,9 @@ def mk_sim_str(sim):
 
 def mk_tv_str(tv):
     if tv["value"]:
-        return "tv"
+        return ["tv"]
     else:
-        return ""
+        return []
 
 if __name__ == '__main__':
     sys.exit (main (sys.argv))
