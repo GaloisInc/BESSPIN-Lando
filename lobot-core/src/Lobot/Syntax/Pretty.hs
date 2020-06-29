@@ -56,6 +56,14 @@ ppDecl (TypeSynDecl nm tp) =
   PP.text "type" PP.<+> ppLText nm PP.<+> PP.text "=" PP.<+> ppLType tp
 ppDecl (AbsTypeDecl nm) =
   PP.text "abstract" PP.<+> PP.text "type" PP.<+> ppLText nm
+ppDecl (AbsFunctionDecl nm (FunType _ argtps rettp)) =
+  PP.text "abstract" PP.<+> ppLText nm PP.<+> PP.text ":"
+  PP.<+> ppFunArgTypes argtps PP.<+> PP.text "->" PP.<+> ppLType rettp
+
+ppFunArgTypes :: [LType] -> PP.Doc
+ppFunArgTypes [] = PP.text "()"
+ppFunArgTypes [tp] = ppLType tp
+ppFunArgTypes args = PP.parens $ commas (ppLType <$> args)
 
 
 ppWClause :: String -> [PP.Doc] -> PP.Doc

@@ -64,6 +64,7 @@ executable lobotIG
                        base,
                        aeson,
                        bytestring,
+                       directory,
                        optparse-applicative,
                        parameterized-utils,
                        process,

@@ -3,4 +3,4 @@
 	url = https://github.com/FreeAndFair/BONc
 [submodule "lobot-core/deps/what4"]
 	path = lobot-core/deps/what4
-	url = git@github.com:/GaloisInc/what4
+	url = https://github.com/GaloisInc/what4.git

@@ -89,12 +89,12 @@ type family TypeBaseType (tp :: Type) :: WT.BaseType where
   TypeBaseType (AbsType _) = WT.BaseIntegerType
 
 typeBaseType :: TypeRepr tp -> WT.BaseTypeRepr (TypeBaseType tp)
-typeBaseType BoolRepr = WT.BaseBoolRepr
-typeBaseType IntRepr = WT.BaseIntegerRepr
-typeBaseType (EnumRepr cs) = WT.BaseBVRepr (ctxSizeNat (size cs))
-typeBaseType (SetRepr cs) = WT.BaseBVRepr (ctxSizeNat (size cs))
+typeBaseType BoolRepr          = WT.BaseBoolRepr
+typeBaseType IntRepr           = WT.BaseIntegerRepr
+typeBaseType (EnumRepr cs)     = WT.BaseBVRepr (ctxSizeNat (size cs))
+typeBaseType (SetRepr cs)      = WT.BaseBVRepr (ctxSizeNat (size cs))
 typeBaseType (StructRepr ftps) = WT.BaseStructRepr (fieldBaseTypes ftps)
-typeBaseType (AbsRepr _) = WT.BaseIntegerRepr
+typeBaseType (AbsRepr _)       = WT.BaseIntegerRepr
 
 -- | Symbolic 'Literal'.
 data SymLiteral t tp =
@@ -465,6 +465,9 @@ collectInstances' sym session symFns symLit limit = do
 -- collect all concrete function calls evaluated during the course of this check
 -- and add the results to the SMT solver's assumptions. This has the effect of
 -- "teaching" the solver about the pointwise values of the functions.
+--
+-- Along with the satisfying instances, return the number of total instances the
+-- SMT solver returned (including the spurious ones).
 collectAndFilterInstances :: IsAbstractType tp ~ 'False
                           => FilePath
                           -- ^ Path to z3 executable
@@ -476,7 +479,7 @@ collectAndFilterInstances :: IsAbstractType tp ~ 'False
                           -- ^ Kind we are generating instances of
                           -> Natural
                           -- ^ Maximum number of instances to collect
-                          -> IO [Literal tp]
+                          -> IO ([Literal tp], Natural)
 collectAndFilterInstances z3_path env fns kd limit = do
   Some nonceGen <- newIONonceGenerator
   sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
@@ -497,19 +500,19 @@ collectAndFilterInstances' :: (IsAbstractType tp ~ 'False, WS.SMTLib2Tweaks solv
                            -> Assignment (SymFunction t) env
                            -> SymLiteral t tp
                            -> Natural
-                           -> IO [Literal tp]
-collectAndFilterInstances' _ _ _ _ _ _ 0 = return []
+                           -> IO ([Literal tp], Natural)
+collectAndFilterInstances' _ _ _ _ _ _ 0 = return ([], 0)
 collectAndFilterInstances' sym session fns kd symFns symLit limit = do
   r <- getNextInstance sym session symFns symLit
   case r of
     HasInstance l -> do
       (isInst, calls) <- instanceOf fns l kd
       traverse_ (assumeCall sym session symFns (Empty :> symLit)) calls
-      ls <- collectAndFilterInstances' sym session fns kd symFns symLit (limit-1)
+      (ls, n) <- collectAndFilterInstances' sym session fns kd symFns symLit (limit-1)
       case isInst of
-        True -> return (l:ls)
-        False -> return ls
-    _ -> return []
+        True -> return (l:ls, n+1)
+        False -> return (ls, n+1)
+    _ -> return ([], 0)
 
 -- | Assumes the result of a function call. If any of the functions arguments
 -- are abstract, or if its return type is abstract, this is a no-op.
@@ -522,14 +525,13 @@ assumeCall :: WS.SMTLib2Tweaks solver
            -> IO ()
 assumeCall sym session symFns symLits (FunctionCallResult fi args ret)
   | SymFunction{..} <- symFns ! fi = do
-      -- symArgs <- symLiterals sym args
-      symArgs <- traverseFC (symEvalExpr sym symFns symLits) args
-      symRet <- symLiteral sym ret
+      symArgs  <- traverseFC (symEvalExpr sym symFns symLits) args
+      symRet   <- symLiteral sym ret
       symApply <- WI.applySymFn sym symFunctionValue (symLiteralExprs symArgs)
       symRes <- case functionRetType symFunctionType of
-        BoolRepr -> WI.eqPred sym symApply (symLiteralExpr symRet)
-        IntRepr -> WI.intEq sym symApply (symLiteralExpr symRet)
-        EnumRepr _ -> WI.bvEq sym symApply (symLiteralExpr symRet)
-        SetRepr _ -> WI.bvEq sym symApply (symLiteralExpr symRet)
+        BoolRepr     -> WI.eqPred   sym symApply (symLiteralExpr symRet)
+        IntRepr      -> WI.intEq    sym symApply (symLiteralExpr symRet)
+        EnumRepr   _ -> WI.bvEq     sym symApply (symLiteralExpr symRet)
+        SetRepr    _ -> WI.bvEq     sym symApply (symLiteralExpr symRet)
         StructRepr _ -> WI.structEq sym symApply (symLiteralExpr symRet)
       WS.assume (WS.sessionWriter session) symRes
