@@ -9,7 +9,7 @@
 {-|
 Module      : Lobot.Utils
 Description : Useful functions.
-Copyright   : (c) Matt Yacavone, Ben Selfridge, 2020
+Copyright   : (c) Matthew Yacavone, Ben Selfridge, 2020
 License     : BSD3
 Maintainer  : myac@galois.com
 Stability   : experimental
@@ -22,12 +22,12 @@ module Lobot.Utils where
 
 import Data.Functor.Identity
 import Data.Maybe (listToMaybe)
-import Data.List (foldl', union)
+import Control.Monad (liftM2, join)
 import Data.Text (Text)
 import Data.Parameterized.Some
 import Data.Parameterized.Pair
 import Data.Parameterized.Classes
-import Data.Parameterized.Context
+import Data.Parameterized.Context hiding (take)
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
@@ -47,8 +47,8 @@ mapSnd3 f (a, b, c) = (a, f b, c)
 mapThird3 :: (c -> d) -> (a, b, c) -> (a, b, d)
 mapThird3 f (a, b, c) = (a, b, f c)
 
-unions :: (Foldable t, Eq a) => t [a] -> [a]
-unions = foldl' union []
+bind2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
+bind2 f ma mb = join (liftM2 f ma mb)
 
 -- | Returns the index of the first element in the given assignment which is
 -- equal by 'testEquality' to the query element, or Nothing if there is no

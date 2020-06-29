@@ -8,7 +8,7 @@
 {-|
 Module      : Lobot.TypeCheck.FirstPass
 Description : The first pass of typechecking the Lobot AST.
-Copyright   : (c) Matt Yacavone, 2020
+Copyright   : (c) Matthew Yacavone, 2020
 License     : BSD3
 Maintainer  : myac@galois.com
 Stability   : experimental
@@ -23,14 +23,18 @@ untyped constraints ('[S.LExpr]') and a list derived constraints
 pass.
 -}
 
-module Lobot.TypeCheck.FirstPass ( firstPass ) where
+module Lobot.TypeCheck.FirstPass
+  ( firstPass
+  , FirstPassResult(..)
+  ) where
 
 import qualified Data.HashMap as H
 import qualified Data.HashSet as HS
 
 import Data.Text (Text)
 import Control.Monad (when, forM_)
-import Control.Monad.State (get, modify)
+import Control.Monad.State (evalStateT, get, modify)
+import Control.Monad.Except (throwError)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Some
 import Data.Parameterized.Context
@@ -38,6 +42,7 @@ import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 
 import Lobot.Utils hiding (unzip)
+import Lobot.Kind as K
 import Lobot.Syntax as S
 import Lobot.Types as T
 
@@ -45,24 +50,32 @@ import Lobot.TypeCheck.Monad
 import Lobot.TypeCheck.ISyntax as I
 
 
+data FirstPassResult where
+  FirstPassResult :: Assignment FunctionTypeRepr env
+                  -> [I.Kind]
+                  -> H.Map Text (Some (K.Kind env))
+                  -> FirstPassResult
+
 firstPass :: [S.Decl]
-          -> Either TypeError ( ([I.Kind], Some (Assignment FunctionTypeRepr))
-                              , H.Map Text (Maybe a) )
-firstPass ds = fmap (\(res,ctx) -> (res, const Nothing <$> ctx)) $
-                runCtxM (checkDecls ds)
+          -> WithWarnings (Either TypeError) FirstPassResult
+firstPass ds = do
+  (Some env, ks, tpsyns) <- evalStateT (checkDecls ds) H.empty
+  let tpsyns' = H.mapWithKey (\nm (Some tp) -> Some (K.Kind nm tp env [])) tpsyns
+  pure (FirstPassResult env ks tpsyns')
 
 
 type CtxM1 = CtxM NamedThing TypeError
 
 data NamedThing = NamedKind I.Kind EnumNameSet
                 | NamedFunction I.FunctionType [EnumNameSet]
+                deriving Show
 
 type EnumNameSet = HS.Set Text
 
 addKind :: I.Kind -> EnumNameSet -> CtxM1 ()
 addKind ik@I.Kind{ kindName = (L p nm) } enms = do
   is_in <- H.member nm <$> get
-  if is_in then typeError (KindNameAlreadyDefined (L p nm))
+  if is_in then throwError (KindNameAlreadyDefined (L p nm))
            else modify (H.insert nm (NamedKind ik enms))
 
 addAbsType :: LText -> Some TypeRepr -> CtxM1 ()
@@ -73,12 +86,12 @@ lookupKind (L p k) = do
   mb_k' <- H.lookup k <$> get
   case mb_k' of
     Just (NamedKind k' enms) -> pure (k', enms)
-    _ -> typeError (KindNameNotInScope (L p k))
+    _ -> throwError (KindNameNotInScope (L p k))
 
 addFunction :: LText -> I.FunctionType -> [EnumNameSet] -> CtxM1 ()
 addFunction (L p nm) ftp enms = do
   is_in <- H.member nm <$> get
-  if is_in then typeError (KindNameAlreadyDefined (L p nm))
+  if is_in then throwError (KindNameAlreadyDefined (L p nm))
            else modify (H.insert nm (NamedFunction ftp enms))
 
 lookupFunction :: LText -> CtxM1 (I.FunctionType, [EnumNameSet])
@@ -86,22 +99,26 @@ lookupFunction (L p f) = do
   mb_f' <- H.lookup f <$> get
   case mb_f' of
     Just (NamedFunction f' enms) -> pure (f', enms)
-    _ -> typeError (FunctionNameNotInScope (L p f))
+    _ -> throwError (FunctionNameNotInScope (L p f))
 
 
 checkDecls :: [S.Decl]
-           -> CtxM1 ([I.Kind], Some (Assignment FunctionTypeRepr))
-checkDecls [] = pure ([], Some Empty)
+           -> CtxM1 ( Some (Assignment FunctionTypeRepr)
+                    , [I.Kind]
+                    , H.Map Text (Some TypeRepr) )
+checkDecls [] = pure (Some Empty, [] , H.empty)
 checkDecls (d:ds) = do
   to_add <- checkDecl d
-  (ks, Some ftps) <- checkDecls ds
+  (Some ftps, ks, tpsyns) <- checkDecls ds
   case to_add of
-    AddIKind k'           -> pure (k':ks, Some ftps)
-    AddFunType (Some ftp) -> pure (ks, Some $ ftps :> ftp)
-    AddNothing            -> pure (ks, Some ftps)
+    AddFunType (Some ftp) -> pure (Some $ ftps :> ftp, ks, tpsyns)
+    AddIKind k'           -> pure (Some ftps, k':ks, tpsyns)
+    AddTypeSyn nm tp      -> pure (Some ftps, ks, H.insert nm tp tpsyns)
+    AddNothing            -> pure (Some ftps, ks, tpsyns)
 
-data ToAdd = AddIKind I.Kind
-           | AddFunType (Some FunctionTypeRepr)
+data ToAdd = AddFunType (Some FunctionTypeRepr)
+           | AddIKind I.Kind
+           | AddTypeSyn Text (Some TypeRepr)
            | AddNothing
 
 checkDecl :: S.Decl -> CtxM1 ToAdd
@@ -115,12 +132,14 @@ checkDecl (S.KindDecl k) = do
 
 checkDecl (S.TypeSynDecl nm tp) = do
   (Some tp', dcns, enms) <- checkType tp
-  addKind (I.Kind nm tp' [] dcns) enms
-  pure $ AddNothing
+  let k' = I.Kind nm tp' [] dcns
+  addKind k' enms
+  pure $ AddIKind k'
 
 checkDecl (S.AbsTypeDecl nm) | Some nmSymb <- someSymbol (unLoc nm) = do
-  addAbsType nm (Some (T.AbsRepr nmSymb))
-  pure $ AddNothing
+  let tp = T.AbsRepr nmSymb
+  addAbsType nm (Some tp)
+  pure $ AddTypeSyn (unLoc nm) (Some tp)
 
 checkDecl (S.AbsFunctionDecl nm ftp) = do
   (ftp', enms) <- checkFunctionType ftp
@@ -138,19 +157,19 @@ checkType tp@(L _ (S.EnumType cs)) | Some cs' <- someSymbols cs = do
   ensureUnique id cs (DuplicateEnumNameError tp)
   case decideLeq (knownNat @1) (ctxSizeNat (size cs')) of
     Left LeqProof -> pure (Some (T.EnumRepr cs'), [], HS.fromList cs)
-    Right _ -> typeError (EmptyEnumOrSetError tp)
+    Right _ -> throwError (EmptyEnumOrSetError tp)
 checkType tp@((L _ (S.SetType cs))) | Some cs' <- someSymbols cs = do
   ensureUnique id cs (DuplicateEnumNameError tp)
   case decideLeq (knownNat @1) (ctxSizeNat (size cs')) of
     Left LeqProof -> pure (Some (T.SetRepr cs'), [], HS.fromList cs)
-    Right _ -> typeError (EmptyEnumOrSetError tp)
+    Right _ -> throwError (EmptyEnumOrSetError tp)
 
 checkType (L _ (S.StructType fls)) = do
   (Some fls', dcns, enms) <- mapFst3 fromList . unzip3 <$> mapM checkFieldType fls
   ensureUnique unLoc (fmap fst fls) FieldNameAlreadyDefined
   pure (Some (T.StructRepr fls'), dcns, HS.unions enms)
 
-checkType (L p (S.KindNames [])) = typeError (InternalError p "empty kind union")
+checkType (L p (S.KindNames [])) = throwError (InternalError p "empty kind union")
 checkType (L _ (S.KindNames [k])) = do
   (I.Kind _ tp _ _, enms) <- lookupKind k
   pure (Some tp, [FromKind k], enms)
@@ -159,7 +178,7 @@ checkType (L p (S.KindNames (k:ks))) = do
   (Some ks_tp, dcns, ks_enms) <- checkType (L p (S.KindNames ks))
   case testEquality k_tp ks_tp of
     Just Refl -> pure (Some ks_tp, (FromKind k):dcns, k_enms `HS.union` ks_enms)
-    Nothing -> typeError (KindUnionMismatchError k (Some ks_tp) (Some k_tp))
+    Nothing -> throwError (KindUnionMismatchError k (Some ks_tp) (Some k_tp))
 
 checkFieldType :: (LText, S.LType)
                -> CtxM1 (Some FieldRepr, DerivedConstraint, EnumNameSet)
@@ -173,7 +192,7 @@ checkFunctionType :: S.FunctionType -> CtxM1 (I.FunctionType, [EnumNameSet])
 checkFunctionType (S.FunType (L _ fn) arg_tps ret_tp) = do
   Some fn' <- pure $ someSymbol fn
   (Some arg_tps', arg_dcns, arg_enms) <- mapFst3 fromList . unzip3 <$>
-                                      mapM checkType arg_tps
+                                           mapM checkType (reverse arg_tps)
   (Some ret_tp', ret_dcns, _) <- checkType ret_tp
   pure (I.FunType (Some $ FunctionTypeRepr fn' arg_tps' ret_tp') arg_dcns ret_dcns, arg_enms)
 
@@ -203,11 +222,11 @@ checkExpr enms ctx (L p (S.VarExpr t))
   | Just (Some idx) <- findIndex (ifVarElem (\nm _ -> unLoc t == nm)) ctx
     = pure $ L p (I.VarExpr t idx)
   | otherwise
-    = typeError (OtherNameNotInScope t)
+    = throwError (OtherNameNotInScope t)
 
 checkExpr _ ctx (L p S.SelfExpr)
   | (Empty :> SelfElem _) <- ctx = pure $ L p (I.VarExpr (L p "self") baseIndex)
-  | otherwise                    = typeError (UnexpectedSelfError p)
+  | otherwise                    = throwError (UnexpectedSelfError p)
 
 checkExpr enms ctx (L p (S.ApplyExpr fn args)) = do
   (_, arg_enms) <- lookupFunction fn
@@ -252,13 +271,13 @@ checkLiteral _ (L p (S.BoolLit b)) = pure $ L p (I.BoolLit b)
 checkLiteral _ (L p (S.IntLit  i)) = pure $ L p (I.IntLit  i)
 
 checkLiteral mb_enms (L p (S.EnumLit e)) = do
-  when (maybe False (\enms -> unLoc e `HS.member` enms) mb_enms) $
-    typeError (EnumNameNotInScope e)
+  when (maybe False (\enms -> unLoc e `HS.notMember` enms) mb_enms) $
+    emitWarning (EnumNameNotInScope e)
   pure $ L p (I.EnumLit e)
 checkLiteral mb_enms (L p (S.SetLit es)) = do
   forM_ es $ \e ->
-    when (maybe False (\enms -> unLoc e `HS.member` enms) mb_enms) $
-      typeError (EnumNameNotInScope e)
+    when (maybe False (\enms -> unLoc e `HS.notMember` enms) mb_enms) $
+      emitWarning (EnumNameNotInScope e)
   pure $ L p (I.SetLit es)
 
 checkLiteral mb_enms (L p (S.StructLit (Just tp) fvs)) = do

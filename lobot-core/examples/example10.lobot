@@ -4,6 +4,8 @@ small_int : kind of int
 pos_int : kind of int
   where 0 <= self
 
+abstract add1 : int -> int
+
 ex : kind of struct
   with x : small_int
        y : int

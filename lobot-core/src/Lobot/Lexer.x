@@ -79,6 +79,7 @@ tokens :-
     where         { begin_popWhile popWhile_where }
     type          { tok TYPE }
     abstract      { tok ABSTRACT }
+    "->"          { tok ARROW }
     self          { tok SELF }
     "."           { tok DOT }
     "="           { tok EQUALS }
@@ -124,6 +125,7 @@ data TokenType = BOOL
                | WHERE
                | TYPE
                | ABSTRACT
+               | ARROW
                | SELF
                | DOT
                | EQUALS

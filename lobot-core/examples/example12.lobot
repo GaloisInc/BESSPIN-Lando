@@ -1,11 +1,11 @@
 abstract type filepath
 
--- write_nlines_file : int -> filepath
+abstract write_nlines_file : int -> filepath
 
 -- Options to the 'wc' command
 type wc_config = {C, L, M, W}
 
--- run_wc : (wc_config, filepath) -> int
+abstract run_wc : (wc_config, filepath) -> int
 
 ex_struct : kind of struct
   with x : int,

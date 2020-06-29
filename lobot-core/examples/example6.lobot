@@ -1,3 +1,5 @@
+abstract add1 : int -> int
+
 i : kind of int
   where add1(self) = self + 1,
         0 <= self, self <= 19

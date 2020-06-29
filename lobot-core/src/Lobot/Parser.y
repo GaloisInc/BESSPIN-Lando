@@ -46,6 +46,7 @@ import Lobot.Lexer
   'where'     { L _ (Token WHERE _) }
   'type'      { L _ (Token TYPE _) }
   'abstract'  { L _ (Token ABSTRACT _) }
+  '->'        { L _ (Token ARROW _) }
   'self'      { L _ (Token SELF _) }
   '.'         { L _ (Token DOT _) }
   '='         { L _ (Token EQUALS _) }
@@ -85,9 +86,10 @@ decls : {- empty -}           { [] }
       | decl nlLAYEND decls   { $1 : $3 }
 
 decl :: { Decl }
-decl : ident ':' kindDeclType    { KindDecl $ Kind (locText $1) (fst $3) (snd $3) }
-decl : 'type' ident '=' type     { TypeSynDecl (locText $2) $4 }
-decl : 'abstract' 'type' ident   { AbsTypeDecl (locText $3) }
+decl : ident ':' kindDeclType         { KindDecl $ Kind (locText $1) (fst $3) (snd $3) }
+     | 'type' ident '=' type          { TypeSynDecl (locText $2) $4 }
+     | 'abstract' 'type' ident        { AbsTypeDecl (locText $3) }
+     | 'abstract' ident ':' funType   { AbsFunctionDecl (locText $2) ($4 (locText $2)) }
 
 
 kindDeclType :: { (LType,[LExpr]) }
@@ -103,6 +105,15 @@ kindType : type                                         { $1 }
 cns : expr              { [$1] }
     | expr anySep       { [$1] }
     | expr anySep cns   { $1 : $3 }
+
+
+funType :: { LText -> FunctionType }
+funType : type '->' type nlLAYEND               { \nm -> FunType nm [$1] $3 }
+        | '(' ')' '->' type nlLAYEND            { \nm -> FunType nm [] $4 }
+        | '(' argTypes ')' '->' type nlLAYEND   { \nm -> FunType nm $2 $5 }
+
+argTypes : type                     { [$1] }
+         | type commaSep argTypes   { $1 : $3 }
 
 
 type    : 'bool'                                       { loc $1 $ BoolType }
@@ -140,7 +151,7 @@ expr : lit                         { loc $1 $ LiteralExpr $1 }
      | expr ':' idents anyLAYEND   { loc $1 $ IsInstanceExpr $1 (loc (head $3) $ KindNames $3) }
      | '(' expr ')'                { loc $1 $ unLoc $2 }
 
-args : expr            { [$1] }
+args : expr                 { [$1] }
      | expr commaSep args   { $1 : $3 }
 
 

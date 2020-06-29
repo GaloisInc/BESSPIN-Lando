@@ -180,6 +180,14 @@ evalExpr fns ls e = case e of
     EvalResult (EnumLit _ i) _ <- evalExpr fns ls e1
     EvalResult (SetLit _ s) _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (isJust (find (== Some i) s)))
+  AndExpr e1 e2 -> do
+    EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
+    EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (b1 && b2))
+  OrExpr e1 e2 -> do
+    EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
+    EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (b1 || b2))
   ImpliesExpr e1 e2 -> do
     EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
     EvalResult (BoolLit b2) _ <- evalExpr fns ls e2

@@ -9,4 +9,4 @@ nested : kind of struct
   where f.a = g.y.z
         f.a : bounded_int
               bounded_int
-        f.b <= d.a
+        f.b <= f.a

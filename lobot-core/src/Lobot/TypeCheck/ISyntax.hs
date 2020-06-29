@@ -15,7 +15,10 @@ Stability   : experimental
 Portability : POSIX
 
 This module defines an intermediate version of the untyped syntax for use
-during during typechecking.
+during during typechecking. In particular, this type is used between the first
+and second passes, where all types have been checked, all kind names have been
+resolved, all identifiers have been scope checked, but no terms have been type
+checked.
 -}
 module Lobot.TypeCheck.ISyntax
   ( Kind(..)
@@ -33,7 +36,6 @@ module Lobot.TypeCheck.ISyntax
   , unILLit
   ) where
 
-import Data.Text (Text)
 import Data.Parameterized.Some
 import Data.Parameterized.Context
 
@@ -48,11 +50,22 @@ data Kind where
           , kindDerivedConstraints :: [DerivedConstraint]
           } -> Kind
 
+deriving instance Show Kind
+
+-- | Unlike 'S.FunctionType', this saves the 'DerivedConstraint's on the
+-- function's argument and return types, though they are currently not
+-- used for anything.
 data FunctionType = FunType { funType :: Some T.FunctionTypeRepr
                             , funArgConstraints :: [[DerivedConstraint]]
                             , funRetConstraints :: [DerivedConstraint]
                             } deriving Show
 
+-- | After the first pass of typechecking, all kind names have been resolved
+-- in types, but no expressions (and thus no kind constraints) have been
+-- checked yet. Instead of copying over the untyped constraints, which could
+-- create strange error reporting w.r.t. source locations, we save
+-- 'DerivedConstraint's, which are essentially pointers to where to get
+-- additional constraints in the second pass, once they're typechecked.
 data DerivedConstraint = FromKind LText
                        | FromField LText [DerivedConstraint]
                        deriving Show
@@ -65,7 +78,9 @@ unIType (tp, _, _) = tp
 data Expr (ctx :: Ctx T.Type) where
   LiteralExpr    :: LLiteral -> Expr ctx
   VarExpr        :: LText -> Index ctx tp -> Expr ctx
+  -- ^ this case differs from 'S.VarExpr'
   SelfFieldExpr  :: LText -> Index ftps tp -> Expr (EmptyCtx ::> T.StructType ftps)
+  -- ^ this case differs from 'S.SelfFieldExpr'
   FieldExpr      :: LExpr ctx -> LText -> Expr ctx
   ApplyExpr      :: LText -> [LExpr ctx] -> Expr ctx
   EqExpr         :: LExpr ctx -> LExpr ctx -> Expr ctx
@@ -75,6 +90,9 @@ data Expr (ctx :: Ctx T.Type) where
   ImpliesExpr    :: LExpr ctx -> LExpr ctx -> Expr ctx
   NotExpr        :: LExpr ctx -> Expr ctx
   IsInstanceExpr :: LExpr ctx -> Type -> Expr ctx
+  -- ^ this case differs from 'S.IsInstanceExpr'
+
+deriving instance Show (Expr ctx)
 
 unIExpr :: Expr ctx -> S.Expr
 unIExpr (LiteralExpr l) = S.LiteralExpr (unILLit l)
@@ -100,7 +118,8 @@ data Literal = BoolLit Bool
              | EnumLit LText
              | SetLit [LText]
              | StructLit (Maybe Type) [(LText, LLiteral)]
-             -- deriving (Show, Eq)
+             -- ^ this case differs from 'S.StructLit'
+             deriving Show
 
 type LLiteral = Loc Literal
 

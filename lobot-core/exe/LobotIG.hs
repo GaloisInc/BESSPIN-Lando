@@ -22,7 +22,6 @@ import Control.Monad (void, when)
 import Data.Foldable (forM_)
 import Data.IORef
 import Data.Parameterized.BoolRepr
-import Data.Parameterized.Classes
 import Data.Parameterized.Context hiding (last, take)
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
@@ -54,11 +53,12 @@ ig Options{..} = do
   fileStr <- readFile inFileName
   case parseDecls inFileName fileStr of
     Left err -> putStrLn err
-    Right decls -> case typeCheck (knownRepr :: Assignment FunctionTypeRepr FnEnv) decls of
+    Right decls -> case typeCheck decls of
       Left err -> print $ ppTypeError inFileName err
-      Right [] -> print "No kinds in file"
-      Right ks -> case last ks of
+      Right (TypeCheckResult _ [], _) -> print "No kinds in file"
+      Right (TypeCheckResult env ks, ws) -> case last ks of
         Some k -> do
+          forM_ ws $ print . ppTypeWarning inFileName
           putStrLn $
             "Last kind in " ++ inFileName ++ ":"
           putStrLn $ "----------------"
@@ -68,7 +68,7 @@ ig Options{..} = do
             FalseRepr -> do
               putStrLn $ "Generating instances..."
               validInsts <-
-                collectAndFilterInstances "/usr/local/bin/z3" knownRepr fnEnv k count
+                collectAndFilterInstances "/usr/local/bin/z3" env (canonicalEnv env) k count
               putStrLn $ show (length validInsts) ++ " valid instances."
               let numInsts = length validInsts
               iRef <- newIORef 1
@@ -85,16 +85,16 @@ ig Options{..} = do
               putStrLn $ "Cannot generate instances of abstract type."
               exitFailure
 
-type FnEnv = EmptyCtx ::>
-  FunType "add1" (EmptyCtx ::> IntType) IntType ::>
-  FunType "write_nlines_file" (EmptyCtx ::> IntType) (AbsType "filepath") ::>
-  FunType "run_wc" (EmptyCtx
-                    ::> AbsType "filepath"
-                    ::> EnumType (EmptyCtx ::> "C" ::> "L" ::> "M" ::> "W"))
-           IntType
+-- type FnEnv = EmptyCtx ::>
+--   FunType "add1" (EmptyCtx ::> IntType) IntType ::>
+--   FunType "write_nlines_file" (EmptyCtx ::> IntType) (AbsType "filepath") ::>
+--   FunType "run_wc" (EmptyCtx
+--                     ::> AbsType "filepath"
+--                     ::> EnumType (EmptyCtx ::> "C" ::> "L" ::> "M" ::> "W"))
+--            IntType
 
-fnEnv :: Assignment (FunctionImpl IO) FnEnv
-fnEnv = canonicalEnv knownRepr
+-- fnEnv :: Assignment (FunctionImpl IO) FnEnv
+-- fnEnv = canonicalEnv knownRepr
 
 canonicalEnv :: Assignment FunctionTypeRepr fntps
              -> Assignment (FunctionImpl IO) fntps

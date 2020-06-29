@@ -1,5 +1,7 @@
 small_int : kind of int where 0 <= self, self <= 5
 
+abstract square : int -> int
+
 pair : kind of struct
   with x : small_int,
        y : int

@@ -29,7 +29,7 @@ abstract type simulator
 -- Function for building a simulator from a bluespec config. This calls out to
 -- bsc by converting the config to a bunch of command-line flags, and returns
 -- the path to the generated simulator.
-abstract fn build_bluespec : bluespec_config -> simulator
+abstract build_bluespec : bluespec_config -> simulator
 
 -- Abstract type for a RISC-V binary (under the hood, a path to the binary).
 abstract type riscv_program
@@ -37,17 +37,17 @@ abstract type riscv_program
 -- output).
 abstract type mem_trace
 
-abstract fn run_riscv_program : (simulator, riscv_program) -> mem_trace
+abstract run_riscv_program : (simulator, riscv_program) -> mem_trace
 
 compliance_test : kind of struct
   with prog : riscv_program,
        trace : mem_trace
 
-abstract fn trace_eq : (mem_trace, mem_trace) -> bool
+abstract trace_eq : (mem_trace, mem_trace) -> bool
 
-abstract fn get_compliance_test : (riscv, int) -> compliance_test
+abstract get_compliance_test : (riscv, int) -> compliance_test
 -- Each RISC-V configuration might have a different number of compliance tests.
-abstract fn num_compliance_tests : riscv -> int
+abstract num_compliance_tests : riscv -> int
 
 -- Test every single RV32 machine-mode bluespec configuration for RISC-V
 -- compliance.
