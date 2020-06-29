@@ -48,6 +48,7 @@ data Kind where
           , kindType ::  T.TypeRepr tp
           , kindConstraints :: [LExpr (EmptyCtx ::> tp)]
           , kindDerivedConstraints :: [DerivedConstraint]
+
           } -> Kind
 
 deriving instance Show Kind
@@ -77,10 +78,10 @@ unIType (tp, _, _) = tp
 
 data Expr (ctx :: Ctx T.Type) where
   LiteralExpr    :: LLiteral -> Expr ctx
+  -- | this case differs from 'S.VarExpr'
   VarExpr        :: LText -> Index ctx tp -> Expr ctx
-  -- ^ this case differs from 'S.VarExpr'
+  -- | this case differs from 'S.SelfFieldExpr'
   SelfFieldExpr  :: LText -> Index ftps tp -> Expr (EmptyCtx ::> T.StructType ftps)
-  -- ^ this case differs from 'S.SelfFieldExpr'
   FieldExpr      :: LExpr ctx -> LText -> Expr ctx
   ApplyExpr      :: LText -> [LExpr ctx] -> Expr ctx
   EqExpr         :: LExpr ctx -> LExpr ctx -> Expr ctx
@@ -89,8 +90,8 @@ data Expr (ctx :: Ctx T.Type) where
   MemberExpr     :: LExpr ctx -> LExpr ctx -> Expr ctx
   ImpliesExpr    :: LExpr ctx -> LExpr ctx -> Expr ctx
   NotExpr        :: LExpr ctx -> Expr ctx
+  -- | this case differs from 'S.IsInstanceExpr'
   IsInstanceExpr :: LExpr ctx -> Type -> Expr ctx
-  -- ^ this case differs from 'S.IsInstanceExpr'
 
 deriving instance Show (Expr ctx)
 

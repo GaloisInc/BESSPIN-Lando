@@ -256,8 +256,8 @@ checkExpr env _ tp (L _ (I.LiteralExpr l)) = do
 checkExpr env ctx tp x = do
   (isGuess, Pair tp' x') <- guessExpr env ctx x
   case (isGuess, testEquality tp tp') of
+    -- NOTE: currently the below case never occurs
     (True, _) -> throwError (TypeInferenceError (unILExpr x))
-    -- ^ NOTE: currently this case never occurs
     (False, Nothing) -> throwError (TypeMismatchError (unILExpr x) (SomeType tp)
                                                       (Just $ SomeType tp'))
     (False, Just Refl) -> pure x'
