@@ -54,15 +54,17 @@ tokens :-
   -- the lexer's state at the beginning of a line - eat up all whitespace then
   --  handle any indentation changes
   <0> {
-    "--".*@nl?     ; -- ignore the newline after a comment
-    $white_no_nl+  ; -- ignore all whitespace
-    ()             { do_bol }
+    "--".*@nl?    ; -- ignore the newline after a comment
+    $white_no_nl+ ; -- ignore all whitespace
+    \t            { do_tab } -- error on seeing a tab
+    ()            { do_bol }
   }
   
   <main> {
     "--".*        ; -- don't ignore the newline after a comment
     $white_no_nl+ ; -- ignore all whitespace
-    
+    \t            { do_tab } -- error on seeing a tab
+
     -- a newline character switches the state to handle indentation changes
     @nl           { begin 0 }
     
@@ -352,6 +354,11 @@ do_popWhile cnd when_done tk inp len =
   popLayoutAndDoIf cnd (tok (LAYEND (FromOther tk)) inp len) $ do
     (inp', len') <- getAndClearPopWhileLastInput
     (when_done `andBegin` main) inp' len'
+
+-- | Errors on seeing a tab.
+do_tab  :: AlexAction LToken
+do_tab (p,_,_,_) _ =
+  alexErrorWPos p ("found a tab character! use spaces instead")
 
 
 -- Some necessary utility functions adapted from:
