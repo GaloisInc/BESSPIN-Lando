@@ -166,6 +166,7 @@ lit : 'true'                              { loc $1 $ BoolLit True }
 
 fieldvals :: { [(LText, LLiteral)] }
 fieldvals : {- empty -}                   { [] }
+          | fieldval                      { [$1] }
           | fieldval commaSep fieldvals   { $1 : $3 }
 
 fieldval : ident '=' lit                  { (locText $1, $3) }

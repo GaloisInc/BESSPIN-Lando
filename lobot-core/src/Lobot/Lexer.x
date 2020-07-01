@@ -90,7 +90,8 @@ tokens :-
     not           { tok NOT }
     true          { tok TRUE }
     false         { tok FALSE }
-    "{"           { tokAnd (popLayoutOfToken WITH >> pushLinesLayout) LBRACE }
+    "{"           { tokAnd (\tk -> popLayoutOfToken WITH tk
+                                >> pushLinesLayout tk       ) LBRACE }
     "}"           { begin_popWhile popWhile_RBRACE }
     "("           { tokAnd pushLinesLayout LPAREN }
     ")"           { begin_popWhile popWhile_RPAREN }
