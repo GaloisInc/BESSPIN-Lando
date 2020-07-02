@@ -78,7 +78,7 @@ in total.
 ## Building
 
 This is under active development, and much of this library and its associated
-tooling will change rapidly. Contact benselfridge@galois.com and 
+tooling will change rapidly.
 
 First, clone this repository (which you may have done already). Then, initialize
 its submodules via
