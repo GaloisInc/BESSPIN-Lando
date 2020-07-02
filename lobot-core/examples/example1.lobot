@@ -1,8 +1,8 @@
 posint : kind of int
-  where 0 <= self
+  where 1 <= self
 
 unique_posint_pair : kind of struct
-  with x : posint,
+  with x : posint
        y : posint
   where x <= y
 
