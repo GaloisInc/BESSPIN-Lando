@@ -4,7 +4,7 @@ cabal-version:       >=1.10
 -- http://haskell.org/cabal/users-guide/
 
 name:                lobot-core
-version:             0.1.0.0
+version:             0.1
 synopsis:            backend library for Lobot language
 -- description:
 -- bug-reports:
