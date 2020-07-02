@@ -4,9 +4,9 @@ The following is a set of guidelines for contributing to Lobot.
 
 #### Table Of Contents
 
-[Styleguide](#styleguide)
+[Style Guide](#styleguide)
 
-## Styleguide
+## Style Guide
 
 ### Import declarations
 
