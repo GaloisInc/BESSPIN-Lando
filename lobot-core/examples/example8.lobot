@@ -5,4 +5,4 @@ abstract add1 : int -> int
 pair : kind of struct
   with i : small_int,
        j : small_int
-  where add1(i+j) = true
+  where add1(i+j) = 15

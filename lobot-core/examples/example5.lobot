@@ -1,3 +1,5 @@
+-- A Lobot file for determining all 3-colorings of Australia's state map.
+
 type color = {Red, Yellow, Blue}
 
 australia_coloring : kind of struct
