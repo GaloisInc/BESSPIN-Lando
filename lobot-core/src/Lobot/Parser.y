@@ -44,6 +44,9 @@ import Lobot.Lexer
   'kind'      { L _ (Token KIND _) }
   'of'        { L _ (Token OF _) }
   'where'     { L _ (Token WHERE _) }
+  'check'     { L _ (Token CHECK _) }
+  'on'        { L _ (Token ON _) }
+  'that'      { L _ (Token THAT _) }
   'type'      { L _ (Token TYPE _) }
   'abstract'  { L _ (Token ABSTRACT _) }
   '->'        { L _ (Token ARROW _) }
@@ -66,6 +69,7 @@ import Lobot.Lexer
   enumIdent   { L _ (Token (IDUC _) _) }
   -- layout tokens are handled differently
   LAYEND_WHERE  { L _ (Token (LAYEND (FromOther WHERE)) _) }
+  LAYEND_THAT   { L _ (Token (LAYEND (FromOther THAT)) _) }
   LAYEND_RBRACE { L _ (Token (LAYEND (FromOther RBRACE)) _) }
   LAYEND_OTHER  { L _ (Token (LAYEND (FromOther _)) _) }
   LAYEND_NL     { L _ (Token (LAYEND _) _) }
@@ -87,6 +91,7 @@ decls : {- empty -}           { [] }
 
 decl :: { Decl }
 decl : ident ':' kindDeclType         { KindDecl $ Kind (locText $1) (fst $3) (snd $3) }
+     | ident ':' checkDeclType        { CheckDecl $ Check (locText $1) (fst3 $3) (snd3 $3) (thd3 $3) }
      | 'type' ident '=' type          { TypeSynDecl (locText $2) $4 }
      | 'abstract' 'type' ident        { AbsTypeDecl (locText $3) }
      | 'abstract' ident ':' funType   { AbsFunctionDecl (locText $2) ($4 (locText $2)) }
@@ -101,6 +106,10 @@ kindType : type                                         { $1 }
          | 'struct' nlLAYEND 'with' optLAYSEP fields    { loc $1 $ StructType $5 }
          -- ^ Note: We don't need a LAYEND after the 'with' here as it's
          --   handled by the LAYENDs in `kindDeclType`.
+
+checkDeclType :: { ([(LText,LType)],[LExpr],[LExpr]) }
+checkDeclType : 'check' nlLAYEND 'on' optLAYSEP fields thatLAYEND 'that' optLAYSEP cns nlLAYEND { ($5, [], $9) }
+              | 'check' nlLAYEND 'on' optLAYSEP fields whereLAYEND 'where' optLAYSEP cns thatLAYEND 'that' optLAYSEP cns nlLAYEND { ($5, $9, $13) }
 
 cns : expr              { [$1] }
     | expr anySep       { [$1] }
@@ -184,7 +193,8 @@ idents : ident          { locText $1 : [] }
 
 nlLAYEND    : LAYEND_NL {}
 whereLAYEND : LAYEND_NL {} | LAYEND_WHERE {}
-anyLAYEND   : LAYEND_NL {} | LAYEND_WHERE {} | LAYEND_RBRACE {} | LAYEND_OTHER {}
+thatLAYEND  : LAYEND_NL {} | LAYEND_THAT {}
+anyLAYEND   : LAYEND_NL {} | LAYEND_WHERE {} | LAYEND_THAT {} | LAYEND_RBRACE {} | LAYEND_OTHER {}
 
 optLAYSEP : {- empty -} {} | LAYSEP {}
 
@@ -196,6 +206,10 @@ commaSep : ','          {}
          | LAYSEP ','   {}
 
 {
+
+fst3 (a, _, _) = a
+snd3 (_, b, _) = b
+thd3 (_, _, c) = c
 
 locText :: LToken -> LText
 locText (L p (Token (IDLC s) _)) = L p (pack s)
@@ -214,6 +228,8 @@ parseError (L p (Token (LAYEND FromNewline) _), es) =
   alexErrorWPos p ("expected more indentation")
 parseError (L p (Token (LAYEND (FromOther WHERE)) _), es) =
   alexErrorWPos p ("parse error on input 'where' (layout)" ++ fmtExpected es)
+parseError (L p (Token (LAYEND (FromOther THAT)) _), es) =
+  alexErrorWPos p ("parse error on input 'that' (layout)" ++ fmtExpected es)
 parseError (L p (Token (LAYEND (FromOther RBRACE)) _), es) =
   alexErrorWPos p ("parse error on input '}' (layout)" ++ fmtExpected es)
 parseError (L p (Token (LAYEND (FromOther tk)) _), es) =
@@ -231,6 +247,7 @@ fmtExpected :: [String] -> String
 fmtExpected = go . concatMap modifyStr
   where modifyStr :: String -> [String]
         modifyStr "LAYEND_WHERE"  = ["'where' (layout)"]
+        modifyStr "LAYEND_THAT"   = ["'that' (layout)"]
         modifyStr "LAYEND_RBRACE" = []
         modifyStr "LAYEND_OTHER"  = []
         modifyStr "LAYEND_NL"     = ["different indentation"]

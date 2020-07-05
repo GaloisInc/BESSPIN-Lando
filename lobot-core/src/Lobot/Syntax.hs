@@ -22,6 +22,7 @@ module Lobot.Syntax
   ( Loc(..)
   , Decl(..)
   , Kind(..)
+  , Check(..)
   , FunctionType(..)
   , Type(..)
   , LType
@@ -40,12 +41,21 @@ data Decl = KindDecl Kind
           | TypeSynDecl LText LType
           | AbsTypeDecl LText
           | AbsFunctionDecl LText FunctionType
+          -- | A check is just a kind, with additional requirements that must
+          -- hold for any instance.
+          | CheckDecl Check
           deriving (Show, Eq)
 
 data Kind = Kind { kindName :: LText
                  , kindType :: LType
                  , kindConstraints :: [LExpr]
                  } deriving (Show, Eq)
+
+data Check = Check { checkName :: LText
+                   , checkArgTypes :: [(LText, LType)]
+                   , checkArgConstraints :: [LExpr]
+                   , checkArgRequirements :: [LExpr]
+                   } deriving (Show, Eq)
 
 data FunctionType = FunType LText [LType] LType
                   deriving (Show, Eq)

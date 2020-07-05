@@ -49,8 +49,8 @@ $white_no_nl = [\v\ ]
 @identlower = [a-z][a-zA-Z0-9_]*
 @identupper = [A-Z][a-zA-Z0-9_]*
 
-tokens :-  
-  
+tokens :-
+
   -- the lexer's state at the beginning of a line - eat up all whitespace then
   --  handle any indentation changes
   <0> {
@@ -59,7 +59,7 @@ tokens :-
     \t            { do_tab } -- error on seeing a tab
     ()            { do_bol }
   }
-  
+
   <main> {
     "--".*        ; -- don't ignore the newline after a comment
     $white_no_nl+ ; -- ignore all whitespace
@@ -67,7 +67,7 @@ tokens :-
 
     -- a newline character switches the state to handle indentation changes
     @nl           { begin 0 }
-    
+
     -- this token list must match that in Parser.y for nice error messages!
     bool          { tok BOOL }
     int           { tok INTTYPE }
@@ -79,6 +79,9 @@ tokens :-
     kind          { tok KIND }
     of            { tok OF }
     where         { begin_popWhile popWhile_where }
+    check         { tok CHECK }
+    on            { tokAnd pushLinesLayout ON }
+    that          { begin_popWhile popWhile_that }
     type          { tok TYPE }
     abstract      { tok ABSTRACT }
     "->"          { tok ARROW }
@@ -107,10 +110,13 @@ tokens :-
 
   <popWhile_where>  () { do_popWhile (\top -> layCtxType top /= TopLevelCtx)
                                      (tokAnd pushLinesLayout WHERE) WHERE }
-  
+
+  <popWhile_that>   () { do_popWhile (\top -> layCtxType top /= TopLevelCtx)
+                                     (tokAnd pushLinesLayout THAT) THAT }
+
   <popWhile_RBRACE> () { do_popWhile (\top -> layCtxToken top /= LBRACE)
                                      (tokAnd popLayout RBRACE) RBRACE }
-  
+
   <popWhile_RPAREN> () { do_popWhile (\top -> layCtxToken top /= LPAREN)
                                      (tokAnd popLayout RPAREN) RPAREN }
 
@@ -126,6 +132,9 @@ data TokenType = BOOL
                | KIND
                | OF
                | WHERE
+               | CHECK
+               | ON
+               | THAT
                | TYPE
                | ABSTRACT
                | ARROW
@@ -183,7 +192,7 @@ type LText  = Loc Text
 -- The user state of the Alex monad
 
 data LayoutCtxType = NormalLayCtx
-                   | LinesLayCtx 
+                   | LinesLayCtx
                      -- ^ a context which contains a series of phrases,
                      --   separated by commas or properly indented newlines
                    | TopLevelCtx
@@ -278,16 +287,16 @@ tokAnd action = tokStrAnd action . const
 -- Actions used in the lexer that modify the user state
 
 -- | Push a lines layout context associated to the given token and of the
--- given type on to the stack 
+-- given type on to the stack
 pushLayoutOfType :: LayoutCtxType -> LToken -> Alex ()
 pushLayoutOfType layTp (L (AlexPn _ _ c) (Token tktp _)) =
   modifyLayoutStack (\stk -> (LayCtx c tktp layTp):stk)
 
--- | Push a normal layout context associated to the given token on to the stack 
+-- | Push a normal layout context associated to the given token on to the stack
 pushLayout :: LToken -> Alex ()
 pushLayout = pushLayoutOfType NormalLayCtx
 
--- | Push a lines layout context associated to the given token on to the stack 
+-- | Push a lines layout context associated to the given token on to the stack
 pushLinesLayout :: LToken -> Alex ()
 pushLinesLayout = pushLayoutOfType LinesLayCtx
 
