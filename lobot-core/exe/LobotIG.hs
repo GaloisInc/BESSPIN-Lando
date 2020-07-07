@@ -74,12 +74,17 @@ ig Options{..} = do
               (failedInsts, totalInsts) <-
                 collectAndFilterInstances z3 env (canonicalEnv env) tps constraints count
               case failedInsts of
-                [] -> putStrLn $ T.unpack (checkName ck) ++ " holds!"
+                -- TODO: Don't know if we're doing this right if the where clause
+                -- contains function calls, because we should not be counting
+                -- spurious instances.
+                [] -> if totalInsts >= count
+                  then putStrLn $ T.unpack (checkName ck) ++ " holds for the first " ++ show count ++ " instances."
+                  else putStrLn $ T.unpack (checkName ck) ++ " holds!"
                 (i:_) -> do
-                  putStrLn $ "Found " ++ show (length failedInsts) ++ " failing instances."
-                  putStrLn $ "Example: "
+                  putStrLn $ "  Found " ++ show (length failedInsts) ++ " failing instances."
+                  putStrLn $ "  Example: "
                   forM_ (zip (toListFC namedTypeName (checkFields ck)) (toListFC Some i)) $ \(nm, Some l) ->
-                            putStrLn $ T.unpack nm ++ " = " ++ show (ppLiteral l)
+                            putStrLn $ "  " ++ T.unpack nm ++ " = " ++ show (ppLiteral l)
             TrueRepr -> do
               putStrLn $ "Cannot check properties of abstract types."
               exitFailure

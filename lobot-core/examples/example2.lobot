@@ -7,3 +7,7 @@ abc_2 : kind of abc where A in self => C in self
 
 -- Multiple "inheritance" -- abc_3 combines the constraints of abc_1 and abc_2
 abc_3 : kind of abc_1 abc_2
+
+abc_check : check
+  on abc : abc_3
+  that B in abc
