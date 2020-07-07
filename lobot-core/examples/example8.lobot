@@ -1,13 +1,10 @@
-small_int : kind of int where 0 <= self, self <= 10
-
 abstract add1 : int -> int
 
-pair : kind of struct
-  with x : int
-       y : int
-  where y = add1(x)
-
-pair_check : check
-  on p : pair
-  where 0 <= p.x, p.x <= 50
-  that p.y = p.x + 1
+add1_check : check
+  on x : int
+     y : int
+  where 0 <= x
+        x <= 5
+        0 <= y
+        y <= add1(x)
+  that y = 0
