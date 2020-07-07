@@ -38,11 +38,12 @@ import Lobot.TypeCheck.SecondPass
 data TypeCheckResult where
   TypeCheckResult :: Assignment FunctionTypeRepr env
                   -> [Some (K.Kind env)]
+                  -> [Some (K.Check env)]
                   -> TypeCheckResult
 
 -- | Given a list of declarations, produce a list of typed kinds.
 typeCheck :: [S.Decl] -> Either TypeError (TypeCheckResult, [TypeWarning])
 typeCheck decls = runWriterT $ do
-  FirstPassResult env ks st <- firstPass decls
-  ks' <- secondPass env ks st
-  pure $ TypeCheckResult env ks'
+  FirstPassResult env ks cks st <- firstPass decls
+  SecondPassResult ks' cks' <- secondPass env ks cks st
+  pure $ TypeCheckResult env ks' cks'

@@ -62,8 +62,8 @@ ig Options{..} = do
     Left err -> putStrLn err
     Right decls -> case typeCheck decls of
       Left err -> print $ ppTypeError inFileName err
-      Right (TypeCheckResult _ [], _) -> print "No kinds in file"
-      Right (TypeCheckResult env ks, ws) -> case last ks of
+      Right (TypeCheckResult _ [] _, _) -> print "No kinds in file"
+      Right (TypeCheckResult env ks [], ws) -> case last ks of
         Some k -> do
           forM_ ws $ print . ppTypeWarning inFileName
           putStrLn $

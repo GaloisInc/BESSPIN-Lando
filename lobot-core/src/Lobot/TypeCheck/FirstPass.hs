@@ -32,6 +32,7 @@ import qualified Data.HashMap as H
 import qualified Data.HashSet as HS
 
 import Data.Text (Text)
+import Data.Traversable (forM)
 import Control.Monad (when, forM_)
 import Control.Monad.State (evalStateT, get, modify)
 import Control.Monad.Except (throwError)
@@ -40,6 +41,7 @@ import Data.Parameterized.Some
 import Data.Parameterized.Context
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
+import Data.Parameterized.TraversableFC
 
 import Lobot.Utils hiding (unzip)
 import Lobot.Kind as K
@@ -47,21 +49,22 @@ import Lobot.Syntax as S
 import Lobot.Types as T
 
 import Lobot.TypeCheck.Monad
-import Lobot.TypeCheck.ISyntax as I
+import qualified Lobot.TypeCheck.ISyntax as I
 
 
 data FirstPassResult where
   FirstPassResult :: Assignment FunctionTypeRepr env
                   -> [I.Kind]
+                  -> [I.Check]
                   -> H.Map Text (Some (K.Kind env))
                   -> FirstPassResult
 
 firstPass :: [S.Decl]
           -> WithWarnings (Either TypeError) FirstPassResult
 firstPass ds = do
-  (Some env, ks, tpsyns) <- evalStateT (checkDecls ds) H.empty
+  (Some env, ks, cks, tpsyns) <- evalStateT (checkDecls ds) H.empty
   let tpsyns' = H.mapWithKey (\nm (Some tp) -> Some (K.Kind nm tp env [])) tpsyns
-  pure (FirstPassResult env ks tpsyns')
+  pure (FirstPassResult env ks cks tpsyns')
 
 
 type CtxM1 = CtxM NamedThing TypeError
@@ -105,19 +108,22 @@ lookupFunction (L p f) = do
 checkDecls :: [S.Decl]
            -> CtxM1 ( Some (Assignment FunctionTypeRepr)
                     , [I.Kind]
+                    , [I.Check]
                     , H.Map Text (Some TypeRepr) )
-checkDecls [] = pure (Some Empty, [] , H.empty)
+checkDecls [] = pure (Some Empty, [], [], H.empty)
 checkDecls (d:ds) = do
   to_add <- checkDecl d
-  (Some ftps, ks, tpsyns) <- checkDecls ds
+  (Some ftps, ks, cks, tpsyns) <- checkDecls ds
   case to_add of
-    AddFunType (Some ftp) -> pure (Some $ ftps :> ftp, ks, tpsyns)
-    AddIKind k'           -> pure (Some ftps, k':ks, tpsyns)
-    AddTypeSyn nm tp      -> pure (Some ftps, ks, H.insert nm tp tpsyns)
-    AddNothing            -> pure (Some ftps, ks, tpsyns)
+    AddFunType (Some ftp) -> pure (Some $ ftps :> ftp, ks, cks, tpsyns)
+    AddIKind k'           -> pure (Some ftps, k':ks, cks, tpsyns)
+    AddICheck ck'         -> pure (Some ftps, ks, ck':cks, tpsyns)
+    AddTypeSyn nm tp      -> pure (Some ftps, ks, cks, H.insert nm tp tpsyns)
+    AddNothing            -> pure (Some ftps, ks, cks, tpsyns)
 
 data ToAdd = AddFunType (Some FunctionTypeRepr)
            | AddIKind I.Kind
+           | AddICheck I.Check
            | AddTypeSyn Text (Some TypeRepr)
            | AddNothing
 
@@ -129,6 +135,20 @@ checkDecl (S.KindDecl k) = do
   let k' = I.Kind (S.kindName k) tp cns dcns
   addKind k' enms
   pure $ AddIKind k'
+
+checkDecl (S.CheckDecl ck) = do
+  -- [(Some TypeRepr, [DerivedConstraint], EnumNameSet)]
+  -- First, compute the types
+  checkTypeResults <- traverse checkType (snd <$> S.checkFields ck)
+  namedTypes' <- forM (zip (S.checkFields ck) checkTypeResults) $ \((nm, _), (Some tp, dcns, _)) -> do
+    return $ Some $ I.CheckField nm tp dcns
+  Some namedTypes <- return $ fromList namedTypes'
+  -- let tps = fmapFC namedTypeType cftps
+  -- Next, compute the constraints
+  let enms = mconcat (thd3 <$> checkTypeResults)
+  cns <- mapM (checkExpr enms (fmapFC (\(I.CheckField (S.L _ nm) tp _) -> VarElem nm tp) namedTypes)) (S.checkConstraints ck)
+  let ck' = I.Check (S.checkName ck) namedTypes cns []
+  pure $ AddICheck ck'
 
 checkDecl (S.TypeSynDecl nm tp) = do
   (Some tp', dcns, enms) <- checkType tp
@@ -148,7 +168,7 @@ checkDecl (S.AbsFunctionDecl nm ftp) = do
 
 
 checkType :: S.LType
-          -> CtxM1 (Some TypeRepr, [DerivedConstraint], EnumNameSet)
+          -> CtxM1 (Some TypeRepr, [I.DerivedConstraint], EnumNameSet)
 
 checkType (L _ S.BoolType) = pure (Some T.BoolRepr, [], HS.empty)
 checkType (L _ S.IntType)  = pure (Some T.IntRepr , [], HS.empty)
@@ -172,20 +192,20 @@ checkType (L _ (S.StructType fls)) = do
 checkType (L p (S.KindNames [])) = throwError (InternalError p "empty kind union")
 checkType (L _ (S.KindNames [k])) = do
   (I.Kind _ tp _ _, enms) <- lookupKind k
-  pure (Some tp, [FromKind k], enms)
+  pure (Some tp, [I.FromKind k], enms)
 checkType (L p (S.KindNames (k:ks))) = do
   (I.Kind _ k_tp _ _, k_enms) <- lookupKind k
   (Some ks_tp, dcns, ks_enms) <- checkType (L p (S.KindNames ks))
   case testEquality k_tp ks_tp of
-    Just Refl -> pure (Some ks_tp, (FromKind k):dcns, k_enms `HS.union` ks_enms)
+    Just Refl -> pure (Some ks_tp, (I.FromKind k):dcns, k_enms `HS.union` ks_enms)
     Nothing -> throwError (KindUnionMismatchError k (Some ks_tp) (Some k_tp))
 
 checkFieldType :: (LText, S.LType)
-               -> CtxM1 (Some FieldRepr, DerivedConstraint, EnumNameSet)
+               -> CtxM1 (Some FieldRepr, I.DerivedConstraint, EnumNameSet)
 checkFieldType (f, tp) = do
   Some f' <- pure $ someSymbol (unLoc f)
   (Some tp', dcns, enms) <- checkType tp
-  pure (Some (FieldRepr f' tp'), FromField f dcns, enms)
+  pure (Some (FieldRepr f' tp'), I.FromField f dcns, enms)
 
 
 checkFunctionType :: S.FunctionType -> CtxM1 (I.FunctionType, [EnumNameSet])

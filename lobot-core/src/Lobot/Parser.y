@@ -19,6 +19,7 @@ import Data.List (concatMap, intercalate)
 
 import Lobot.Syntax
 import Lobot.Lexer
+import Lobot.Utils
 }
 
 %expect 0
@@ -206,10 +207,6 @@ commaSep : ','          {}
          | LAYSEP ','   {}
 
 {
-
-fst3 (a, _, _) = a
-snd3 (_, b, _) = b
-thd3 (_, _, c) = c
 
 locText :: LToken -> LText
 locText (L p (Token (IDLC s) _)) = L p (pack s)

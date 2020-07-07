@@ -52,9 +52,9 @@ data Kind = Kind { kindName :: LText
                  } deriving (Show, Eq)
 
 data Check = Check { checkName :: LText
-                   , checkArgTypes :: [(LText, LType)]
-                   , checkArgConstraints :: [LExpr]
-                   , checkArgRequirements :: [LExpr]
+                   , checkFields :: [(LText, LType)]
+                   , checkConstraints :: [LExpr]
+                   , checkRequirements :: [LExpr]
                    } deriving (Show, Eq)
 
 data FunctionType = FunType LText [LType] LType

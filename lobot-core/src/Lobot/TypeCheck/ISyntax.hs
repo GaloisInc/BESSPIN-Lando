@@ -22,6 +22,8 @@ checked.
 -}
 module Lobot.TypeCheck.ISyntax
   ( Kind(..)
+  , Check(..)
+  , CheckField(..)
   , FunctionType(..)
   , DerivedConstraint(..)
   , Type
@@ -36,6 +38,7 @@ module Lobot.TypeCheck.ISyntax
   , unILLit
   ) where
 
+import Data.Parameterized.Classes
 import Data.Parameterized.Some
 import Data.Parameterized.Context
 
@@ -48,10 +51,26 @@ data Kind where
           , kindType ::  T.TypeRepr tp
           , kindConstraints :: [LExpr (EmptyCtx ::> tp)]
           , kindDerivedConstraints :: [DerivedConstraint]
-
           } -> Kind
 
 deriving instance Show Kind
+
+data CheckField tp = CheckField { checkFieldName :: LText
+                                , checkFieldType :: T.TypeRepr tp
+                                , checkFieldDerivedConstraints :: [DerivedConstraint]
+                                }
+  deriving (Show)
+
+instance ShowF CheckField
+
+data Check where
+  Check :: { checkName :: LText
+           , checkFields :: Assignment CheckField tps
+           , checkConstraints :: [LExpr tps]
+           , checkRequirements :: [LExpr tps]
+           } -> Check
+
+deriving instance Show Check
 
 -- | Unlike 'S.FunctionType', this saves the 'DerivedConstraint's on the
 -- function's argument and return types, though they are currently not

@@ -32,6 +32,13 @@ import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 
+fst3 :: (a, b, c) -> a
+fst3 (a, _, _) = a
+snd3 :: (a, b, c) -> b
+snd3 (_, b, _) = b
+thd3 :: (a, b, c) -> c
+thd3 (_, _, c) = c
+
 mapFst :: (a -> b) -> (a, c) -> (b, c)
 mapFst f (a,c) = (f a, c)
 

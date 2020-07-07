@@ -6,6 +6,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {-|
 Module      : Lobot.TypeCheck.SecondPass
@@ -19,7 +20,10 @@ Portability : POSIX
 This module does the second pass of typechecking the Lobot AST.
 -}
 
-module Lobot.TypeCheck.SecondPass ( secondPass ) where
+module Lobot.TypeCheck.SecondPass
+  ( secondPass
+  , SecondPassResult(..)
+  ) where
 
 import qualified Data.HashMap as H
 
@@ -34,7 +38,7 @@ import Data.Parameterized.Pair
 import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
-import Data.Parameterized.TraversableFC (toListFC)
+import Data.Parameterized.TraversableFC
 
 import Lobot.Utils hiding (unzip)
 import Lobot.Expr as E
@@ -45,13 +49,17 @@ import Lobot.Types as T
 import Lobot.TypeCheck.Monad
 import Lobot.TypeCheck.ISyntax as I
 
+data SecondPassResult env = SecondPassResult [Some (K.Kind env)] [Some (K.Check env)]
 
 secondPass :: Assignment FunctionTypeRepr env
            -> [I.Kind]
+           -> [I.Check]
            -> H.Map Text (Some (K.Kind env))
-           -> WithWarnings (Either TypeError) [Some (K.Kind env)]
-secondPass env ks = evalStateT (checkIKinds env ks)
-
+           -> WithWarnings (Either TypeError) (SecondPassResult env)
+secondPass env ks cks = evalStateT $ do
+  ks' <- checkIKinds env ks
+  cks' <- checkIChecks env cks
+  return $ SecondPassResult ks' cks'
 
 type CtxM2 env = CtxM (Some (K.Kind env)) TypeError
 
@@ -88,6 +96,27 @@ checkIKind env (I.Kind (L _ nm) tp cns dcns) = do
   addKind nm k'
   pure $ Some k'
 
+checkIChecks :: Assignment FunctionTypeRepr env
+             -> [I.Check]
+             -> CtxM2 env [Some (K.Check env)]
+checkIChecks env decls = mapM (checkICheck env) decls
+
+checkICheck :: forall env .
+               Assignment FunctionTypeRepr env
+            -> I.Check
+            -> CtxM2 env (Some (K.Check env))
+checkICheck env (I.Check (L _ nm) flds cns reqs) = do
+  let tps = fmapFC checkFieldType flds
+  cns'  <- mapM (checkExpr env tps T.BoolRepr) cns
+  let collectDCs :: Index tps tp -> CheckField tp -> CtxM2 env [E.Expr env tps 'T.BoolType]
+      collectDCs i (CheckField _ tp dcns) = do
+        kes <- concat <$> mapM (resolveDerivedConstraint env tp) dcns
+        return $ giveSelf (E.VarExpr i) <$> kes
+  dcns' <- traverseAndCollect collectDCs flds
+  reqs' <- mapM (checkExpr env tps T.BoolRepr) reqs
+  let namedTypes = fmapFC (\(CheckField (S.L _ fnm) tp _) -> NamedType fnm tp) flds
+  let ck' = K.Check nm namedTypes env (cns' ++ dcns') reqs'
+  pure $ Some ck'
 
 -- | Using the given context of fully checked kinds, turns a
 -- 'DerivedConstraint' into a list of type-checked expressions in the
@@ -143,7 +172,7 @@ guessExpr env ctx (L _ (I.FieldExpr x (L p f))) = do
       Nothing -> throwError (NoSuchFieldError (L p f) (unILExpr x) (Some xtp))
     _ -> throwError (TypeMismatchError (unILExpr x) (TypeString "a struct")
                                                     (Just $ SomeType xtp))
-  
+
 guessExpr env ctx (L _ (I.ApplyExpr fn xs)) = do
   Some fi <- lookupFunction env fn
   fntp@FunctionTypeRepr{..} <- pure $ env ! fi

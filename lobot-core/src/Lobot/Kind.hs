@@ -40,6 +40,9 @@ module Lobot.Kind
   , liftConstraints
   , giveSelf
   , liftExpr
+    -- * Checks
+  , Check(..)
+  , NamedType(..)
   ) where
 
 import Lobot.Expr
@@ -65,6 +68,16 @@ data Kind (env :: Ctx FunctionType) (tp :: Type) = Kind
   }
   deriving Show
 instance ShowF (Kind env)
+
+data NamedType tp = NamedType Text (TypeRepr tp)
+
+data Check (env :: Ctx FunctionType) (tps :: Ctx Type) = Check
+  { checkName :: Text
+  , checkFields :: Assignment NamedType tps
+  , checkFunctionEnv :: Assignment FunctionTypeRepr env
+  , checkConstraints :: [Expr env tps BoolType]
+  , checkRequirements :: [Expr env tps BoolType]
+  }
 
 -- | Augment a 'Kind' with some additional constraints.
 addConstraints :: Kind env tp -> [KindExpr env tp BoolType] -> Kind env tp
