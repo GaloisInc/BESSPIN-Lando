@@ -1,0 +1,29 @@
+#!/usr/bin/python3
+
+import json
+import sys
+import os
+import subprocess
+import re
+
+def main (argv = None):
+    json_str = ""
+
+    for line in sys.stdin:
+      json_str += line
+
+    json_data = json.loads(json_str)
+
+    # Test id
+    test_id = json_data[0]
+    id = test_id["value"]
+
+    json_output = {
+        "variant": "riscv_program",
+        "value": "rv32uf-p-fadd"
+    }
+
+    print(json.dumps(json_output))
+
+if __name__ == '__main__':
+    sys.exit (main (sys.argv))

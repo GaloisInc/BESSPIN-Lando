@@ -1,0 +1,54 @@
+#!/usr/bin/python3
+
+import json
+import sys
+import os
+import subprocess
+import re
+
+def main (argv = None):
+    json_str = ""
+
+    for line in sys.stdin:
+      json_str += line
+
+    json_data = json.loads(json_str)
+
+    # Bug: arguments are in the wrong order.
+    simulator = json_data[1]
+    test = json_data[0]
+
+    path = simulator["value"]
+    test_name = test["value"]
+
+    test_env = os.environ.copy()
+    test_env["TEST"] = test_name
+    os.chdir(path)
+    with open(os.devnull, 'wb') as devnull:
+        make_result = subprocess.run(["make", "test"],
+                                     env=test_env,
+                                     stdout=subprocess.PIPE,
+                                     stderr=devnull,
+                                     universal_newlines = True
+        )
+
+    if make_result.returncode != 0:
+        sys.exit("make test exited with error")
+
+    s = make_result.stdout
+    m = re.search('PASS', s)
+
+    if m:
+        passed = True
+    else:
+        passed = False
+
+    json_output = {
+        "variant": "bool",
+        "value": passed
+    }
+
+    print(json.dumps(json_output))
+
+if __name__ == '__main__':
+    sys.exit (main (sys.argv))

@@ -1,0 +1,62 @@
+#!/usr/bin/python3
+
+import json
+import sys
+import os
+import subprocess
+import re
+
+def main (argv = None):
+    json_str = ""
+
+    for line in sys.stdin:
+      json_str += line
+
+    json_data = json.loads(json_str)
+
+    # RISC-V configuration
+    riscv = json_data[0]
+    reg_width = riscv["fields"][0]["value"]
+    exts = riscv["fields"][1]["value"]
+    privs = riscv["fields"][2]["value"]
+    vm = riscv["fields"][3]["value"]
+
+    json_output = {
+        "variant": "int",
+        "value": 1
+    }
+
+    print(json.dumps(json_output))
+
+def mk_reg_width_str(reg_width):
+    return reg_width["constructors"][reg_width["value"]]
+
+def mk_exts_str(exts):
+    str = "I"
+    for i in exts["values"]:
+        str += exts["constructors"][i]
+    return str
+
+def mk_privs_str(privs):
+    str = ""
+    for i in privs["values"]:
+        str += privs["constructors"][i]
+    return str
+
+def mk_sim_str(sim):
+    return sim["constructors"][sim["value"]].lower()
+
+def mk_debug_str(debug):
+    if debug["value"]:
+        return ["debug"]
+    else:
+        return []
+
+def mk_tv_str(tv):
+    if tv["value"]:
+        return ["tv"]
+    else:
+        return []
+
+if __name__ == '__main__':
+    sys.exit (main (sys.argv))
