@@ -1,24 +1,25 @@
 -- Definition of all RISC-V ISA instances.
 riscv : kind of struct
-  with reg_width : {RV32, RV64},
-       xlen : int,
-       exts : subset {M, A, F, D, C},
-       privs : subset {M, S, U},
+  with reg_width : {RV32, RV64}
+       exts : subset {M, A, F, D, C}
+       privs : subset {M, S, U}
        vm : {SVNone, SV32, SV39, SV48}
-  where (reg_width = RV32) => (xlen = 32),
-        (reg_width = RV64) => (xlen = 64),
-        (D in exts) => (F in exts),
-        M in privs,
-        (S in privs) => (U in privs),
-        (S in privs) => (not (vm = SVNone)),
+  where (D in exts) => (F in exts)
+        M in privs
+        (S in privs) => (U in privs)
+        (S in privs) => (not (vm = SVNone))
         (not (S in privs)) => (vm = SVNone)
 
 -- Definition of a bluespec build configuration, which contains a riscv.
 bluespec_config : kind of struct
-  with riscv : riscv,
-       sim : {Bluesim, IVerilog, Verilator},
+  with riscv : riscv
+       sim : {Bluesim, IVerilog, Verilator}
+       debug : bool
        tv : bool
-  where not (riscv.vm = SV48)
+  where M in riscv.exts
+        M in riscv.privs
+        U in riscv.privs
+        S in riscv.privs => riscv.vm = SV39
 
 -- Abstract type for a simulator (under the hood, a path to the simulator
 -- executable).
@@ -27,33 +28,30 @@ abstract type simulator
 -- Function for building a simulator from a bluespec config. This calls out to
 -- bsc by converting the config to a bunch of command-line flags, and returns
 -- the path to the generated simulator.
-abstract build_bluespec : bluespec_config -> simulator
+abstract build_piccolo : bluespec_config -> simulator
 
 -- Abstract type for a RISC-V binary (under the hood, a path to the binary).
 abstract type riscv_program
--- Abstract type for a memory trace (under the hood, a path to the trace
--- output).
-abstract type mem_trace
 
-abstract run_riscv_program : (simulator, riscv_program) -> mem_trace
+-- Runs a RISC-V ISA test on a simulator and returns whether the test
+-- passed or not.
+abstract run_isa_test : (simulator, riscv_program) -> bool
 
-compliance_test : kind of struct
-  with prog : riscv_program,
-       trace : mem_trace
-
-abstract trace_eq : (mem_trace, mem_trace) -> bool
-
-abstract get_compliance_test : (riscv, int) -> compliance_test
 -- Each RISC-V configuration might have a different number of compliance tests.
-abstract num_compliance_tests : riscv -> int
+abstract num_isa_tests : riscv -> int
+-- Returns a particular ISA test.
+abstract get_isa_test : (riscv, int) -> riscv_program
 
--- Test every single RV32 machine-mode bluespec configuration for RISC-V
--- compliance.
+
 piccolo_build_check : check
-  on cfg : bluespec_config,
+  on cfg : bluespec_config
      test_id : int
-  where 0 <= test_id, test_id <= num_compliance_tests(cfg.riscv)
-  that trace_eq( run_riscv_program( build_bluespec(run.cfg)
-                                  , get_compliance_test(run.cfg.riscv, run.test_id) )
-               , get_compliance_test(run.cfg.riscv, run.test_id).trace
-               )
+  where 1 <= test_id
+        test_id <= num_isa_tests(cfg.riscv)
+        cfg.riscv.reg_width = RV32
+        cfg.riscv.exts = {M}
+        cfg.riscv.privs = {M, U}
+        cfg.sim = IVerilog
+        cfg.debug = false
+        cfg.tv = false
+  that run_isa_test(build_piccolo(cfg), get_isa_test(cfg.riscv, test_id))
