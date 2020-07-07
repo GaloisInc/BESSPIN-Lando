@@ -62,35 +62,56 @@ ig Options{..} = do
     Left err -> putStrLn err
     Right decls -> case typeCheck decls of
       Left err -> print $ ppTypeError inFileName err
-      Right (TypeCheckResult _ [] _, _) -> print "No kinds in file"
-      Right (TypeCheckResult env ks [], ws) -> case last ks of
-        Some k -> do
-          forM_ ws $ print . ppTypeWarning inFileName
-          putStrLn $
-            "Last kind in " ++ inFileName ++ ":"
-          putStrLn $ "----------------"
-          print $ ppKind k
-          putStrLn $ "----------------"
-          case isAbstractType (kindType k) of
+      Right (TypeCheckResult env _ cks, ws) -> do
+        forM_ ws $ print . ppTypeWarning inFileName
+        forM_ cks $ \(Some ck) -> do
+          let tps = fmapFC namedTypeType (checkFields ck)
+          () <- case anyAbstractTypes tps of
             FalseRepr -> do
-              putStrLn $ "Generating instances..."
-              (validInsts, totalInsts) <-
-                collectAndFilterInstances z3 env (canonicalEnv env) k count
-              putStrLn $ show (length validInsts) ++ " valid instances, enumerated " ++ show totalInsts
-              let numInsts = length validInsts
-              iRef <- newIORef 1
-              forM_ validInsts $ \inst -> do
-                i <- readIORef iRef
-                modifyIORef iRef (+1)
-                putStrLn $
-                  "Instance " ++ show i ++ "/" ++ show numInsts ++ ":"
-                print $ ppLiteralWithKindName (kindName k) inst
-                when (i < numInsts) $ do
-                  putStrLn $ "Press enter to see the next instance."
-                  void getLine
+              putStrLn $ "Checking " ++ T.unpack (checkName ck) ++ "..."
+              let constraints = checkConstraints ck ++ [negRequirements]
+                  negRequirements = NotExpr (foldr AndExpr (LiteralExpr (BoolLit True)) (checkRequirements ck))
+              (failedInsts, totalInsts) <-
+                collectAndFilterInstances z3 env (canonicalEnv env) tps constraints count
+              case failedInsts of
+                [] -> putStrLn $ T.unpack (checkName ck) ++ " holds!"
+                (i:_) -> do
+                  putStrLn $ "Found " ++ show (length failedInsts) ++ " failing instances."
+                  putStrLn $ "Example: "
+                  forM_ (zip (toListFC namedTypeName (checkFields ck)) (toListFC Some i)) $ \(nm, Some l) ->
+                            putStrLn $ T.unpack nm ++ " = " ++ show (ppLiteral l)
             TrueRepr -> do
-              putStrLn $ "Cannot generate instances of abstract type."
+              putStrLn $ "Cannot check properties of abstract types."
               exitFailure
+          return ()
+      -- Right (TypeCheckResult env ks [], ws) -> case last ks of
+      --   Some k -> do
+      --     forM_ ws $ print . ppTypeWarning inFileName
+      --     putStrLn $
+      --       "Last kind in " ++ inFileName ++ ":"
+      --     putStrLn $ "----------------"
+      --     print $ ppKind k
+      --     putStrLn $ "----------------"
+      --     case isAbstractType (kindType k) of
+      --       FalseRepr -> do
+      --         putStrLn $ "Generating instances..."
+      --         (validInsts, totalInsts) <-
+      --           collectAndFilterInstances z3 env (canonicalEnv env) (Empty :> kindType k) (kindConstraints k) count
+      --         putStrLn $ show (length validInsts) ++ " valid instances, enumerated " ++ show totalInsts
+      --         let numInsts = length validInsts
+      --         iRef <- newIORef 1
+      --         forM_ validInsts $ \(Empty :> inst) -> do
+      --           i <- readIORef iRef
+      --           modifyIORef iRef (+1)
+      --           putStrLn $
+      --             "Instance " ++ show i ++ "/" ++ show numInsts ++ ":"
+      --           print $ ppLiteralWithKindName (kindName k) inst
+      --           when (i < numInsts) $ do
+      --             putStrLn $ "Press enter to see the next instance."
+      --             void getLine
+      --       TrueRepr -> do
+      --         putStrLn $ "Cannot generate instances of abstract type."
+      --         exitFailure
 
 canonicalEnv :: Assignment FunctionTypeRepr fntps
              -> Assignment (FunctionImpl IO) fntps

@@ -69,7 +69,9 @@ data Kind (env :: Ctx FunctionType) (tp :: Type) = Kind
   deriving Show
 instance ShowF (Kind env)
 
-data NamedType tp = NamedType Text (TypeRepr tp)
+data NamedType tp = NamedType { namedTypeName :: Text
+                              , namedTypeType :: TypeRepr tp
+                              }
 
 data Check (env :: Ctx FunctionType) (tps :: Ctx Type) = Check
   { checkName :: Text
@@ -102,22 +104,22 @@ liftConstraints :: Index ktps '(nm, tp)
                 -> Kind env (StructType ktps)
 liftConstraints i k' k = addConstraints k (liftExpr i <$> kindConstraints k')
 
--- | Determine whether a literal satisfies all the constraints of a kind.
+-- | Determine whether a set of literals satisfies a constraint set.
 instanceOf :: MonadFail m
            => Assignment (FunctionImpl m) env
-           -> Literal tp
-           -> Kind env tp
-           -> m (Bool, [FunctionCallResult env (EmptyCtx ::> tp)])
-instanceOf env inst kd = runEvalM (instanceOf' env inst kd)
+           -> Assignment Literal ctx
+           -> [Expr env ctx BoolType]
+           -> m (Bool, [FunctionCallResult env ctx])
+instanceOf env ls constraints = runEvalM (instanceOf' env ls constraints)
 
 instanceOf' :: MonadFail m
             => Assignment (FunctionImpl m) env
-            -> Literal tp
-            -> Kind env tp
-            -> EvalM env (EmptyCtx ::> tp) m Bool
-instanceOf' env inst (Kind{..}) = and <$> traverse constraintHolds kindConstraints
+            -> Assignment Literal ctx
+            -> [Expr env ctx BoolType]
+            -> EvalM env ctx m Bool
+instanceOf' env ls constraints = and <$> traverse constraintHolds constraints
   where constraintHolds e = do
-          EvalResult (BoolLit b) _ <- evalExpr env (Empty :> inst) e
+          EvalResult (BoolLit b) _ <- evalExpr env ls e
           return b
 
 -- | Substitute a value for 'self' in a kind expression.

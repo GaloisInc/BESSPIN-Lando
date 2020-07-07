@@ -36,6 +36,8 @@ module Lobot.Types
   , AnyAbstractFields
   , isAbstractType
   , anyAbstractTypes
+  , noAbstractTypes
+  , noAbstractTypesIx
   , isAbstractField
   , anyAbstractFields
   ) where
@@ -45,6 +47,7 @@ import Data.Parameterized.Classes
 import Data.Parameterized.Context
 import Data.Parameterized.SymbolRepr
 import GHC.TypeLits
+import Unsafe.Coerce (unsafeCoerce)
 
 -- | The types of LOBOT.
 data Type = BoolType
@@ -176,6 +179,19 @@ type family AnyAbstractTypes (tps :: Ctx Type) :: Bool where
 anyAbstractTypes :: Assignment TypeRepr tps -> BoolRepr (AnyAbstractTypes tps)
 anyAbstractTypes Empty = FalseRepr
 anyAbstractTypes (tps :> tp) = isAbstractType tp %|| anyAbstractTypes tps
+
+noAbstractTypes :: AnyAbstractTypes (tps ::> tp) ~ 'False
+                => Assignment TypeRepr (tps ::> tp)
+                -> ( IsAbstractType tp :~: 'False
+                   , AnyAbstractTypes tps :~: 'False
+                   )
+noAbstractTypes _ = (unsafeCoerce Refl, unsafeCoerce Refl)
+
+noAbstractTypesIx :: AnyAbstractTypes tps ~ 'False
+                  => Assignment TypeRepr tps
+                  -> Index tps tp
+                  -> IsAbstractType tp :~: 'False
+noAbstractTypesIx _ _ = unsafeCoerce Refl
 
 type family AnyAbstractFields (ftps :: Ctx (Symbol, Type)) :: Bool where
   AnyAbstractFields EmptyCtx = 'False

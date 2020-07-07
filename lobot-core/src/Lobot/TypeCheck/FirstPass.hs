@@ -147,7 +147,8 @@ checkDecl (S.CheckDecl ck) = do
   -- Next, compute the constraints
   let enms = mconcat (thd3 <$> checkTypeResults)
   cns <- mapM (checkExpr enms (fmapFC (\(I.CheckField (S.L _ nm) tp _) -> VarElem nm tp) namedTypes)) (S.checkConstraints ck)
-  let ck' = I.Check (S.checkName ck) namedTypes cns []
+  reqs <- mapM (checkExpr enms (fmapFC (\(I.CheckField (S.L _ nm) tp _) -> VarElem nm tp) namedTypes)) (S.checkRequirements ck)
+  let ck' = I.Check (S.checkName ck) namedTypes cns reqs
   pure $ AddICheck ck'
 
 checkDecl (S.TypeSynDecl nm tp) = do

@@ -15,3 +15,4 @@ ex2 : kind of struct
   with x : small_int
        y : pos_int
   where 0 <= y, y <= add1(x)
+
