@@ -12,4 +12,4 @@ posint_sum_10 : kind of unique_posint_pair
 posint_sum_10_check : check
   on p : posint_sum_10
   where p.x <= 4
-  that 6 = p.y
+  that 6 <= p.y

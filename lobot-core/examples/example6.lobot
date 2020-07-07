@@ -15,3 +15,7 @@ small_pair : kind of pair where x : small posint, y : small posint
 -- add1_pair.
 
 add1_pair : kind of small_pair where y <= add1(x)
+
+add1_pair_check : check
+  on p : add1_pair
+  that p.y <= p.x + 1

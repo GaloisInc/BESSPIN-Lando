@@ -3,15 +3,11 @@ small_int : kind of int where 0 <= self, self <= 10
 abstract add1 : int -> int
 
 pair : kind of struct
-  with i : small_int,
-       j : small_int
-  where add1(i+j) = 15
-
-add1_check : check
-  on i : int
-  where 0 <= i, i <= 50
-  that add1(i) = i + 1
+  with x : int
+       y : int
+  where y = add1(x)
 
 pair_check : check
   on p : pair
-  that p.i + p.j = 14
+  where 0 <= p.x, p.x <= 50
+  that p.y = p.x + 1

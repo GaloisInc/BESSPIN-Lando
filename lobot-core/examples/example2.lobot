@@ -10,4 +10,4 @@ abc_3 : kind of abc_1 abc_2
 
 abc_check : check
   on abc : abc_3
-  that B in abc
+  that C in abc

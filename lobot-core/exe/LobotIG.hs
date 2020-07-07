@@ -79,7 +79,7 @@ ig Options{..} = do
                 -- spurious instances.
                 [] -> if totalInsts >= count
                   then putStrLn $ T.unpack (checkName ck) ++ " holds for the first " ++ show count ++ " instances."
-                  else putStrLn $ T.unpack (checkName ck) ++ " holds!"
+                  else putStrLn $ T.unpack (checkName ck) ++ " holds! (Ran " ++ show totalInsts ++ " checks.)"
                 (i:_) -> do
                   putStrLn $ "  Found " ++ show (length failedInsts) ++ " failing instances."
                   putStrLn $ "  Example: "

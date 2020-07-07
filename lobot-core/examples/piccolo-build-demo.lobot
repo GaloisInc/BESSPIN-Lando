@@ -1,10 +1,8 @@
-type ext = {M, A, F, D, C}
-
 -- Definition of all RISC-V ISA instances.
 riscv : kind of struct
   with reg_width : {RV32, RV64},
        xlen : int,
-       exts : subset ext,
+       exts : subset {M, A, F, D, C},
        privs : subset {M, S, U},
        vm : {SVNone, SV32, SV39, SV48}
   where (reg_width = RV32) => (xlen = 32),

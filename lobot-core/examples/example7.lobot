@@ -3,3 +3,7 @@ ex : kind of struct
        main_opt    : { A, B, C, D, E }
   where main_opt in {B, C},
         main_opt in chosen_opts
+
+ex_check : check
+  on ex : ex
+  that not (B in ex.chosen_opts) => C in ex.chosen_opts
