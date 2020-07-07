@@ -442,7 +442,7 @@ getNextInstance sym session symFns tps symLits = WS.runCheckSat session $ \resul
             Refl <- return $ noAbstractTypesIx tps i
             return $ [NotExpr (EqExpr (VarExpr i) (LiteralExpr l))]
       negateExprs <- traverseAndCollect negateLiteral ls
-      let negateExpr = foldr OrExpr (LiteralExpr (BoolLit True)) negateExprs
+      let negateExpr = foldr OrExpr (LiteralExpr (BoolLit False)) negateExprs
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits negateExpr
       WS.assume (WS.sessionWriter session) symConstraint
       return $ HasInstance ls

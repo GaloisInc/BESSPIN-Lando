@@ -62,6 +62,34 @@ ig Options{..} = do
     Left err -> putStrLn err
     Right decls -> case typeCheck decls of
       Left err -> print $ ppTypeError inFileName err
+      Right (TypeCheckResult env ks [], ws) -> case last ks of
+        Some k -> do
+          forM_ ws $ print . ppTypeWarning inFileName
+          putStrLn $
+            "Last kind in " ++ inFileName ++ ":"
+          putStrLn $ "----------------"
+          print $ ppKind k
+          putStrLn $ "----------------"
+          case isAbstractType (kindType k) of
+            FalseRepr -> do
+              putStrLn $ "Generating instances..."
+              (validInsts, totalInsts) <-
+                collectAndFilterInstances z3 env (canonicalEnv env) (Empty :> kindType k) (kindConstraints k) count
+              putStrLn $ show (length validInsts) ++ " valid instances, enumerated " ++ show totalInsts
+              let numInsts = length validInsts
+              iRef <- newIORef 1
+              forM_ validInsts $ \(Empty :> inst) -> do
+                i <- readIORef iRef
+                modifyIORef iRef (+1)
+                putStrLn $
+                  "Instance " ++ show i ++ "/" ++ show numInsts ++ ":"
+                print $ ppLiteralWithKindName (kindName k) inst
+                when (i < numInsts) $ do
+                  putStrLn $ "Press enter to see the next instance."
+                  void getLine
+            TrueRepr -> do
+              putStrLn $ "Cannot generate instances of abstract type."
+              exitFailure
       Right (TypeCheckResult env _ cks, ws) -> do
         forM_ ws $ print . ppTypeWarning inFileName
         forM_ cks $ \(Some ck) -> do
@@ -89,34 +117,6 @@ ig Options{..} = do
               putStrLn $ "Cannot check properties of abstract types."
               exitFailure
           return ()
-      -- Right (TypeCheckResult env ks [], ws) -> case last ks of
-      --   Some k -> do
-      --     forM_ ws $ print . ppTypeWarning inFileName
-      --     putStrLn $
-      --       "Last kind in " ++ inFileName ++ ":"
-      --     putStrLn $ "----------------"
-      --     print $ ppKind k
-      --     putStrLn $ "----------------"
-      --     case isAbstractType (kindType k) of
-      --       FalseRepr -> do
-      --         putStrLn $ "Generating instances..."
-      --         (validInsts, totalInsts) <-
-      --           collectAndFilterInstances z3 env (canonicalEnv env) (Empty :> kindType k) (kindConstraints k) count
-      --         putStrLn $ show (length validInsts) ++ " valid instances, enumerated " ++ show totalInsts
-      --         let numInsts = length validInsts
-      --         iRef <- newIORef 1
-      --         forM_ validInsts $ \(Empty :> inst) -> do
-      --           i <- readIORef iRef
-      --           modifyIORef iRef (+1)
-      --           putStrLn $
-      --             "Instance " ++ show i ++ "/" ++ show numInsts ++ ":"
-      --           print $ ppLiteralWithKindName (kindName k) inst
-      --           when (i < numInsts) $ do
-      --             putStrLn $ "Press enter to see the next instance."
-      --             void getLine
-      --       TrueRepr -> do
-      --         putStrLn $ "Cannot generate instances of abstract type."
-      --         exitFailure
 
 canonicalEnv :: Assignment FunctionTypeRepr fntps
              -> Assignment (FunctionImpl IO) fntps
