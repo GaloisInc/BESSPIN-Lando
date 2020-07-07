@@ -5,6 +5,7 @@ import sys
 import os
 import subprocess
 import re
+import glob
 
 def main (argv = None):
     json_str = ""
@@ -21,42 +22,31 @@ def main (argv = None):
     privs = riscv["fields"][2]["value"]
     vm = riscv["fields"][3]["value"]
 
+    test_families = get_tests(reg_width, exts)
+    test_fullnames = []
+    for f in test_families:
+        test_fullnames += glob.glob("/home/galois/Piccolo/Tests/isa/" + f + "*[!.dump]")
+    test_basenames = []
+    for p in test_fullnames:
+        test_basenames += [os.path.basename(p)]
+
     json_output = {
         "variant": "int",
-        "value": 1
+        "value": len(test_basenames)
     }
 
+    sys.stderr.write(str(len(test_basenames)))
     print(json.dumps(json_output))
 
-def mk_reg_width_str(reg_width):
-    return reg_width["constructors"][reg_width["value"]]
-
-def mk_exts_str(exts):
-    str = "I"
-    for i in exts["values"]:
-        str += exts["constructors"][i]
-    return str
-
-def mk_privs_str(privs):
-    str = ""
-    for i in privs["values"]:
-        str += privs["constructors"][i]
-    return str
-
-def mk_sim_str(sim):
-    return sim["constructors"][sim["value"]].lower()
-
-def mk_debug_str(debug):
-    if debug["value"]:
-        return ["debug"]
+def get_tests(reg_width, exts):
+    if reg_width["constructors"][reg_width["value"]] == "RV32":
+        rv = 32
+        families = ["rv32ui-p", "rv32mi-p"]
     else:
-        return []
+        rv = 64
+        families = ["rv64ui-p", "rv64mi-p"]
 
-def mk_tv_str(tv):
-    if tv["value"]:
-        return ["tv"]
-    else:
-        return []
+    return families
 
 if __name__ == '__main__':
     sys.exit (main (sys.argv))

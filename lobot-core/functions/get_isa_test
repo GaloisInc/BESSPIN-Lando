@@ -5,6 +5,7 @@ import sys
 import os
 import subprocess
 import re
+import glob
 
 def main (argv = None):
     json_str = ""
@@ -16,14 +17,39 @@ def main (argv = None):
 
     # Test id
     test_id = json_data[0]
-    id = test_id["value"]
+    id_val = test_id["value"]
+    riscv = json_data[1]
+
+    reg_width = riscv["fields"][0]["value"]
+    exts = riscv["fields"][1]["value"]
+    privs = riscv["fields"][2]["value"]
+    vm = riscv["fields"][3]["value"]
+
+    test_families = get_tests(reg_width, exts)
+    test_fullnames = []
+    for f in test_families:
+        test_fullnames += glob.glob("/home/galois/Piccolo/Tests/isa/" + f + "*[!.dump]")
+    test_basenames = []
+    for p in test_fullnames:
+        test_basenames += [os.path.basename(p)]
 
     json_output = {
         "variant": "riscv_program",
-        "value": "rv32uf-p-fadd"
+        "value": test_basenames[id_val]
     }
 
+    sys.stderr.write(test_basenames[id_val])
     print(json.dumps(json_output))
+
+def get_tests(reg_width, exts):
+    if reg_width["constructors"][reg_width["value"]] == "RV32":
+        rv = 32
+        families = ["rv32ui-p", "rv32mi-p"]
+    else:
+        rv = 64
+        families = ["rv64ui-p", "rv64mi-p"]
+
+    return families
 
 if __name__ == '__main__':
     sys.exit (main (sys.argv))
