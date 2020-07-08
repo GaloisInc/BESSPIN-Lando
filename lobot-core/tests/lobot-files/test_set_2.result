@@ -6,16 +6,16 @@ TestResult
         , kindFunctionEnv = []
         , kindConstraints =
             [ ImpliesExpr
-                (MemberExpr (LiteralExpr (EnumLit [ A , B , C ] 0)) SelfExpr)
-                (MemberExpr (LiteralExpr (EnumLit [ A , B , C ] 1)) SelfExpr)
+                (MemberExpr (LiteralExpr (EnumLit [ A , B , C ] 0)) (VarExpr 0))
+                (MemberExpr (LiteralExpr (EnumLit [ A , B , C ] 1)) (VarExpr 0))
             ]
         }
   , instances =
-      [ SetLit [ A , B , C ] []
-      , SetLit [ A , B , C ] [ 2 ]
-      , SetLit [ A , B , C ] [ 1 ]
-      , SetLit [ A , B , C ] [ 1 , 2 ]
-      , SetLit [ A , B , C ] [ 0 , 1 ]
-      , SetLit [ A , B , C ] [ 0 , 1 , 2 ]
+      [ [ SetLit [ A , B , C ] [] ]
+      , [ SetLit [ A , B , C ] [ 2 ] ]
+      , [ SetLit [ A , B , C ] [ 1 ] ]
+      , [ SetLit [ A , B , C ] [ 1 , 2 ] ]
+      , [ SetLit [ A , B , C ] [ 0 , 1 ] ]
+      , [ SetLit [ A , B , C ] [ 0 , 1 , 2 ] ]
       ]
   }

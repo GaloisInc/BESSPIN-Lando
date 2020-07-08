@@ -7,13 +7,13 @@ TestResult
         , kindConstraints = []
         }
   , instances =
-      [ SetLit [ A , B , C ] []
-      , SetLit [ A , B , C ] [ 0 ]
-      , SetLit [ A , B , C ] [ 0 , 1 ]
-      , SetLit [ A , B , C ] [ 0 , 1 , 2 ]
-      , SetLit [ A , B , C ] [ 1 , 2 ]
-      , SetLit [ A , B , C ] [ 2 ]
-      , SetLit [ A , B , C ] [ 0 , 2 ]
-      , SetLit [ A , B , C ] [ 1 ]
+      [ [ SetLit [ A , B , C ] [] ]
+      , [ SetLit [ A , B , C ] [ 0 ] ]
+      , [ SetLit [ A , B , C ] [ 0 , 1 ] ]
+      , [ SetLit [ A , B , C ] [ 0 , 1 , 2 ] ]
+      , [ SetLit [ A , B , C ] [ 1 , 2 ] ]
+      , [ SetLit [ A , B , C ] [ 2 ] ]
+      , [ SetLit [ A , B , C ] [ 0 , 2 ] ]
+      , [ SetLit [ A , B , C ] [ 1 ] ]
       ]
   }

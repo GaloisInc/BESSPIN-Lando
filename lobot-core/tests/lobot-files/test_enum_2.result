@@ -5,8 +5,10 @@ TestResult
         , kindType = EnumRepr [ A , B , C ]
         , kindFunctionEnv = []
         , kindConstraints =
-            [ NotExpr (EqExpr SelfExpr (LiteralExpr (EnumLit [ A , B , C ] 0)))
+            [ NotExpr
+                (EqExpr (VarExpr 0) (LiteralExpr (EnumLit [ A , B , C ] 0)))
             ]
         }
-  , instances = [ EnumLit [ A , B , C ] 2 , EnumLit [ A , B , C ] 1 ]
+  , instances =
+      [ [ EnumLit [ A , B , C ] 2 ] , [ EnumLit [ A , B , C ] 1 ] ]
   }

@@ -7,8 +7,8 @@ TestResult
         , kindConstraints = []
         }
   , instances =
-      [ EnumLit [ A , B , C ] 0
-      , EnumLit [ A , B , C ] 1
-      , EnumLit [ A , B , C ] 2
+      [ [ EnumLit [ A , B , C ] 0 ]
+      , [ EnumLit [ A , B , C ] 1 ]
+      , [ EnumLit [ A , B , C ] 2 ]
       ]
   }

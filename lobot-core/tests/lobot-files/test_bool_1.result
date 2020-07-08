@@ -4,7 +4,7 @@ TestResult
         { kindName = "test_bool_1"
         , kindType = BoolRepr
         , kindFunctionEnv = []
-        , kindConstraints = [ NotExpr SelfExpr ]
+        , kindConstraints = [ NotExpr (VarExpr 0) ]
         }
-  , instances = [ BoolLit False ]
+  , instances = [ [ BoolLit False ] ]
   }
