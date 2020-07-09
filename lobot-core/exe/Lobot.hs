@@ -35,7 +35,6 @@ import Numeric.Natural
 import Options.Applicative
 
 import System.IO (hFlush, stdout)
-import System.Console.ANSI (clearLine, setCursorColumn)
 import System.Directory
 import System.Exit
 import System.Process
@@ -230,37 +229,26 @@ generateInstances :: forall env ctx. Text
                   -> SessionData env ctx
                   -> IO ([Assignment Literal ctx], Natural)
 generateInstances nm mb_limit onValid onEnd s =
-  putStrNow (msg 0 0) >> go 0 0
+  putStrNow "Generating instances...\n" >> go 0 0
   where go :: Natural -> Natural -> IO ([Assignment Literal ctx], Natural)
         go vis ivis | Just (ilimit, onLimit) <- mb_limit
                     , vis + ivis >= ilimit = do
-          clearLine >> setCursorColumn 0
           onLimit vis ivis
           pure ([], vis+ivis)
         go vis ivis | otherwise =
           getNextInstance s >>= \case
             ValidInstance ls -> do
-              clearLine >> setCursorColumn 0
               cont <- onValid (vis+1) ls
               if cont then do
-                putStrNow (msg (vis+1) ivis)
                 (lss, tot) <- go (vis+1) ivis
                 return (ls:lss, tot)
               else return ([ls], vis+ivis) 
             InvalidInstance _ -> do
-              clearLine >> setCursorColumn 0
-              putStrNow (msg vis (ivis+1))
               (lss, tot) <- go vis (ivis+1)
               return (lss, tot)
             _ -> do
-              clearLine >> setCursorColumn 0
               onEnd vis ivis
               return ([], vis+ivis)
-        msg :: Natural -> Natural -> String
-        msg 0 0      = "Generating instances of '" ++ T.unpack nm ++ "'..."
-        msg vis ivis = msg 0 0 ++ " | Found " ++ show vis
-                       ++ " valid instances, " ++ show ivis
-                       ++ " invalid instances"
 
 
 canonicalEnv :: Assignment FunctionTypeRepr fntps
