@@ -304,6 +304,10 @@ symEvalExpr sym symFns symLits e = case e of
     SymLiteral IntRepr sv1 <- symEvalExpr sym symFns symLits e1
     SymLiteral IntRepr sv2 <- symEvalExpr sym symFns symLits e2
     SymLiteral IntRepr <$> WI.intAdd sym sv1 sv2
+  MinusExpr e1 e2 -> do
+    SymLiteral IntRepr sv1 <- symEvalExpr sym symFns symLits e1
+    SymLiteral IntRepr sv2 <- symEvalExpr sym symFns symLits e2
+    SymLiteral IntRepr <$> WI.intSub sym sv1 sv2
   TimesExpr e1 e2 -> do
     SymLiteral IntRepr sv1 <- symEvalExpr sym symFns symLits e1
     SymLiteral IntRepr sv2 <- symEvalExpr sym symFns symLits e2

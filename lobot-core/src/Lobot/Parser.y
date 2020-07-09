@@ -56,6 +56,7 @@ import Lobot.Utils
   '='         { L _ (Token EQUALS _) }
   '<='        { L _ (Token LTE _) }
   '+'         { L _ (Token PLUS _) }
+  '-'         { L _ (Token MINUS _) }
   '*'         { L _ (Token TIMES _) }
   'in'        { L _ (Token IN _) }
   '=>'        { L _ (Token IMPLIES _) }
@@ -80,7 +81,7 @@ import Lobot.Utils
 %nonassoc ':'
 %left     '=>'
 %nonassoc '=' '<='
-%left     '+'
+%left     '+' '-'
 %left     '*'
 %nonassoc 'not'
 %nonassoc 'in'
@@ -155,6 +156,7 @@ expr : lit                         { loc $1 $ LiteralExpr $1 }
      | expr '=' expr               { loc $1 $ EqExpr $1 $3 }
      | expr '<=' expr              { loc $1 $ LteExpr $1 $3 }
      | expr '+' expr               { loc $1 $ PlusExpr $1 $3 }
+     | expr '-' expr               { loc $1 $ MinusExpr $1 $3 }
      | expr '*' expr               { loc $1 $ TimesExpr $1 $3 }
      | expr 'in' expr              { loc $1 $ MemberExpr $1 $3 }
      | expr '=>' expr              { loc $1 $ ImpliesExpr $1 $3 }

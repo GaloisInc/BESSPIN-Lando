@@ -106,6 +106,7 @@ data Expr (ctx :: Ctx T.Type) where
   EqExpr         :: LExpr ctx -> LExpr ctx -> Expr ctx
   LteExpr        :: LExpr ctx -> LExpr ctx -> Expr ctx
   PlusExpr       :: LExpr ctx -> LExpr ctx -> Expr ctx
+  MinusExpr      :: LExpr ctx -> LExpr ctx -> Expr ctx
   TimesExpr      :: LExpr ctx -> LExpr ctx -> Expr ctx
   MemberExpr     :: LExpr ctx -> LExpr ctx -> Expr ctx
   ImpliesExpr    :: LExpr ctx -> LExpr ctx -> Expr ctx
@@ -124,6 +125,7 @@ unIExpr (ApplyExpr fn args) = S.ApplyExpr fn (unILExpr <$> args)
 unIExpr (EqExpr x y) = S.EqExpr (unILExpr x) (unILExpr y)
 unIExpr (LteExpr x y) = S.LteExpr (unILExpr x) (unILExpr y)
 unIExpr (PlusExpr x y) = S.PlusExpr (unILExpr x) (unILExpr y)
+unIExpr (MinusExpr x y) = S.MinusExpr (unILExpr x) (unILExpr y)
 unIExpr (TimesExpr x y) = S.TimesExpr (unILExpr x) (unILExpr y)
 unIExpr (MemberExpr x y) = S.MemberExpr (unILExpr x) (unILExpr y)
 unIExpr (ImpliesExpr x y) = S.ImpliesExpr (unILExpr x) (unILExpr y)

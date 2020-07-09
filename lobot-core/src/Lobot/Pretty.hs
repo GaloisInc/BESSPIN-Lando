@@ -142,6 +142,8 @@ ppKindExpr' _ env ktp (LteExpr e1 e2) =
   ppKindExpr' False env ktp e1 PP.<+> PP.text "<=" PP.<+> ppKindExpr' False env ktp e2
 ppKindExpr' _ env ktp (PlusExpr e1 e2) =
   ppKindExpr' False env ktp e1 PP.<+> PP.text "+" PP.<+> ppKindExpr' False env ktp e2
+ppKindExpr' _ env ktp (MinusExpr e1 e2) =
+  ppKindExpr' False env ktp e1 PP.<+> PP.text "-" PP.<+> ppKindExpr' False env ktp e2
 ppKindExpr' _ env ktp (TimesExpr e1 e2) =
   ppKindExpr' False env ktp e1 PP.<+> PP.text "*" PP.<+> ppKindExpr' False env ktp e2
 ppKindExpr' _ env ktp (MemberExpr e1 e2) =

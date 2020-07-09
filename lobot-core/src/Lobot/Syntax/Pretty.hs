@@ -139,6 +139,8 @@ ppExpr' _ (LteExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "<=" PP.<+> ppLExpr' False e2
 ppExpr' _ (PlusExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "+" PP.<+> ppLExpr' False e2
+ppExpr' _ (MinusExpr e1 e2) =
+  ppLExpr' False e1 PP.<+> PP.text "-" PP.<+> ppLExpr' False e2
 ppExpr' _ (TimesExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "*" PP.<+> ppLExpr' False e2
 ppExpr' _ (MemberExpr e1 e2) =

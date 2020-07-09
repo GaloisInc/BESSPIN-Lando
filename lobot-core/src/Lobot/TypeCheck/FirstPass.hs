@@ -274,6 +274,10 @@ checkExpr enms ctx (L p (S.PlusExpr x y)) = do
   x' <- checkExpr enms ctx x
   y' <- checkExpr enms ctx y
   pure $ L p (I.PlusExpr x' y')
+checkExpr enms ctx (L p (S.MinusExpr x y)) = do
+  x' <- checkExpr enms ctx x
+  y' <- checkExpr enms ctx y
+  pure $ L p (I.MinusExpr x' y')
 checkExpr enms ctx (L p (S.TimesExpr x y)) = do
   x' <- checkExpr enms ctx x
   y' <- checkExpr enms ctx y

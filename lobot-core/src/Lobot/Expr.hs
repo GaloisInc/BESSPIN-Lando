@@ -71,9 +71,11 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
               -> Expr env ctx BoolType
   -- | Less-than-or-equal for two integer expressions.
   LteExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx BoolType
-  -- | Add two integer expression.
+  -- | Add two integer expressions.
   PlusExpr    :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
-  -- | Multiply two integer expression.
+  -- | Subtract two integer expressions.
+  MinusExpr   :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
+  -- | Multiply two integer expressions.
   TimesExpr   :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
   -- | Set membership.
   MemberExpr  :: Expr env ctx (EnumType cs)
@@ -199,6 +201,10 @@ evalExpr fns ls e = case e of
     EvalResult (IntLit x1) _ <- evalExpr fns ls e1
     EvalResult (IntLit x2) _ <- evalExpr fns ls e2
     pure $ litEvalResult (IntLit (x1 + x2))
+  MinusExpr e1 e2 -> do
+    EvalResult (IntLit x1) _ <- evalExpr fns ls e1
+    EvalResult (IntLit x2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (IntLit (x1 - x2))
   TimesExpr e1 e2 -> do
     EvalResult (IntLit x1) _ <- evalExpr fns ls e1
     EvalResult (IntLit x2) _ <- evalExpr fns ls e2

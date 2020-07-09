@@ -76,6 +76,7 @@ data Expr = LiteralExpr LLiteral
           | EqExpr LExpr LExpr
           | LteExpr LExpr LExpr
           | PlusExpr LExpr LExpr
+          | MinusExpr LExpr LExpr
           | TimesExpr LExpr LExpr
           | MemberExpr LExpr LExpr
           | ImpliesExpr LExpr LExpr
