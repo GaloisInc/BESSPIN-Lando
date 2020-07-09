@@ -23,7 +23,11 @@ This module provides functions to enumerate instances of a kind via a
 what4-based SMT solver backend.
 -}
 module Lobot.Instances
-  ( collectAndFilterInstances
+  ( SessionData
+  , runSession
+  , InstanceResult(..)
+  , getNextInstance
+  , collectAndFilterInstances
   ) where
 
 import Lobot.Expr
@@ -425,39 +429,80 @@ groundEvalLiterals ge (tps :> tp) (symLits :> symLit) = do
 
 data BuilderState s = EmptyBuilderState
 
-data InstanceResult ctx = HasInstance (Assignment Literal ctx)
+data SessionData env ctx where
+  SessionData :: (AnyAbstractTypes ctx ~ 'False, WS.SMTLib2Tweaks solver)
+                 => { sym :: WB.ExprBuilder t st fs
+                    , session :: WS.Session t solver
+                    , fns :: Assignment (FunctionImpl IO) env
+                    , tps :: Assignment TypeRepr ctx
+                    , constraints :: [Expr env ctx BoolType]
+                    , symFns :: Assignment (SymFunction t) env
+                    , symLits :: Assignment (SymLiteral t) ctx
+                    } -> SessionData env ctx
+
+data InstanceResult ctx = ValidInstance (Assignment Literal ctx)
+                        | InvalidInstance (Assignment Literal ctx)
                         | NoInstance
                         | Unknown
   deriving Show
 
--- | If there are any instances in the current session, retrieve it, and then
--- negate that instance so we get a different result next time.
-getNextInstance :: forall ctx solver t st fs env . (AnyAbstractTypes ctx ~ 'False)
-                => WS.SMTLib2Tweaks solver
-                => WB.ExprBuilder t st fs
-                -> WS.Session t solver
-                -> Assignment (SymFunction t) env
-                -> Assignment TypeRepr ctx
-                -> Assignment (SymLiteral t) ctx
-                -> IO (InstanceResult ctx)
-getNextInstance sym session symFns tps symLits = WS.runCheckSat session $ \result ->
+-- TODO: Return the function call results generated so we can reuse them
+-- | If is an instance in the current session, retrieve it, and then negate
+-- that instance so we get a different result next time. Furthermore, we also
+-- collect all concrete function calls evaluated during the course of this
+-- check and add the results to the SMT solver's assumptions. This has the
+-- effect of "teaching" the solver about the pointwise values of the functions.
+-- We also distinguish between valid and invalid instances based on whether
+-- the instance satisfies the given function environment.
+getNextInstance :: SessionData env ctx -> IO (InstanceResult ctx)
+getNextInstance SessionData{..} =
+  WS.runCheckSat session $ \result ->
   case result of
     WS.Sat (ge,_) -> do
       ls <- groundEvalLiterals ge tps symLits
       let negateLiteral :: AnyAbstractTypes ctx ~ 'False
-                        => Index ctx tp -> Literal tp -> IO [Expr env ctx BoolType]
-          negateLiteral i l = do
+                        => Assignment TypeRepr ctx
+                        -> Index ctx tp -> Literal tp -> IO [Expr env ctx BoolType]
+          negateLiteral tps i l = do
             Refl <- return $ noAbstractTypesIx tps i
             return $ [NotExpr (EqExpr (VarExpr i) (LiteralExpr l))]
-      negateExprs <- traverseAndCollect negateLiteral ls
+      negateExprs <- traverseAndCollect (negateLiteral tps) ls
       let negateExpr = foldr OrExpr (LiteralExpr (BoolLit False)) negateExprs
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits negateExpr
       WS.assume (WS.sessionWriter session) symConstraint
-      return $ HasInstance ls
-    WS.Unsat _ -> do return NoInstance
-    WS.Unknown -> do return Unknown
+      (isInst, calls) <- instanceOf fns ls constraints
+      traverse_ (assumeCall sym session symFns symLits) calls
+      if isInst then return $ ValidInstance ls
+                else return $ InvalidInstance ls
+    WS.Unsat _ -> do return $ NoInstance
+    WS.Unknown -> do return $ Unknown
 
--- TODO: Return the function call results generated so we can reuse them
+runSession :: AnyAbstractTypes ctx ~ 'False
+           => FilePath
+           -- ^ Path to z3 executable
+           -> Assignment FunctionTypeRepr env
+           -- ^ Type of function environment
+           -> Assignment (FunctionImpl IO) env
+           -- ^ Concrete functions
+           -> Assignment TypeRepr ctx
+           -- ^ Types we are generating instances of
+           -> [Expr env ctx BoolType]
+           -- ^ Constraints
+           -> (SessionData env ctx -> IO a)
+           -- ^ Action to run
+           -> IO a
+runSession z3_path env fns tps constraints action = do
+  Some nonceGen <- newIONonceGenerator
+  sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
+  WC.extendConfig WS.z3Options (WI.getConfiguration sym)
+  WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
+    symLits <- freshSymLiteralConstants sym session tps
+    symFns <- traverseFC (freshUninterpSymFunction sym) env
+    forM_ constraints $ \e -> do
+      SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits e
+      WS.assume (WS.sessionWriter session) symConstraint
+    action (SessionData sym session fns tps constraints symFns symLits)
+
 -- | Collect instances of a context of types satisfying a set of constraints,
 -- only returning those instances that satisfy the given function environment.
 -- Each time the solver returns an instance, we check whether it is actually an
@@ -468,53 +513,18 @@ getNextInstance sym session symFns tps symLits = WS.runCheckSat session $ \resul
 --
 -- Along with the satisfying instances, return the number of total instances the
 -- SMT solver returned (including the spurious ones).
-collectAndFilterInstances :: AnyAbstractTypes ctx ~ 'False
-                          => FilePath
-                          -- ^ Path to z3 executable
-                          -> Assignment FunctionTypeRepr env
-                          -- ^ Type of function environment
-                          -> Assignment (FunctionImpl IO) env
-                          -- ^ Concrete functions
-                          -> Assignment TypeRepr ctx
-                          -- ^ Types we are generating instances of
-                          -> [Expr env ctx BoolType]
-                          -- ^ Constraints
-                          -> Natural
-                          -- ^ Maximum number of instances to collect
+collectAndFilterInstances :: Natural -> SessionData env ctx
                           -> IO ([Assignment Literal ctx], Natural)
-collectAndFilterInstances z3_path env fns tps constraints limit = do
-  Some nonceGen <- newIONonceGenerator
-  sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
-  WC.extendConfig WS.z3Options (WI.getConfiguration sym)
-  WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
-    symLits <- freshSymLiteralConstants sym session tps
-    symFns <- traverseFC (freshUninterpSymFunction sym) env
-    forM_ constraints $ \e -> do
-      SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits e
-      WS.assume (WS.sessionWriter session) symConstraint
-    collectAndFilterInstances' sym session fns tps constraints symFns symLits limit
-
-collectAndFilterInstances' :: (AnyAbstractTypes ctx ~ 'False, WS.SMTLib2Tweaks solver)
-                           => WB.ExprBuilder t st fs
-                           -> WS.Session t solver
-                           -> Assignment (FunctionImpl IO) env
-                           -> Assignment TypeRepr ctx
-                           -> [Expr env ctx BoolType]
-                           -> Assignment (SymFunction t) env
-                           -> Assignment (SymLiteral t) ctx
-                           -> Natural
-                           -> IO ([Assignment Literal ctx], Natural)
-collectAndFilterInstances' _ _ _ _ _ _ _ 0 = return ([], 0)
-collectAndFilterInstances' sym session fns tps constraints symFns symLits limit = do
-  r <- getNextInstance sym session symFns tps symLits
+collectAndFilterInstances 0 _ = return ([], 0)
+collectAndFilterInstances limit s = do
+  r <- getNextInstance s
   case r of
-    HasInstance ls -> do
-      (isInst, calls) <- instanceOf fns ls constraints
-      traverse_ (assumeCall sym session symFns symLits) calls
-      (lss, n) <- collectAndFilterInstances' sym session fns tps constraints symFns symLits (limit-1)
-      case isInst of
-        True -> return (ls:lss, n+1)
-        False -> return (lss, n+1)
+    ValidInstance ls -> do
+      (lss, n) <- collectAndFilterInstances (limit-1) s
+      return (ls:lss, n+1)
+    InvalidInstance ls -> do
+      (lss, n) <- collectAndFilterInstances (limit-1) s
+      return (lss, n+1)
     _ -> return ([], 0)
 
 -- | Assumes the result of a function call. If any of the functions arguments

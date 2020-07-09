@@ -74,7 +74,7 @@ ig Options{..} = do
             FalseRepr -> do
               putStrLn $ "Generating instances..."
               (validInsts, totalInsts) <-
-                collectAndFilterInstances z3 env (canonicalEnv env) (Empty :> kindType k) (kindConstraints k) count
+                runSession z3 env (canonicalEnv env) (Empty :> kindType k) (kindConstraints k) (collectAndFilterInstances count)
               putStrLn $ show (length validInsts) ++ " valid instances, enumerated " ++ show totalInsts
               let numInsts = length validInsts
               iRef <- newIORef 1
@@ -100,7 +100,7 @@ ig Options{..} = do
               let constraints = checkConstraints ck ++ [negRequirements]
                   negRequirements = NotExpr (foldr AndExpr (LiteralExpr (BoolLit True)) (checkRequirements ck))
               (failedInsts, totalInsts) <-
-                collectAndFilterInstances z3 env (canonicalEnv env) tps constraints count
+                runSession z3 env (canonicalEnv env) tps constraints (collectAndFilterInstances count)
               case failedInsts of
                 -- TODO: Don't know if we're doing this right if the where clause
                 -- contains function calls, because we should not be counting

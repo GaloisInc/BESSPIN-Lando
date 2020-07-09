@@ -57,6 +57,9 @@ mapThird3 f (a, b, c) = (a, b, f c)
 bind2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
 bind2 f ma mb = join (liftM2 f ma mb)
 
+untilJust :: Monad m => m (Maybe a) -> m a
+untilJust mmx = mmx >>= maybe (untilJust mmx) pure
+
 -- | Returns the index of the first element in the given assignment which is
 -- equal by 'testEquality' to the query element, or Nothing if there is no
 -- such element.

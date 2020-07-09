@@ -70,6 +70,22 @@ executable lobotIG
                        process,
                        text
 
+executable lobot
+  hs-source-dirs:      exe
+  main-is:             Lobot.hs
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  build-depends:       lobot-core,
+                       base,
+                       aeson,
+                       ansi-terminal,
+                       bytestring,
+                       directory,
+                       optparse-applicative,
+                       parameterized-utils,
+                       process,
+                       text
+
 test-suite lobot-tests
   type:               exitcode-stdio-1.0
   hs-source-dirs:     tests
