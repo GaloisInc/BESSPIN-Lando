@@ -90,6 +90,7 @@ tokens :-
     "="           { tok EQUALS }
     "<="          { tok LTE }
     "+"           { tok PLUS }
+    "*"           { tok TIMES }
     in            { tok IN }
     "=>"          { tok IMPLIES }
     not           { tok NOT }
@@ -143,6 +144,7 @@ data TokenType = BOOL
                | EQUALS
                | LTE
                | PLUS
+               | TIMES
                | IN
                | IMPLIES
                | NOT

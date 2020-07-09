@@ -214,6 +214,10 @@ guessExpr env ctx (L _ (I.PlusExpr x y)) = do
   x' <- checkExpr env ctx T.IntRepr x
   y' <- checkExpr env ctx T.IntRepr y
   pure (False, Pair T.IntRepr (E.PlusExpr x' y'))
+guessExpr env ctx (L _ (I.TimesExpr x y)) = do
+  x' <- checkExpr env ctx T.IntRepr x
+  y' <- checkExpr env ctx T.IntRepr y
+  pure (False, Pair T.IntRepr (E.TimesExpr x' y'))
 
 guessExpr env ctx (L _ (I.MemberExpr x y)) = do
   (xGuess, Pair xtp x') <- guessExpr env ctx x
