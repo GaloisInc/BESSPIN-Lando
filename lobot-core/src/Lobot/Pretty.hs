@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
 {-|
@@ -17,7 +18,9 @@ module Lobot.Pretty
   ( ppKind
   , ppFieldRepr
   , ppTypeRepr
+  , ppExpr
   , ppKindExpr
+  , ppFunctionCallResult
   , ppLiteral
   , ppLiteralWithKindName
   ) where
@@ -29,6 +32,7 @@ import Lobot.Types
 import qualified Text.PrettyPrint as PP
 import qualified Data.Text        as T
 
+import Data.Functor.Const
 import Data.Parameterized.Context
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
@@ -117,41 +121,57 @@ ppKindExpr :: Assignment FunctionTypeRepr env
            -> TypeRepr ktp
            -> KindExpr env ktp tp
            -> PP.Doc
-ppKindExpr = ppKindExpr' True
+ppKindExpr env ktp = ppExpr env (Empty :> ktp) (Empty :> Const "self")
 
-ppKindExpr' :: Bool
-            -> Assignment FunctionTypeRepr env
-            -> TypeRepr ktp
-            -> KindExpr env ktp tp
-            -> PP.Doc
-ppKindExpr' _ _ _ (LiteralExpr l) = ppLiteral l
-ppKindExpr' _ _ _ (VarExpr _) = PP.text "self"
-ppKindExpr' _ _ (StructRepr flds) (FieldExpr SelfExpr i) =
+ppFunctionCallResult :: Assignment FunctionTypeRepr env
+                     -> Assignment TypeRepr ctx
+                     -> Assignment (Const T.Text) ctx
+                     -> FunctionCallResult env ctx
+                     -> PP.Doc
+ppFunctionCallResult env ctx nms (FunctionCallResult fi args ret _) =
+  ppExpr env ctx nms (EqExpr (ApplyExpr fi args) (LiteralExpr ret)) 
+
+ppExpr :: Assignment FunctionTypeRepr env
+       -> Assignment TypeRepr ctx
+       -> Assignment (Const T.Text) ctx
+       -> Expr env ctx tp
+       -> PP.Doc
+ppExpr = ppExpr' True
+
+ppExpr' :: Bool
+        -> Assignment FunctionTypeRepr env
+        -> Assignment TypeRepr ctx
+        -> Assignment (Const T.Text) ctx
+        -> Expr env ctx tp
+        -> PP.Doc
+ppExpr' _ _ _ _ (LiteralExpr l) = ppLiteral l
+ppExpr' _ _ _ nms (VarExpr i) = PP.text (T.unpack . getConst $ nms ! i)
+ppExpr' _ _ (Empty :> StructRepr flds) _ (FieldExpr SelfExpr i) =
   symbolDoc (fieldName (flds ! i))
-ppKindExpr' top env ktp (FieldExpr ctxExpr i) =
-  ppKindExpr' top env ktp ctxExpr PP.<> PP.text "." PP.<>
-  symbolDoc (fieldName (exprStructFields env (Empty :> ktp) ctxExpr ! i))
-ppKindExpr' _ env ktp (ApplyExpr fi es) =
+ppExpr' top env ctx nms (FieldExpr ctxExpr i) =
+  ppExpr' top env ctx nms ctxExpr PP.<> PP.text "." PP.<>
+  symbolDoc (fieldName (exprStructFields env ctx ctxExpr ! i))
+ppExpr' _ env ctx nms (ApplyExpr fi es) =
   let FunctionTypeRepr fnm _ _ = env ! fi
   in symbolDoc fnm PP.<>
-     PP.parens (commas (toListFC (ppKindExpr' True env ktp) es))
-ppKindExpr' False env ktp e = PP.parens (ppKindExpr' True env ktp e)
-ppKindExpr' _ env ktp (EqExpr e1 e2) =
-  ppKindExpr' False env ktp e1 PP.<+> PP.equals PP.<+> ppKindExpr' False env ktp e2
-ppKindExpr' _ env ktp (LteExpr e1 e2) =
-  ppKindExpr' False env ktp e1 PP.<+> PP.text "<=" PP.<+> ppKindExpr' False env ktp e2
-ppKindExpr' _ env ktp (PlusExpr e1 e2) =
-  ppKindExpr' False env ktp e1 PP.<+> PP.text "+" PP.<+> ppKindExpr' False env ktp e2
-ppKindExpr' _ env ktp (MinusExpr e1 e2) =
-  ppKindExpr' False env ktp e1 PP.<+> PP.text "-" PP.<+> ppKindExpr' False env ktp e2
-ppKindExpr' _ env ktp (TimesExpr e1 e2) =
-  ppKindExpr' False env ktp e1 PP.<+> PP.text "*" PP.<+> ppKindExpr' False env ktp e2
-ppKindExpr' _ env ktp (MemberExpr e1 e2) =
-  ppKindExpr' False env ktp e1 PP.<+> PP.text "in" PP.<+> ppKindExpr' False env ktp e2
-ppKindExpr' _ env ktp (AndExpr e1 e2) =
-  ppKindExpr' False env ktp e1 PP.<+> PP.text "and" PP.<+> ppKindExpr' False env ktp e2
-ppKindExpr' _ env ktp (OrExpr e1 e2) =
-  ppKindExpr' False env ktp e1 PP.<+> PP.text "or" PP.<+> ppKindExpr' False env ktp e2
-ppKindExpr' _ env ktp (ImpliesExpr e1 e2) =
-  ppKindExpr' False env ktp e1 PP.<+> PP.text "=>" PP.<+> ppKindExpr' False env ktp e2
-ppKindExpr' _ env ktp (NotExpr e) = PP.text "not" PP.<+> ppKindExpr' False env ktp e
+     PP.parens (commas (toListFC (ppExpr' True env ctx nms) es))
+ppExpr' False env ctx nms e = PP.parens (ppExpr' True env ctx nms e)
+ppExpr' _ env ctx nms (EqExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.equals PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (LteExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "<=" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (PlusExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "+" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (MinusExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "-" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (TimesExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "*" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (MemberExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "in" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (AndExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "and" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (OrExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "or" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (ImpliesExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "=>" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (NotExpr e) = PP.text "not" PP.<+> ppExpr' False env ctx nms e

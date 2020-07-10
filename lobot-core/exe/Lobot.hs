@@ -1,10 +1,26 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
-module Main where
+
+{-|
+Module      : Main
+Description : The Lobot command line interface
+Copyright   : (c) Matthew Yacavone, Ben Selfridge, 2020
+License     : BSD3
+Maintainer  : myac@galois.com
+Stability   : experimental
+Portability : POSIX
+
+This module provides the main command line interface for Lobot. This code is
+currently very messy, and need to be cleaned up and documented.
+-}
+module Main
+  ( main
+  ) where
 
 import Lobot.Expr
 import Lobot.Instances
@@ -18,6 +34,8 @@ import Lobot.Utils
 
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy.Char8 as BS
+import qualified Data.HashSet as HS
+import qualified Text.PrettyPrint as PP
 import qualified Data.Text as T
 import Data.Text (Text)
 
@@ -25,6 +43,7 @@ import Data.List (find)
 import Control.Monad (void, when)
 import Data.Maybe
 import Data.Foldable (forM_)
+import Data.Functor.Const
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.Some
@@ -36,15 +55,15 @@ import Options.Applicative
 
 import System.IO (hFlush, stdout)
 import System.Console.ANSI (hSupportsANSI, clearLine, setCursorColumn)
+import System.Process hiding (env)
 import System.Directory
 import System.Exit
-import System.Process
 
 putStrNow :: String -> IO ()
 putStrNow s = putStr s >> hFlush stdout
 
 
-data FileInputOptions = BrowseKindInsts Text
+data FileInputOptions = BrowseKindInsts Text Bool
                       | GenKindInsts Text
                       | RunCheck Text
                       | RunAllChecks
@@ -54,7 +73,9 @@ fileInputOptions :: Parser FileInputOptions
 fileInputOptions = (BrowseKindInsts . T.pack
                     <$> strOption (long "enumerate" <> short 'e'
                                    <> metavar "KIND"
-                                   <> help "Browse all instances of a given kind."))
+                                   <> help "Browse all instances of a given kind.")
+                    <*> switch (long "verbose" <> short 'v'
+                                <> help "Show additional output while browsing instances."))
                <|> (GenKindInsts . T.pack
                     <$> strOption (long "count" <> short 'c'
                                    <> metavar "KIND"
@@ -100,10 +121,10 @@ lobot Options{..} = do
       Right (TypeCheckResult env ks cks, ws) -> do
         forM_ ws $ print . ppTypeWarning inFileName
         case inOptions of
-          BrowseKindInsts k -> do
+          BrowseKindInsts k verbose -> do
             SomeNonAbsKind tp cns <- lookupKind k ks
             runSession z3 env (canonicalEnv env) (Empty :> tp) cns
-                       (browseKindInstances k)
+                       (browseKindInstances k verbose)
           GenKindInsts k -> do
             SomeNonAbsKind tp cns <- lookupKind k ks
             void $ runSession z3 env (canonicalEnv env) (Empty :> tp) cns
@@ -165,37 +186,62 @@ toNonAbstractCheck (Some ck) =
       pure $ SomeNonAbsCheck (checkName ck) fldnms tps cns
 
 
-browseKindInstances :: Text -> SessionData env (EmptyCtx ::> tp) -> IO ()
-browseKindInstances k =
-  void . generateInstances k Nothing onValid onEnd
-  where onValid :: Natural -> Assignment Literal (EmptyCtx ::> tp) -> IO Bool
-        onValid n (Empty :> l) = do
-          putStrLn ("Instance " ++ show n ++ ":")
-          print $ ppLiteralWithKindName k l
-          putStrLn "Press enter to see the next instance" -- , or q to quit."
-          untilJust $ getChar >>= \case
-                        '\n' -> pure $ Just True
-                        -- 'Q'  -> pure $ Just False
-                        -- 'q'  -> pure $ Just False
-                        _    -> pure $ Nothing
-        onEnd :: Natural -> Natural -> IO ()
-        onEnd 0 ivis = putStrLn $ "Found no valid instances! (Generated "
-                                  ++ show ivis ++ " invalid instances)"
-        onEnd vis ivis =
+browseKindInstances :: forall env tp. Text -> Bool -> SessionData env (EmptyCtx ::> tp) -> IO ()
+browseKindInstances k verbose s@SessionData{..} =
+  void $ generateInstances k Nothing onInst s
+  where onInst :: InstanceResult env (EmptyCtx ::> tp)
+               -> [FunctionCallResult env (EmptyCtx ::> tp)]
+               -> Natural -> Natural -> IO Bool
+        onInst (HasInstance (Empty :> l) fcns calls) calls' n _
+          | null fcns || verbose = do
+            if null fcns then putStrLn $ "Instance " ++ show n ++ ":"
+                         else putStrLn $ "Generated an invalid instance:"
+            print . PP.nest 2 $ ppLiteralWithKindName k l
+            when (not (null fcns)) $ do
+              putStrLn "The constraints that failed were:"
+              forM_ fcns (\c -> print . PP.nest 2 $ ppExpr env tps (Empty :> Const "self") c)
+            when (verbose && not (null calls')) $ do
+              putStrLn "Learned the values of the following function calls:"
+              forM_ calls' (\c -> print . PP.nest 2 $ ppFunctionCallResult env tps (Empty :> Const "self") c)
+            let outps = mapMaybe (\(FunctionCallResult fi args _ st) ->
+                          if null st then Nothing
+                          else Just (ppExpr env tps (Empty :> Const "self")
+                                            (ApplyExpr fi args), st)) calls
+            when (verbose && not (null outps)) $ do
+              putStrLn "The following function calls generated output:"
+              forM_ outps (\(d,st) -> print . PP.nest 2 $ d PP.<> PP.colon PP.<+> PP.text st)
+            putStrLn "Press enter to see the next instance" -- , or q to quit."
+            untilJust $ getChar >>= \case
+                          '\n' -> pure $ Just True
+                          -- 'Q'  -> pure $ Just False
+                          -- 'q'  -> pure $ Just False
+                          _    -> pure $ Nothing
+          | otherwise = pure True
+        onInst _ _ 0 ivis = do
+          putStrLn $ "Found no valid instances! (Generated "
+                     ++ show ivis ++ " invalid instances)"
+          pure False
+        onInst _ _ vis ivis = do
           putStrLn $ "Enumerated all " ++ show vis ++ " valid instances, "
                      ++ "generated " ++ show ivis ++ " invalid instances"
+          pure False
           
 generateKindInstances :: Text -> Natural -> SessionData env (EmptyCtx ::> tp)
                       -> IO ([Assignment Literal (EmptyCtx ::> tp)], Natural)
 generateKindInstances k ilimit =
-  generateInstances k (Just (ilimit, onLimit)) (\_ _ -> pure True) onEnd
-  where onEnd :: Natural -> Natural -> IO ()
-        onEnd 0 ivis = putStrLn $ "Found no valid instances! (Generated "
-                                  ++ show ivis ++ " invalid instances)"
-        onEnd vis ivis = do
+  generateInstances k (Just (ilimit, onLimit)) onInst
+  where onInst :: InstanceResult env (EmptyCtx ::> tp)
+               -> [FunctionCallResult env ctx] -> Natural -> Natural -> IO Bool
+        onInst (HasInstance _ _ _) _ _ _ = pure True
+        onInst _ _ 0 ivis = do
+          putStrLn $ "Found no valid instances! (Generated "
+                     ++ show ivis ++ " invalid instances)"
+          pure False
+        onInst _ _ vis ivis = do
           putStrLn $ "Found " ++ show vis
                      ++ " valid instances, generated " ++ show ivis
                      ++ " invalid instances"
+          pure False
         onLimit :: Natural -> Natural -> IO ()
         onLimit vis ivis = do
           putStrLn $ "Hit instance limit of " ++ show ilimit ++ "!"
@@ -206,18 +252,20 @@ generateKindInstances k ilimit =
 runCheck :: Text -> [Text] -> Natural -> SessionData env ctx
          -> IO (Maybe (Assignment Literal ctx))
 runCheck ck fldnms ilimit s = do 
-  (ls,_) <- generateInstances ck (Just (ilimit, onLimit)) onValid onEnd s
+  (ls,_) <- generateInstances ck (Just (ilimit, onLimit)) onInst s
   pure $ listToMaybe ls
-  where onValid :: Natural -> Assignment Literal ctx -> IO Bool
-        onValid _ ls = do
+  where onInst :: InstanceResult env ctx
+               -> [FunctionCallResult env ctx] -> Natural -> Natural -> IO Bool
+        onInst (ValidInstance ls _) _ _ _ = do
           putStrLn $ "Check '" ++ T.unpack ck ++ "' failed with counterexample:"
           forM_ (zip fldnms (toListFC Some ls)) $ \(fldnm, Some l) ->
             putStrLn $ "  " ++ T.unpack fldnm ++ " = " ++ show (ppLiteral l)
           pure False
-        onEnd :: Natural -> Natural -> IO ()
-        onEnd vis ivis = do
+        onInst (InvalidInstance _ _ _ _) _ _ _ = pure True
+        onInst _ _ vis ivis = do
           putStrLn $ "Check '" ++ T.unpack ck ++ "' holds. "
                      ++ "(Generated " ++ show (vis+ivis) ++ " instances)"
+          pure False
         onLimit :: Natural -> Natural -> IO ()
         onLimit vis ivis = do
           putStrLn $ "Check '" ++ T.unpack ck ++ "' holds for the first "
@@ -225,39 +273,41 @@ runCheck ck fldnms ilimit s = do
 
 generateInstances :: forall env ctx. Text
                   -> Maybe (Natural, Natural -> Natural -> IO ())
-                  -> (Natural -> Assignment Literal ctx -> IO Bool)
-                  -> (Natural -> Natural -> IO ())
+                  -> (InstanceResult env ctx -> [FunctionCallResult env ctx]
+                                             -> Natural -> Natural -> IO Bool)
                   -> SessionData env ctx
                   -> IO ([Assignment Literal ctx], Natural)
-generateInstances nm mb_limit onValid onEnd s = do
+generateInstances nm mb_limit onInst s@SessionData{..} = do
   useANSI <- hSupportsANSI stdout
   if useANSI then putStrNow (msg 0 0)
              else putStrLn "Generating instances..."
-  go useANSI 0 0
-  where go :: Bool -> Natural -> Natural -> IO ([Assignment Literal ctx], Natural)
-        go useANSI vis ivis | Just (ilimit, onLimit) <- mb_limit
-                            , vis + ivis >= ilimit = do
+  go useANSI HS.empty 0 0
+  where go :: Bool -> HS.Set (FunctionCallResult env ctx) -> Natural -> Natural
+           -> IO ([Assignment Literal ctx], Natural)
+        go useANSI _ vis ivis | Just (ilimit, onLimit) <- mb_limit
+                              , vis + ivis >= ilimit = do
           when useANSI $ clearLine >> setCursorColumn 0
           onLimit vis ivis
           pure ([], vis+ivis)
-        go useANSI vis ivis | otherwise =
+        go useANSI call_set vis ivis | otherwise =
           getNextInstance s >>= \case
-            ValidInstance ls -> do
+            HasInstance ls fcns calls -> do
+              let (toAdd, vis', ivis') = case null fcns of
+                    True  -> ([ls], vis+1, ivis) -- ls is a valid instance
+                    False -> ([],   vis, ivis+1) -- ls is an invalid instance
+              -- only pass calls we haven't seen before to onInst
+              let calls' = filter (`HS.notMember` call_set) calls
               when useANSI $ clearLine >> setCursorColumn 0
-              cont <- onValid (vis+1) ls
+              cont <- onInst (HasInstance ls fcns calls) calls' vis' ivis'
               if cont then do
-                when useANSI $ putStrNow (msg (vis+1) ivis)
-                (lss, tot) <- go useANSI (vis+1) ivis
-                return (ls:lss, tot)
-              else return ([ls], vis+ivis) 
-            InvalidInstance _ -> do
+                when useANSI $ putStrNow (msg vis' ivis')
+                let call_set' = foldr HS.insert call_set calls'
+                (lss, tot) <- go useANSI call_set' vis' ivis'
+                return (toAdd ++ lss, tot)
+              else return (toAdd, vis'+ivis')
+            ir -> do
               when useANSI $ clearLine >> setCursorColumn 0
-              when useANSI $ putStrNow (msg vis (ivis+1))
-              (lss, tot) <- go useANSI vis (ivis+1)
-              return (lss, tot)
-            _ -> do
-              when useANSI $ clearLine >> setCursorColumn 0
-              onEnd vis ivis
+              _ <- onInst ir [] vis ivis
               return ([], vis+ivis)
         msg :: Natural -> Natural -> String
         msg 0 0      = "Generating instances of '" ++ T.unpack nm ++ "'..."
@@ -277,7 +327,7 @@ canonicalFn fntp = FunctionImpl fntp (run fntp)
 
 run :: FunctionTypeRepr (FunType nm args ret)
     -> Assignment Literal args
-    -> IO (Literal ret)
+    -> IO (Literal ret, String)
 run FunctionTypeRepr{..} args = do
   let json_args = A.toJSONList (toListFC literalToJSON args)
       std_in = BS.unpack (A.encode json_args)
@@ -287,7 +337,7 @@ run FunctionTypeRepr{..} args = do
     ExitSuccess -> case A.eitherDecode (BS.pack std_out) of
       Right v -> case literalFromJSON v of
         A.Success (Some l') -> case testEquality functionRetType (literalType l') of
-          Just Refl -> return l'
+          Just Refl -> return (l', std_err)
           Nothing -> do putStrLn $ "expected " ++ show functionRetType ++ ", got " ++ show l'
                         exitFailure
         A.Error e -> do putStrLn $ "error: " ++ e

@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -23,9 +24,11 @@ This module provides functions to enumerate instances of a kind via a
 what4-based SMT solver backend.
 -}
 module Lobot.Instances
-  ( SessionData
+  ( SessionData(..)
   , runSession
   , InstanceResult(..)
+  , pattern ValidInstance
+  , pattern InvalidInstance
   , getNextInstance
   , collectAndFilterInstances
   ) where
@@ -433,6 +436,7 @@ data SessionData env ctx where
   SessionData :: (AnyAbstractTypes ctx ~ 'False, WS.SMTLib2Tweaks solver)
                  => { sym :: WB.ExprBuilder t st fs
                     , session :: WS.Session t solver
+                    , env :: Assignment FunctionTypeRepr env
                     , fns :: Assignment (FunctionImpl IO) env
                     , tps :: Assignment TypeRepr ctx
                     , constraints :: [Expr env ctx BoolType]
@@ -440,13 +444,33 @@ data SessionData env ctx where
                     , symLits :: Assignment (SymLiteral t) ctx
                     } -> SessionData env ctx
 
-data InstanceResult ctx = ValidInstance (Assignment Literal ctx)
-                        | InvalidInstance (Assignment Literal ctx)
-                        | NoInstance
-                        | Unknown
+-- | The result of one round of instance generation. In the 'HasInstance' case,
+-- we also include the list of constraints, if any, which are false after
+-- evaluating all abstract functions, as well as the results of evaluating
+-- each abstract function call.
+data InstanceResult env ctx
+  = HasInstance { inst :: Assignment Literal ctx
+                , instFailedConstraints :: [Expr env ctx BoolType]
+                , instFunctionCalls :: [FunctionCallResult env ctx] }
+  | NoInstance
+  | Unknown
   deriving Show
 
--- TODO: Return the function call results generated so we can reuse them
+-- | A valid instance is one with no false constraints after evaluating all
+-- abstract functions.
+pattern ValidInstance :: Assignment Literal ctx
+                      -> [FunctionCallResult env ctx]
+                      -> InstanceResult env ctx
+pattern ValidInstance ls calls = HasInstance ls [] calls
+
+-- | An invalid instance is one with at least one false constraint after
+-- evaluating all abstract functions.
+pattern InvalidInstance :: Assignment Literal ctx
+                        -> Expr env ctx BoolType -> [Expr env ctx BoolType]
+                        -> [FunctionCallResult env ctx]
+                        -> InstanceResult env ctx
+pattern InvalidInstance ls fcn fcns calls = HasInstance ls (fcn:fcns) calls
+
 -- | If is an instance in the current session, retrieve it, and then negate
 -- that instance so we get a different result next time. Furthermore, we also
 -- collect all concrete function calls evaluated during the course of this
@@ -454,28 +478,26 @@ data InstanceResult ctx = ValidInstance (Assignment Literal ctx)
 -- effect of "teaching" the solver about the pointwise values of the functions.
 -- We also distinguish between valid and invalid instances based on whether
 -- the instance satisfies the given function environment.
-getNextInstance :: SessionData env ctx -> IO (InstanceResult ctx)
+getNextInstance :: forall env ctx. SessionData env ctx -> IO (InstanceResult env ctx)
 getNextInstance SessionData{..} =
   WS.runCheckSat session $ \result ->
   case result of
     WS.Sat (ge,_) -> do
       ls <- groundEvalLiterals ge tps symLits
       let negateLiteral :: AnyAbstractTypes ctx ~ 'False
-                        => Assignment TypeRepr ctx
-                        -> Index ctx tp -> Literal tp -> IO [Expr env ctx BoolType]
-          negateLiteral tps i l = do
+                        => Index ctx tp -> Literal tp -> IO [Expr env ctx BoolType]
+          negateLiteral i l = do
             Refl <- return $ noAbstractTypesIx tps i
             return $ [NotExpr (EqExpr (VarExpr i) (LiteralExpr l))]
-      negateExprs <- traverseAndCollect (negateLiteral tps) ls
+      negateExprs <- traverseAndCollect negateLiteral ls
       let negateExpr = foldr OrExpr (LiteralExpr (BoolLit False)) negateExprs
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits negateExpr
       WS.assume (WS.sessionWriter session) symConstraint
-      (isInst, calls) <- instanceOf fns ls constraints
+      (fcns, calls) <- getFailingConstraints fns ls constraints
       traverse_ (assumeCall sym session symFns symLits) calls
-      if isInst then return $ ValidInstance ls
-                else return $ InvalidInstance ls
-    WS.Unsat _ -> do return $ NoInstance
-    WS.Unknown -> do return $ Unknown
+      return (HasInstance ls fcns calls)
+    WS.Unsat _ -> do return NoInstance
+    WS.Unknown -> do return Unknown
 
 runSession :: AnyAbstractTypes ctx ~ 'False
            => FilePath
@@ -501,7 +523,7 @@ runSession z3_path env fns tps constraints action = do
     forM_ constraints $ \e -> do
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits e
       WS.assume (WS.sessionWriter session) symConstraint
-    action (SessionData sym session fns tps constraints symFns symLits)
+    action (SessionData sym session env fns tps constraints symFns symLits)
 
 -- | Collect instances of a context of types satisfying a set of constraints,
 -- only returning those instances that satisfy the given function environment.
@@ -519,10 +541,10 @@ collectAndFilterInstances 0 _ = return ([], 0)
 collectAndFilterInstances limit s = do
   r <- getNextInstance s
   case r of
-    ValidInstance ls -> do
+    ValidInstance ls _ -> do
       (lss, n) <- collectAndFilterInstances (limit-1) s
       return (ls:lss, n+1)
-    InvalidInstance ls -> do
+    InvalidInstance _ _ _ _ -> do
       (lss, n) <- collectAndFilterInstances (limit-1) s
       return (lss, n+1)
     _ -> return ([], 0)
@@ -536,7 +558,7 @@ assumeCall :: WS.SMTLib2Tweaks solver
            -> Assignment (SymLiteral t) ctx
            -> FunctionCallResult env ctx
            -> IO ()
-assumeCall sym session symFns symLits (FunctionCallResult fi args ret)
+assumeCall sym session symFns symLits (FunctionCallResult fi args ret _)
   | SymFunction{..} <- symFns ! fi = do
       symArgs  <- traverseFC (symEvalExpr sym symFns symLits) args
       symRet   <- symLiteral sym ret

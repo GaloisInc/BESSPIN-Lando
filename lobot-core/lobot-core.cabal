@@ -81,8 +81,10 @@ executable lobot
                        ansi-terminal,
                        bytestring,
                        directory,
+                       hashmap,
                        optparse-applicative,
                        parameterized-utils,
+                       pretty,
                        process,
                        text
 

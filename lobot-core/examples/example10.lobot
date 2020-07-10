@@ -9,7 +9,7 @@ abstract add1 : int -> int
 ex : kind of struct
   with x : small_int
        y : int
-  where y = add1(x)
+  where add1(x) = y + 1
 
 ex2 : kind of struct
   with x : small_int

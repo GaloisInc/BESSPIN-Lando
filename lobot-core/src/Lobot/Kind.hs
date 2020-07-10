@@ -9,6 +9,7 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -35,6 +36,7 @@ module Lobot.Kind
   , KindExpr
   , pattern SelfExpr
   , instanceOf
+  , getFailingConstraints
   , addConstraints
   , derivedKind
   , liftConstraints
@@ -48,6 +50,7 @@ module Lobot.Kind
 import Lobot.Expr
 import Lobot.Types
 
+import Data.Maybe (catMaybes)
 import Data.List.NonEmpty hiding ((!!))
 import Data.Text (Text)
 import Data.Parameterized.Classes
@@ -121,6 +124,21 @@ instanceOf' env ls constraints = and <$> traverse constraintHolds constraints
   where constraintHolds e = do
           EvalResult (BoolLit b) _ <- evalExpr env ls e
           return b
+
+-- | Like 'instanceOf', but returns the list of all constraints that failed,
+-- instead of just a 'Bool'.
+getFailingConstraints :: forall env ctx m. MonadFail m
+                      => Assignment (FunctionImpl m) env
+                      -> Assignment Literal ctx
+                      -> [Expr env ctx BoolType]
+                      -> m ([Expr env ctx BoolType], [FunctionCallResult env ctx])
+getFailingConstraints env ls constraints =
+  runEvalM (catMaybes <$> traverse failingConstraint constraints)
+  where failingConstraint :: Expr env ctx BoolType
+                          -> EvalM env ctx m (Maybe (Expr env ctx BoolType))
+        failingConstraint e = do
+          EvalResult (BoolLit b) _ <- evalExpr env ls e
+          pure (if b then Nothing else Just e)
 
 -- | Substitute a value for 'self' in a kind expression.
 -- giveSelf :: Expr env ctx a -> KindExpr env a b -> Expr env ctx b
