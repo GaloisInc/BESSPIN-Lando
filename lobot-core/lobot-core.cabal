@@ -78,6 +78,7 @@ executable lobot
   build-depends:       lobot-core,
                        base,
                        aeson,
+                       ansi-terminal,
                        bytestring,
                        directory,
                        optparse-applicative,
