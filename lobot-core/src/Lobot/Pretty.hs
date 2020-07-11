@@ -160,6 +160,12 @@ ppExpr' _ env ctx nms (EqExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.equals PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (LteExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "<=" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (LtExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "<" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (GteExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text ">=" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (GtExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text ">" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (PlusExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "+" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (MinusExpr e1 e2) =

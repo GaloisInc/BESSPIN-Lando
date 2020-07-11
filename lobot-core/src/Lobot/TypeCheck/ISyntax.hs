@@ -105,6 +105,9 @@ data Expr (ctx :: Ctx T.Type) where
   ApplyExpr      :: LText -> [LExpr ctx] -> Expr ctx
   EqExpr         :: LExpr ctx -> LExpr ctx -> Expr ctx
   LteExpr        :: LExpr ctx -> LExpr ctx -> Expr ctx
+  LtExpr         :: LExpr ctx -> LExpr ctx -> Expr ctx
+  GteExpr        :: LExpr ctx -> LExpr ctx -> Expr ctx
+  GtExpr         :: LExpr ctx -> LExpr ctx -> Expr ctx
   PlusExpr       :: LExpr ctx -> LExpr ctx -> Expr ctx
   MinusExpr      :: LExpr ctx -> LExpr ctx -> Expr ctx
   TimesExpr      :: LExpr ctx -> LExpr ctx -> Expr ctx
@@ -124,6 +127,9 @@ unIExpr (FieldExpr x f) = S.FieldExpr (unILExpr x) f
 unIExpr (ApplyExpr fn args) = S.ApplyExpr fn (unILExpr <$> args)
 unIExpr (EqExpr x y) = S.EqExpr (unILExpr x) (unILExpr y)
 unIExpr (LteExpr x y) = S.LteExpr (unILExpr x) (unILExpr y)
+unIExpr (LtExpr x y) = S.LtExpr (unILExpr x) (unILExpr y)
+unIExpr (GteExpr x y) = S.GteExpr (unILExpr x) (unILExpr y)
+unIExpr (GtExpr x y) = S.GtExpr (unILExpr x) (unILExpr y)
 unIExpr (PlusExpr x y) = S.PlusExpr (unILExpr x) (unILExpr y)
 unIExpr (MinusExpr x y) = S.MinusExpr (unILExpr x) (unILExpr y)
 unIExpr (TimesExpr x y) = S.TimesExpr (unILExpr x) (unILExpr y)

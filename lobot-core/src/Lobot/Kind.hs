@@ -150,6 +150,9 @@ giveSelf s e = case e of
   ApplyExpr fi es -> ApplyExpr fi (fmapFC (giveSelf s) es)
   EqExpr e1 e2 -> EqExpr (giveSelf s e1) (giveSelf s e2)
   LteExpr e1 e2 -> LteExpr (giveSelf s e1) (giveSelf s e2)
+  LtExpr e1 e2 -> LtExpr (giveSelf s e1) (giveSelf s e2)
+  GteExpr e1 e2 -> GteExpr (giveSelf s e1) (giveSelf s e2)
+  GtExpr e1 e2 -> GtExpr (giveSelf s e1) (giveSelf s e2)
   PlusExpr e1 e2 -> PlusExpr (giveSelf s e1) (giveSelf s e2)
   MinusExpr e1 e2 -> MinusExpr (giveSelf s e1) (giveSelf s e2)
   TimesExpr e1 e2 -> TimesExpr (giveSelf s e1) (giveSelf s e2)
@@ -158,7 +161,24 @@ giveSelf s e = case e of
   OrExpr e1 e2 -> OrExpr (giveSelf s e1) (giveSelf s e2)
   ImpliesExpr e1 e2 -> ImpliesExpr (giveSelf s e1) (giveSelf s e2)
   NotExpr e' -> NotExpr (giveSelf s e')
-{-# COMPLETE LiteralExpr, SelfExpr, FieldExpr, ApplyExpr, EqExpr, LteExpr, PlusExpr, MinusExpr, TimesExpr, MemberExpr, AndExpr, OrExpr, ImpliesExpr, NotExpr #-}
+{-# COMPLETE
+    LiteralExpr
+  , SelfExpr
+  , FieldExpr
+  , ApplyExpr
+  , EqExpr
+  , LteExpr
+  , LtExpr
+  , GteExpr
+  , GtExpr
+  , PlusExpr
+  , MinusExpr
+  , TimesExpr
+  , MemberExpr
+  , AndExpr
+  , OrExpr
+  , ImpliesExpr
+  , NotExpr #-}
 
 singletonIndexRefl :: forall tp tp' . Index (EmptyCtx ::> tp') tp -> tp :~: tp'
 singletonIndexRefl i = case viewIndex knownSize i of

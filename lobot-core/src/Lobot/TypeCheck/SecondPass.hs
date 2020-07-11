@@ -210,6 +210,18 @@ guessExpr env ctx (L _ (I.LteExpr x y)) = do
   x' <- checkExpr env ctx T.IntRepr x
   y' <- checkExpr env ctx T.IntRepr y
   pure (False, Pair T.BoolRepr (E.LteExpr x' y'))
+guessExpr env ctx (L _ (I.LtExpr x y)) = do
+  x' <- checkExpr env ctx T.IntRepr x
+  y' <- checkExpr env ctx T.IntRepr y
+  pure (False, Pair T.BoolRepr (E.LtExpr x' y'))
+guessExpr env ctx (L _ (I.GteExpr x y)) = do
+  x' <- checkExpr env ctx T.IntRepr x
+  y' <- checkExpr env ctx T.IntRepr y
+  pure (False, Pair T.BoolRepr (E.GteExpr x' y'))
+guessExpr env ctx (L _ (I.GtExpr x y)) = do
+  x' <- checkExpr env ctx T.IntRepr x
+  y' <- checkExpr env ctx T.IntRepr y
+  pure (False, Pair T.BoolRepr (E.GtExpr x' y'))
 guessExpr env ctx (L _ (I.PlusExpr x y)) = do
   x' <- checkExpr env ctx T.IntRepr x
   y' <- checkExpr env ctx T.IntRepr y

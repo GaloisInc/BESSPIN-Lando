@@ -75,6 +75,9 @@ data Expr = LiteralExpr LLiteral
           | ApplyExpr LText [LExpr]
           | EqExpr LExpr LExpr
           | LteExpr LExpr LExpr
+          | LtExpr LExpr LExpr
+          | GteExpr LExpr LExpr
+          | GtExpr LExpr LExpr
           | PlusExpr LExpr LExpr
           | MinusExpr LExpr LExpr
           | TimesExpr LExpr LExpr

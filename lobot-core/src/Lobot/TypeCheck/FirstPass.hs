@@ -270,6 +270,18 @@ checkExpr enms ctx (L p (S.LteExpr x y)) = do
   x' <- checkExpr enms ctx x
   y' <- checkExpr enms ctx y
   pure $ L p (I.LteExpr x' y')
+checkExpr enms ctx (L p (S.LtExpr x y)) = do
+  x' <- checkExpr enms ctx x
+  y' <- checkExpr enms ctx y
+  pure $ L p (I.LtExpr x' y')
+checkExpr enms ctx (L p (S.GteExpr x y)) = do
+  x' <- checkExpr enms ctx x
+  y' <- checkExpr enms ctx y
+  pure $ L p (I.GteExpr x' y')
+checkExpr enms ctx (L p (S.GtExpr x y)) = do
+  x' <- checkExpr enms ctx x
+  y' <- checkExpr enms ctx y
+  pure $ L p (I.GtExpr x' y')
 checkExpr enms ctx (L p (S.PlusExpr x y)) = do
   x' <- checkExpr enms ctx x
   y' <- checkExpr enms ctx y

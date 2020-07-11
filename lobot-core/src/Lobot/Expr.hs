@@ -73,6 +73,12 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
               -> Expr env ctx BoolType
   -- | Less-than-or-equal for two integer expressions.
   LteExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx BoolType
+  -- | Less-than for two integer expressions.
+  LtExpr      :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx BoolType
+  -- | Less-than-or-equal for two integer expressions.
+  GteExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx BoolType
+  -- | Less-than-or-equal for two integer expressions.
+  GtExpr      :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx BoolType
   -- | Add two integer expressions.
   PlusExpr    :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
   -- | Subtract two integer expressions.
@@ -204,6 +210,18 @@ evalExpr fns ls e = case e of
     EvalResult (IntLit x1) _ <- evalExpr fns ls e1
     EvalResult (IntLit x2) _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (x1 <= x2))
+  LtExpr e1 e2 -> do
+    EvalResult (IntLit x1) _ <- evalExpr fns ls e1
+    EvalResult (IntLit x2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (x1 < x2))
+  GteExpr e1 e2 -> do
+    EvalResult (IntLit x1) _ <- evalExpr fns ls e1
+    EvalResult (IntLit x2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (x1 >= x2))
+  GtExpr e1 e2 -> do
+    EvalResult (IntLit x1) _ <- evalExpr fns ls e1
+    EvalResult (IntLit x2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (x1 > x2))
   PlusExpr e1 e2 -> do
     EvalResult (IntLit x1) _ <- evalExpr fns ls e1
     EvalResult (IntLit x2) _ <- evalExpr fns ls e2

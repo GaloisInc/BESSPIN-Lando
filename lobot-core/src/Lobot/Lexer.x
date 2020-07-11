@@ -33,7 +33,7 @@ module Lobot.Lexer
   , lexer
   ) where
 
-import Prelude hiding (lex)
+import Prelude hiding (lex, LT, GT)
 import Data.Maybe (fromJust)
 import Data.Text (Text)
 import Debug.Trace
@@ -89,6 +89,9 @@ tokens :-
     "."           { tok DOT }
     "="           { tok EQUALS }
     "<="          { tok LTE }
+    "<"           { tok LT }
+    ">="          { tok GTE }
+    ">"           { tok GT }
     "+"           { tok PLUS }
     "-"           { tok MINUS }
     "*"           { tok TIMES }
@@ -144,6 +147,9 @@ data TokenType = BOOL
                | DOT
                | EQUALS
                | LTE
+               | LT
+               | GTE
+               | GT
                | PLUS
                | MINUS
                | TIMES

@@ -16,6 +16,7 @@ module Lobot.Parser
 
 import Data.Text (Text, pack)
 import Data.List (concatMap, intercalate)
+import Prelude hiding (LT, GT)
 
 import Lobot.Syntax
 import Lobot.Lexer
@@ -55,6 +56,9 @@ import Lobot.Utils
   '.'         { L _ (Token DOT _) }
   '='         { L _ (Token EQUALS _) }
   '<='        { L _ (Token LTE _) }
+  '<'         { L _ (Token LT _) }
+  '>='        { L _ (Token GTE _) }
+  '>'         { L _ (Token GT _) }
   '+'         { L _ (Token PLUS _) }
   '-'         { L _ (Token MINUS _) }
   '*'         { L _ (Token TIMES _) }
@@ -80,7 +84,7 @@ import Lobot.Utils
 
 %nonassoc ':'
 %left     '=>'
-%nonassoc '=' '<='
+%nonassoc '=' '<=' '<' '>=' '>'
 %left     '+' '-'
 %left     '*'
 %nonassoc 'not'
@@ -155,6 +159,9 @@ expr : lit                         { loc $1 $ LiteralExpr $1 }
      | expr '.' ident              { loc $1 $ FieldExpr $1 (locText $3) }
      | expr '=' expr               { loc $1 $ EqExpr $1 $3 }
      | expr '<=' expr              { loc $1 $ LteExpr $1 $3 }
+     | expr '<' expr               { loc $1 $ LtExpr $1 $3 }
+     | expr '>=' expr              { loc $1 $ GteExpr $1 $3 }
+     | expr '>' expr               { loc $1 $ GtExpr $1 $3 }
      | expr '+' expr               { loc $1 $ PlusExpr $1 $3 }
      | expr '-' expr               { loc $1 $ MinusExpr $1 $3 }
      | expr '*' expr               { loc $1 $ TimesExpr $1 $3 }
