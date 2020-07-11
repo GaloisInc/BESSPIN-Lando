@@ -21,6 +21,15 @@ def main (argv = None):
     path = simulator["value"]
     test_name = test["value"]
 
+    if test_name == "INVALID":
+        json_output = {
+            "variant": "bool",
+            "value": True
+        }
+
+        print(json.dumps(json_output))
+        sys.exit()
+
     test_env = os.environ.copy()
     test_env["TEST"] = test_name
     os.chdir(path)

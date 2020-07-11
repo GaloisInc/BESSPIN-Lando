@@ -35,7 +35,7 @@ def main (argv = None):
         "value": len(test_basenames)
     }
 
-    sys.stderr.write(str(len(test_basenames)))
+    # sys.stderr.write(str(len(test_basenames)))
     print(json.dumps(json_output))
 
 def get_tests(reg_width, exts):
@@ -46,7 +46,31 @@ def get_tests(reg_width, exts):
         rv = 64
         families = ["rv64ui-p", "rv64mi-p"]
 
+    exts_str = mk_exts_str(exts)
+    def add_family (extension):
+        if (exts_str.find (extension) != -1):
+            if rv == 32:
+                families.append ("rv32u" + str.lower(extension) + "-p")
+                # if s:
+                #     families.append ("rv32u" + extension + "-v")
+            else:
+                families.append ("rv64u" + str.lower(extension) + "-p")
+                # if s:
+                #     families.append ("rv64u" + extension + "-v")
+
+    add_family ("M")
+    add_family ("A")
+    add_family ("F")
+    add_family ("D")
+    add_family ("C")
+
     return families
+
+def mk_exts_str(exts):
+    str = "I"
+    for i in exts["values"]:
+        str += exts["constructors"][i]
+    return str
 
 if __name__ == '__main__':
     sys.exit (main (sys.argv))

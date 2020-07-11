@@ -33,12 +33,17 @@ def main (argv = None):
     for p in test_fullnames:
         test_basenames += [os.path.basename(p)]
 
+    if id_val-1 < 0 or id_val-1 >= len(test_basenames):
+        out_val = "INVALID"
+    else:
+        out_val = test_basenames[id_val-1]
+
     json_output = {
         "variant": "riscv_program",
-        "value": test_basenames[id_val]
+        "value": out_val
     }
 
-    sys.stderr.write(test_basenames[id_val])
+    # sys.stderr.write(test_basenames[id_val-1])
     print(json.dumps(json_output))
 
 def get_tests(reg_width, exts):
@@ -49,7 +54,31 @@ def get_tests(reg_width, exts):
         rv = 64
         families = ["rv64ui-p", "rv64mi-p"]
 
+    exts_str = mk_exts_str(exts)
+    def add_family (extension):
+        if (exts_str.find (extension) != -1):
+            if rv == 32:
+                families.append ("rv32u" + str.lower(extension) + "-p")
+                # if s:
+                #     families.append ("rv32u" + extension + "-v")
+            else:
+                families.append ("rv64u" + str.lower(extension) + "-p")
+                # if s:
+                #     families.append ("rv64u" + extension + "-v")
+
+    add_family ("M")
+    add_family ("A")
+    add_family ("F")
+    add_family ("D")
+    add_family ("C")
+
     return families
+
+def mk_exts_str(exts):
+    str = "I"
+    for i in exts["values"]:
+        str += exts["constructors"][i]
+    return str
 
 if __name__ == '__main__':
     sys.exit (main (sys.argv))

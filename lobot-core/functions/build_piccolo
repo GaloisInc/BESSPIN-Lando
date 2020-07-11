@@ -64,14 +64,15 @@ def main (argv = None):
         sys.exit("Fail")
 
     os.chdir(path)
-    with open(os.devnull, 'wb') as devnull:
-        make_result = subprocess.run(["make", "compile", "simulator"],
-                                     stdout = devnull,
-                                     stderr = devnull
-        )
+    if not os.path.exists("./exe_HW_sim"):
+        with open(os.devnull, 'wb') as devnull:
+            make_result = subprocess.run(["make", "compile", "simulator"],
+                                         stdout = devnull,
+                                         stderr = devnull
+            )
 
-    if make_result.returncode != 0:
-        sys.exit("make compile simulator failed for " + path)
+        if make_result.returncode != 0:
+            sys.exit("make compile simulator failed for " + path)
 
     json_output = {
         "variant": "simulator",
