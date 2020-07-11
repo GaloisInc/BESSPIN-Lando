@@ -55,20 +55,20 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable lobotIG
-  hs-source-dirs:      exe
-  main-is:             LobotIG.hs
-  default-language:    Haskell2010
-  ghc-options:         -Wall
-  build-depends:       lobot-core,
-                       base,
-                       aeson,
-                       bytestring,
-                       directory,
-                       optparse-applicative,
-                       parameterized-utils,
-                       process,
-                       text
+-- executable lobotIG
+--   hs-source-dirs:      exe
+--   main-is:             LobotIG.hs
+--   default-language:    Haskell2010
+--   ghc-options:         -Wall
+--   build-depends:       lobot-core,
+--                        base,
+--                        aeson,
+--                        bytestring,
+--                        directory,
+--                        optparse-applicative,
+--                        parameterized-utils,
+--                        process,
+--                        text
 
 executable lobot
   hs-source-dirs:      exe
