@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Lobot User's Guide</title>
+  <title>README</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -99,70 +99,31 @@
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">Lobot User's Guide</h1>
+<h1 class="title">README</h1>
 </header>
 <nav id="TOC" role="doc-toc">
 <ul>
-<li><a href="#introduction">Introduction</a>
-<ul>
-<li><a href="#introductory-example">Introductory example</a></li>
-</ul></li>
+<li><a href="#introduction">Introduction</a></li>
 <li><a href="#building">Building</a></li>
 <li><a href="#running">Running</a></li>
 </ul>
 </nav>
 <h1 id="introduction">Introduction</h1>
-<p>Lobot is a language for defining constrained data structures – data structures with arbitrary logical constraints attached to them. The Lobot instance generator can enumerate all instances of a data structure and check that they satisfy arbitrary properties.</p>
-<p>Lobot will be used as an IR for features models in Lando. Most of the core functionality of Lando will be implemented at the level of Lobot.</p>
-<p>This release is a development snapshot. Please contact Ben Selfridge (benselfridge@galois.com) and Matt Yacavone (myac@galois.com) if you have any questions about it.</p>
-<h2 id="introductory-example">Introductory example</h2>
-<p>This example is taken from examples/example1.lobot.</p>
-<p>Suppose I wanted to define a datatype that represents all pairs of positive integers that sum to 10. I could do that in lobot by first defining the concept of a positive integer:</p>
-<pre><code>-- Positive integers.
-posint : kind of int where 1 &lt;= self</code></pre>
-<p>Then, I can create pairs of positive integers by creating a <code>struct</code>:</p>
-<pre><code>-- Unique pairs of positive integers
-unique_posint_pair : kind of struct
-  with x : posint
-       y : posint
-  where x &lt;= y</code></pre>
-<p>Notice the <code>x &lt;= y</code> constraint, which helps avoid getting the same pair, just in a different order. Now, we can define one more datatype that further constrains <code>unique_posint_pair</code>:</p>
-<pre><code>-- Pairs that sum to 10
-posint_sum_10 : kind of unique_posint_pair
-  where x + y = 10</code></pre>
-<p>If I type the above definitions into a file, <code>posint_sum_10.lobot</code>, and then fire up the Lobot instance generator via</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="ex">lobotIG</span> posint_sum_10.lobot</span></code></pre></div>
-<p>I get the following output:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="ex">Last</span> kind in posint_sum_10.lobot:</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="ex">----------------</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="ex">posint_sum_10</span> : kind of struct</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>  <span class="ex">with</span> x : int, </span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>       <span class="ex">y</span> : int</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>  <span class="ex">where</span> (x + y) = <span class="ex">10</span>, </span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>        <span class="ex">x</span> <span class="op">&lt;</span>= y, </span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>        <span class="ex">1</span> <span class="op">&lt;</span>= x, </span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>        <span class="ex">1</span> <span class="op">&lt;</span>= y</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a><span class="ex">----------------</span></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a><span class="ex">Generating</span> instances...</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a><span class="ex">5</span> valid instances, enumerated 5</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a><span class="ex">Instance</span> 1/5:</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a><span class="ex">posint_sum_10</span> with {x = 5, y = 5}</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a><span class="ex">Press</span> enter to see the next instance.</span></code></pre></div>
-<p>Every time I type enter, I see a new instance of <code>posint_sum_10</code>. There are five in total.</p>
+<p>This document offers the basics of building and running Lobot. For a more in-depth introduction to the language and its use, see docs/UserGuide.md.</p>
 <h1 id="building">Building</h1>
 <p>This is under active development, and much of this library and its associated tooling will change rapidly.</p>
 <p>First, clone this repository (which you may have done already). Then, initialize its submodules via</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="fu">git</span> submodule update --init</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="fu">git</span> submodule update --init</span></code></pre></div>
 <p>In order to build Lobot, you must obtain <code>ghc</code> and <code>cabal</code>, the compiler and build tool for Haskell. GHC must be at least version 8.8, which is the latest stable release.</p>
 <p>Once those tools are installed, the following should "just work":</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="ex">cabal</span> v2-build</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="ex">cabal</span> v2-build</span></code></pre></div>
 <p>This will build the <code>lobotIG</code> tool in some hidden subdirectory, which you can <code>find</code> via:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="fu">find</span> <span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span> -type f -name lobotIG</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="fu">find</span> <span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span> -type f -name lobotIG</span></code></pre></div>
 <p>Now you have the path to the executable, and can <code>alias</code> to it in order to run it easily.</p>
 <h1 id="running">Running</h1>
 <p>The Lobot user's guide doesn't exist yet, as various aspects of the language have not yet been solidified. See the <code>examples</code> directory for various examples (some of which will work out of the box, others of which will require a bit of system configuration before running).</p>
 <p>The basic way you "run" Lobot is by invoking <code>lobotIG</code>:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="ex">lobotIG</span> examples/example2.lobot</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="ex">lobotIG</span> examples/example2.lobot</span></code></pre></div>
 <p>Currently, the tool simply loads in a Lobot file and enumerates all instances of the final declaration in the file. It only enumerates 100 instances; this limit is somewhat arbitrary, but is not configurable at the command line. It is important to have some kind of limit, since data types can have infinitely many instances.</p>
 </body>
 </html>
