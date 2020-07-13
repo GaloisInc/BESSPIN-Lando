@@ -1,4 +1,4 @@
-# Lobot (v0.0.1)
+# Introduction
 
 Lobot is a language for defining constrained data structures -- data structures
 with arbitrary logical constraints attached to them. The Lobot instance
@@ -75,7 +75,7 @@ Press enter to see the next instance.
 Every time I type enter, I see a new instance of `posint_sum_10`. There are five
 in total.
 
-## Building
+# Building
 
 This is under active development, and much of this library and its associated
 tooling will change rapidly.
@@ -91,7 +91,7 @@ In order to build Lobot, you must obtain `ghc` and `cabal`, the compiler and
 build tool for Haskell. GHC must be at least version 8.8, which is the latest
 stable release.
 
-Once those tools are installed, the following should "just work":
+Once those tools are installed, the following should \"just work\":
 
 ```bash
 cabal v2-build
@@ -107,14 +107,14 @@ find $(pwd) -type f -name lobotIG
 Now you have the path to the executable, and can `alias` to it in order to run
 it easily.
 
-## Running
+# Running
 
-The Lobot user's guide doesn't exist yet, as various aspects of the language
+The Lobot user\'s guide doesn\'t exist yet, as various aspects of the language
 have not yet been solidified. See the `examples` directory for various examples
 (some of which will work out of the box, others of which will require a bit of
 system configuration before running).
 
-The basic way you "run" Lobot is by invoking `lobotIG`:
+The basic way you \"run\" Lobot is by invoking `lobotIG`:
 
 ```bash
 lobotIG examples/example2.lobot
