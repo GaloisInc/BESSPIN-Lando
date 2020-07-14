@@ -54,14 +54,20 @@ tokens :-
   -- the lexer's state at the beginning of a line - eat up all whitespace then
   --  handle any indentation changes
   <0> {
-    "--".*@nl?    ; -- ignore the newline after a comment
+    "--"          { begin cmt0 } -- handle comments separately to avoid calling do_bol
     $white_no_nl+ ; -- ignore all whitespace
     \t            { do_tab } -- error on seeing a tab
     ()            { do_bol }
   }
 
+  -- the lexer's state during a comment at the beginning of a line
+  <cmt0> {
+    .             ;
+    @nl           { begin 0 }
+  }
+
   <main> {
-    "--".*        ; -- don't ignore the newline after a comment
+    "--".*        ; -- ignore comments
     $white_no_nl+ ; -- ignore all whitespace
     \t            { do_tab } -- error on seeing a tab
 
