@@ -84,9 +84,8 @@ ppType tp = case tp of
   IntType -> PP.text "int"
   EnumType syms ->
     PP.braces (commas (fmap ppText syms))
-  SetType syms ->
-    PP.text "subset" PP.<+>
-    PP.braces (commas (fmap ppText syms))
+  SetType typ ->
+    PP.text "subset" PP.<+> ppLType typ
   StructType flds -> PP.text "struct" PP.<+> withClause
     where withClause = ppWClause "with" (fmap ppField flds)
   KindNames ks -> PP.hsep (fmap ppLText ks)

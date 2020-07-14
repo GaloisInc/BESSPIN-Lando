@@ -258,7 +258,7 @@ guessExpr env ctx (L _ (I.MemberExpr x y)) = do
              } `catchError` (const $ throwError uni_err)
         _ -> throwError uni_err
     (T.EnumRepr _, _) -> throwError (TypeMismatchError (unILExpr y)
-                                                       (TypeString "an set")
+                                                       (TypeString "a set")
                                                        (Just $ SomeType ytp))
     (_,_) -> throwError (TypeMismatchError (unILExpr x)
                                            (TypeString "an enum")

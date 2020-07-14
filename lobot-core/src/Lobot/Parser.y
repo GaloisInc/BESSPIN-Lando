@@ -142,7 +142,7 @@ argTypes : type                     { [$1] }
 type    : 'bool'                                       { loc $1 $ BoolType }
         | 'int'                                        { loc $1 $ IntType }
         | '{' enumIdents '}'                           { loc $1 $ EnumType (fmap unLoc $2) }
-        | 'subset' '{' enumIdents '}'                  { loc $1 $ SetType (fmap unLoc $3) }
+        | 'subset' type                                { loc $1 $ SetType $2 }
         | 'struct' 'with' optLAYSEP fields anyLAYEND   { loc $1 $ StructType $4 }
         | 'struct' 'with' optLAYSEP '{' '}'            { loc $1 $ StructType [] }
         | 'struct' 'with' optLAYSEP '{' fields '}'     { loc $1 $ StructType $5 }

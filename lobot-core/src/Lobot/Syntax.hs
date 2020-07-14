@@ -63,7 +63,7 @@ data FunctionType = FunType LText [LType] LType
 data Type = BoolType
           | IntType
           | EnumType [Text]
-          | SetType [Text]
+          | SetType LType
           | StructType [(LText, LType)]
           | KindNames [LText]
           deriving (Show, Eq)

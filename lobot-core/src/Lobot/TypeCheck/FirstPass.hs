@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -33,14 +34,14 @@ import qualified Data.HashSet as HS
 
 import Data.Text (Text)
 import Data.Maybe (catMaybes)
-import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
+import Data.List.NonEmpty (nonEmpty)
 import Data.Traversable (forM)
-import Control.Monad (when, forM_)
+import Control.Monad (when, unless, forM_)
 import Control.Monad.State (evalStateT, get, modify)
 import Control.Monad.Except (throwError)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Some
-import Data.Parameterized.Context
+import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
@@ -71,26 +72,26 @@ firstPass ds = do
 
 type CtxM1 = CtxM NamedThing TypeError
 
-data NamedThing = NamedKind I.Kind EnumNameSet
+data NamedThing = NamedKind I.Kind Bool EnumNameSet
                 | NamedFunction I.FunctionType [EnumNameSet]
                 deriving Show
 
 type EnumNameSet = HS.Set Text
 
-addKind :: I.Kind -> EnumNameSet -> CtxM1 ()
-addKind ik@I.Kind{ kindName = (L p nm) } enms = do
+addKind :: I.Kind -> Bool -> EnumNameSet -> CtxM1 ()
+addKind ik@I.Kind{ kindName = (L p nm) } hasCns enms = do
   is_in <- H.member nm <$> get
   if is_in then throwError (KindNameAlreadyDefined (L p nm))
-           else modify (H.insert nm (NamedKind ik enms))
+           else modify (H.insert nm (NamedKind ik hasCns enms))
 
 addAbsType :: LText -> Some TypeRepr -> CtxM1 ()
-addAbsType nm (Some tp) = addKind (I.Kind nm tp [] []) HS.empty
+addAbsType nm (Some tp) = addKind (I.Kind nm tp [] []) False HS.empty
 
-lookupKind :: LText -> CtxM1 (I.Kind, EnumNameSet)
+lookupKind :: LText -> CtxM1 (I.Kind, Bool, EnumNameSet)
 lookupKind (L p k) = do
   mb_k' <- H.lookup k <$> get
   case mb_k' of
-    Just (NamedKind k' enms) -> pure (k', enms)
+    Just (NamedKind k' hasCns enms) -> pure (k', hasCns, enms)
     _ -> throwError (KindNameNotInScope (L p k))
 
 addFunction :: LText -> I.FunctionType -> [EnumNameSet] -> CtxM1 ()
@@ -135,7 +136,9 @@ checkDecl (S.KindDecl k) = do
   (Some tp, dcns, enms) <- checkType (S.kindType k)
   cns <- mapM (checkExpr enms (Empty :> SelfElem tp)) (S.kindConstraints k)
   let k' = I.Kind (S.kindName k) tp cns dcns
-  addKind k' enms
+  let hasCns = not (null cns) || not (null dcns)
+  unless hasCns $ emitWarning (KindHasNoConstraints (S.kindName k))
+  addKind k' hasCns enms
   pure $ AddIKind k'
 
 checkDecl (S.CheckDecl ck) = do
@@ -158,7 +161,7 @@ checkDecl (S.TypeSynDecl nm tp) = do
   case dcns of
     (dcn:_) -> throwError $ TypeSynonymConstrainedError nm dcn
     [] -> do let k' = I.Kind nm tp' [] []
-             addKind k' enms
+             addKind k' False enms
              pure $ AddIKind k'
 
 checkDecl (S.AbsTypeDecl nm) | Some nmSymb <- someSymbol (unLoc nm) = do
@@ -183,11 +186,11 @@ checkType tp@(L _ (S.EnumType cs)) | Some cs' <- someSymbols cs = do
   case decideLeq (knownNat @1) (ctxSizeNat (size cs')) of
     Left LeqProof -> pure (Some (T.EnumRepr cs'), [], HS.fromList cs)
     Right _ -> throwError (EmptyEnumOrSetError tp)
-checkType tp@((L _ (S.SetType cs))) | Some cs' <- someSymbols cs = do
-  ensureUnique id cs (DuplicateEnumNameError tp)
-  case decideLeq (knownNat @1) (ctxSizeNat (size cs')) of
-    Left LeqProof -> pure (Some (T.SetRepr cs'), [], HS.fromList cs)
-    Right _ -> throwError (EmptyEnumOrSetError tp)
+
+checkType ((L _ (S.SetType tp))) =
+  checkType tp >>= \case
+    (Some (T.EnumRepr cs), [], enms) -> pure (Some (T.SetRepr cs), [], enms)
+    _ -> throwError (SubsetTypeError tp)
 
 checkType (L _ (S.StructType fls)) = do
   (Some fls', mb_dcns, enms) <- mapFst3 fromList . unzip3 <$> mapM checkFieldType fls
@@ -196,13 +199,15 @@ checkType (L _ (S.StructType fls)) = do
 
 checkType (L p (S.KindNames [])) = throwError (InternalError p "empty kind union")
 checkType (L _ (S.KindNames [k])) = do
-  (I.Kind _ tp _ _, enms) <- lookupKind k
-  pure (Some tp, [I.FromKind k], enms)
+  (I.Kind _ tp _ _, hasCns, enms) <- lookupKind k
+  let dcns = if hasCns then [I.FromKind k] else []
+  pure (Some tp, dcns, enms)
 checkType (L p (S.KindNames (k:ks))) = do
-  (I.Kind _ k_tp _ _, k_enms) <- lookupKind k
-  (Some ks_tp, dcns, ks_enms) <- checkType (L p (S.KindNames ks))
+  (I.Kind _ k_tp _ _, k_hasCns, k_enms) <- lookupKind k
+  let k_dcns = if k_hasCns then [I.FromKind k] else []
+  (Some ks_tp, ks_dcns, ks_enms) <- checkType (L p (S.KindNames ks))
   case testEquality k_tp ks_tp of
-    Just Refl -> pure (Some ks_tp, (I.FromKind k):dcns, k_enms `HS.union` ks_enms)
+    Just Refl -> pure (Some ks_tp, k_dcns ++ ks_dcns, k_enms `HS.union` ks_enms)
     Nothing -> throwError (KindUnionMismatchError k (Some ks_tp) (Some k_tp))
 
 checkFieldType :: (LText, S.LType)
