@@ -1,0 +1,8 @@
+abstract add1 : int -> int
+
+add1_0 : kind of int where self = add1(0)
+
+add1_is_0 : kind of int
+  where add1(self) = 0
+        -10 <= self
+        self <= 10

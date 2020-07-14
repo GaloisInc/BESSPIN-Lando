@@ -1,0 +1,2 @@
+-- file: int.lobot
+type my_int = int

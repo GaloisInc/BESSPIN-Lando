@@ -103,25 +103,34 @@
 </header>
 <nav id="TOC" role="doc-toc">
 <ul>
-<li><a href="#introduction">Introduction</a>
+<li><a href="#introduction"><span class="toc-section-number">1</span> Introduction</a>
 <ul>
-<li><a href="#introductory-example">Introductory example</a></li>
+<li><a href="#what-is-lobot"><span class="toc-section-number">1.1</span> What is Lobot?</a></li>
+<li><a href="#example-1-pairs-that-sum-to-100"><span class="toc-section-number">1.2</span> Example 1: pairs that sum to 100</a></li>
+<li><a href="#example-2-the-real-world"><span class="toc-section-number">1.3</span> Example 2: The real world</a></li>
 </ul></li>
-<li><a href="#the-language-of-lobot">The language of Lobot</a>
+<li><a href="#the-lobot-language"><span class="toc-section-number">2</span> The Lobot language</a>
 <ul>
-<li><a href="#types">Types</a></li>
-<li><a href="#kinds">Kinds</a></li>
-<li><a href="#abstract-functions-and-types">Abstract functions and types</a></li>
+<li><a href="#types-type-synonyms-and-kinds"><span class="toc-section-number">2.1</span> Types, type synonyms, and kinds</a>
+<ul>
+<li><a href="#type-synonyms"><span class="toc-section-number">2.1.1</span> Type synonyms</a></li>
+<li><a href="#booleans"><span class="toc-section-number">2.1.2</span> Booleans</a></li>
+<li><a href="#integers"><span class="toc-section-number">2.1.3</span> Integers</a></li>
+</ul></li>
+<li><a href="#abstract-functions"><span class="toc-section-number">2.2</span> Abstract functions</a></li>
 </ul></li>
 </ul>
 </nav>
-<h1 id="introduction">Introduction</h1>
-<p>Lobot is a language for defining constrained data structures – data structures with arbitrary logical constraints attached to them. The Lobot instance generator can enumerate all instances of a data structure and check that they satisfy arbitrary properties.</p>
+<h1 data-number="1" id="introduction"><span class="header-section-number">1</span> Introduction</h1>
+<p>Lobot is a language for defining <em>constrained data types</em> – data types with arbitrary logical constraints attached to them. The Lobot instance generator can enumerate all instances of a data structure and check that they satisfy arbitrary properties.</p>
 <p>Lobot will be used as an IR for features models in Lando. Most of the core functionality of Lando will be implemented at the level of Lobot.</p>
 <p>This release is a development snapshot. Please contact Ben Selfridge (benselfridge@galois.com) and Matt Yacavone (myac@galois.com) if you have any questions about it.</p>
-<h2 id="introductory-example">Introductory example</h2>
-<p>This example is taken from examples/example1.lobot.</p>
-<p>Suppose I wanted to define a datatype that represents all pairs of positive integers that sum to 100. I could do that in lobot by first defining the concept of a positive integer:</p>
+<h2 data-number="1.1" id="what-is-lobot"><span class="header-section-number">1.1</span> What is Lobot?</h2>
+<p>Lobot is a language for describing data types (ints, structs, etc.) with constraints attached to them. It is also a tool for enumerating the values of those types, and checking that the enumerated values satisfy certain properties.</p>
+<p>Lobot uses an SMT solver to enumerate and check constrained types (called <em>kinds</em>), and it has very similar expressive power to constraint programming languages (like MiniZinc). However, Lobot does more than model a problem; it can directly interact with real-world applications and incorporate them into its reasoning engine. In other words, we can call a command line tool with Lobot and use it as part of a constraint in a kind we are defining. This allows us to talk about properties of external software and actually verify that various properties hold about that software.</p>
+<p>Before we dive into the core concepts of Lobot, let’s look at a couple of examples.</p>
+<h2 data-number="1.2" id="example-1-pairs-that-sum-to-100"><span class="header-section-number">1.2</span> Example 1: pairs that sum to 100</h2>
+<p>Suppose I wanted to define a data type that represents all pairs of positive integers that sum to 100. I could do that in Lobot by first defining the concept of a positive integer:</p>
 <pre><code>-- Positive integers.
 posint : kind of int where 1 &lt;= self</code></pre>
 <p>Then, I can create pairs of positive integers by creating a <code>struct</code>:</p>
@@ -130,7 +139,7 @@ unique_posint_pair : kind of struct
   with x : posint
        y : posint
   where x &lt;= y</code></pre>
-<p>Notice the <code>x &lt;= y</code> constraint, which helps avoid getting the same pair, just in a different order. Now, we can define one more datatype that further constrains <code>unique_posint_pair</code>:</p>
+<p>Notice the <code>x &lt;= y</code> constraint, which helps avoid getting the same pair, just in a different order. Now, we can define one more data type that further constrains <code>unique_posint_pair</code>:</p>
 <pre><code>-- Pairs that sum to 100
 posint_sum_100 : kind of unique_posint_pair
   where x + y = 100</code></pre>
@@ -164,9 +173,140 @@ check1 : check
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="ex">Check</span> <span class="st">&#39;check1&#39;</span> failed with counterexample:</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a>  <span class="ex">p</span> = struct with {x = 50, y = 50}</span></code></pre></div>
 <p>Lobot fails, and finds a counterexample for us. Great!</p>
-<h1 id="the-language-of-lobot">The language of Lobot</h1>
-<h2 id="types">Types</h2>
-<h2 id="kinds">Kinds</h2>
-<h2 id="abstract-functions-and-types">Abstract functions and types</h2>
+<h2 data-number="1.3" id="example-2-the-real-world"><span class="header-section-number">1.3</span> Example 2: The real world</h2>
+<p>Lobot is designed to directly interact with applications as a core language feature. For instance, suppose I have a shell command called <code>add1</code> that works like this:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a>$ <span class="ex">add1</span> 5</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a><span class="ex">6</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a>$ <span class="ex">add1</span> -1000000</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a><span class="ex">-999999</span></span></code></pre></div>
+<p>Context clues lead us to the conclusion that the <code>add1</code> command is probably supposed to add 1 to its input. In Lobot, we can actually import functions from the command-line environment and invoke them when defining new kinds. However, we do need to provide small wrapper scripts for Lobot to be able to call them; Lobot passes arguments to these commands by translating them to JSON and passing them to stdin, and then getting the JSON-encoded results from stdout. Below is an example implementation of <code>add1</code> in python that is compatible with Lobot’s API:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="co">#!/usr/bin/python3</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a><span class="im">import</span> json</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a><span class="im">import</span> sys</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true"></a>json_str <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true"></a><span class="cf">for</span> line <span class="kw">in</span> sys.stdin:</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true"></a>  json_str <span class="op">+=</span> line</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true"></a><span class="co"># Incoming JSON data has this format:</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true"></a><span class="co"># [ { &quot;variant&quot;: &quot;int&quot;, &quot;value&quot;: &lt;value&gt; } ]</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true"></a>json_data <span class="op">=</span> json.loads(json_str)</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true"></a>i <span class="op">=</span> json_data[<span class="dv">0</span>][<span class="st">&#39;value&#39;</span>]</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true"></a>json_data[<span class="dv">0</span>][<span class="st">&#39;value&#39;</span>] <span class="op">=</span> i <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true"></a><span class="bu">print</span>(json.dumps(json_data[<span class="dv">0</span>]))</span></code></pre></div>
+<p>After adding this to our <code>$PATH</code>, we can call it on the command line:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a>$ <span class="bu">echo</span> <span class="st">&quot;[{</span><span class="dt">\&quot;</span><span class="st">variant</span><span class="dt">\&quot;</span><span class="st">: </span><span class="dt">\&quot;</span><span class="st">int</span><span class="dt">\&quot;</span><span class="st">, </span><span class="dt">\&quot;</span><span class="st">value</span><span class="dt">\&quot;</span><span class="st">: 4}]&quot;</span> <span class="kw">|</span> <span class="ex">add1</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>{<span class="st">&quot;variant&quot;</span>: <span class="st">&quot;int&quot;</span>, <span class="st">&quot;value&quot;</span>: <span class="ex">5</span>}</span></code></pre></div>
+<p>This is, admittedly, not as clean to interact with directly as the original <code>add1</code> function. However, it is straightforward to “wrap” real-world commands with scripts that provide the JSON-based API that Lobot requires.</p>
+<p>Now that <code>add1</code> is on our path, we can use it in Lobot. In a new file named <code>add1.lobot</code>, we write</p>
+<pre><code>abstract add1 : int -&gt; int</code></pre>
+<p>This is a <em>function declaration</em>. We have declared to Lobot that there exists a function called <code>add1</code> mapping integers to integers. Now, we are free to use this function as part of a new kind definition:</p>
+<pre><code>add1_0 : kind of int where self = add1(0)</code></pre>
+<p>Just like any other kind, we can enumerate instances one-by-one, or we can count the number of instances. Let’s enumerate <code>add1_0</code>:</p>
+<pre><code>Instance 1:
+  1
+Press enter to see the next instance
+
+Enumerated all 1 valid instances, generated 1 invalid instances</code></pre>
+<p>Lobot has determined that there is exactly one instance of <code>add1_0</code>, which is not terribly impressive, since every function has exactly one value when you call it. Let’s see what happens if we try the inverse problem of finding the solution to <code>add1(x) = 0</code>:</p>
+<pre><code>add1_is_0 : kind of int where add1(self) = 0</code></pre>
+<p>Let’s enumerate this kind:</p>
+<pre><code>$ lobot -e add1_is_0 add1.lobot
+Generating instances of &#39;add1_is_0&#39;...</code></pre>
+<p>Uh-oh! Lobot hangs when we ask it to enumerate instances of this kind. Let’s use the <code>-v</code> option to try and figure out what’s going on:</p>
+<pre><code>$ lobot -e add1_is_0 -v add1.lobot
+Generated an invalid instance:
+  1
+The constraints that failed were:
+  add1(self) = 0
+Learned the values of the following function calls:
+  add1(1) = 2
+Press enter to see the next instance
+
+Generated an invalid instance:
+  3
+The constraints that failed were:
+  add1(self) = 0
+Learned the values of the following function calls:
+  add1(3) = 4
+Press enter to see the next instance
+
+Generated an invalid instance:
+  5
+The constraints that failed were:
+  add1(self) = 0
+Learned the values of the following function calls:
+  add1(5) = 6
+Press enter to see the next instance</code></pre>
+<p>Here, we see that Lobot is effectively attempting to find a solution to <code>add1(x) = 0</code> by enumerating positive values of <code>x</code> until it finds one (for some reason, it is only checking odd values). However, this strategy will never yield a valid instance, because the solution to this equation is <code>-1</code>, which is negative. We can help Lobot out by constraining the search space a bit:</p>
+<pre><code>add1_is_0 : kind of int
+  where add1(self) = 0
+        -10 &lt;= self
+        self &lt;= 10</code></pre>
+<p>Now, when we attempt to enumerate values of this kind, we have more success:</p>
+<pre><code>$ lobot -e add1_is_0 examples/add1.lobot 
+Instance 1:
+  -1
+Press enter to see the next instance
+
+Enumerated all 1 valid instances, generated 20 invalid instances</code></pre>
+<p>Not only has Lobot found the solution, <code>-1</code>, it has determined that it is the only solution in the range <code>-10 &lt;= x &lt;= 10</code> via exhaustively checking every value in that range. Since <code>add1</code> could have been any function, and Lobot knows nothing about its behavior, we couldn’t reasonably expect it to do anything more clever than an exhaustive search.</p>
+<p>In general, Lobot knows nothing about real-world functions until it actually evaluates calls to it for particular values. Therefore, we need to be careful when enumerating instances of kinds that are constrained by such functions.</p>
+<h1 data-number="2" id="the-lobot-language"><span class="header-section-number">2</span> The Lobot language</h1>
+<h2 data-number="2.1" id="types-type-synonyms-and-kinds"><span class="header-section-number">2.1</span> Types, type synonyms, and kinds</h2>
+<p>The base types of Lobot are:</p>
+<ul>
+<li>booleans</li>
+<li>integers</li>
+<li>enums</li>
+<li>enumsets</li>
+<li>structs</li>
+<li>abstract types</li>
+</ul>
+<h3 data-number="2.1.1" id="type-synonyms"><span class="header-section-number">2.1.1</span> Type synonyms</h3>
+<p>Before we discuss these types individually, it will be helpful to introduce <em>type synonyms</em>. We can declare a new type synonym:</p>
+<pre><code>type &lt;name&gt; = &lt;type&gt;</code></pre>
+<p>where <code>&lt;name&gt;</code> is the name of the type synonym, and <code>&lt;type&gt;</code> is a base type. For instance, we could alias <code>int</code> with <code>ident</code>:</p>
+<pre><code>type ident = int</code></pre>
+<p>We can now use <code>ident</code> as an alternative name for <code>int</code>.</p>
+<h3 data-number="2.1.2" id="booleans"><span class="header-section-number">2.1.2</span> Booleans</h3>
+<p>The built-in keyword <code>bool</code> signifies the type of boolean values. We can enumerate <code>bool</code> instances by declaring a synonym in lobot:</p>
+<pre><code>-- file: bool.lobot
+type my_bool = bool</code></pre>
+<div class="sourceCode" id="cb25"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a>$ <span class="ex">lobot</span> -e my_bool bool.lobot</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a><span class="ex">Instance</span> 1:</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a>  <span class="fu">false</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a><span class="ex">Press</span> enter to see the next instance</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true"></a></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true"></a><span class="ex">Instance</span> 2:</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true"></a>  <span class="fu">true</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true"></a><span class="ex">Press</span> enter to see the next instance</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true"></a></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true"></a><span class="ex">Enumerated</span> all 2 valid instances, generated 0 invalid instances</span></code></pre></div>
+<p>If we are in an introductory logic course and are assigned the following homework problem:</p>
+<pre><code>Fill out the truth table of the proposition &quot;P =&gt; ((Q | R) =&gt; (R =&gt; !P))&quot;.</code></pre>
+<p>We can use Lobot to cheat:</p>
+<pre><code>-- file: logic_homework1.lobot
+problem1 : kind of struct
+  with p : bool, q : bool, r : bool
+  where p =&gt; ((q | r) =&gt; (r =&gt; not p))</code></pre>
+<h3 data-number="2.1.3" id="integers"><span class="header-section-number">2.1.3</span> Integers</h3>
+<p>Similarly to <code>bool</code>, <code>int</code> signifies the type of integer values.</p>
+<pre><code>-- file: int.lobot
+type my_int = int</code></pre>
+<p>We can attempt to count the integers (rather than enumerate them one-by-one) with the <code>-c</code> option:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true"></a><span class="ex">lobot</span> -c my_int int.lobot</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true"></a><span class="ex">Hit</span> instance limit of 100!</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true"></a><span class="ex">Found</span> 100 valid instances, generated 0 invalid instances</span></code></pre></div>
+<p>Lobot informs us that we have hit the built-in instance limit of <code>100</code>, resulting in <code>100</code> instances of <code>int</code>. We can increase this limit with <code>-l</code>:</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true"></a><span class="ex">lobot</span> -c my_int -l 10000 int.lobot</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true"></a><span class="ex">Hit</span> instance limit of 10000!</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true"></a><span class="ex">Found</span> 10000 valid instances, generated 0 invalid instances</span></code></pre></div>
+<p>After a minute or two, Lobot finally determines that there are at least <code>10000</code> instances of <code>int</code>. So, in case you didn’t realize it – there are more than ten thousand integers!</p>
+<h2 data-number="2.2" id="abstract-functions"><span class="header-section-number">2.2</span> Abstract functions</h2>
 </body>
 </html>
