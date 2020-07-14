@@ -116,6 +116,7 @@
 <li><a href="#type-synonyms"><span class="toc-section-number">2.1.1</span> Type synonyms</a></li>
 <li><a href="#booleans"><span class="toc-section-number">2.1.2</span> Booleans</a></li>
 <li><a href="#integers"><span class="toc-section-number">2.1.3</span> Integers</a></li>
+<li><a href="#enumerations-and-enumeration-sets"><span class="toc-section-number">2.1.4</span> Enumerations and enumeration sets</a></li>
 </ul></li>
 <li><a href="#abstract-functions"><span class="toc-section-number">2.2</span> Abstract functions</a></li>
 </ul></li>
@@ -144,19 +145,19 @@ unique_posint_pair : kind of struct
 posint_sum_100 : kind of unique_posint_pair
   where x + y = 100</code></pre>
 <p>If I type the above definitions into a file, <code>posint_sum_100.lobot</code>, and then fire up the Lobot tool via</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>$ <span class="ex">lobot</span> posint_sum_100.lobot</span></code></pre></div>
+<pre><code>$ lobot posint_sum_100.lobot</code></pre>
 <p>I get the following output:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="ex">All</span> checks pass. (File had no checks)</span></code></pre></div>
+<pre><code>All checks pass. (File had no checks)</code></pre>
 <p>This means that the file was syntactically valid and well-typed, which is great! It also doesn’t give us any information about the types we defined. We can count the number of instances of one of our <code>kind</code>s in the following way:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a>$ <span class="ex">lobot</span> -c posint_sum_100 example1.lobot</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="ex">Generating</span> instances...</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a><span class="ex">Found</span> 50 valid instances, generated 0 invalid instances</span></code></pre></div>
+<pre><code>$ lobot -c posint_sum_100 posint_sum_100.lobot
+Generating instances...
+Found 50 valid instances, generated 0 invalid instances</code></pre>
 <p>Lobot determined that there are 50 instances of the <code>posint_sum_100</code> kind. If we want to enumerate them, we can use the <code>-e</code> option:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a>$ <span class="ex">lobot</span> -e posint_sum_100 example1.lobot</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a><span class="ex">Generating</span> instances...</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="ex">Instance</span> 1:</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>  <span class="ex">posint_sum_100</span> with {x = 50, y = 50}</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a><span class="ex">Press</span> enter to see the next instance</span></code></pre></div>
+<pre><code>$ lobot -e posint_sum_100 posint_sum_100.lobot
+Generating instances...
+Instance 1:
+  posint_sum_100 with {x = 50, y = 50}
+Press enter to see the next instance</code></pre>
 <p>Each time we hit enter, we see a new instance.</p>
 <p>What if we want to verify that some property always holds of our <code>posint_sum_100</code> kind? For instance, we might like to ensure that for any instance <code>p</code> of <code>posint_sum_100</code>, <code>p.x &lt;= 50</code>. We can encode that as a <code>check</code> command in the Lobot source file:</p>
 <pre><code>-- Check that all instances satisfy p.x &lt;= 50
@@ -164,21 +165,21 @@ check1 : check
   on p : posint_sum_100
   that p.x &lt;= 50</code></pre>
 <p>We run this check via the <code>-r</code> option:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a>$ <span class="ex">lobot</span> -r check1 ../examples/example1.lobot</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="ex">Generating</span> instances...</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a><span class="ex">Check</span> <span class="st">&#39;check1&#39;</span> holds. (Generated 0 instances)</span></code></pre></div>
+<pre><code>$ lobot -r check1 posint_sum_100.lobot
+Generating instances...
+Check &#39;check1&#39; holds. (Generated 0 instances)</code></pre>
 <p>Lobot determined that the check holds for all instances of the <code>posint_sum_100</code> kind. What if we change the check condition <code>p.x &lt;= 50</code> to <code>p.x &lt; 50</code>?</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a>$ <span class="ex">lobot</span> -r check1 ../examples/example1.lobot</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a><span class="ex">Generating</span> instances...</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="ex">Check</span> <span class="st">&#39;check1&#39;</span> failed with counterexample:</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a>  <span class="ex">p</span> = struct with {x = 50, y = 50}</span></code></pre></div>
+<pre><code>$ lobot -r check1 posint_sum_100.lobot
+Generating instances...
+Check &#39;check1&#39; failed with counterexample:
+  p = struct with {x = 50, y = 50}</code></pre>
 <p>Lobot fails, and finds a counterexample for us. Great!</p>
 <h2 data-number="1.3" id="example-2-the-real-world"><span class="header-section-number">1.3</span> Example 2: The real world</h2>
 <p>Lobot is designed to directly interact with applications as a core language feature. For instance, suppose I have a shell command called <code>add1</code> that works like this:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a>$ <span class="ex">add1</span> 5</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a><span class="ex">6</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a>$ <span class="ex">add1</span> -1000000</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a><span class="ex">-999999</span></span></code></pre></div>
+<pre><code>$ add1 5
+6
+$ add1 -1000000
+-999999</code></pre>
 <p>Context clues lead us to the conclusion that the <code>add1</code> command is probably supposed to add 1 to its input. In Lobot, we can actually import functions from the command-line environment and invoke them when defining new kinds. However, we do need to provide small wrapper scripts for Lobot to be able to call them; Lobot passes arguments to these commands by translating them to JSON and passing them to stdin, and then getting the JSON-encoded results from stdout. Below is an example implementation of <code>add1</code> in python that is compatible with Lobot’s API:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="co">#!/usr/bin/python3</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a></span>
@@ -199,8 +200,8 @@ check1 : check
 <span id="cb12-17"><a href="#cb12-17" aria-hidden="true"></a></span>
 <span id="cb12-18"><a href="#cb12-18" aria-hidden="true"></a><span class="bu">print</span>(json.dumps(json_data[<span class="dv">0</span>]))</span></code></pre></div>
 <p>After adding this to our <code>$PATH</code>, we can call it on the command line:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a>$ <span class="bu">echo</span> <span class="st">&quot;[{</span><span class="dt">\&quot;</span><span class="st">variant</span><span class="dt">\&quot;</span><span class="st">: </span><span class="dt">\&quot;</span><span class="st">int</span><span class="dt">\&quot;</span><span class="st">, </span><span class="dt">\&quot;</span><span class="st">value</span><span class="dt">\&quot;</span><span class="st">: 4}]&quot;</span> <span class="kw">|</span> <span class="ex">add1</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>{<span class="st">&quot;variant&quot;</span>: <span class="st">&quot;int&quot;</span>, <span class="st">&quot;value&quot;</span>: <span class="ex">5</span>}</span></code></pre></div>
+<pre><code>$ echo &quot;[{\&quot;variant\&quot;: \&quot;int\&quot;, \&quot;value\&quot;: 4}]&quot; | add1
+{&quot;variant&quot;: &quot;int&quot;, &quot;value&quot;: 5}</code></pre>
 <p>This is, admittedly, not as clean to interact with directly as the original <code>add1</code> function. However, it is straightforward to “wrap” real-world commands with scripts that provide the JSON-based API that Lobot requires.</p>
 <p>Now that <code>add1</code> is on our path, we can use it in Lobot. In a new file named <code>add1.lobot</code>, we write</p>
 <pre><code>abstract add1 : int -&gt; int</code></pre>
@@ -248,7 +249,7 @@ Press enter to see the next instance</code></pre>
         -10 &lt;= self
         self &lt;= 10</code></pre>
 <p>Now, when we attempt to enumerate values of this kind, we have more success:</p>
-<pre><code>$ lobot -e add1_is_0 examples/add1.lobot 
+<pre><code>$ lobot -e add1_is_0 add1.lobot 
 Instance 1:
   -1
 Press enter to see the next instance
@@ -270,23 +271,23 @@ Enumerated all 1 valid instances, generated 20 invalid instances</code></pre>
 <h3 data-number="2.1.1" id="type-synonyms"><span class="header-section-number">2.1.1</span> Type synonyms</h3>
 <p>Before we discuss these types individually, it will be helpful to introduce <em>type synonyms</em>. We can declare a new type synonym:</p>
 <pre><code>type &lt;name&gt; = &lt;type&gt;</code></pre>
-<p>where <code>&lt;name&gt;</code> is the name of the type synonym, and <code>&lt;type&gt;</code> is a base type. For instance, we could alias <code>int</code> with <code>ident</code>:</p>
+<p>where <code>&lt;name&gt;</code> is the name of the type synonym, and <code>&lt;type&gt;</code> is a base type. Type names must start with a lowercase letter. For instance, we could alias <code>int</code> with <code>ident</code>:</p>
 <pre><code>type ident = int</code></pre>
 <p>We can now use <code>ident</code> as an alternative name for <code>int</code>.</p>
 <h3 data-number="2.1.2" id="booleans"><span class="header-section-number">2.1.2</span> Booleans</h3>
 <p>The built-in keyword <code>bool</code> signifies the type of boolean values. We can enumerate <code>bool</code> instances by declaring a synonym in lobot:</p>
 <pre><code>-- file: bool.lobot
 type my_bool = bool</code></pre>
-<div class="sourceCode" id="cb25"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a>$ <span class="ex">lobot</span> -e my_bool bool.lobot</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a><span class="ex">Instance</span> 1:</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a>  <span class="fu">false</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a><span class="ex">Press</span> enter to see the next instance</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true"></a></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true"></a><span class="ex">Instance</span> 2:</span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true"></a>  <span class="fu">true</span></span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true"></a><span class="ex">Press</span> enter to see the next instance</span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true"></a></span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true"></a><span class="ex">Enumerated</span> all 2 valid instances, generated 0 invalid instances</span></code></pre></div>
+<pre><code>$ lobot -e my_bool bool.lobot
+Instance 1:
+  false
+Press enter to see the next instance
+
+Instance 2:
+  true
+Press enter to see the next instance
+
+Enumerated all 2 valid instances, generated 0 invalid instances</code></pre>
 <p>If we are in an introductory logic course and are assigned the following homework problem:</p>
 <pre><code>Fill out the truth table of the proposition &quot;P =&gt; ((Q | R) =&gt; (R =&gt; !P))&quot;.</code></pre>
 <p>We can use Lobot to cheat:</p>
@@ -294,19 +295,129 @@ type my_bool = bool</code></pre>
 problem1 : kind of struct
   with p : bool, q : bool, r : bool
   where p =&gt; ((q | r) =&gt; (r =&gt; not p))</code></pre>
+<pre><code>$ lobot -e problem1 logic_homework1.lobot
+Instance 1:
+  problem1 with {p = false, q = false, r = false}
+Press enter to see the next instance
+
+Instance 2:
+  problem1 with {p = false, q = false, r = true}
+Press enter to see the next instance
+
+Instance 3:
+  problem1 with {p = false, q = true, r = true}
+Press enter to see the next instance
+
+Instance 4:
+  problem1 with {p = false, q = true, r = false}
+Press enter to see the next instance
+
+Instance 5:
+  problem1 with {p = true, q = false, r = false}
+Press enter to see the next instance
+
+Instance 6:
+  problem1 with {p = true, q = true, r = false}
+Press enter to see the next instance
+
+Enumerated all 6 valid instances, generated 0 invalid instances</code></pre>
 <h3 data-number="2.1.3" id="integers"><span class="header-section-number">2.1.3</span> Integers</h3>
 <p>Similarly to <code>bool</code>, <code>int</code> signifies the type of integer values.</p>
 <pre><code>-- file: int.lobot
 type my_int = int</code></pre>
 <p>We can attempt to count the integers (rather than enumerate them one-by-one) with the <code>-c</code> option:</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true"></a><span class="ex">lobot</span> -c my_int int.lobot</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true"></a><span class="ex">Hit</span> instance limit of 100!</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true"></a><span class="ex">Found</span> 100 valid instances, generated 0 invalid instances</span></code></pre></div>
+<pre><code>lobot -c my_int int.lobot
+Hit instance limit of 100!
+Found 100 valid instances, generated 0 invalid instances</code></pre>
 <p>Lobot informs us that we have hit the built-in instance limit of <code>100</code>, resulting in <code>100</code> instances of <code>int</code>. We can increase this limit with <code>-l</code>:</p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true"></a><span class="ex">lobot</span> -c my_int -l 10000 int.lobot</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true"></a><span class="ex">Hit</span> instance limit of 10000!</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true"></a><span class="ex">Found</span> 10000 valid instances, generated 0 invalid instances</span></code></pre></div>
+<pre><code>lobot -c my_int -l 10000 int.lobot
+Hit instance limit of 10000!
+Found 10000 valid instances, generated 0 invalid instances</code></pre>
 <p>After a minute or two, Lobot finally determines that there are at least <code>10000</code> instances of <code>int</code>. So, in case you didn’t realize it – there are more than ten thousand integers!</p>
+<p>If we are in a high school algebra class, we can use Lobot to do our homework on linear systems of equations for us:</p>
+<pre><code>type pair = struct with x : int, y : int
+
+problem1 : kind of pair
+  where x - 7 * y = -11
+        5 * x + 2 * y = -18</code></pre>
+<pre><code>lobot -e problem1 algebra_homework1.lobot
+Instance 1:
+  problem1 with {x = -4, y = 1}
+Press enter to see the next instance
+
+Enumerated all 1 valid instances, generated 0 invalid instances</code></pre>
+<p>This of course assumes that the linear system has an integer solution (which they usually do when they arrive in the form of algebra homework).</p>
+<h3 data-number="2.1.4" id="enumerations-and-enumeration-sets"><span class="header-section-number">2.1.4</span> Enumerations and enumeration sets</h3>
+<p>Enumerations are like <code>enum</code>s in the C programming language, or “sum types” in Haskell. They are finite, user-defined types that encode a variety of different choices.</p>
+<pre><code>type abc = {A, B, C}</code></pre>
+<pre><code>$ lobot -e abc enum.lobot
+Instance 1:
+  A
+Press enter to see the next instance
+
+Instance 2:
+  B
+Press enter to see the next instance
+
+Instance 3:
+  C
+Press enter to see the next instance
+
+Enumerated all 3 valid instances, generated 0 invalid instances</code></pre>
+<p>Here, we introduce an enum type called <code>abc</code> with three constructors, <code>A</code>, <code>B</code>, and <code>C</code>. The constructors of an enum must start with capital letters. We can also use subsets of enumerations:</p>
+<pre><code>type abc_set = subset abc</code></pre>
+<pre><code>$ lobot -e abc_set enum.lobot
+Instance 1:
+  {}
+Press enter to see the next instance
+
+Instance 2:
+  {A}
+Press enter to see the next instance
+
+Instance 3:
+  {A, B}
+Press enter to see the next instance
+
+Instance 4:
+  {A, B, C}
+Press enter to see the next instance
+
+Instance 5:
+  {B, C}
+Press enter to see the next instance
+
+Instance 6:
+  {C}
+Press enter to see the next instance
+
+Instance 7:
+  {A, C}
+Press enter to see the next instance
+
+Instance 8:
+  {B}
+Press enter to see the next instance
+
+Enumerated all 8 valid instances, generated 0 invalid instances</code></pre>
+<p>We can create more constrained kinds of subsets:</p>
+<pre><code>a_implies_c : kind of abc_set
+  where A in self =&gt; C in self
+
+doesnt_have_c : kind of abc_set
+  where not (C in self)
+
+both : kind of a_implies_c doesnt_have_c</code></pre>
+<pre><code>$ lobot -e both enum.lobot     
+Instance 1:
+  {}
+Press enter to see the next instance
+
+Instance 2:
+  {B}
+Press enter to see the next instance
+
+Enumerated all 2 valid instances, generated 0 invalid instances</code></pre>
 <h2 data-number="2.2" id="abstract-functions"><span class="header-section-number">2.2</span> Abstract functions</h2>
 </body>
 </html>

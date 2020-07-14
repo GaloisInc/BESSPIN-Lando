@@ -1,0 +1,11 @@
+type abc = {A, B, C}
+
+type abc_set = subset abc
+
+a_implies_c : kind of abc_set
+  where A in self => C in self
+
+doesnt_have_c : kind of abc_set
+  where not (C in self)
+
+both : kind of a_implies_c doesnt_have_c

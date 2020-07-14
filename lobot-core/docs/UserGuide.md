@@ -64,13 +64,13 @@ posint_sum_100 : kind of unique_posint_pair
 If I type the above definitions into a file, `posint_sum_100.lobot`, and then fire up
 the Lobot tool via
 
-```bash
+```
 $ lobot posint_sum_100.lobot
 ```
 
 I get the following output:
 
-```bash
+```
 All checks pass. (File had no checks)
 ```
 
@@ -78,8 +78,8 @@ This means that the file was syntactically valid and well-typed, which is great!
 It also doesn't give us any information about the types we defined. We can count
 the number of instances of one of our `kind`s in the following way:
 
-```bash
-$ lobot -c posint_sum_100 example1.lobot
+```
+$ lobot -c posint_sum_100 posint_sum_100.lobot
 Generating instances...
 Found 50 valid instances, generated 0 invalid instances
 ```
@@ -87,8 +87,8 @@ Found 50 valid instances, generated 0 invalid instances
 Lobot determined that there are 50 instances of the `posint_sum_100` kind. If we
 want to enumerate them, we can use the `-e` option:
 
-```bash
-$ lobot -e posint_sum_100 example1.lobot
+```
+$ lobot -e posint_sum_100 posint_sum_100.lobot
 Generating instances...
 Instance 1:
   posint_sum_100 with {x = 50, y = 50}
@@ -111,8 +111,8 @@ check1 : check
 
 We run this check via the `-r` option:
 
-```bash
-$ lobot -r check1 ../examples/example1.lobot
+```
+$ lobot -r check1 posint_sum_100.lobot
 Generating instances...
 Check 'check1' holds. (Generated 0 instances)
 ```
@@ -120,8 +120,8 @@ Check 'check1' holds. (Generated 0 instances)
 Lobot determined that the check holds for all instances of the `posint_sum_100`
 kind. What if we change the check condition `p.x <= 50` to `p.x < 50`?
 
-```bash
-$ lobot -r check1 ../examples/example1.lobot
+```
+$ lobot -r check1 posint_sum_100.lobot
 Generating instances...
 Check 'check1' failed with counterexample:
   p = struct with {x = 50, y = 50}
@@ -135,7 +135,7 @@ Lobot is designed to directly interact with applications as a core language
 feature. For instance, suppose I have a shell command called `add1` that works
 like this:
 
-```bash
+```
 $ add1 5
 6
 $ add1 -1000000
@@ -174,7 +174,7 @@ print(json.dumps(json_data[0]))
 
 After adding this to our `$PATH`, we can call it on the command line:
 
-```bash
+```
 $ echo "[{\"variant\": \"int\", \"value\": 4}]" | add1
 {"variant": "int", "value": 5}
 ```
@@ -271,7 +271,7 @@ add1_is_0 : kind of int
 Now, when we attempt to enumerate values of this kind, we have more success:
 
 ```
-$ lobot -e add1_is_0 examples/add1.lobot 
+$ lobot -e add1_is_0 add1.lobot 
 Instance 1:
   -1
 Press enter to see the next instance
@@ -311,8 +311,9 @@ _type synonyms_. We can declare a new type synonym:
 type <name> = <type>
 ```
 
-where `<name>` is the name of the type synonym, and `<type>` is a base type. For
-instance, we could alias `int` with `ident`:
+where `<name>` is the name of the type synonym, and `<type>` is a base type.
+Type names must start with a lowercase letter. For instance, we could alias
+`int` with `ident`:
 
 ```
 type ident = int
@@ -330,7 +331,7 @@ enumerate `bool` instances by declaring a synonym in lobot:
 type my_bool = bool
 ```
 
-```bash
+```
 $ lobot -e my_bool bool.lobot
 Instance 1:
   false
@@ -359,6 +360,35 @@ problem1 : kind of struct
   where p => ((q | r) => (r => not p))
 ```
 
+```
+$ lobot -e problem1 logic_homework1.lobot
+Instance 1:
+  problem1 with {p = false, q = false, r = false}
+Press enter to see the next instance
+
+Instance 2:
+  problem1 with {p = false, q = false, r = true}
+Press enter to see the next instance
+
+Instance 3:
+  problem1 with {p = false, q = true, r = true}
+Press enter to see the next instance
+
+Instance 4:
+  problem1 with {p = false, q = true, r = false}
+Press enter to see the next instance
+
+Instance 5:
+  problem1 with {p = true, q = false, r = false}
+Press enter to see the next instance
+
+Instance 6:
+  problem1 with {p = true, q = true, r = false}
+Press enter to see the next instance
+
+Enumerated all 6 valid instances, generated 0 invalid instances
+```
+
 ### Integers
 
 Similarly to `bool`, `int` signifies the type of integer values.
@@ -371,7 +401,7 @@ type my_int = int
 We can attempt to count the integers (rather than enumerate them one-by-one)
 with the `-c` option:
 
-```bash
+```
 lobot -c my_int int.lobot
 Hit instance limit of 100!
 Found 100 valid instances, generated 0 invalid instances
@@ -380,7 +410,7 @@ Found 100 valid instances, generated 0 invalid instances
 Lobot informs us that we have hit the built-in instance limit of `100`,
 resulting in `100` instances of `int`. We can increase this limit with `-l`:
 
-```bash
+```
 lobot -c my_int -l 10000 int.lobot
 Hit instance limit of 10000!
 Found 10000 valid instances, generated 0 invalid instances
@@ -399,6 +429,115 @@ type pair = struct with x : int, y : int
 problem1 : kind of pair
   where x - 7 * y = -11
         5 * x + 2 * y = -18
+```
+
+```
+lobot -e problem1 algebra_homework1.lobot
+Instance 1:
+  problem1 with {x = -4, y = 1}
+Press enter to see the next instance
+
+Enumerated all 1 valid instances, generated 0 invalid instances
+```
+
+This of course assumes that the linear system has an integer solution (which
+they usually do when they arrive in the form of algebra homework).
+
+### Enumerations and enumeration sets
+
+Enumerations are like `enum`s in the C programming language, or "sum types" in
+Haskell. They are finite, user-defined types that encode a variety of different
+choices.
+
+```
+type abc = {A, B, C}
+```
+
+```
+$ lobot -e abc enum.lobot
+Instance 1:
+  A
+Press enter to see the next instance
+
+Instance 2:
+  B
+Press enter to see the next instance
+
+Instance 3:
+  C
+Press enter to see the next instance
+
+Enumerated all 3 valid instances, generated 0 invalid instances
+```
+
+Here, we introduce an enum type called `abc` with three constructors, `A`, `B`,
+and `C`. The constructors of an enum must start with capital letters. We can
+also use subsets of enumerations:
+
+```
+type abc_set = subset abc
+```
+
+```
+$ lobot -e abc_set enum.lobot
+Instance 1:
+  {}
+Press enter to see the next instance
+
+Instance 2:
+  {A}
+Press enter to see the next instance
+
+Instance 3:
+  {A, B}
+Press enter to see the next instance
+
+Instance 4:
+  {A, B, C}
+Press enter to see the next instance
+
+Instance 5:
+  {B, C}
+Press enter to see the next instance
+
+Instance 6:
+  {C}
+Press enter to see the next instance
+
+Instance 7:
+  {A, C}
+Press enter to see the next instance
+
+Instance 8:
+  {B}
+Press enter to see the next instance
+
+Enumerated all 8 valid instances, generated 0 invalid instances
+```
+
+We can create more constrained kinds of subsets:
+
+```
+a_implies_c : kind of abc_set
+  where A in self => C in self
+
+doesnt_have_c : kind of abc_set
+  where not (C in self)
+
+both : kind of a_implies_c doesnt_have_c
+```
+
+```
+$ lobot -e both enum.lobot     
+Instance 1:
+  {}
+Press enter to see the next instance
+
+Instance 2:
+  {B}
+Press enter to see the next instance
+
+Enumerated all 2 valid instances, generated 0 invalid instances
 ```
 
 ## Abstract functions
