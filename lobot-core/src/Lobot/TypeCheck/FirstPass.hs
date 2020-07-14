@@ -261,7 +261,7 @@ checkExpr _ ctx (L p S.SelfExpr)
 checkExpr enms ctx (L p (S.ApplyExpr fn args)) = do
   (_, arg_enms) <- lookupFunction fn
   args' <- mapM (\(a, enms') -> checkExpr (enms `HS.union` enms') ctx a)
-                (zip args arg_enms)
+                (zip args (reverse arg_enms))
   pure $ L p (I.ApplyExpr fn args')
 
 -- the remaining cases are mechanical
