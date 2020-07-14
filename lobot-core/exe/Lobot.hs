@@ -124,7 +124,7 @@ lobot Options{..} = do
           BrowseKindInsts k verbose -> do
             SomeNonAbsKind tp cns <- lookupKind k ks
             runSession z3 env (canonicalEnv env) (Empty :> tp) cns
-                       (browseKindInstances k verbose)
+                       (browseKindInstances k inLimit verbose)
           GenKindInsts k -> do
             SomeNonAbsKind tp cns <- lookupKind k ks
             void $ runSession z3 env (canonicalEnv env) (Empty :> tp) cns
@@ -186,9 +186,10 @@ toNonAbstractCheck (Some ck) =
       pure $ SomeNonAbsCheck (checkName ck) fldnms tps cns
 
 
-browseKindInstances :: forall env tp. Text -> Bool -> SessionData env (EmptyCtx ::> tp) -> IO ()
-browseKindInstances k verbose s@SessionData{..} =
-  void $ generateInstances k Nothing onInst s
+browseKindInstances :: forall env tp. Text -> Natural -> Bool
+                    -> SessionData env (EmptyCtx ::> tp) -> IO ()
+browseKindInstances k limit verbose s@SessionData{..} =
+  void $ generateInstances k limit onLimit onInst s
   where onInst :: InstanceResult env (EmptyCtx ::> tp)
                -> [FunctionCallResult env (EmptyCtx ::> tp)]
                -> Natural -> Natural -> IO Bool
@@ -210,7 +211,7 @@ browseKindInstances k verbose s@SessionData{..} =
             when (verbose && not (null outps)) $ do
               putStrLn "The following function calls generated output:"
               forM_ outps (\(d,st) -> print . PP.nest 2 $ d PP.<> PP.colon PP.<+> PP.text st)
-            putStrLn "Press enter to see the next instance" -- , or q to quit."
+            putStrLn "Press enter to see the next instance." -- , or q to quit."
             untilJust $ getChar >>= \case
                           '\n' -> pure $ Just True
                           -- 'Q'  -> pure $ Just False
@@ -225,11 +226,24 @@ browseKindInstances k verbose s@SessionData{..} =
           putStrLn $ "Enumerated all " ++ show vis ++ " valid instances, "
                      ++ "generated " ++ show ivis ++ " invalid instances"
           pure False
+        onLimit :: Natural -> Natural -> IO Bool
+        onLimit vis ivis = do
+          putStrLn $ "Hit instance limit of " ++ show limit ++ "!"
+          putStrLn $ "Found " ++ show vis
+                     ++ " valid instances, generated " ++ show ivis
+                     ++ " invalid instances"
+          putStrLn $ "Press enter to continue enumerating up to "
+                     ++ show limit ++ " more instances." -- , or q to quit."
+          untilJust $ getChar >>= \case
+                        '\n' -> pure $ Just True
+                        -- 'Q'  -> pure $ Just False
+                        -- 'q'  -> pure $ Just False
+                        _    -> pure $ Nothing
           
 generateKindInstances :: Text -> Natural -> SessionData env (EmptyCtx ::> tp)
                       -> IO ([Assignment Literal (EmptyCtx ::> tp)], Natural)
-generateKindInstances k ilimit =
-  generateInstances k (Just (ilimit, onLimit)) onInst
+generateKindInstances k limit =
+  generateInstances k limit onLimit onInst
   where onInst :: InstanceResult env (EmptyCtx ::> tp)
                -> [FunctionCallResult env ctx] -> Natural -> Natural -> IO Bool
         onInst (HasInstance _ _ _) _ _ _ = pure True
@@ -242,17 +256,18 @@ generateKindInstances k ilimit =
                      ++ " valid instances, generated " ++ show ivis
                      ++ " invalid instances"
           pure False
-        onLimit :: Natural -> Natural -> IO ()
+        onLimit :: Natural -> Natural -> IO Bool
         onLimit vis ivis = do
-          putStrLn $ "Hit instance limit of " ++ show ilimit ++ "!"
+          putStrLn $ "Hit instance limit of " ++ show limit ++ "!"
           putStrLn $ "Found " ++ show vis
                      ++ " valid instances, generated " ++ show ivis
                      ++ " invalid instances"
+          pure False
 
 runCheck :: Text -> [Text] -> Natural -> SessionData env ctx
          -> IO (Maybe (Assignment Literal ctx))
-runCheck ck fldnms ilimit s = do 
-  (ls,_) <- generateInstances ck (Just (ilimit, onLimit)) onInst s
+runCheck ck fldnms limit s = do 
+  (ls,_) <- generateInstances ck limit onLimit onInst s
   pure $ listToMaybe ls
   where onInst :: InstanceResult env ctx
                -> [FunctionCallResult env ctx] -> Natural -> Natural -> IO Bool
@@ -266,30 +281,33 @@ runCheck ck fldnms ilimit s = do
           putStrLn $ "Check '" ++ T.unpack ck ++ "' holds. "
                      ++ "(Generated " ++ show (vis+ivis) ++ " instances)"
           pure False
-        onLimit :: Natural -> Natural -> IO ()
+        onLimit :: Natural -> Natural -> IO Bool
         onLimit vis ivis = do
           putStrLn $ "Check '" ++ T.unpack ck ++ "' holds for the first "
                      ++ show (vis+ivis) ++ " generated instances."
+          pure False
 
 generateInstances :: forall env ctx. Text
-                  -> Maybe (Natural, Natural -> Natural -> IO ())
+                  -> Natural -> (Natural -> Natural -> IO Bool)
                   -> (InstanceResult env ctx -> [FunctionCallResult env ctx]
                                              -> Natural -> Natural -> IO Bool)
                   -> SessionData env ctx
                   -> IO ([Assignment Literal ctx], Natural)
-generateInstances nm mb_limit onInst s@SessionData{..} = do
+generateInstances nm limit onLimit onInst s@SessionData{..} = do
   useANSI <- hSupportsANSI stdout
   if useANSI then putStrNow (msg 0 0)
              else putStrLn "Generating instances..."
-  go useANSI HS.empty 0 0
-  where go :: Bool -> HS.Set (FunctionCallResult env ctx) -> Natural -> Natural
+  go useANSI HS.empty limit 0 0
+  where go :: Bool -> HS.Set (FunctionCallResult env ctx)
+           -> Natural -> Natural -> Natural
            -> IO ([Assignment Literal ctx], Natural)
-        go useANSI _ vis ivis | Just (ilimit, onLimit) <- mb_limit
-                              , vis + ivis >= ilimit = do
+        go useANSI call_set limit' vis ivis
+          | vis + ivis >= limit' = do
           when useANSI $ clearLine >> setCursorColumn 0
-          onLimit vis ivis
-          pure ([], vis+ivis)
-        go useANSI call_set vis ivis | otherwise =
+          cont <- onLimit vis ivis
+          if cont then go useANSI call_set (limit' + limit) vis ivis
+                  else pure ([], vis+ivis)
+          | otherwise = do
           getNextInstance s >>= \case
             HasInstance ls fcns calls -> do
               let (toAdd, vis', ivis') = case null fcns of
@@ -302,7 +320,7 @@ generateInstances nm mb_limit onInst s@SessionData{..} = do
               if cont then do
                 when useANSI $ putStrNow (msg vis' ivis')
                 let call_set' = foldr HS.insert call_set calls'
-                (lss, tot) <- go useANSI call_set' vis' ivis'
+                (lss, tot) <- go useANSI call_set' limit' vis' ivis'
                 return (toAdd ++ lss, tot)
               else return (toAdd, vis'+ivis')
             ir -> do
