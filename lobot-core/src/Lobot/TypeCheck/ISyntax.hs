@@ -26,6 +26,7 @@ module Lobot.TypeCheck.ISyntax
   , CheckField(..)
   , FunctionType(..)
   , DerivedConstraint(..)
+  , getDerivedConstraintKinds
   , Type
   , unIType
   , Expr(..)
@@ -38,6 +39,7 @@ module Lobot.TypeCheck.ISyntax
   , unILLit
   ) where
 
+import Data.List.NonEmpty
 import Data.Parameterized.Classes
 import Data.Parameterized.Some
 import Data.Parameterized.Context
@@ -87,8 +89,13 @@ data FunctionType = FunType { funType :: Some T.FunctionTypeRepr
 -- 'DerivedConstraint's, which are essentially pointers to where to get
 -- additional constraints in the second pass, once they're typechecked.
 data DerivedConstraint = FromKind LText
-                       | FromField LText [DerivedConstraint]
+                       | FromField LText (NonEmpty DerivedConstraint)
                        deriving Show
+
+-- | The list of all kind names in a derived constraint.
+getDerivedConstraintKinds :: DerivedConstraint -> NonEmpty LText
+getDerivedConstraintKinds (FromKind k) = k :| []
+getDerivedConstraintKinds (FromField _ dcns) = dcns >>= getDerivedConstraintKinds
 
 type Type = (S.LType, Some T.TypeRepr, [DerivedConstraint])
 

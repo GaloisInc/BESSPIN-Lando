@@ -22,6 +22,7 @@ import qualified Data.HashSet as HS
 import qualified Text.PrettyPrint as PP
 
 import Data.Text (Text)
+import Data.List.NonEmpty (NonEmpty(..))
 import Control.Monad (foldM_)
 import Control.Monad.State (StateT)
 import Control.Monad.Writer (WriterT, tell)
@@ -36,6 +37,7 @@ import Lobot.Syntax as S
 import Lobot.Types as T
 import Lobot.Pretty as P
 import Lobot.Syntax.Pretty as S
+import Lobot.TypeCheck.ISyntax (DerivedConstraint, getDerivedConstraintKinds)
 
 
 type WithWarnings a = WriterT [TypeWarning] a
@@ -58,6 +60,7 @@ data TypeError = TypeMismatchError S.LExpr SomeTypeOrString (Maybe SomeTypeOrStr
                | AbstractEqualityError S.LExpr SomeTypeOrString
                | TypeUnificationError S.LExpr SomeTypeOrString S.LExpr SomeTypeOrString
                | EnumSetUnificationError S.LExpr SomeTypeOrString S.LExpr SomeTypeOrString
+               | TypeSynonymConstrainedError S.LText DerivedConstraint
                | TypeInferenceError S.LExpr
                | DuplicateEnumNameError S.LType Text
                | EmptyEnumOrSetError S.LType
@@ -115,6 +118,11 @@ ppTypeError fp (EnumSetUnificationError (L p x) xtp (L _ y) ytp) =
   PP.<+> PP.nest 6 (PP.text ":" PP.<+> ppSomeTypeOrString xtp)
   PP.$$  PP.nest 2 (PP.text "-" PP.<+> S.ppExpr y)
   PP.<+> PP.nest 6 (PP.text ":" PP.<+> ppSomeTypeOrString ytp)
+ppTypeError fp (TypeSynonymConstrainedError (L _ t) dcn)
+  | (L p k) :| _ <- getDerivedConstraintKinds dcn =
+  PP.text (errorPrefix fp p)
+  PP.<+> PP.text "The constrained kind" PP.<+> ppQText k
+  PP.<+> PP.text "appears in the definition of the type synonym" PP.<+> ppQText t
 ppTypeError fp (TypeInferenceError (L p x)) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "Could not infer the type of expression:" PP.<+> S.ppExpr x

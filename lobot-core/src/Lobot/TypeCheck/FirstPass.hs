@@ -32,6 +32,8 @@ import qualified Data.HashMap as H
 import qualified Data.HashSet as HS
 
 import Data.Text (Text)
+import Data.Maybe (catMaybes)
+import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import Data.Traversable (forM)
 import Control.Monad (when, forM_)
 import Control.Monad.State (evalStateT, get, modify)
@@ -153,9 +155,11 @@ checkDecl (S.CheckDecl ck) = do
 
 checkDecl (S.TypeSynDecl nm tp) = do
   (Some tp', dcns, enms) <- checkType tp
-  let k' = I.Kind nm tp' [] dcns
-  addKind k' enms
-  pure $ AddIKind k'
+  case dcns of
+    (dcn:_) -> throwError $ TypeSynonymConstrainedError nm dcn
+    [] -> do let k' = I.Kind nm tp' [] []
+             addKind k' enms
+             pure $ AddIKind k'
 
 checkDecl (S.AbsTypeDecl nm) | Some nmSymb <- someSymbol (unLoc nm) = do
   let tp = T.AbsRepr nmSymb
@@ -186,9 +190,9 @@ checkType tp@((L _ (S.SetType cs))) | Some cs' <- someSymbols cs = do
     Right _ -> throwError (EmptyEnumOrSetError tp)
 
 checkType (L _ (S.StructType fls)) = do
-  (Some fls', dcns, enms) <- mapFst3 fromList . unzip3 <$> mapM checkFieldType fls
+  (Some fls', mb_dcns, enms) <- mapFst3 fromList . unzip3 <$> mapM checkFieldType fls
   ensureUnique unLoc (fmap fst fls) FieldNameAlreadyDefined
-  pure (Some (T.StructRepr fls'), dcns, HS.unions enms)
+  pure (Some (T.StructRepr fls'), catMaybes mb_dcns, HS.unions enms)
 
 checkType (L p (S.KindNames [])) = throwError (InternalError p "empty kind union")
 checkType (L _ (S.KindNames [k])) = do
@@ -202,11 +206,11 @@ checkType (L p (S.KindNames (k:ks))) = do
     Nothing -> throwError (KindUnionMismatchError k (Some ks_tp) (Some k_tp))
 
 checkFieldType :: (LText, S.LType)
-               -> CtxM1 (Some FieldRepr, I.DerivedConstraint, EnumNameSet)
+               -> CtxM1 (Some FieldRepr, Maybe I.DerivedConstraint, EnumNameSet)
 checkFieldType (f, tp) = do
   Some f' <- pure $ someSymbol (unLoc f)
   (Some tp', dcns, enms) <- checkType tp
-  pure (Some (FieldRepr f' tp'), I.FromField f dcns, enms)
+  pure (Some (FieldRepr f' tp'), I.FromField f <$> nonEmpty dcns, enms)
 
 
 checkFunctionType :: S.FunctionType -> CtxM1 (I.FunctionType, [EnumNameSet])
