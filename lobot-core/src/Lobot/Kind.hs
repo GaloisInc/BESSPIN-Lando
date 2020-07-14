@@ -159,6 +159,7 @@ giveSelf s e = case e of
   MemberExpr e1 e2 -> MemberExpr (giveSelf s e1) (giveSelf s e2)
   AndExpr e1 e2 -> AndExpr (giveSelf s e1) (giveSelf s e2)
   OrExpr e1 e2 -> OrExpr (giveSelf s e1) (giveSelf s e2)
+  XorExpr e1 e2 -> XorExpr (giveSelf s e1) (giveSelf s e2)
   ImpliesExpr e1 e2 -> ImpliesExpr (giveSelf s e1) (giveSelf s e2)
   NotExpr e' -> NotExpr (giveSelf s e')
 {-# COMPLETE
@@ -177,6 +178,7 @@ giveSelf s e = case e of
   , MemberExpr
   , AndExpr
   , OrExpr
+  , XorExpr
   , ImpliesExpr
   , NotExpr #-}
 

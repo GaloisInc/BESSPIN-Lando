@@ -111,6 +111,9 @@ data Expr (ctx :: Ctx T.Type) where
   PlusExpr       :: LExpr ctx -> LExpr ctx -> Expr ctx
   MinusExpr      :: LExpr ctx -> LExpr ctx -> Expr ctx
   TimesExpr      :: LExpr ctx -> LExpr ctx -> Expr ctx
+  AndExpr        :: LExpr ctx -> LExpr ctx -> Expr ctx
+  OrExpr         :: LExpr ctx -> LExpr ctx -> Expr ctx
+  XorExpr        :: LExpr ctx -> LExpr ctx -> Expr ctx
   MemberExpr     :: LExpr ctx -> LExpr ctx -> Expr ctx
   ImpliesExpr    :: LExpr ctx -> LExpr ctx -> Expr ctx
   NotExpr        :: LExpr ctx -> Expr ctx
@@ -133,6 +136,9 @@ unIExpr (GtExpr x y) = S.GtExpr (unILExpr x) (unILExpr y)
 unIExpr (PlusExpr x y) = S.PlusExpr (unILExpr x) (unILExpr y)
 unIExpr (MinusExpr x y) = S.MinusExpr (unILExpr x) (unILExpr y)
 unIExpr (TimesExpr x y) = S.TimesExpr (unILExpr x) (unILExpr y)
+unIExpr (AndExpr x y) = S.AndExpr (unILExpr x) (unILExpr y)
+unIExpr (OrExpr x y) = S.OrExpr (unILExpr x) (unILExpr y)
+unIExpr (XorExpr x y) = S.XorExpr (unILExpr x) (unILExpr y)
 unIExpr (MemberExpr x y) = S.MemberExpr (unILExpr x) (unILExpr y)
 unIExpr (ImpliesExpr x y) = S.ImpliesExpr (unILExpr x) (unILExpr y)
 unIExpr (NotExpr x) = S.NotExpr (unILExpr x)

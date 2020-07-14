@@ -264,6 +264,18 @@ guessExpr env ctx (L _ (I.MemberExpr x y)) = do
                                            (TypeString "an enum")
                                            (Just $ SomeType xtp))
 
+guessExpr env ctx (L _ (I.AndExpr x y)) = do
+  x' <- checkExpr env ctx T.BoolRepr x
+  y' <- checkExpr env ctx T.BoolRepr y
+  pure (False, Pair T.BoolRepr (E.AndExpr x' y'))
+guessExpr env ctx (L _ (I.OrExpr x y)) = do
+  x' <- checkExpr env ctx T.BoolRepr x
+  y' <- checkExpr env ctx T.BoolRepr y
+  pure (False, Pair T.BoolRepr (E.OrExpr x' y'))
+guessExpr env ctx (L _ (I.XorExpr x y)) = do
+  x' <- checkExpr env ctx T.BoolRepr x
+  y' <- checkExpr env ctx T.BoolRepr y
+  pure (False, Pair T.BoolRepr (E.XorExpr x' y'))
 guessExpr env ctx (L _ (I.ImpliesExpr x y)) = do
   x' <- checkExpr env ctx T.BoolRepr x
   y' <- checkExpr env ctx T.BoolRepr y

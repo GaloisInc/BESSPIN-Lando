@@ -175,9 +175,11 @@ ppExpr' _ env ctx nms (TimesExpr e1 e2) =
 ppExpr' _ env ctx nms (MemberExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "in" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (AndExpr e1 e2) =
-  ppExpr' False env ctx nms e1 PP.<+> PP.text "and" PP.<+> ppExpr' False env ctx nms e2
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "&" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (OrExpr e1 e2) =
-  ppExpr' False env ctx nms e1 PP.<+> PP.text "or" PP.<+> ppExpr' False env ctx nms e2
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "|" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (XorExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "^" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (ImpliesExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "=>" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (NotExpr e) = PP.text "not" PP.<+> ppExpr' False env ctx nms e

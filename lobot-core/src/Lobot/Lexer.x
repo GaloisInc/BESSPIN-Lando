@@ -95,6 +95,9 @@ tokens :-
     "+"           { tok PLUS }
     "-"           { tok MINUS }
     "*"           { tok TIMES }
+    "|"           { tok OR }
+    "&"           { tok AND }
+    "^"           { tok XOR }
     in            { tok IN }
     "=>"          { tok IMPLIES }
     not           { tok NOT }
@@ -153,6 +156,9 @@ data TokenType = BOOL
                | PLUS
                | MINUS
                | TIMES
+               | OR
+               | AND
+               | XOR
                | IN
                | IMPLIES
                | NOT

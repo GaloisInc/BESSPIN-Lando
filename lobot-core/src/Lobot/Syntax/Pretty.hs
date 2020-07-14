@@ -151,6 +151,12 @@ ppExpr' _ (TimesExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "*" PP.<+> ppLExpr' False e2
 ppExpr' _ (MemberExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "in" PP.<+> ppLExpr' False e2
+ppExpr' _ (AndExpr e1 e2) =
+  ppLExpr' False e1 PP.<+> PP.text "&" PP.<+> ppLExpr' False e2
+ppExpr' _ (OrExpr e1 e2) =
+  ppLExpr' False e1 PP.<+> PP.text "|" PP.<+> ppLExpr' False e2
+ppExpr' _ (XorExpr e1 e2) =
+  ppLExpr' False e1 PP.<+> PP.text "^" PP.<+> ppLExpr' False e2
 ppExpr' _ (ImpliesExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "=>" PP.<+> ppLExpr' False e2
 ppExpr' _ (NotExpr e) = PP.text "not" PP.<+> ppLExpr' False e

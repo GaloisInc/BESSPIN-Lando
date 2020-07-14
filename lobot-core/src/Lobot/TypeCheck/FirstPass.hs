@@ -298,6 +298,18 @@ checkExpr enms ctx (L p (S.MemberExpr x y)) = do
   x' <- checkExpr enms ctx x
   y' <- checkExpr enms ctx y
   pure $ L p (I.MemberExpr x' y')
+checkExpr enms ctx (L p (S.AndExpr x y)) = do
+  x' <- checkExpr enms ctx x
+  y' <- checkExpr enms ctx y
+  pure $ L p (I.AndExpr x' y')
+checkExpr enms ctx (L p (S.OrExpr x y)) = do
+  x' <- checkExpr enms ctx x
+  y' <- checkExpr enms ctx y
+  pure $ L p (I.OrExpr x' y')
+checkExpr enms ctx (L p (S.XorExpr x y)) = do
+  x' <- checkExpr enms ctx x
+  y' <- checkExpr enms ctx y
+  pure $ L p (I.XorExpr x' y')
 checkExpr enms ctx (L p (S.ImpliesExpr x y)) = do
   x' <- checkExpr enms ctx x
   y' <- checkExpr enms ctx y

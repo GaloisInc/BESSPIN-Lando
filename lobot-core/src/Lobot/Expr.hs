@@ -43,6 +43,7 @@ import Lobot.Types
 import qualified Control.Monad.State as S
 import qualified Data.ByteString as BS
 
+import Data.Bits (xor)
 import Data.List (find)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Classes
@@ -93,6 +94,8 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   AndExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical or.
   OrExpr      :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
+  -- | Logical xor.
+  XorExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical implication.
   ImpliesExpr :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical negation.
@@ -246,6 +249,10 @@ evalExpr fns ls e = case e of
     EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
     EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (b1 || b2))
+  XorExpr e1 e2 -> do
+    EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
+    EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (b1 `xor` b2))
   ImpliesExpr e1 e2 -> do
     EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
     EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
