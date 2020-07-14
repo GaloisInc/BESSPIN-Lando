@@ -14,9 +14,8 @@ def main (argv = None):
 
     json_data = json.loads(json_str)
 
-    # Bug: arguments are in the wrong order.
-    simulator = json_data[1]
-    test = json_data[0]
+    simulator = json_data[0]
+    test = json_data[1]
 
     path = simulator["value"]
     test_name = test["value"]

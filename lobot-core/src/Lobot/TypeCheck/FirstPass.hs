@@ -222,7 +222,7 @@ checkFunctionType :: S.FunctionType -> CtxM1 (I.FunctionType, [EnumNameSet])
 checkFunctionType (S.FunType (L _ fn) arg_tps ret_tp) = do
   Some fn' <- pure $ someSymbol fn
   (Some arg_tps', arg_dcns, arg_enms) <- mapFst3 fromList . unzip3 <$>
-                                           mapM checkType (reverse arg_tps)
+                                           mapM checkType arg_tps
   (Some ret_tp', ret_dcns, _) <- checkType ret_tp
   pure (I.FunType (Some $ FunctionTypeRepr fn' arg_tps' ret_tp') arg_dcns ret_dcns, arg_enms)
 
@@ -261,7 +261,7 @@ checkExpr _ ctx (L p S.SelfExpr)
 checkExpr enms ctx (L p (S.ApplyExpr fn args)) = do
   (_, arg_enms) <- lookupFunction fn
   args' <- mapM (\(a, enms') -> checkExpr (enms `HS.union` enms') ctx a)
-                (zip args (reverse arg_enms))
+                (zip args arg_enms)
   pure $ L p (I.ApplyExpr fn args')
 
 -- the remaining cases are mechanical
