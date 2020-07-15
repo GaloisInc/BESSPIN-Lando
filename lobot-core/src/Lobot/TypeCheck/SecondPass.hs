@@ -176,7 +176,7 @@ guessExpr env ctx (L _ (I.FieldExpr x (L p f))) = do
 guessExpr env ctx (L _ (I.ApplyExpr fn xs)) = do
   Some fi <- lookupFunction env fn
   fntp@FunctionTypeRepr{..} <- pure $ env ! fi
-  mxs' <- checkExprs env ctx functionArgTypes xs
+  mxs' <- checkExprs env ctx functionArgTypes (reverse xs)
   case mxs' of
     Just xs' -> pure (False, Pair functionRetType (E.ApplyExpr fi xs'))
     Nothing -> throwError (FunctionArgLengthError fn (Some fntp) (unILExpr <$> xs))

@@ -16,9 +16,9 @@ def main (argv = None):
     json_data = json.loads(json_str)
 
     # Test id
-    test_id = json_data[0]
+    riscv = json_data[0]
+    test_id = json_data[1]
     id_val = test_id["value"]
-    riscv = json_data[1]
 
     reg_width = riscv["fields"][0]["value"]
     exts = riscv["fields"][1]["value"]

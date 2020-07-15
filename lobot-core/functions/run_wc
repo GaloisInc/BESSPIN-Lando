@@ -11,8 +11,8 @@ for line in sys.stdin:
 
 json_data = json.loads(json_str)
 
-filepath = json_data[0]['value']
-wc_config = json_data[1]['constructors'][json_data[1]['value']]
+wc_config = json_data[0]['constructors'][json_data[0]['value']]
+filepath = json_data[1]['value']
 
 command = "wc "
 if wc_config == "C":
