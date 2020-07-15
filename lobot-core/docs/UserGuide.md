@@ -528,7 +528,7 @@ both : kind of a_implies_c doesnt_have_c
 ```
 
 ```
-$ lobot -e both enum.lobot     
+$ lobot -e both enum.lobot
 Instance 1:
   {}
 Press enter to see the next instance
@@ -540,4 +540,55 @@ Press enter to see the next instance
 Enumerated all 2 valid instances, generated 0 invalid instances
 ```
 
+### Structs
+
+In Lobot, _structs_ are the basic way we form compound types and package
+multiple values into a single data structure. We have seen several examples of
+structs already. Here's another one:
+
+```
+even_int : kind of struct
+  with i : int
+       j : int
+  where i = 2 * j
+
+odd_int : kind of struct
+  with i : int
+       j : int
+  where i = 2 * j + 1
+
+-- Check that even and odd ints are distinct.
+even_odd_check : check
+  on e : even_int
+     o : odd_int
+  that not (e.i = o.i)
+```
+
+### Abstract types
+
+We can declare brand new types in Lobot, without specifying the values they
+take:
+
+```
+abstract type t
+
+type two_ts = struct
+  with t1 : t
+       t2 : t
+```
+
+However, if we try to generate instances of `two_ts`, something interesting
+happens:
+
+```
+$ lobot -e two_ts abstract.lobot
+Cannot generate instances of abstract type.
+```
+
+Abstract types cannot be enumerated by Lobot, because we know nothing about
+their value set. So, why are they part of Lobot? Because they can be used as
+return values and arguments to _abstract functions_.
+
 ## Abstract functions
+
+## JSON API

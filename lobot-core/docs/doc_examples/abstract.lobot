@@ -1,0 +1,5 @@
+abstract type t
+
+type two_ts = struct
+  with t1 : t
+       t2 : t

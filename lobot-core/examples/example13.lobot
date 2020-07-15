@@ -6,4 +6,9 @@ problem : kind of struct
   with a : domain
        b : domain
        c : domain
+
+problem1 : kind of problem
   where a > b, not (b = c), not (a = c)
+
+problem2 : kind of problem
+  where a > b, b = c

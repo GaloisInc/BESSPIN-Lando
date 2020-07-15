@@ -88,6 +88,7 @@
   		 max-width: 980px;
   		 margin: 0 auto;
   		 padding: 45px;
+       background-color: ivory;
    }
 
    @media (max-width: 767px) {
@@ -117,8 +118,11 @@
 <li><a href="#booleans"><span class="toc-section-number">2.1.2</span> Booleans</a></li>
 <li><a href="#integers"><span class="toc-section-number">2.1.3</span> Integers</a></li>
 <li><a href="#enumerations-and-enumeration-sets"><span class="toc-section-number">2.1.4</span> Enumerations and enumeration sets</a></li>
+<li><a href="#structs"><span class="toc-section-number">2.1.5</span> Structs</a></li>
+<li><a href="#abstract-types"><span class="toc-section-number">2.1.6</span> Abstract types</a></li>
 </ul></li>
 <li><a href="#abstract-functions"><span class="toc-section-number">2.2</span> Abstract functions</a></li>
+<li><a href="#json-api"><span class="toc-section-number">2.3</span> JSON API</a></li>
 </ul></li>
 </ul>
 </nav>
@@ -408,7 +412,7 @@ doesnt_have_c : kind of abc_set
   where not (C in self)
 
 both : kind of a_implies_c doesnt_have_c</code></pre>
-<pre><code>$ lobot -e both enum.lobot     
+<pre><code>$ lobot -e both enum.lobot
 Instance 1:
   {}
 Press enter to see the next instance
@@ -418,6 +422,35 @@ Instance 2:
 Press enter to see the next instance
 
 Enumerated all 2 valid instances, generated 0 invalid instances</code></pre>
+<h3 data-number="2.1.5" id="structs"><span class="header-section-number">2.1.5</span> Structs</h3>
+<p>In Lobot, <em>structs</em> are the basic way we form compound types and package multiple values into a single data structure. We have seen several examples of structs already. Here’s another one:</p>
+<pre><code>even_int : kind of struct
+  with i : int
+       j : int
+  where i = 2 * j
+
+odd_int : kind of struct
+  with i : int
+       j : int
+  where i = 2 * j + 1
+
+-- Check that even and odd ints are distinct.
+even_odd_check : check
+  on e : even_int
+     o : odd_int
+  that not (e.i = o.i)</code></pre>
+<h3 data-number="2.1.6" id="abstract-types"><span class="header-section-number">2.1.6</span> Abstract types</h3>
+<p>We can declare brand new types in Lobot, without specifying the values they take:</p>
+<pre><code>abstract type t
+
+type two_ts = struct
+  with t1 : t
+       t2 : t</code></pre>
+<p>However, if we try to generate instances of <code>two_ts</code>, something interesting happens:</p>
+<pre><code>$ lobot -e two_ts abstract.lobot
+Cannot generate instances of abstract type.</code></pre>
+<p>Abstract types cannot be enumerated by Lobot, because we know nothing about their value set.</p>
 <h2 data-number="2.2" id="abstract-functions"><span class="header-section-number">2.2</span> Abstract functions</h2>
+<h2 data-number="2.3" id="json-api"><span class="header-section-number">2.3</span> JSON API</h2>
 </body>
 </html>

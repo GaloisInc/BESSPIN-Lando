@@ -10,6 +10,8 @@ for line in sys.stdin:
 
 json_data = json.loads(json_str)
 
+# Incoming JSON data has this format:
+# [ { "variant": "int", "value": <value> } ]
 i = json_data[0]['value']
 json_data[0]['value'] = i + 1
 

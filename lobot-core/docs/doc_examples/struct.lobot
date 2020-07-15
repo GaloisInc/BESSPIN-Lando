@@ -1,0 +1,15 @@
+even_int : kind of struct
+  with i : int
+       j : int
+  where i = 2 * j
+
+odd_int : kind of struct
+  with i : int
+       j : int
+  where i = 2 * j + 1
+
+-- Check that even and odd ints are distinct.
+even_odd_check : check
+  on e : even_int
+     o : odd_int
+  that not (e.i = o.i)
