@@ -148,6 +148,10 @@ ppExpr' _ (MinusExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "-" PP.<+> ppLExpr' False e2
 ppExpr' _ (TimesExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "*" PP.<+> ppLExpr' False e2
+ppExpr' _ (ModExpr e1 e2) =
+  ppLExpr' False e1 PP.<+> PP.text "%" PP.<+> ppLExpr' False e2
+ppExpr' _ (DivExpr e1 e2) =
+  ppLExpr' False e1 PP.<+> PP.text "/" PP.<+> ppLExpr' False e2
 ppExpr' _ (MemberExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "in" PP.<+> ppLExpr' False e2
 ppExpr' _ (AndExpr e1 e2) =

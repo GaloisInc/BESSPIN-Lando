@@ -101,6 +101,8 @@ tokens :-
     "+"           { tok PLUS }
     "-"           { tok MINUS }
     "*"           { tok TIMES }
+    "/"           { tok DIV }
+    "%"           { tok MOD }
     "|"           { tok OR }
     "&"           { tok AND }
     "^"           { tok XOR }
@@ -162,6 +164,8 @@ data TokenType = BOOL
                | PLUS
                | MINUS
                | TIMES
+               | MOD
+               | DIV
                | OR
                | AND
                | XOR

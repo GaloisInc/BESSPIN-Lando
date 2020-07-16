@@ -62,6 +62,8 @@ import Lobot.Utils
   '+'         { L _ (Token PLUS _) }
   '-'         { L _ (Token MINUS _) }
   '*'         { L _ (Token TIMES _) }
+  '%'         { L _ (Token MOD _) }
+  '/'         { L _ (Token DIV _) }
   '&'         { L _ (Token AND _) }
   '|'         { L _ (Token OR _) }
   '^'         { L _ (Token XOR _) }
@@ -92,7 +94,7 @@ import Lobot.Utils
 %left     '&'
 %nonassoc '=' '<=' '<' '>=' '>'
 %left     '+' '-'
-%left     '*'
+%left     '*' '/' '%'
 %nonassoc 'not'
 %nonassoc 'in'
 %left     '.'
@@ -171,6 +173,8 @@ expr : lit                         { loc $1 $ LiteralExpr $1 }
      | expr '+' expr               { loc $1 $ PlusExpr $1 $3 }
      | expr '-' expr               { loc $1 $ MinusExpr $1 $3 }
      | expr '*' expr               { loc $1 $ TimesExpr $1 $3 }
+     | expr '%' expr               { loc $1 $ ModExpr $1 $3 }
+     | expr '/' expr               { loc $1 $ ModExpr $1 $3 }
      | expr '&' expr               { loc $1 $ AndExpr $1 $3 }
      | expr '|' expr               { loc $1 $ OrExpr $1 $3 }
      | expr '^' expr               { loc $1 $ XorExpr $1 $3 }

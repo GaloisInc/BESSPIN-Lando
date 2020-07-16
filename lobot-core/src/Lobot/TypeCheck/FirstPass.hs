@@ -303,6 +303,14 @@ checkExpr enms ctx (L p (S.TimesExpr x y)) = do
   x' <- checkExpr enms ctx x
   y' <- checkExpr enms ctx y
   pure $ L p (I.TimesExpr x' y')
+checkExpr enms ctx (L p (S.ModExpr x y)) = do
+  x' <- checkExpr enms ctx x
+  y' <- checkExpr enms ctx y
+  pure $ L p (I.ModExpr x' y')
+checkExpr enms ctx (L p (S.DivExpr x y)) = do
+  x' <- checkExpr enms ctx x
+  y' <- checkExpr enms ctx y
+  pure $ L p (I.DivExpr x' y')
 checkExpr enms ctx (L p (S.MemberExpr x y)) = do
   x' <- checkExpr enms ctx x
   y' <- checkExpr enms ctx y
