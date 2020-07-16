@@ -112,7 +112,7 @@
 </ul></li>
 <li><a href="#the-lobot-language"><span class="toc-section-number">2</span> The Lobot language</a>
 <ul>
-<li><a href="#types-type-synonyms-and-kinds"><span class="toc-section-number">2.1</span> Types, type synonyms, and kinds</a>
+<li><a href="#types-and-kinds"><span class="toc-section-number">2.1</span> Types and kinds</a>
 <ul>
 <li><a href="#type-synonyms"><span class="toc-section-number">2.1.1</span> Type synonyms</a></li>
 <li><a href="#booleans"><span class="toc-section-number">2.1.2</span> Booleans</a></li>
@@ -122,14 +122,14 @@
 <li><a href="#abstract-types"><span class="toc-section-number">2.1.6</span> Abstract types</a></li>
 </ul></li>
 <li><a href="#abstract-functions"><span class="toc-section-number">2.2</span> Abstract functions</a></li>
-<li><a href="#json-api"><span class="toc-section-number">2.3</span> JSON API</a></li>
+<li><a href="#json-api"><span class="toc-section-number">2.3</span> JSON API</a>
+<ul>
+<li><a href="#function-calls"><span class="toc-section-number">2.3.1</span> Function calls</a></li>
+</ul></li>
 </ul></li>
 </ul>
 </nav>
 <h1 data-number="1" id="introduction"><span class="header-section-number">1</span> Introduction</h1>
-<p>Lobot is a language for defining <em>constrained data types</em> – data types with arbitrary logical constraints attached to them. The Lobot instance generator can enumerate all instances of a data structure and check that they satisfy arbitrary properties.</p>
-<p>Lobot will be used as an IR for features models in Lando. Most of the core functionality of Lando will be implemented at the level of Lobot.</p>
-<p>This release is a development snapshot. Please contact Ben Selfridge (benselfridge@galois.com) and Matt Yacavone (myac@galois.com) if you have any questions about it.</p>
 <h2 data-number="1.1" id="what-is-lobot"><span class="header-section-number">1.1</span> What is Lobot?</h2>
 <p>Lobot is a language for describing data types (ints, structs, etc.) with constraints attached to them. It is also a tool for enumerating the values of those types, and checking that the enumerated values satisfy certain properties.</p>
 <p>Lobot uses an SMT solver to enumerate and check constrained types (called <em>kinds</em>), and it has very similar expressive power to constraint programming languages (like MiniZinc). However, Lobot does more than model a problem; it can directly interact with real-world applications and incorporate them into its reasoning engine. In other words, we can call a command line tool with Lobot and use it as part of a constraint in a kind we are defining. This allows us to talk about properties of external software and actually verify that various properties hold about that software.</p>
@@ -138,7 +138,7 @@
 <p>Suppose I wanted to define a data type that represents all pairs of positive integers that sum to 100. I could do that in Lobot by first defining the concept of a positive integer:</p>
 <pre><code>-- Positive integers.
 posint : kind of int where 1 &lt;= self</code></pre>
-<p>Then, I can create pairs of positive integers by creating a <code>struct</code>:</p>
+<p>Then, I can create pairs of positive integers by defining a kind of <code>struct</code>:</p>
 <pre><code>-- Unique pairs of positive integers
 unique_posint_pair : kind of struct
   with x : posint
@@ -221,8 +221,11 @@ Enumerated all 1 valid instances, generated 1 invalid instances</code></pre>
 <pre><code>add1_is_0 : kind of int where add1(self) = 0</code></pre>
 <p>Let’s enumerate this kind:</p>
 <pre><code>$ lobot -e add1_is_0 add1.lobot
-Generating instances of &#39;add1_is_0&#39;...</code></pre>
-<p>Uh-oh! Lobot hangs when we ask it to enumerate instances of this kind. Let’s use the <code>-v</code> option to try and figure out what’s going on:</p>
+Generating instances of &#39;add1_is_0&#39;...
+Hit instance limit of 100!
+Found 0 valid instances, generated 100 invalid instances
+Press enter to continue enumerating up to 100 more instances.</code></pre>
+<p>Looks like we generated 100 invalid instances, but were not able to find a solution. We could keep pressing enter to just continue the search, but instead, let’s use the <code>-v</code> option to try and figure out what’s going on:</p>
 <pre><code>$ lobot -e add1_is_0 -v add1.lobot
 Generated an invalid instance:
   1
@@ -247,7 +250,7 @@ The constraints that failed were:
 Learned the values of the following function calls:
   add1(5) = 6
 Press enter to see the next instance</code></pre>
-<p>Here, we see that Lobot is effectively attempting to find a solution to <code>add1(x) = 0</code> by enumerating positive values of <code>x</code> until it finds one (for some reason, it is only checking odd values). However, this strategy will never yield a valid instance, because the solution to this equation is <code>-1</code>, which is negative. We can help Lobot out by constraining the search space a bit:</p>
+<p>Here, we see that Lobot is attempting to find a solution to <code>add1(x) = 0</code> by enumerating positive values of <code>x</code> until it finds one (for some reason, it is only checking the odd values). However, this strategy will never yield a valid instance, because the solution to this equation is <code>-1</code>, which is negative. We can help Lobot out by constraining the search space a bit:</p>
 <pre><code>add1_is_0 : kind of int
   where add1(self) = 0
         -10 &lt;= self
@@ -262,7 +265,7 @@ Enumerated all 1 valid instances, generated 20 invalid instances</code></pre>
 <p>Not only has Lobot found the solution, <code>-1</code>, it has determined that it is the only solution in the range <code>-10 &lt;= x &lt;= 10</code> via exhaustively checking every value in that range. Since <code>add1</code> could have been any function, and Lobot knows nothing about its behavior, we couldn’t reasonably expect it to do anything more clever than an exhaustive search.</p>
 <p>In general, Lobot knows nothing about real-world functions until it actually evaluates calls to it for particular values. Therefore, we need to be careful when enumerating instances of kinds that are constrained by such functions.</p>
 <h1 data-number="2" id="the-lobot-language"><span class="header-section-number">2</span> The Lobot language</h1>
-<h2 data-number="2.1" id="types-type-synonyms-and-kinds"><span class="header-section-number">2.1</span> Types, type synonyms, and kinds</h2>
+<h2 data-number="2.1" id="types-and-kinds"><span class="header-section-number">2.1</span> Types and kinds</h2>
 <p>The base types of Lobot are:</p>
 <ul>
 <li>booleans</li>
@@ -272,6 +275,30 @@ Enumerated all 1 valid instances, generated 20 invalid instances</code></pre>
 <li>structs</li>
 <li>abstract types</li>
 </ul>
+<p>A <em>constraint</em> is an expression that can be evaluated over a value of a particular type. For instance, if <code>a : bool</code> and <code>b : bool</code>, then <code>a | b</code> is the constraint that either <code>a = true</code> or <code>b = true</code>.</p>
+<p>A <em>kind</em> is a type plus a list of constraints. For instance, we can define the kind of integers between 0 and 5, or 5 and 10:</p>
+<pre><code>int_0_5  : kind of int where 0 &lt;= self, self &lt;= 5
+int_5_10 : kind of int where 5 &lt;= self, self &lt;= 10</code></pre>
+<p>We can then use values of this kind in other kinds:</p>
+<pre><code>two_ints : kind of struct
+  with x : int_0_5
+       y : int_5_10</code></pre>
+<p>Equivalently, we could also specify this via explicit constraints:</p>
+<pre><code>two_ints : kind of struct
+  with x : int
+       y : int
+  where x : int_0_5
+        y : int_5_10</code></pre>
+<p>Both of the above definitions are equivalent to:</p>
+<pre><code>two_ints : kind of struct
+  with x : int
+       y : int
+  where 0 &lt;= x
+        x &lt;= 5
+        5 &lt;= y
+        y &lt;= 10</code></pre>
+<p>We can also combine multiple kinds into a kind that represents all the constraints of the "parent" kind:</p>
+<pre><code>int_5 : kind of int_0_5 int_5_10</code></pre>
 <h3 data-number="2.1.1" id="type-synonyms"><span class="header-section-number">2.1.1</span> Type synonyms</h3>
 <p>Before we discuss these types individually, it will be helpful to introduce <em>type synonyms</em>. We can declare a new type synonym:</p>
 <pre><code>type &lt;name&gt; = &lt;type&gt;</code></pre>
@@ -338,6 +365,16 @@ Found 100 valid instances, generated 0 invalid instances</code></pre>
 Hit instance limit of 10000!
 Found 10000 valid instances, generated 0 invalid instances</code></pre>
 <p>After a minute or two, Lobot finally determines that there are at least <code>10000</code> instances of <code>int</code>. So, in case you didn’t realize it – there are more than ten thousand integers!</p>
+<p>Lobot can factor integers:</p>
+<pre><code>factor_120 : kind of struct
+  with p : int, q : int
+  where p * q = 120
+        p &gt; 1
+        q &gt; 1</code></pre>
+<pre><code>$ lobot -e factor_120 int.lobot
+Instance 1:
+  factor_120 with {p = 20, q = 6}
+Press enter to see the next instance.</code></pre>
 <p>If we are in a high school algebra class, we can use Lobot to do our homework on linear systems of equations for us:</p>
 <pre><code>type pair = struct with x : int, y : int
 
@@ -449,8 +486,117 @@ type two_ts = struct
 <p>However, if we try to generate instances of <code>two_ts</code>, something interesting happens:</p>
 <pre><code>$ lobot -e two_ts abstract.lobot
 Cannot generate instances of abstract type.</code></pre>
-<p>Abstract types cannot be enumerated by Lobot, because we know nothing about their value set.</p>
+<p>Abstract types cannot be enumerated by Lobot, because we know nothing about their value set. So, why are they part of Lobot? Because they can be used as return values and arguments to <em>abstract functions</em>.</p>
 <h2 data-number="2.2" id="abstract-functions"><span class="header-section-number">2.2</span> Abstract functions</h2>
+<p>The main distinction of Lobot over other constraint solving languages is that it is designed to establish properties of real-world applications.</p>
+<p>Suppose I have I have a command-line tool called <code>write_nlines</code> that takes a single integer argument <code>n</code>, and outputs a file called <code>tmp.txt</code> that contains <code>n</code> lines. I also have another tool that takes a filepath as an argument and counts the number of lines in the file. The <code>wc</code> command, with the <code>-l</code> option, is such a tool. I would like to verify that if I call <code>write_nlines</code> with an argument <code>n</code>, and then I call <code>wc -l</code> on the resulting file, I get <code>n</code> back.</p>
+<p>How do we specify the type of <code>write_nlines</code>? It isn’t really a “function” in the mathematical sense of the word, as it doesn’t exactly return a value so much as it affects the world. In order to make it something Lobot can reason about, we need to find a way to package its affect on the world as a Lobot value. We can do this by modeling it as a function that returns a <em>filepath</em>, which will be the name of the file that gets written (<code>tmp.txt</code>). However, since a filepath is not a built-in Lobot type, our first task is to declare a new abstract type:</p>
+<pre><code>abstract type filepath</code></pre>
+<p>Now, we can declare the <code>write_nlines</code> function:</p>
+<pre><code>abstract write_nlines : int -&gt; filepath</code></pre>
+<p>The <code>wc</code> command can take a variety of options, so we might as well model that:</p>
+<pre><code>-- C for characters, L for lines, W for words
+wc_option = { C, L, W }
+
+wc_wrapper : (wc_option, filepath) -&gt; int</code></pre>
+<p>We can now state our desired property as a <code>check</code>:</p>
+<pre><code>write_nlines_check : check
+  on i : int
+  where 0 &lt;= i, i &lt;= 50
+  that wc_wrapper(L, write_nlines(i)) = i</code></pre>
+<p>Now, in order to actually run this Lobot file, the <code>write_nlines</code> and <code>wc_wrapper</code> commands must be on our <code>PATH</code>, and they must conform to Lobot’s function call API (described in a later section of this document).</p>
+<p>Here is a python-based implementation of <code>write_nlines</code>:</p>
+<div class="sourceCode" id="cb54"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true"></a><span class="co">#!/usr/bin/python3</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true"></a></span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true"></a><span class="im">import</span> json</span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true"></a><span class="im">import</span> sys</span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true"></a></span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true"></a>json_str <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb54-7"><a href="#cb54-7" aria-hidden="true"></a></span>
+<span id="cb54-8"><a href="#cb54-8" aria-hidden="true"></a><span class="cf">for</span> line <span class="kw">in</span> sys.stdin:</span>
+<span id="cb54-9"><a href="#cb54-9" aria-hidden="true"></a>  json_str <span class="op">+=</span> line</span>
+<span id="cb54-10"><a href="#cb54-10" aria-hidden="true"></a></span>
+<span id="cb54-11"><a href="#cb54-11" aria-hidden="true"></a>json_data <span class="op">=</span> json.loads(json_str)</span>
+<span id="cb54-12"><a href="#cb54-12" aria-hidden="true"></a></span>
+<span id="cb54-13"><a href="#cb54-13" aria-hidden="true"></a>num_lines <span class="op">=</span> json_data[<span class="dv">0</span>][<span class="st">&#39;value&#39;</span>]</span>
+<span id="cb54-14"><a href="#cb54-14" aria-hidden="true"></a></span>
+<span id="cb54-15"><a href="#cb54-15" aria-hidden="true"></a>f <span class="op">=</span> <span class="bu">open</span>(<span class="st">&quot;tmp.txt&quot;</span>, <span class="st">&quot;w&quot;</span>)</span>
+<span id="cb54-16"><a href="#cb54-16" aria-hidden="true"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, num_lines):</span>
+<span id="cb54-17"><a href="#cb54-17" aria-hidden="true"></a>  f.write(<span class="st">&quot;Line &quot;</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="op">+</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb54-18"><a href="#cb54-18" aria-hidden="true"></a></span>
+<span id="cb54-19"><a href="#cb54-19" aria-hidden="true"></a>json_output <span class="op">=</span> {</span>
+<span id="cb54-20"><a href="#cb54-20" aria-hidden="true"></a>  <span class="st">&quot;variant&quot;</span>: <span class="st">&quot;filepath&quot;</span>,</span>
+<span id="cb54-21"><a href="#cb54-21" aria-hidden="true"></a>  <span class="st">&quot;value&quot;</span>: <span class="st">&quot;tmp.txt&quot;</span></span>
+<span id="cb54-22"><a href="#cb54-22" aria-hidden="true"></a>}</span>
+<span id="cb54-23"><a href="#cb54-23" aria-hidden="true"></a></span>
+<span id="cb54-24"><a href="#cb54-24" aria-hidden="true"></a><span class="bu">print</span>(json.dumps(json_output))</span></code></pre></div>
+<p>Notice that the input to <code>write_nlines</code> is provided via JSON-encoded stdin, and the output is provided via JSON-encoded stdout. The input is a JSON array with a single entry, which is an integer. It is decoded in the line:</p>
+<pre><code>num_lines = json_data[0][&#39;value&#39;]</code></pre>
+<p>Lobot will evaluate a function call of <code>write_nlines(5)</code> by executing the following command in the background:</p>
+<pre><code>echo &quot;[{\&quot;variant\&quot;: \&quot;int\&quot;, \&quot;value\&quot;: 5}]&quot; | write_nlines</code></pre>
+<p>The JSON data passed through stdin is a JSON-encoded array with a single element. That element is a JSON object (key/value mapping) with two entries: a <code>variant</code>, specifying the Lobot type of the data, and a <code>value</code>, giving the concrete value of the data.</p>
+<p>The output of the above command is:</p>
+<pre><code>{&quot;variant&quot;: &quot;filepath&quot;, &quot;value&quot;: &quot;tmp.txt&quot;}</code></pre>
+<p>This corresponds to the Lobot abstract type <code>filepath</code>, with the string value <code>"tmp.txt"</code>. Values of abstract types are encoded as JSON strings. Since such values are never directly handled within Lobot, Lobot does not need to care about the details of their representation. All that matters is that the various command line tools that are implementing the relevant functions all agree on that representation.</p>
+<p>Here is a similar implementation of <code>wc_wrapper</code>, which actually wraps the <code>wc</code> command, while providing the correct API for Lobot:</p>
+<pre><code>#!/usr/bin/python3
+
+import json
+import sys
+import os
+
+json_str = &quot;&quot;
+
+for line in sys.stdin:
+  json_str += line
+
+json_data = json.loads(json_str)
+
+wc_config = json_data[0][&#39;constructors&#39;][json_data[0][&#39;value&#39;]]
+filepath = json_data[1][&#39;value&#39;]
+
+command = &quot;wc &quot;
+if wc_config == &quot;C&quot;:
+  command += &quot;-c&quot;
+elif wc_config == &quot;L&quot;:
+  command += &quot;-l&quot;
+elif wc_config == &quot;W&quot;:
+  command += &quot;-w&quot;
+command += &quot; &quot; + filepath
+
+words = os.popen(command).read().split()
+x = int(words[0])
+
+json_output = {
+  &quot;variant&quot;: &quot;int&quot;,
+  &quot;value&quot;: x
+}
+
+print(json.dumps(json_output))</code></pre>
+<p>This command takes two arguments (as specified in the Lobot file). If we create a file called <code>wc_wrapper_input.json</code> with the following contents:</p>
+<pre><code>[ { &quot;variant&quot;: &quot;enum&quot;,
+    &quot;constructors&quot;: [&quot;C&quot;, &quot;L&quot;, &quot;W&quot;],
+    &quot;value&quot;: 1
+  },
+  { &quot;variant&quot;: &quot;filepath&quot;,
+    &quot;value&quot;: &quot;tmp.txt&quot;
+  }
+]</code></pre>
+<p>then we can execute the <code>wc_wrapper</code> command directly like so:</p>
+<pre><code>$ cat wc_wrapper_input.json | wc_wrapper
+{&quot;variant&quot;: &quot;int&quot;, &quot;value&quot;: 5}</code></pre>
+<p>Once both these commands are on our PATH, we can verify the <code>check</code>:</p>
+<pre><code>$ lobot -r write_nlines_check fn.lobot
+Check &#39;write_nlines_check&#39; holds. (Generated 51 instances)</code></pre>
 <h2 data-number="2.3" id="json-api"><span class="header-section-number">2.3</span> JSON API</h2>
+<p>In order to use a command line tool from Lobot, we typically need to <em>wrap</em> the function so that it conforms with Lobot’s JSON-based function call API. This section provides a complete specification for how Lobot function declarations translate to this API; i.e. given an abstract function’s type, we can determine exactly how the input arguments are encoded, and how the return value needs to be encoded for Lobot to be able to use it.</p>
+<p>We’ve seen examples of wrapper scripts elsewhere in this guide. In this section, we define the JSON encoding of Lobot values, as well as the calling convention Lobot uses to pass values to/from shell commands.</p>
+<h3 data-number="2.3.1" id="function-calls"><span class="header-section-number">2.3.1</span> Function calls</h3>
+<p>Consider <code>add1</code>:</p>
+<pre><code>abstract add1 : int -&gt; int</code></pre>
+<p>When lobots evaluates the call <code>add1(5)</code>, it first converts the single argument <code>5</code> into the following JSON array:</p>
+<pre><code>[ { &quot;variant&quot; : &quot;int&quot;, &quot;value&quot;: &quot;5&quot; } ]</code></pre>
+<p>That is, an array with one object. Then it calls the <code>add1</code> command (which must be on the <code>PATH</code>) by passing this JSON byte string to the command over stdin. Finally, it collects the output of <code>add1</code> on stdout, which happens to be:</p>
+<pre><code>{ &quot;variant&quot;: &quot;int&quot;, &quot;value&quot;: &quot;6&quot; }</code></pre>
 </body>
 </html>

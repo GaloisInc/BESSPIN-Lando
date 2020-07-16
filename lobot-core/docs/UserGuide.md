@@ -1,17 +1,5 @@
 # Introduction
 
-Lobot is a language for defining _constrained data types_ -- data types
-with arbitrary logical constraints attached to them. The Lobot instance
-generator can enumerate all instances of a data structure and check that they
-satisfy arbitrary properties.
-
-Lobot will be used as an IR for features models in Lando. Most of the core
-functionality of Lando will be implemented at the level of Lobot.
-
-This release is a development snapshot. Please contact Ben Selfridge
-(benselfridge@galois.com) and Matt Yacavone (myac@galois.com) if you have any
-questions about it.
-
 ## What is Lobot?
 
 Lobot is a language for describing data types (ints, structs, etc.) with
@@ -41,7 +29,7 @@ of a positive integer:
 posint : kind of int where 1 <= self
 ```
 
-Then, I can create pairs of positive integers by creating a `struct`:
+Then, I can create pairs of positive integers by defining a kind of `struct`:
 
 ```
 -- Unique pairs of positive integers
@@ -223,10 +211,14 @@ Let's enumerate this kind:
 ```
 $ lobot -e add1_is_0 add1.lobot
 Generating instances of 'add1_is_0'...
+Hit instance limit of 100!
+Found 0 valid instances, generated 100 invalid instances
+Press enter to continue enumerating up to 100 more instances.
 ```
 
-Uh-oh! Lobot hangs when we ask it to enumerate instances of this kind. Let's use
-the `-v` option to try and figure out what's going on:
+Looks like we generated 100 invalid instances, but were not able to find a
+solution. We could keep pressing enter to just continue the search, but instead,
+let's use the `-v` option to try and figure out what's going on:
 
 ```
 $ lobot -e add1_is_0 -v add1.lobot
@@ -255,11 +247,11 @@ Learned the values of the following function calls:
 Press enter to see the next instance
 ```
 
-Here, we see that Lobot is effectively attempting to find a solution to `add1(x)
-= 0` by enumerating positive values of `x` until it finds one (for some reason,
-it is only checking odd values). However, this strategy will never yield
-a valid instance, because the solution to this equation is `-1`, which is
-negative. We can help Lobot out by constraining the search space a bit:
+Here, we see that Lobot is attempting to find a solution to `add1(x) = 0` by
+enumerating positive values of `x` until it finds one (for some reason, it is
+only checking the odd values). However, this strategy will never yield a valid
+instance, because the solution to this equation is `-1`, which is negative. We
+can help Lobot out by constraining the search space a bit:
 
 ```
 add1_is_0 : kind of int
@@ -291,7 +283,7 @@ when enumerating instances of kinds that are constrained by such functions.
 
 # The Lobot language
 
-## Types, type synonyms, and kinds
+## Types and kinds
 
 The base types of Lobot are:
 
@@ -301,6 +293,55 @@ The base types of Lobot are:
 * enumsets
 * structs
 * abstract types
+
+A _constraint_ is an expression that can be evaluated over a value of a
+particular type. For instance, if `a : bool` and `b : bool`, then `a | b` is the
+constraint that either `a = true` or `b = true`.
+
+A _kind_ is a type plus a list of constraints. For instance, we can define the
+kind of integers between 0 and 5, or 5 and 10:
+
+```
+int_0_5  : kind of int where 0 <= self, self <= 5
+int_5_10 : kind of int where 5 <= self, self <= 10
+```
+
+We can then use values of this kind in other kinds:
+
+```
+two_ints : kind of struct
+  with x : int_0_5
+       y : int_5_10
+```
+
+Equivalently, we could also specify this via explicit constraints:
+
+```
+two_ints : kind of struct
+  with x : int
+       y : int
+  where x : int_0_5
+        y : int_5_10
+```
+
+Both of the above definitions are equivalent to:
+
+```
+two_ints : kind of struct
+  with x : int
+       y : int
+  where 0 <= x
+        x <= 5
+        5 <= y
+        y <= 10
+```
+
+We can also combine multiple kinds into a kind that represents all the
+constraints of the \"parent\" kind:
+
+```
+int_5 : kind of int_0_5 int_5_10
+```
 
 ### Type synonyms
 
@@ -419,6 +460,23 @@ Found 10000 valid instances, generated 0 invalid instances
 After a minute or two, Lobot finally determines that there are at least `10000`
 instances of `int`. So, in case you didn't realize it -- there are more than ten
 thousand integers!
+
+Lobot can factor integers:
+
+```
+factor_120 : kind of struct
+  with p : int, q : int
+  where p * q = 120
+        p > 1
+        q > 1
+```
+
+```
+$ lobot -e factor_120 int.lobot
+Instance 1:
+  factor_120 with {p = 20, q = 6}
+Press enter to see the next instance.
+```
 
 If we are in a high school algebra class, we can use Lobot to do our homework on
 linear systems of equations for us:
@@ -591,4 +649,279 @@ return values and arguments to _abstract functions_.
 
 ## Abstract functions
 
+The main distinction of Lobot over other constraint solving languages is that it
+is designed to establish properties of real-world applications. 
+
+Suppose I have I have a command-line tool called `write_nlines` that takes a
+single integer argument `n`, and outputs a file called `tmp.txt` that contains
+`n` lines. I also have another tool that takes a filepath as an argument and
+counts the number of lines in the file. The `wc` command, with the `-l` option,
+is such a tool. I would like to verify that if I call `write_nlines` with an
+argument `n`, and then I call `wc -l` on the resulting file, I get `n` back.
+
+How do we specify the type of `write_nlines`? It isn't really a "function" in
+the mathematical sense of the word, as it doesn't exactly return a value so much
+as it affects the world. In order to make it something Lobot can reason about,
+we need to find a way to package its affect on the world as a Lobot value. We
+can do this by modeling it as a function that returns a _filepath_, which will
+be the name of the file that gets written (`tmp.txt`). However, since a filepath
+is not a built-in Lobot type, our first task is to declare a new abstract type:
+
+```
+abstract type filepath
+```
+
+Now, we can declare the `write_nlines` function:
+
+```
+abstract write_nlines : int -> filepath
+```
+
+The `wc` command can take a variety of options, so we might as well model that:
+
+```
+-- C for characters, L for lines, W for words
+wc_option = { C, L, W }
+
+wc_wrapper : (wc_option, filepath) -> int
+```
+
+We can now state our desired property as a `check`:
+
+```
+write_nlines_check : check
+  on i : int
+  where 0 <= i, i <= 50
+  that wc_wrapper(L, write_nlines(i)) = i
+```
+
+Now, in order to actually run this Lobot file, the `write_nlines` and
+`wc_wrapper` commands must be on our `PATH`, and they must conform to Lobot's
+function call API (described in a later section of this document).
+
+Here is a python-based implementation of `write_nlines`:
+
+```python
+#!/usr/bin/python3
+
+import json
+import sys
+
+json_str = ""
+
+for line in sys.stdin:
+  json_str += line
+
+json_data = json.loads(json_str)
+
+num_lines = json_data[0]['value']
+
+f = open("tmp.txt", "w")
+for i in range(0, num_lines):
+  f.write("Line " + str(i) + "\n")
+
+json_output = {
+  "variant": "filepath",
+  "value": "tmp.txt"
+}
+
+print(json.dumps(json_output))
+```
+
+Notice that the input to `write_nlines` is provided via JSON-encoded stdin, and
+the output is provided via JSON-encoded stdout. The input is a JSON array with a single entry, which is an integer. It is decoded in the line:
+
+```
+num_lines = json_data[0]['value']
+```
+
+Lobot will evaluate a function call of `write_nlines(5)` by executing the
+following command in the background:
+
+```
+echo "[{\"variant\": \"int\", \"value\": 5}]" | write_nlines
+```
+
+The JSON data passed through stdin is a JSON-encoded array with a single
+element. That element is a JSON object (key/value mapping) with two entries: a
+`variant`, specifying the Lobot type of the data, and a `value`, giving the
+concrete value of the data. 
+
+The output of the above command is:
+
+```
+{"variant": "filepath", "value": "tmp.txt"}
+```
+
+This corresponds to the Lobot abstract type `filepath`, with the string value
+`"tmp.txt"`. Values of abstract types are encoded as JSON strings. Since such
+values are never directly handled within Lobot, Lobot does not need to care
+about the details of their representation. All that matters is that the various
+command line tools that are implementing the relevant functions all agree on
+that representation.
+
+Here is a similar implementation of `wc_wrapper`, which actually wraps the `wc`
+command, while providing the correct API for Lobot:
+
+```
+#!/usr/bin/python3
+
+import json
+import sys
+import os
+
+json_str = ""
+
+for line in sys.stdin:
+  json_str += line
+
+json_data = json.loads(json_str)
+
+wc_config = json_data[0]['constructors'][json_data[0]['value']]
+filepath = json_data[1]['value']
+
+command = "wc "
+if wc_config == "C":
+  command += "-c"
+elif wc_config == "L":
+  command += "-l"
+elif wc_config == "W":
+  command += "-w"
+command += " " + filepath
+
+words = os.popen(command).read().split()
+x = int(words[0])
+
+json_output = {
+  "variant": "int",
+  "value": x
+}
+
+print(json.dumps(json_output))
+```
+
+This command takes two arguments (as specified in the Lobot file). If we create a file called `wc_wrapper_input.json` with the following contents:
+```
+[ { "variant": "enum",
+    "constructors": ["C", "L", "W"],
+    "value": 1
+  },
+  { "variant": "filepath",
+    "value": "tmp.txt"
+  }
+]
+```
+
+then we can execute the `wc_wrapper` command directly like so:
+
+```
+$ cat wc_wrapper_input.json | wc_wrapper
+{"variant": "int", "value": 5}
+```
+
+Once both these commands are on our PATH, we can verify the `check`:
+
+```
+$ lobot -r write_nlines_check fn.lobot
+Check 'write_nlines_check' holds. (Generated 51 instances)
+```
+
 ## JSON API
+
+In order to use a command line tool from Lobot, we typically need to _wrap_ the
+function so that it conforms with Lobot's JSON-based function call API. This
+section provides a complete specification for how Lobot function declarations
+translate to this API; i.e. given an abstract function's type, we can determine
+exactly how the input arguments are encoded, and how the return value needs to
+be encoded for Lobot to be able to use it.
+
+We've seen examples of wrapper scripts elsewhere in this guide. In this section,
+we define the JSON encoding of Lobot values, as well as the calling convention
+Lobot uses to pass values to/from shell commands.
+
+### Function calls
+
+Consider `add1`:
+
+```
+abstract add1 : int -> int
+```
+
+When lobots evaluates the call `add1(5)`, it first converts the single argument
+`5` into the following JSON array:
+
+```
+[ { "variant" : "int", "value": 5 } ]
+```
+
+That is, an array with one object. Then it calls the `add1` command (which must
+be on the `PATH`) by passing this JSON byte string to the command over stdin.
+Finally, it collects the output of `add1` on stdout, which happens to be:
+
+```
+{ "variant": "int", "value": 6 }
+```
+
+In general, when evaluating a call of `f(x1, x2, ...)`, Lobot first converts the
+`xi` to JSON strings `j1, j2, ...`, packages them up into a JSON array:
+
+```
+[ j1, j2, ... ]
+```
+
+and calls the `f` shell command, passing the resulting string over stdin. The
+command then should return some JSON-encoded value `y` over stdout.
+
+### Booleans and integers
+
+The boolean value `true` is encoded as
+
+```
+{ "variant": "bool", "value": "true" }
+```
+
+`false` is encoded similarly. An integer literal `<x>` is encoded as
+
+```
+{ "variant": "int", "value": <x> }
+```
+
+Notice that the integer `<x>` appears without quotes, as it is a numeric JSON
+value.
+
+### Enums and enumsets
+
+Consider the type
+
+```
+type abc = {A, B, C}
+```
+
+The value `B` is encoded as
+
+```
+{
+  "variant": "enum",
+  "constructors": ["A", "B", "C"],
+  "value": 1
+}
+```
+
+Notice that all the information about the type is encoded; we don't simply
+encode `"enum"` and `"B"`, but we actually encode all the constructors as well
+so that the type is fully determined. The `value` field is an index into the
+array of `constructors`, so it because straightforward to recover the string
+representation.
+
+The enumset `{B, C}`, with type `subset {A, B, C}`, would be encoded as
+
+```
+{
+  "variant": "set",
+  "constructors": ["A", "B", "C"],
+  "values": [1, 2]
+}
+```
+
+Here, instead of a single `value`, we have an array of `values`, each of which
+is a unique index into the array of `constructors`.
