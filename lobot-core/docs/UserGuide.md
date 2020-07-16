@@ -39,9 +39,9 @@ unique_posint_pair : kind of struct
   where x <= y
 ```
 
-Notice the `x <= y` constraint, which helps avoid getting the same pair, just in
-a different order. Now, we can define one more data type that further constrains
-`unique_posint_pair`:
+Notice the `x <= y` constraint, which prevents us from getting the same pair,
+just in a different order. Now, we can define one more data type that further
+constrains `unique_posint_pair`:
 
 ```
 -- Pairs that sum to 100
@@ -168,8 +168,8 @@ $ echo "[{\"variant\": \"int\", \"value\": 4}]" | add1
 ```
 
 This is, admittedly, not as clean to interact with directly as the original
-`add1` function. However, it is straightforward to "wrap" real-world commands
-with scripts that provide the JSON-based API that Lobot requires.
+`add1` function. However, we shouldn't have to directly interact with it; that's
+Lobot's job!
 
 Now that `add1` is on our path, we can use it in Lobot. In a new file named
 `add1.lobot`, we write
@@ -337,7 +337,7 @@ two_ints : kind of struct
 ```
 
 We can also combine multiple kinds into a kind that represents all the
-constraints of the \"parent\" kind:
+constraints of the "parent" kind:
 
 ```
 int_5 : kind of int_0_5 int_5_10
@@ -360,7 +360,15 @@ Type names must start with a lowercase letter. For instance, we could alias
 type ident = int
 ```
 
-We can now use `ident` as an alternative name for `int`.
+We can now use `ident` as an alternative name for `int`. However, it's usually
+more useful for user-defined types:
+
+```
+type my_struct = struct
+  with a : bool
+       x : int
+       e : {A, B, C}
+```
 
 ### Booleans
 
@@ -729,7 +737,8 @@ print(json.dumps(json_output))
 ```
 
 Notice that the input to `write_nlines` is provided via JSON-encoded stdin, and
-the output is provided via JSON-encoded stdout. The input is a JSON array with a single entry, which is an integer. It is decoded in the line:
+the output is provided via JSON-encoded stdout. The input is a JSON array with a
+single entry, which is an integer. It is decoded in the line:
 
 ```
 num_lines = json_data[0]['value']
@@ -854,9 +863,10 @@ When lobots evaluates the call `add1(5)`, it first converts the single argument
 [ { "variant" : "int", "value": 5 } ]
 ```
 
-That is, an array with one object. Then it calls the `add1` command (which must
-be on the `PATH`) by passing this JSON byte string to the command over stdin.
-Finally, it collects the output of `add1` on stdout, which happens to be:
+That is, an array with one object, the value `5`. Then it calls the `add1`
+command (which must be on the `PATH`) by passing this JSON byte string to the
+command over stdin. Finally, it collects the output of `add1` on stdout, which
+happens to be:
 
 ```
 { "variant": "int", "value": 6 }
@@ -925,3 +935,50 @@ The enumset `{B, C}`, with type `subset {A, B, C}`, would be encoded as
 
 Here, instead of a single `value`, we have an array of `values`, each of which
 is a unique index into the array of `constructors`.
+
+### Structs
+
+Consider a struct type defined as
+
+```
+type s = struct
+  with f1 : tp1,
+       f2 : tp2,
+       ...
+```
+
+with fields `f1, ...` of types `tp1, ...`. Suppose we have a value of such a
+struct, with values `f1 = <x1>, f2 = <x2>, ...`, where each `<xi>` has encoding
+`<ji>`. This value is encoded as
+
+```
+{
+  "variant": "struct",
+  "fields": [ { "name": "f1", "value": <j1> },
+              { "name": "f2", "value": <j2> },
+              ...
+            ]
+}
+```
+
+### Abstract types
+
+Consider an abstract type:
+
+```
+abstract type foo
+```
+
+Concrete values of abstract types are represented "under the hood" as arbitrary
+strings of bytes (or, equivalently, characters) `<s>`. We encode this value in
+JSON like so:
+
+```
+{ "variant": "foo", "value": "<s>" }
+```
+
+In other words, we simply dump the underlying contents of the abstract value
+into a JSON string. The representation looks very similar to that of `int` and
+`bool`. Functions that create abstract values simply encode arbitrary data into
+the `<s>` string, and functions that consume abstract values decode arbitrary
+data fron the `value` key.

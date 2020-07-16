@@ -125,6 +125,10 @@
 <li><a href="#json-api"><span class="toc-section-number">2.3</span> JSON API</a>
 <ul>
 <li><a href="#function-calls"><span class="toc-section-number">2.3.1</span> Function calls</a></li>
+<li><a href="#booleans-and-integers"><span class="toc-section-number">2.3.2</span> Booleans and integers</a></li>
+<li><a href="#enums-and-enumsets"><span class="toc-section-number">2.3.3</span> Enums and enumsets</a></li>
+<li><a href="#structs-1"><span class="toc-section-number">2.3.4</span> Structs</a></li>
+<li><a href="#abstract-types-1"><span class="toc-section-number">2.3.5</span> Abstract types</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -144,7 +148,7 @@ unique_posint_pair : kind of struct
   with x : posint
        y : posint
   where x &lt;= y</code></pre>
-<p>Notice the <code>x &lt;= y</code> constraint, which helps avoid getting the same pair, just in a different order. Now, we can define one more data type that further constrains <code>unique_posint_pair</code>:</p>
+<p>Notice the <code>x &lt;= y</code> constraint, which prevents us from getting the same pair, just in a different order. Now, we can define one more data type that further constrains <code>unique_posint_pair</code>:</p>
 <pre><code>-- Pairs that sum to 100
 posint_sum_100 : kind of unique_posint_pair
   where x + y = 100</code></pre>
@@ -206,7 +210,7 @@ $ add1 -1000000
 <p>After adding this to our <code>$PATH</code>, we can call it on the command line:</p>
 <pre><code>$ echo &quot;[{\&quot;variant\&quot;: \&quot;int\&quot;, \&quot;value\&quot;: 4}]&quot; | add1
 {&quot;variant&quot;: &quot;int&quot;, &quot;value&quot;: 5}</code></pre>
-<p>This is, admittedly, not as clean to interact with directly as the original <code>add1</code> function. However, it is straightforward to “wrap” real-world commands with scripts that provide the JSON-based API that Lobot requires.</p>
+<p>This is, admittedly, not as clean to interact with directly as the original <code>add1</code> function. However, we shouldn’t have to directly interact with it; that’s Lobot’s job!</p>
 <p>Now that <code>add1</code> is on our path, we can use it in Lobot. In a new file named <code>add1.lobot</code>, we write</p>
 <pre><code>abstract add1 : int -&gt; int</code></pre>
 <p>This is a <em>function declaration</em>. We have declared to Lobot that there exists a function called <code>add1</code> mapping integers to integers. Now, we are free to use this function as part of a new kind definition:</p>
@@ -297,14 +301,18 @@ int_5_10 : kind of int where 5 &lt;= self, self &lt;= 10</code></pre>
         x &lt;= 5
         5 &lt;= y
         y &lt;= 10</code></pre>
-<p>We can also combine multiple kinds into a kind that represents all the constraints of the "parent" kind:</p>
+<p>We can also combine multiple kinds into a kind that represents all the constraints of the “parent” kind:</p>
 <pre><code>int_5 : kind of int_0_5 int_5_10</code></pre>
 <h3 data-number="2.1.1" id="type-synonyms"><span class="header-section-number">2.1.1</span> Type synonyms</h3>
 <p>Before we discuss these types individually, it will be helpful to introduce <em>type synonyms</em>. We can declare a new type synonym:</p>
 <pre><code>type &lt;name&gt; = &lt;type&gt;</code></pre>
 <p>where <code>&lt;name&gt;</code> is the name of the type synonym, and <code>&lt;type&gt;</code> is a base type. Type names must start with a lowercase letter. For instance, we could alias <code>int</code> with <code>ident</code>:</p>
 <pre><code>type ident = int</code></pre>
-<p>We can now use <code>ident</code> as an alternative name for <code>int</code>.</p>
+<p>We can now use <code>ident</code> as an alternative name for <code>int</code>. However, it’s usually more useful for user-defined types:</p>
+<pre><code>type my_struct = struct
+  with a : bool
+       x : int
+       e : {A, B, C}</code></pre>
 <h3 data-number="2.1.2" id="booleans"><span class="header-section-number">2.1.2</span> Booleans</h3>
 <p>The built-in keyword <code>bool</code> signifies the type of boolean values. We can enumerate <code>bool</code> instances by declaring a synonym in lobot:</p>
 <pre><code>-- file: bool.lobot
@@ -506,30 +514,30 @@ wc_wrapper : (wc_option, filepath) -&gt; int</code></pre>
   that wc_wrapper(L, write_nlines(i)) = i</code></pre>
 <p>Now, in order to actually run this Lobot file, the <code>write_nlines</code> and <code>wc_wrapper</code> commands must be on our <code>PATH</code>, and they must conform to Lobot’s function call API (described in a later section of this document).</p>
 <p>Here is a python-based implementation of <code>write_nlines</code>:</p>
-<div class="sourceCode" id="cb54"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true"></a><span class="co">#!/usr/bin/python3</span></span>
-<span id="cb54-2"><a href="#cb54-2" aria-hidden="true"></a></span>
-<span id="cb54-3"><a href="#cb54-3" aria-hidden="true"></a><span class="im">import</span> json</span>
-<span id="cb54-4"><a href="#cb54-4" aria-hidden="true"></a><span class="im">import</span> sys</span>
-<span id="cb54-5"><a href="#cb54-5" aria-hidden="true"></a></span>
-<span id="cb54-6"><a href="#cb54-6" aria-hidden="true"></a>json_str <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
-<span id="cb54-7"><a href="#cb54-7" aria-hidden="true"></a></span>
-<span id="cb54-8"><a href="#cb54-8" aria-hidden="true"></a><span class="cf">for</span> line <span class="kw">in</span> sys.stdin:</span>
-<span id="cb54-9"><a href="#cb54-9" aria-hidden="true"></a>  json_str <span class="op">+=</span> line</span>
-<span id="cb54-10"><a href="#cb54-10" aria-hidden="true"></a></span>
-<span id="cb54-11"><a href="#cb54-11" aria-hidden="true"></a>json_data <span class="op">=</span> json.loads(json_str)</span>
-<span id="cb54-12"><a href="#cb54-12" aria-hidden="true"></a></span>
-<span id="cb54-13"><a href="#cb54-13" aria-hidden="true"></a>num_lines <span class="op">=</span> json_data[<span class="dv">0</span>][<span class="st">&#39;value&#39;</span>]</span>
-<span id="cb54-14"><a href="#cb54-14" aria-hidden="true"></a></span>
-<span id="cb54-15"><a href="#cb54-15" aria-hidden="true"></a>f <span class="op">=</span> <span class="bu">open</span>(<span class="st">&quot;tmp.txt&quot;</span>, <span class="st">&quot;w&quot;</span>)</span>
-<span id="cb54-16"><a href="#cb54-16" aria-hidden="true"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, num_lines):</span>
-<span id="cb54-17"><a href="#cb54-17" aria-hidden="true"></a>  f.write(<span class="st">&quot;Line &quot;</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="op">+</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb54-18"><a href="#cb54-18" aria-hidden="true"></a></span>
-<span id="cb54-19"><a href="#cb54-19" aria-hidden="true"></a>json_output <span class="op">=</span> {</span>
-<span id="cb54-20"><a href="#cb54-20" aria-hidden="true"></a>  <span class="st">&quot;variant&quot;</span>: <span class="st">&quot;filepath&quot;</span>,</span>
-<span id="cb54-21"><a href="#cb54-21" aria-hidden="true"></a>  <span class="st">&quot;value&quot;</span>: <span class="st">&quot;tmp.txt&quot;</span></span>
-<span id="cb54-22"><a href="#cb54-22" aria-hidden="true"></a>}</span>
-<span id="cb54-23"><a href="#cb54-23" aria-hidden="true"></a></span>
-<span id="cb54-24"><a href="#cb54-24" aria-hidden="true"></a><span class="bu">print</span>(json.dumps(json_output))</span></code></pre></div>
+<div class="sourceCode" id="cb55"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true"></a><span class="co">#!/usr/bin/python3</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true"></a></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true"></a><span class="im">import</span> json</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true"></a><span class="im">import</span> sys</span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true"></a></span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true"></a>json_str <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true"></a></span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true"></a><span class="cf">for</span> line <span class="kw">in</span> sys.stdin:</span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true"></a>  json_str <span class="op">+=</span> line</span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true"></a></span>
+<span id="cb55-11"><a href="#cb55-11" aria-hidden="true"></a>json_data <span class="op">=</span> json.loads(json_str)</span>
+<span id="cb55-12"><a href="#cb55-12" aria-hidden="true"></a></span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true"></a>num_lines <span class="op">=</span> json_data[<span class="dv">0</span>][<span class="st">&#39;value&#39;</span>]</span>
+<span id="cb55-14"><a href="#cb55-14" aria-hidden="true"></a></span>
+<span id="cb55-15"><a href="#cb55-15" aria-hidden="true"></a>f <span class="op">=</span> <span class="bu">open</span>(<span class="st">&quot;tmp.txt&quot;</span>, <span class="st">&quot;w&quot;</span>)</span>
+<span id="cb55-16"><a href="#cb55-16" aria-hidden="true"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, num_lines):</span>
+<span id="cb55-17"><a href="#cb55-17" aria-hidden="true"></a>  f.write(<span class="st">&quot;Line &quot;</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="op">+</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb55-18"><a href="#cb55-18" aria-hidden="true"></a></span>
+<span id="cb55-19"><a href="#cb55-19" aria-hidden="true"></a>json_output <span class="op">=</span> {</span>
+<span id="cb55-20"><a href="#cb55-20" aria-hidden="true"></a>  <span class="st">&quot;variant&quot;</span>: <span class="st">&quot;filepath&quot;</span>,</span>
+<span id="cb55-21"><a href="#cb55-21" aria-hidden="true"></a>  <span class="st">&quot;value&quot;</span>: <span class="st">&quot;tmp.txt&quot;</span></span>
+<span id="cb55-22"><a href="#cb55-22" aria-hidden="true"></a>}</span>
+<span id="cb55-23"><a href="#cb55-23" aria-hidden="true"></a></span>
+<span id="cb55-24"><a href="#cb55-24" aria-hidden="true"></a><span class="bu">print</span>(json.dumps(json_output))</span></code></pre></div>
 <p>Notice that the input to <code>write_nlines</code> is provided via JSON-encoded stdin, and the output is provided via JSON-encoded stdout. The input is a JSON array with a single entry, which is an integer. It is decoded in the line:</p>
 <pre><code>num_lines = json_data[0][&#39;value&#39;]</code></pre>
 <p>Lobot will evaluate a function call of <code>write_nlines(5)</code> by executing the following command in the background:</p>
@@ -595,8 +603,54 @@ Check &#39;write_nlines_check&#39; holds. (Generated 51 instances)</code></pre>
 <p>Consider <code>add1</code>:</p>
 <pre><code>abstract add1 : int -&gt; int</code></pre>
 <p>When lobots evaluates the call <code>add1(5)</code>, it first converts the single argument <code>5</code> into the following JSON array:</p>
-<pre><code>[ { &quot;variant&quot; : &quot;int&quot;, &quot;value&quot;: &quot;5&quot; } ]</code></pre>
-<p>That is, an array with one object. Then it calls the <code>add1</code> command (which must be on the <code>PATH</code>) by passing this JSON byte string to the command over stdin. Finally, it collects the output of <code>add1</code> on stdout, which happens to be:</p>
-<pre><code>{ &quot;variant&quot;: &quot;int&quot;, &quot;value&quot;: &quot;6&quot; }</code></pre>
+<pre><code>[ { &quot;variant&quot; : &quot;int&quot;, &quot;value&quot;: 5 } ]</code></pre>
+<p>That is, an array with one object, the value <code>5</code>. Then it calls the <code>add1</code> command (which must be on the <code>PATH</code>) by passing this JSON byte string to the command over stdin. Finally, it collects the output of <code>add1</code> on stdout, which happens to be:</p>
+<pre><code>{ &quot;variant&quot;: &quot;int&quot;, &quot;value&quot;: 6 }</code></pre>
+<p>In general, when evaluating a call of <code>f(x1, x2, ...)</code>, Lobot first converts the <code>xi</code> to JSON strings <code>j1, j2, ...</code>, packages them up into a JSON array:</p>
+<pre><code>[ j1, j2, ... ]</code></pre>
+<p>and calls the <code>f</code> shell command, passing the resulting string over stdin. The command then should return some JSON-encoded value <code>y</code> over stdout.</p>
+<h3 data-number="2.3.2" id="booleans-and-integers"><span class="header-section-number">2.3.2</span> Booleans and integers</h3>
+<p>The boolean value <code>true</code> is encoded as</p>
+<pre><code>{ &quot;variant&quot;: &quot;bool&quot;, &quot;value&quot;: &quot;true&quot; }</code></pre>
+<p><code>false</code> is encoded similarly. An integer literal <code>&lt;x&gt;</code> is encoded as</p>
+<pre><code>{ &quot;variant&quot;: &quot;int&quot;, &quot;value&quot;: &lt;x&gt; }</code></pre>
+<p>Notice that the integer <code>&lt;x&gt;</code> appears without quotes, as it is a numeric JSON value.</p>
+<h3 data-number="2.3.3" id="enums-and-enumsets"><span class="header-section-number">2.3.3</span> Enums and enumsets</h3>
+<p>Consider the type</p>
+<pre><code>type abc = {A, B, C}</code></pre>
+<p>The value <code>B</code> is encoded as</p>
+<pre><code>{
+  &quot;variant&quot;: &quot;enum&quot;,
+  &quot;constructors&quot;: [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;],
+  &quot;value&quot;: 1
+}</code></pre>
+<p>Notice that all the information about the type is encoded; we don’t simply encode <code>"enum"</code> and <code>"B"</code>, but we actually encode all the constructors as well so that the type is fully determined. The <code>value</code> field is an index into the array of <code>constructors</code>, so it because straightforward to recover the string representation.</p>
+<p>The enumset <code>{B, C}</code>, with type <code>subset {A, B, C}</code>, would be encoded as</p>
+<pre><code>{
+  &quot;variant&quot;: &quot;set&quot;,
+  &quot;constructors&quot;: [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;],
+  &quot;values&quot;: [1, 2]
+}</code></pre>
+<p>Here, instead of a single <code>value</code>, we have an array of <code>values</code>, each of which is a unique index into the array of <code>constructors</code>.</p>
+<h3 data-number="2.3.4" id="structs-1"><span class="header-section-number">2.3.4</span> Structs</h3>
+<p>Consider a struct type defined as</p>
+<pre><code>type s = struct
+  with f1 : tp1,
+       f2 : tp2,
+       ...</code></pre>
+<p>with fields <code>f1, ...</code> of types <code>tp1, ...</code>. Suppose we have a value of such a struct, with values <code>f1 = &lt;x1&gt;, f2 = &lt;x2&gt;, ...</code>, where each <code>&lt;xi&gt;</code> has encoding <code>&lt;ji&gt;</code>. This value is encoded as</p>
+<pre><code>{
+  &quot;variant&quot;: &quot;struct&quot;,
+  &quot;fields&quot;: [ { &quot;name&quot;: &quot;f1&quot;, &quot;value&quot;: &lt;j1&gt; },
+              { &quot;name&quot;: &quot;f2&quot;, &quot;value&quot;: &lt;j2&gt; },
+              ...
+            ]
+}</code></pre>
+<h3 data-number="2.3.5" id="abstract-types-1"><span class="header-section-number">2.3.5</span> Abstract types</h3>
+<p>Consider an abstract type:</p>
+<pre><code>abstract type foo</code></pre>
+<p>Concrete values of abstract types are represented “under the hood” as arbitrary strings of bytes (or, equivalently, characters) <code>&lt;s&gt;</code>. We encode this value in JSON like so:</p>
+<pre><code>{ &quot;variant&quot;: &quot;foo&quot;, &quot;value&quot;: &quot;&lt;s&gt;&quot; }</code></pre>
+<p>In other words, we simply dump the underlying contents of the abstract value into a JSON string. The representation looks very similar to that of <code>int</code> and <code>bool</code>. Functions that create abstract values simply encode arbitrary data into the <code>&lt;s&gt;</code> string, and functions that consume abstract values decode arbitrary data fron the <code>value</code> key.</p>
 </body>
 </html>
