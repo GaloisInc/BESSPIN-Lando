@@ -87,7 +87,7 @@ import Lobot.Utils
   LAYEND_NL     { L _ (Token (LAYEND _) _) }
   LAYSEP        { L _ (Token LAYSEP _) }
 
-%nonassoc ':'
+%nonassoc ':' 'with'
 %left     '=>'
 %left     '^'
 %left     '|'
@@ -141,19 +141,22 @@ argTypes : type                     { [$1] }
          | type commaSep argTypes   { $1 : $3 }
 
 
-type    : 'bool'                                       { loc $1 $ BoolType }
-        | 'int'                                        { loc $1 $ IntType }
-        | '{' enumIdents '}'                           { loc $1 $ EnumType (fmap unLoc $2) }
-        | 'subset' type                                { loc $1 $ SetType $2 }
-        | 'struct' 'with' optLAYSEP fields anyLAYEND   { loc $1 $ StructType $4 }
-        | 'struct' 'with' optLAYSEP '{' '}'            { loc $1 $ StructType [] }
-        | 'struct' 'with' optLAYSEP '{' fields '}'     { loc $1 $ StructType $5 }
-        | kindNames                                    { $1 }
+type    : 'bool'                       { loc $1 $ BoolType }
+        | 'int'                        { loc $1 $ IntType }
+        | '{' enumIdents '}'           { loc $1 $ EnumType (fmap unLoc $2) }
+        | 'subset' type                { loc $1 $ SetType $2 }
+        | 'struct' withClause(field)   { loc $1 $ StructType $2 }
+        | kindNames                    { $1 }
 
-fields :: { [(LText, LType)] }
-fields : field                   { [$1] }
-       | field anySep          { [$1] }
-       | field anySep fields   { $1 : $3 }
+withClause(x) : 'with' optLAYSEP anySepList(x) anyLAYEND           { $3 }
+              | 'with' optLAYSEP '{' '}' anyLAYEND                 { [] }
+              | 'with' optLAYSEP '{' anySepList(x) '}' anyLAYEND   { $4 }
+
+anySepList(x) : x                        { [$1] }
+              | x anySep                 { [$1] }
+              | x anySep anySepList(x)   { $1 : $3 }
+
+fields : anySepList(field) { $1 }
 
 field : ident ':' type anyLAYEND { (locText $1, $3) }
 
@@ -191,18 +194,13 @@ args : expr                 { [$1] }
 
 
 lit :: { LLiteral }
-lit : 'true'                              { loc $1 $ BoolLit True }
-    | 'false'                             { loc $1 $ BoolLit False }
-    | int                                 { loc $1 $ IntLit (tkInt $1) }
-    | enumIdent                           { loc $1 $ EnumLit (locText $1) }
-    | '{' enumIdents '}'                  { loc $1 $ SetLit $2 }
-    | 'struct' 'with' '{' fieldvals '}'   { loc $1 $ StructLit Nothing $4 }
-    | kindNames 'with' '{' fieldvals '}'  { loc $1 $ StructLit (Just $1) $4 }
-
-fieldvals :: { [(LText, LLiteral)] }
-fieldvals : {- empty -}                   { [] }
-          | fieldval                      { [$1] }
-          | fieldval commaSep fieldvals   { $1 : $3 }
+lit : 'true'                          { loc $1 $ BoolLit True }
+    | 'false'                         { loc $1 $ BoolLit False }
+    | int                             { loc $1 $ IntLit (tkInt $1) }
+    | enumIdent                       { loc $1 $ EnumLit (locText $1) }
+    | '{' enumIdents '}'              { loc $1 $ SetLit $2 }
+    | 'struct' withClause(fieldval)   { loc $1 $ StructLit Nothing $2 }
+    | kindNames withClause(fieldval)  { loc $1 $ StructLit (Just $1) $2 }
 
 fieldval : ident '=' lit                  { (locText $1, $3) }
 

@@ -381,10 +381,10 @@ guessLit _ (L _ (I.SetLit es)) | Some es' <- someSymbols (fmap unLoc es) =
   
 guessLit env (L _ (I.StructLit Nothing fvs)) = do
   (areGuesses, fvs') <- unzip <$> mapM (guessFieldLit env) fvs
-  GuessedFieldLits fvs'' <- pure $ toGuessedFieldLits fvs'
+  GuessedFieldLits fvs'' <- pure $ toGuessedFieldLits (reverse fvs')
   pure (or areGuesses, GuessedLit (E.literalType (E.StructLit fvs'')) (E.StructLit fvs''))
 guessLit env (L p (I.StructLit (Just (_, Some (T.StructRepr ftps), _dcns)) fvs)) = do
-  mfvs' <- checkFieldLits env ftps fvs
+  mfvs' <- checkFieldLits env ftps (reverse fvs)
   -- TODO: Check that this is a valid instance given dcns?
   case mfvs' of
      Just (CheckedFieldLits fvs') -> pure (False, GuessedLit (T.StructRepr ftps) (E.StructLit fvs'))
@@ -413,10 +413,19 @@ checkLit _ tp l@(L p (I.SetLit _)) =
                                 (Just $ TypeString "a set"))
 
 checkLit env (T.StructRepr ftps) (L p (I.StructLit Nothing fvs)) = do
-  mfvs' <- checkFieldLits env ftps fvs
+  mfvs' <- checkFieldLits env ftps (reverse fvs)
   case mfvs' of
    Just (CheckedFieldLits fvs') -> pure $ CheckedLit (E.StructLit fvs')
    Nothing -> throwError (StructLiteralLengthError p (Some ftps) (fst <$> fvs))
+checkLit env tp@(T.StructRepr _) l@(L p (I.StructLit _ _)) = do
+  (_, GuessedLit tp' l') <- guessLit env l
+  case testEquality tp tp' of
+    Nothing ->
+      throwError (TypeMismatchError (L p (S.LiteralExpr (unILLit l)))
+                                    (SomeType tp)
+                                    (Just $ SomeType tp'))
+    Just Refl ->
+      pure $ CheckedLit l'
 checkLit _ tp l@(L p (I.StructLit _ _)) =
   throwError (TypeMismatchError (L p (S.LiteralExpr (unILLit l))) (SomeType tp)
                                 (Just $ TypeString "a struct"))

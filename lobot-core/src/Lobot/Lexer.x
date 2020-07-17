@@ -111,8 +111,7 @@ tokens :-
     not           { tok NOT }
     true          { tok TRUE }
     false         { tok FALSE }
-    "{"           { tokAnd (\tk -> popLayoutOfToken WITH tk
-                                >> pushLinesLayout tk       ) LBRACE }
+    "{"           { tokAnd pushLinesLayout LBRACE }
     "}"           { begin_popWhile popWhile_RBRACE }
     "("           { tokAnd pushLinesLayout LPAREN }
     ")"           { begin_popWhile popWhile_RPAREN }
