@@ -613,21 +613,15 @@ multiple values into a single data structure. We have seen several examples of
 structs already. Here's another one:
 
 ```
-even_int : kind of struct
-  with i : int
-       j : int
-  where i = 2 * j
+perfect_square : kind of struct
+  with x : int
+       rt_x : int
+  where x = rt_x * rt_x
 
-odd_int : kind of struct
-  with i : int
-       j : int
-  where i = 2 * j + 1
-
--- Check that even and odd ints are distinct.
-even_odd_check : check
-  on e : even_int
-     o : odd_int
-  that not (e.i = o.i)
+even_perfect_square : check
+  on s : perfect_square
+  where s.x % 2 = 0
+  that s.x % 4 = 0
 ```
 
 ### Abstract types
