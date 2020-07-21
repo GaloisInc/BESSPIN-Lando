@@ -1,17 +1,17 @@
 -- Positive integers.
-posint : kind of int where 1 <= self
+nat : kind of int where 1 <= self
 
 -- Unique pairs of positive integers.
-unique_posint_pair : kind of struct
-  with x : posint
-       y : posint
+unique_nat_pair : kind of struct
+  with x : nat
+       y : nat
   where x <= y
 
 -- Pairs that sum to 100.
-posint_sum_100 : kind of unique_posint_pair
+nat_sum_100 : kind of unique_nat_pair
   where x + y = 100
 
 -- Check that all instances satisfy p.x <= 50
 check1 : check
-  on p : posint_sum_100
+  on p : nat_sum_100
   that p.x <= 50
