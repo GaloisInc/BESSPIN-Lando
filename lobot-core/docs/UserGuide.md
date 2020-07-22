@@ -6,54 +6,72 @@ Lobot is a language for describing data types (ints, structs, etc.) with
 constraints attached to them. It is also a tool for enumerating the values of
 those types, and checking that the enumerated values satisfy certain properties.
 
+Lobot is useful for a variety of purposes, from solving math and logic problems
+to organizing large, complex build systems and validating properties about them.
+At Galois, we use it to encode the feature models of the various software and
+hardware artifacts our tools interact with, and to encode metrics and
+correctness properties about those artifacts. However, we envision Lobot, and
+its parent language Lando, as answers to the following general question:
+
+_How do we know that high-level, imprecise claims about a system actually hold?_
+
+With Lobot, we can state and validate properties of large projects with
+mathematical rigor. For instance, the statement "All valid builds of my RISC-V
+processor, for both 32-bit and 64-bit register widths, with and without
+floating-point, are fully RISC-V compliant" is a statement that Lobot can both
+express and verify. "My processor does not leak timing information when
+executing the ADD instruction" is another such statement.
+
 Lobot uses an SMT solver to enumerate and check constrained types (called
 _kinds_), and it has very similar expressive power to constraint programming
-languages (like MiniZinc). However, Lobot does more than model a problem; it can
-directly interact with real-world applications and incorporate them into its
-reasoning engine. In other words, we can call a command line tool with Lobot and
-use it as part of a constraint in a kind we are defining. This allows us to talk
-about properties of external software and actually verify that various
-properties hold about that software.
+languages (like MiniZinc). However, Lobot does more than model a problem with
+SMT: it directly interacts with real-world applications and incorporates their
+output into a continually evolving model of the world.
+
+Lobot is a description language, not a programming language. However, it can
+solve many problems that one might typically use a programming language for. In
+particular, if a problem can be expressed in the language of SAT solvers, it can
+be encoded in Lobot, and Lobot can be used to solve it.
 
 Before we dive into the core concepts of Lobot, let's look at a couple of
 examples.
 
-## Example 1: pairs that sum to 100
+## Example 1: Pairs that sum to 100
 
-Suppose I wanted to define a data type that represents all pairs of positive
-integers that sum to 100. I could do that in Lobot by first defining the concept
-of a positive integer:
+Suppose I want to define a data type that represents all pairs of positive
+integers that sum to 100. I can do that in Lobot by first defining positive
+integers:
 
 ```
 -- Positive integers.
-posint : kind of int where 1 <= self
+nat : kind of int where 1 <= self
 ```
 
-Then, I can create pairs of positive integers by defining a kind of `struct`:
+Then, I can define pairs of positive integers by defining a kind of `struct`:
 
 ```
 -- Unique pairs of positive integers
-unique_posint_pair : kind of struct
-  with x : posint
-       y : posint
+unique_nat_pair : kind of struct
+  with x : nat
+       y : nat
   where x <= y
 ```
 
 Notice the `x <= y` constraint, which prevents us from getting the same pair,
 just in a different order. Now, we can define one more data type that further
-constrains `unique_posint_pair`:
+constrains `unique_nat_pair`:
 
 ```
 -- Pairs that sum to 100
-posint_sum_100 : kind of unique_posint_pair
+nat_sum_100 : kind of unique_nat_pair
   where x + y = 100
 ```
 
-If I type the above definitions into a file, `posint_sum_100.lobot`, and then fire up
-the Lobot tool via
+If I type the above definitions into a file, `nat_sum_100.lobot`, and then fire up
+the Lobot tool with
 
 ```
-$ lobot posint_sum_100.lobot
+$ lobot nat_sum_100.lobot
 ```
 
 I get the following output:
@@ -67,49 +85,49 @@ It also doesn't give us any information about the types we defined. We can count
 the number of instances of one of our `kind`s in the following way:
 
 ```
-$ lobot -c posint_sum_100 posint_sum_100.lobot
+$ lobot -c nat_sum_100 nat_sum_100.lobot
 Generating instances...
 Found 50 valid instances, generated 0 invalid instances
 ```
 
-Lobot determined that there are 50 instances of the `posint_sum_100` kind. If we
+Lobot determined that there are 50 instances of the `nat_sum_100` kind. If we
 want to enumerate them, we can use the `-e` option:
 
 ```
-$ lobot -e posint_sum_100 posint_sum_100.lobot
+$ lobot -e nat_sum_100 nat_sum_100.lobot
 Generating instances...
 Instance 1:
-  posint_sum_100 with {x = 50, y = 50}
+  nat_sum_100 with {x = 50, y = 50}
 Press enter to see the next instance
 ```
 
 Each time we hit enter, we see a new instance.
 
 What if we want to verify that some property always holds of our
-`posint_sum_100` kind? For instance, we might like to ensure that for any
-instance `p` of `posint_sum_100`, `p.x <= 50`. We can encode that as a `check`
+`nat_sum_100` kind? For instance, we might like to ensure that for any
+instance `p` of `nat_sum_100`, `p.x <= 50`. We can encode that as a `check`
 command in the Lobot source file:
 
 ```
 -- Check that all instances satisfy p.x <= 50
 check1 : check
-  on p : posint_sum_100
+  on p : nat_sum_100
   that p.x <= 50
 ```
 
-We run this check via the `-r` option:
+We run this check with the `-r` option:
 
 ```
-$ lobot -r check1 posint_sum_100.lobot
+$ lobot -r check1 nat_sum_100.lobot
 Generating instances...
 Check 'check1' holds. (Generated 0 instances)
 ```
 
-Lobot determined that the check holds for all instances of the `posint_sum_100`
+Lobot determined that the check holds for all instances of the `nat_sum_100`
 kind. What if we change the check condition `p.x <= 50` to `p.x < 50`?
 
 ```
-$ lobot -r check1 posint_sum_100.lobot
+$ lobot -r check1 nat_sum_100.lobot
 Generating instances...
 Check 'check1' failed with counterexample:
   p = struct with {x = 50, y = 50}
@@ -131,13 +149,13 @@ $ add1 -1000000
 ```
 
 Context clues lead us to the conclusion that the `add1` command is probably
-supposed to add 1 to its input. In Lobot, we can actually import functions from
-the command-line environment and invoke them when defining new kinds. However,
-we do need to provide small wrapper scripts for Lobot to be able to call them;
-Lobot passes arguments to these commands by translating them to JSON and passing
-them to stdin, and then getting the JSON-encoded results from stdout. Below is
-an example implementation of `add1` in python that is compatible with Lobot's
-API:
+supposed to add 1 to its input. In Lobot, we can reference external command-line
+functions from the environment and invoke them when writing constraints.
+However, we do need to provide small wrapper scripts (discussed in more detail
+[here](#json-api)) for Lobot to be able to call them. Lobot passes arguments to
+these commands by translating them to JSON and passing them to stdin, and then
+getting the JSON-encoded results from stdout. Below is an example implementation
+of `add1` in python that is compatible with Lobot's API:
 
 ```python
 #!/usr/bin/python3
@@ -160,7 +178,8 @@ json_data[0]['value'] = i + 1
 print(json.dumps(json_data[0]))
 ```
 
-After adding this to our `$PATH`, we can call it on the command line:
+Assuming this script exists in a directory that is on our `$PATH`, we can call
+it on the command line:
 
 ```
 $ echo "[{\"variant\": \"int\", \"value\": 4}]" | add1
@@ -248,10 +267,10 @@ Press enter to see the next instance
 ```
 
 Here, we see that Lobot is attempting to find a solution to `add1(x) = 0` by
-enumerating positive values of `x` until it finds one (for some reason, it is
-only checking the odd values). However, this strategy will never yield a valid
-instance, because the solution to this equation is `-1`, which is negative. We
-can help Lobot out by constraining the search space a bit:
+enumerating positive values of `x` until it finds one (for whatever reason, the
+underlying SMT solver is only trying odd numbers). However, this strategy will
+never yield a valid instance, because the solution to this equation is `-1`,
+which is negative. We can help Lobot out by constraining the search space a bit:
 
 ```
 add1_is_0 : kind of int
@@ -272,20 +291,50 @@ Enumerated all 1 valid instances, generated 20 invalid instances
 ```
 
 Not only has Lobot found the solution, `-1`, it has determined that it is the
-only solution in the range `-10 <= x <= 10` via exhaustively checking every
-value in that range. Since `add1` could have been any function, and Lobot knows
+only solution in the range `-10 <= x <= 10` by exhaustively checking every value
+in that range. Since `add1` could have been any function, and Lobot knows
 nothing about its behavior, we couldn't reasonably expect it to do anything more
 clever than an exhaustive search.
 
-In general, Lobot knows nothing about real-world functions until it actually
-evaluates calls to it for particular values. Therefore, we need to be careful
-when enumerating instances of kinds that are constrained by such functions.
+In general, Lobot knows nothing about the result of real-world functions until
+it actually evaluates calls to it for particular values. _For best results,
+ensure that the arguments to these functions are finite._
 
-# The Lobot language
+Finally, let's create a lobot check that `add1` is correct for all integers in
+some range:
+
+```
+add1_check : check
+  on x : int
+  where -500 <= x, x <= 500
+  that add1(x) = x + 1
+```
+
+```
+$ lobot -l 2000 add1.lobot
+Generating instances...
+Check 'add1_check' holds. (Discarded 1001 potential counterexamples)
+All checks pass.
+```
+
+Lobot can't prove that `add1(x) = x + 1` for all `x`, but it can do it for any
+finite range we like.
+
+# Getting started
+
+## Obtaining
+
+Use git to clone a copy of the Lobot repository:
+
+```
+git clone 
+```
+
+# Overview of the Lobot language
 
 ## Types and kinds
 
-The base types of Lobot are:
+The _base types_ of Lobot are:
 
 * booleans
 * integers
@@ -293,6 +342,8 @@ The base types of Lobot are:
 * enumsets
 * structs
 * abstract types
+
+We will describe each of these in depth in later sections.
 
 A _constraint_ is an expression that can be evaluated over a value of a
 particular type. For instance, if `a : bool` and `b : bool`, then `a | b` is the
@@ -314,7 +365,7 @@ two_ints : kind of struct
        y : int_5_10
 ```
 
-Equivalently, we could also specify this via explicit constraints:
+Equivalently, we could also specify this with explicit constraints:
 
 ```
 two_ints : kind of struct
@@ -654,12 +705,12 @@ return values and arguments to _abstract functions_.
 The main distinction of Lobot over other constraint solving languages is that it
 is designed to establish properties of real-world applications. 
 
-Suppose I have I have a command-line tool called `write_nlines` that takes a
-single integer argument `n`, and outputs a file called `tmp.txt` that contains
-`n` lines. I also have another tool that takes a filepath as an argument and
-counts the number of lines in the file. The `wc` command, with the `-l` option,
-is such a tool. I would like to verify that if I call `write_nlines` with an
-argument `n`, and then I call `wc -l` on the resulting file, I get `n` back.
+Suppose I have a command-line tool called `write_nlines` that takes a single
+integer argument `n`, and outputs a file called `tmp.txt` that contains `n`
+lines. I also have another tool that takes a filepath as an argument and counts
+the number of lines in the file. The `wc` command, with the `-l` option, is such
+a tool. I would like to verify that if I call `write_nlines` with an argument
+`n`, and then I call `wc -l` on the resulting file, I get `n` back.
 
 How do we specify the type of `write_nlines`? It isn't really a "function" in
 the mathematical sense of the word, as it doesn't exactly return a value so much
@@ -699,7 +750,7 @@ write_nlines_check : check
 
 Now, in order to actually run this Lobot file, the `write_nlines` and
 `wc_wrapper` commands must be on our `PATH`, and they must conform to Lobot's
-function call API (described in a later section of this document).
+function call API (described more fully [here](#json-api)).
 
 Here is a python-based implementation of `write_nlines`:
 
@@ -730,8 +781,8 @@ json_output = {
 print(json.dumps(json_output))
 ```
 
-Notice that the input to `write_nlines` is provided via JSON-encoded stdin, and
-the output is provided via JSON-encoded stdout. The input is a JSON array with a
+Notice that the input to `write_nlines` is provided by JSON-encoded stdin, and
+the output is provided by JSON-encoded stdout. The input is a JSON array with a
 single entry, which is an integer. It is decoded in the line:
 
 ```
@@ -828,6 +879,222 @@ Once both these commands are on our PATH, we can verify the `check`:
 $ lobot -r write_nlines_check fn.lobot
 Check 'write_nlines_check' holds. (Generated 51 instances)
 ```
+
+# Language Reference
+
+In this section, we provide an exhaustive reference to every language feature
+that Lobot currently supports.
+
+## Types
+
+Here, we summarize the concrete syntax for types.
+
+* Booleans: `bool`
+
+* Integers: `int`
+
+* Enums: `{<C1>, ... <Cn>}`, where each `<C1>` is an alphanumeric identifier
+  that begins with a capital letter and `n` is any _positive_ integer (we don't
+  allow `{}`).
+
+* Enumsets: `subset {<C1>, ... <Cn>}`, where each `<C1>` is an alphanumeric
+  identifier that begins with a capital letter and `n` is any _positive_ integer
+  (we don't allow `{}`).
+  
+  __A note on enums and enumsets__: `{A, B}` and `{B, A}` are _different types_, and
+  cannot be used interchangeably. In particular, if `x` is a value of type `{A,
+  B}` and `y` is a value of type `{B, A}`, then we cannot write the expression
+  `x = y`, since `x` and `y` have different types. Type synonyms are a
+  convenient way to alias a particular enum type with a name in order to avoid
+  confusion.
+
+* Structs:
+
+  ```
+  struct with f1 : t1, ... fn : tn
+  ```
+
+  or
+
+  ```
+  struct with f1 : t1
+              ...
+              fn : tn
+  ```
+
+  where each `fi` is an alphanumeric identifier that begins with a lowercase
+  letter, each `ti` is a type, and `n` is any _positive_ integer (structs must
+  have at least one field).
+
+  __A few notes on structs__:
+
+  1. Structs with different field names are _different types_, even if the fields
+     themselves all have the same type. In other words:
+
+     ```
+     struct with x : int, y : int
+     ```
+
+     and
+
+     ```
+     struct with a : int, b : int
+     ```
+
+     are different types entirely, and cannot be used interchangeably.
+
+  2. Structs with the same field names and types, but where the fields appear in a
+     different order, are _different types_. In other words:
+
+     ```
+     struct with x : int, y : int
+     ```
+
+     and
+
+     ```
+     struct with y : int, x : int
+     ```
+
+     are different types entirely, and cannot be used interchangeably.
+
+  3. It is possible to define nested struct types, like so:
+
+     ```
+     struct
+       with s1 : struct with a : int
+                             b : int
+            x : int
+            s2 : struct with e1 : {A, B, C}
+                             e2 : {D, E, F}
+     ```
+
+     However, it is typically best to use _type synonyms_ for fields that are
+     themselves structs. The above would be rewritten as:
+
+     ```
+     type s1 = struct with a : int
+                           b : int
+
+     type e1 = {A, B, C}
+     type e2 = {D, E, F}
+
+     type s2 = struct with e1 : e1, e2 : e2
+
+     type my_struct = struct
+       with s1 : s1
+            x : int
+            s2 : s2
+     ```
+
+     We discuss type synonyms more thoroughly in the next section.
+
+* Abstract types:
+
+  Abstract types first need to be declared before they can be used. To declare a
+  new abstract type, write
+  
+  ```
+  abstract type <t>
+  ```
+  
+  Then, we can use `<t>` anywhere else, just as if it were `int` or `bool`. For
+  example, if we have
+  
+  ```
+  abstract type foo
+  ```
+  
+  Then `foo` is a type, and can be used anywhere `int` or `bool` could be used.
+
+## Type synonyms
+
+Type synonyms are used in Lobot as abbreviations or aliases for other types. A
+type synonym declaration has the form
+
+```
+type <s> = <t>
+```
+
+where `<s>` is the name of the synonym we are declaring and `<t>` is either a
+Lobot base type, or another type synonym that has already been defined. `<t>` is
+not allowed to be a _kind_, because type synonyms never have any constraints.
+They are simply alternate names for Lobot base types.
+
+We can use a type synonym anywhere we can use a type. In particular, any time we
+have a variable declaration `<v> : <t>`, `<t>` is always allowed to be a base
+type or a type synonym.
+
+## Literals
+
+In this section we describe syntax for literals of various types.
+
+* Booleans: `true`, `false`
+
+* Integers: 0, 1, -1, 2, -2, etc...
+
+* Enumerations:
+
+  For enumeration type `{<A1>, ... <An>}`, each `<Ai>` is a literal of that
+  type. Each such `<Ai>` is called a _constructor_.
+  
+  Note that syntactically, the literal `A` is an element of type `{A}` and `{A,
+  B}`. However, it is considered to be a _different object_ in each case. In
+  other words, even if two distinct enum types share a common constructor, their
+  values are all totally distinct. It is best to keep constructor names separate
+  if to not do so would cause confusion.
+  
+  Anytime an enum literal `A` appears in an expression, its type must be
+  inferred from the context. If that type cannot be inferred unambiguously, its
+  type will be supplied by Lobot, but Lobot will issue a warning.
+
+* Enumsets:
+
+  For each enumset type `subset {<A1>, ... <An>}`, the string `{<Ai_1>, ...
+  <Ai_m>}` is a literal of that type, where `m` is any nonnegative integer (we
+  allow empty subset literals) and each `<Ai_1>` is one of the constructors
+  `<A1>, ... <An>`. The `<Ai_j>` may appear in any order, and duplicates are
+  allowed. Therefore, `{B, A, B}` is a literal of type `{A, B}`.
+  
+* Structs:
+
+  For a struct type `struct with <f1> : <t1>, ... <fn> : <tn>`, the string
+  `struct with { <f1> = <l1>, ... <fn> = <ln> }` is a literal of that type,
+  where each `<li>` is a literal of type `<ti>`.
+  
+* Abstract types: 
+
+  __There are no literals of abstract types__. Lobot does not deal directly with
+  abstract types; the only way to "get your hands" on a value is by calling a
+  function that returns one.
+  
+## Expressions
+
+In this section we describe the well-typed expressions in Lobot. An _expression_
+is syntax that can be evaluated once certain bound variable names have been
+supplied. Expressions primarily appear as constraints in the `where` clause of a
+kind definition, but can occur in other contexts as well.
+
+## Kinds
+
+In this section we introduce the syntax of _kinds_. Kinds are like type
+synonyms, in that they introduce new "types" into the current scope. However,
+they carry strictly more information than types. A kind is a type plus a set of
+constraints that further restrict which values can inhabit the kind.
+Mathematically, a kind is some subset of a type.
+
+Types divide up the universe of all values into `bool`, `int`, enums, enumsets,
+structs, and abstract types. Kinds describe subsets of types. In the very first
+example of this guide, we saw the `nat` kind:
+
+`nat : kind of int where 1 <= self`
+
+The value `1` is a `nat`, but the value `0` is not a `nat`.
+
+## Checks
+
+In this section we introduce _checks_, commands that tell Lobot to ensure that a
+property holds.
 
 ## JSON API
 

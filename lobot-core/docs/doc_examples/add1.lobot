@@ -6,3 +6,8 @@ add1_is_0 : kind of int
   where add1(self) = 0
         -10 <= self
         self <= 10
+
+add1_check : check
+  on x : int
+  where -500 <= x, x <= 500
+  that add1(x) = x + 1

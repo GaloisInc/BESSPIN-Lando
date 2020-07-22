@@ -47,7 +47,6 @@ import qualified What4.Interface         as WI
 import qualified What4.Protocol.SMTLib2  as WS
 import qualified What4.SatResult         as WS
 import qualified What4.Solver            as WS
-import qualified What4.Solver.Z3         as WS
 import qualified What4.BaseTypes         as WT
 
 import Data.Foldable (forM_, traverse_)
@@ -122,7 +121,7 @@ data SymFieldLiteral t (p :: (Symbol, Type)) where
 -- | Symbolic 'FunctionImpl'.
 data SymFunction t fntp where
   SymFunction :: { symFunctionType :: FunctionTypeRepr (FunType nm args ret)
-                 , symFunctionValue :: WB.ExprSymFn t (TypesBaseTypes args) (TypeBaseType ret)
+                 , symFunctionValue :: WB.ExprSymFn t (WB.Expr t) (TypesBaseTypes args) (TypeBaseType ret)
                  } -> SymFunction t (FunType nm args ret)
 
 -- | Extract the What4 expression from a symbolic field literal.

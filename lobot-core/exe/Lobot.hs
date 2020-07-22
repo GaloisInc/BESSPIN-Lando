@@ -135,7 +135,7 @@ lobot Options{..} = do
                              (runCheck ck fldnms inLimit)
           RunAllChecks -> do
             let go :: Assignment FunctionTypeRepr env -> Some (Check env) -> IO Bool
-                go env' some_ck = do 
+                go env' some_ck = do
                   SomeNonAbsCheck nm fldnms tps cns <- toNonAbstractCheck some_ck;
                   isNothing <$> runSession z3 env' (canonicalEnv env') tps cns
                                            (runCheck nm fldnms inLimit)
@@ -239,7 +239,7 @@ browseKindInstances k limit verbose s@SessionData{..} =
                         -- 'Q'  -> pure $ Just False
                         -- 'q'  -> pure $ Just False
                         _    -> pure $ Nothing
-          
+
 generateKindInstances :: Text -> Natural -> SessionData env (EmptyCtx ::> tp)
                       -> IO ([Assignment Literal (EmptyCtx ::> tp)], Natural)
 generateKindInstances k limit =
@@ -266,7 +266,7 @@ generateKindInstances k limit =
 
 runCheck :: Text -> [Text] -> Natural -> SessionData env ctx
          -> IO (Maybe (Assignment Literal ctx))
-runCheck ck fldnms limit s = do 
+runCheck ck fldnms limit s = do
   (ls,_) <- generateInstances ck limit onLimit onInst s
   pure $ listToMaybe ls
   where onInst :: InstanceResult env ctx
@@ -279,7 +279,8 @@ runCheck ck fldnms limit s = do
         onInst (InvalidInstance _ _ _ _) _ _ _ = pure True
         onInst _ _ vis ivis = do
           putStrLn $ "Check '" ++ T.unpack ck ++ "' holds. "
-                     ++ "(Generated " ++ show (vis+ivis) ++ " instances)"
+                     ++ "(Discarded " ++ show (vis+ivis)
+                     ++ " potential counterexamples)"
           pure False
         onLimit :: Natural -> Natural -> IO Bool
         onLimit vis ivis = do
