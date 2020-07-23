@@ -26,11 +26,13 @@ module Lobot.TypeCheck
 import Data.Parameterized.Some
 import Data.Parameterized.Context
 import Control.Monad.Writer (runWriterT)
+import qualified Data.Set as Set
 
 import Lobot.Kind as K
 import Lobot.Syntax as S
 import Lobot.Types as T
 
+import Lobot.Utils (mapSnd)
 import Lobot.TypeCheck.Monad
 import Lobot.TypeCheck.FirstPass
 import Lobot.TypeCheck.SecondPass
@@ -43,7 +45,7 @@ data TypeCheckResult where
 
 -- | Given a list of declarations, produce a list of typed kinds.
 typeCheck :: [S.Decl] -> Either TypeError (TypeCheckResult, [TypeWarning])
-typeCheck decls = runWriterT $ do
-  FirstPassResult env ks cks st <- firstPass decls
-  SecondPassResult ks' cks' <- secondPass env ks cks st
-  pure $ TypeCheckResult env ks' cks'
+typeCheck decls = fmap (mapSnd Set.toAscList) . runWriterT $ do
+  (Some env, idecls) <- firstPass decls
+  (ks, cks) <- secondPass env idecls
+  pure (TypeCheckResult env ks cks)

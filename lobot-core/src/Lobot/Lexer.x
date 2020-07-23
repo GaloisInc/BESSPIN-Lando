@@ -195,9 +195,12 @@ data Token = Token { tokenType :: TokenType
 instance Show Token where
   show (Token tktp _) = show tktp
 
+instance Ord AlexPosn where
+  compare (AlexPn i _ _) (AlexPn j _ _) = compare i j
+
 -- | 'Loc a' is an 'a' with an 'AlexPosn', a location in a souce document
 data Loc a = L { getPos :: AlexPosn, unLoc :: a }
-           deriving (Functor)
+           deriving (Ord, Functor)
 
 instance Show a => Show (Loc a) where
   show (L (AlexPn _ l c) x) =

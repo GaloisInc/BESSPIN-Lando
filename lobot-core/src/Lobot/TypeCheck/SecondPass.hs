@@ -22,14 +22,16 @@ This module does the second pass of typechecking the Lobot AST.
 
 module Lobot.TypeCheck.SecondPass
   ( secondPass
-  , SecondPassResult(..)
   ) where
 
 import qualified Data.HashMap as H
+import qualified Data.HashSet as HS
 
 import Data.Text (Text, append)
 import Data.List (union)
-import Control.Monad (when, forM)
+import Data.Maybe (catMaybes)
+import Data.Either (partitionEithers)
+import Control.Monad (when, forM_)
 import Control.Monad.State (evalStateT, get, modify)
 import Control.Monad.Except (throwError, catchError)
 import Data.Parameterized.BoolRepr
@@ -48,72 +50,89 @@ import Lobot.Types as T
 
 import Lobot.TypeCheck.Monad
 import Lobot.TypeCheck.ISyntax as I
+import Lobot.TypeCheck.FirstPass (checkType)
 
-data SecondPassResult env = SecondPassResult [Some (K.Kind env)] [Some (K.Check env)]
+import Debug.Trace
 
 secondPass :: Assignment FunctionTypeRepr env
-           -> [I.Kind]
-           -> [I.Check]
-           -> H.Map Text (Some (K.Kind env))
-           -> WithWarnings (Either TypeError) (SecondPassResult env)
-secondPass env ks cks = evalStateT $ do
-  ks' <- checkIKinds env ks
-  cks' <- checkIChecks env cks
-  return $ SecondPassResult ks' cks'
+           -> [I.Decl]
+           -> WithWarnings (Either TypeError)
+                           ([Some (K.Kind env)], [Some (K.Check env)])
+secondPass env ds =
+  evalStateT (partitionEithers . catMaybes <$> mapM (checkIDecl env) ds)
+             H.empty
 
-type CtxM2 env = CtxM (Some (K.Kind env)) TypeError
 
-addKind :: Text -> K.Kind env tp -> CtxM2 env ()
-addKind nm k = modify (H.insert nm (Some k))
+newtype P2Cns env ctx = P2Cns [E.Expr env ctx BoolType]
 
-lookupKind :: LText -> CtxM2 env (Some (K.Kind env))
-lookupKind (L p k) = do
+type CtxM2 env = CtxM (P2Cns env) TypeError
+
+
+addKind :: Text -> K.Kind env tp -> EnumNameSet -> CtxM2 env ()
+addKind nm (K.Kind _ tp _ cns) enms =
+  modify (H.insert nm (NamedKind tp (P2Cns cns) (not (null cns)) enms))
+
+addFunction :: Text -> I.FunctionType -> CtxM2 env ()
+addFunction nm (I.FunType arg_tps ret_tp _ _ arg_enms ret_enms) = do
+  modify (H.insert nm (NamedFunction arg_tps ret_tp (P2Cns []) (P2Cns [])
+                                                    arg_enms ret_enms))
+
+lookupKind :: Assignment T.FunctionTypeRepr env
+           -> LText -> CtxM2 env (Some (K.Kind env))
+lookupKind env (L p k) = do
   mb_k' <- H.lookup k <$> get
   case mb_k' of
-    Just k' -> pure k'
-    Nothing -> throwError (KindNameNotInScope (L p k))
+    Just (NamedKind tp (P2Cns cns) _ _) -> pure (Some (K.Kind k tp env cns))
+    _ -> throwError (KindNameNotInScope (L p k))
 
 lookupFunction :: Assignment T.FunctionTypeRepr env
-               -> LText -> CtxM2 env (Some (Index env))
-lookupFunction env (L p fn) =
-  case findIndex (\FunctionTypeRepr{..} -> fn == symbolRepr functionName) env of
-    Just idx -> pure idx
-    Nothing -> throwError (FunctionNameNotInScope (L p fn))
+               -> LText -> CtxM2 env (Some (Index env), [EnumNameSet])
+lookupFunction env (L p fn) = do
+  mb_fn' <- H.lookup fn <$> get
+  let mb_idx = findIndex (\FunctionTypeRepr{..} -> fn == symbolRepr functionName) env
+  case (mb_fn', mb_idx) of
+    (Just (NamedFunction _ _ _ _ arg_enms _), Just idx) -> pure (idx, arg_enms)
+    _ -> throwError (FunctionNameNotInScope $ trace "here" (L p fn))
 
 
-checkIKinds :: Assignment FunctionTypeRepr env
-            -> [I.Kind]
-            -> CtxM2 env [Some (K.Kind env)]
-checkIKinds env decls = mapM (checkIKind env) decls
+checkIDecl :: Assignment FunctionTypeRepr env
+           -> I.Decl
+           -> CtxM2 env (Maybe (Either (Some (K.Kind env))
+                                       (Some (K.Check env))))
+checkIDecl env (I.KindDecl ik) =
+  Just . Left <$> checkIKind env ik
+checkIDecl env (I.CheckDecl ick) =
+  Just . Right <$> checkICheck env ick
+checkIDecl env (I.TypeSynDecl (L _ nm) (Some tp) enms) = do
+  addKind nm (K.Kind nm tp env []) enms
+  pure Nothing
+checkIDecl _env (I.FunctionDecl (L _ nm) ftp) = do
+  addFunction nm ftp
+  pure Nothing
 
 checkIKind :: Assignment FunctionTypeRepr env
            -> I.Kind
            -> CtxM2 env (Some (K.Kind env))
-checkIKind env (I.Kind (L _ nm) tp cns dcns) = do
-  cns'  <- mapM (checkExpr env (singleton tp) T.BoolRepr) cns
+checkIKind env (I.Kind (L _ nm) tp cns dcns enms) = do
+  cns'  <- mapM (checkExpr enms env (singleton $ SelfElem tp) T.BoolRepr) cns
   dcns' <- concat <$> mapM (resolveDerivedConstraint env tp) dcns
   let k' = K.Kind nm tp env (cns' ++ dcns')
-  addKind nm k'
+  addKind nm k' enms
   pure $ Some k'
-
-checkIChecks :: Assignment FunctionTypeRepr env
-             -> [I.Check]
-             -> CtxM2 env [Some (K.Check env)]
-checkIChecks env decls = mapM (checkICheck env) decls
 
 checkICheck :: forall env .
                Assignment FunctionTypeRepr env
             -> I.Check
             -> CtxM2 env (Some (K.Check env))
-checkICheck env (I.Check (L _ nm) flds cns reqs) = do
-  let tps = fmapFC checkFieldType flds
-  cns'  <- mapM (checkExpr env tps T.BoolRepr) cns
+checkICheck env (I.Check (L _ nm) flds cns reqs enms) = do
+  let tps = fmapFC (\(I.CheckField (S.L _ nm') tp _) -> VarElem nm' tp) flds
+  cns'  <- mapM (checkExpr enms env tps T.BoolRepr) cns
   let collectDCs :: Index tps tp -> CheckField tp -> CtxM2 env [E.Expr env tps 'T.BoolType]
       collectDCs i (CheckField _ tp dcns) = do
         kes <- concat <$> mapM (resolveDerivedConstraint env tp) dcns
         return $ giveSelf (E.VarExpr i) <$> kes
   dcns' <- traverseAndCollect collectDCs flds
-  reqs' <- mapM (checkExpr env tps T.BoolRepr) reqs
+  reqs' <- mapM (checkExpr enms env tps T.BoolRepr) reqs
   let namedTypes = fmapFC (\(CheckField (S.L _ fnm) tp _) -> NamedType fnm tp) flds
   let ck' = K.Check nm namedTypes env (cns' ++ dcns') reqs'
   pure $ Some ck'
@@ -127,8 +146,8 @@ resolveDerivedConstraint :: Assignment T.FunctionTypeRepr env
                          -> DerivedConstraint
                          -> CtxM2 env [K.KindExpr env tp T.BoolType]
 
-resolveDerivedConstraint _ tp (FromKind (L p nm)) = do
-  Some k <- lookupKind (L p nm)
+resolveDerivedConstraint env tp (FromKind (L p nm)) = do
+  Some k <- lookupKind env (L p nm)
   case testEquality tp (K.kindType k) of
     Just Refl -> pure $ K.kindConstraints k
     _ -> throwError (InternalError p $ "Malformed derived constraint: FromKind " `append` nm)
@@ -145,156 +164,198 @@ resolveDerivedConstraint env tp (FromField (L p f) ds)
 
 -- Type inference and checking for expressions
 
+data ContextElem (tp :: T.Type) where
+  SelfElem :: T.TypeRepr tp -> ContextElem tp
+  VarElem  :: Text -> T.TypeRepr tp -> ContextElem tp
+
+ifVarElem :: (Text -> T.TypeRepr tp -> Bool) -> ContextElem tp -> Bool
+ifVarElem f (VarElem nm tp) = f nm tp
+ifVarElem _ _ = False
+
+-- | ...
+addlEnms :: S.LExpr -> CtxM2 env EnumNameSet
+addlEnms (L _ (S.ApplyExpr (L p fn) _)) = do
+  mb_fn' <- H.lookup fn <$> get
+  case mb_fn' of
+    Just (NamedFunction _ _ _ _ _ ret_enms) -> pure ret_enms
+    _ -> throwError (FunctionNameNotInScope $ trace "there" (L p fn))
+addlEnms (L _ (S.LiteralExpr (L _ (S.StructLit (Just tp) _)))) =
+  (\(_,_,enms) -> enms) <$> checkType tp
+addlEnms (L _ (S.FieldExpr x _)) = addlEnms x
+addlEnms _ = pure HS.empty
+
 -- | Guess, or infer, the type of an expression without any knowledge of what
 -- its type should be. The 'Bool' returned is true if and only if the type
 -- returned is a guess rather than an inference.
-guessExpr :: Assignment T.FunctionTypeRepr env
-          -> Assignment T.TypeRepr ctx
-          -> I.LExpr ctx
+guessExpr :: EnumNameSet
+          -> Assignment T.FunctionTypeRepr env
+          -> Assignment ContextElem ctx
+          -> S.LExpr
           -> CtxM2 env (Bool, Pair T.TypeRepr (E.Expr env ctx))
 
-guessExpr env _ (L _ (I.LiteralExpr l)) = do
-  (isGuess, GuessedLit tp l') <- guessLit env l
+guessExpr enms env _ (L _ (S.LiteralExpr l)) = do
+  (isGuess, GuessedLit tp l') <- guessLit enms env l
   pure (isGuess, Pair tp (E.LiteralExpr l'))
 
-guessExpr _ ctx (L _ (I.VarExpr _ i)) = 
-  pure (False, Pair (ctx ! i) (E.VarExpr i))
-guessExpr _ (Empty :> T.StructRepr ftps) (L _ (I.SelfFieldExpr _ fi))
-  | FieldRepr _ tp <- ftps ! fi
-  = pure (False, Pair tp (E.FieldExpr (E.VarExpr baseIndex) fi))
+guessExpr enms env ctx (L p (S.VarExpr t))
+  -- if t is an enum:
+  | unLoc t `HS.member` enms
+    = guessExpr enms env ctx (L p (S.LiteralExpr (L p (S.EnumLit t))))
+  -- if we're in a kind context and t is a field name:
+  | (Empty :> SelfElem (T.StructRepr ftps)) <- ctx
+  , Just (Some i) <- findIndex (\(FieldRepr f _) -> unLoc t == symbolRepr f) ftps
+  , FieldRepr _ tp <- ftps ! i
+    = pure (False, Pair tp (E.FieldExpr (E.VarExpr baseIndex) i))
+  -- if t is a variable name from the current context:
+  | Just (Some i) <- findIndex (ifVarElem (\nm _ -> unLoc t == nm)) ctx
+  , VarElem _ tp <- ctx ! i
+    = pure (False, Pair tp (E.VarExpr i))
+  -- otherwise, we error
+  | otherwise
+    = throwError (OtherNameNotInScope t)
 
-guessExpr env ctx (L _ (I.FieldExpr x (L p f))) = do
-  (_, Pair xtp x') <- guessExpr env ctx x
+guessExpr _ _ ctx (L p S.SelfExpr)
+  | (Empty :> SelfElem tp) <- ctx = pure (False, Pair tp K.SelfExpr)
+  | otherwise                     = throwError (UnexpectedSelfError p)
+
+guessExpr enms env ctx (L _ (S.FieldExpr x (L p f))) = do
+  (_, Pair xtp x') <- guessExpr enms env ctx x
   Some f' <- pure $ someSymbol f
   case xtp of
     StructRepr ftps -> case fieldIndex f' ftps of
       Just (SomeField tp i) -> pure (False, Pair tp (E.FieldExpr x' i))
-      Nothing -> throwError (NoSuchFieldError (L p f) (unILExpr x) (Some xtp))
-    _ -> throwError (TypeMismatchError (unILExpr x) (TypeString "a struct")
+      Nothing -> throwError (NoSuchFieldError (L p f) x (Some xtp))
+    _ -> throwError (TypeMismatchError x (TypeString "a struct")
                                                     (Just $ SomeType xtp))
 
-guessExpr env ctx (L _ (I.ApplyExpr fn xs)) = do
-  Some fi <- lookupFunction env fn
+guessExpr enms env ctx (L _ (S.ApplyExpr fn args)) = do
+  (Some fi, arg_enms) <- lookupFunction env fn
   fntp@FunctionTypeRepr{..} <- pure $ env ! fi
-  mxs' <- checkExprs env ctx functionArgTypes (reverse xs)
-  case mxs' of
-    Just xs' -> pure (False, Pair functionRetType (E.ApplyExpr fi xs'))
-    Nothing -> throwError (FunctionArgLengthError fn (Some fntp) (unILExpr <$> xs))
+  mb_args' <-
+    checkExprs enms env ctx functionArgTypes (reverse (zip args arg_enms))
+  case mb_args' of
+    Just args' -> pure (False, Pair functionRetType (E.ApplyExpr fi args'))
+    Nothing -> throwError (FunctionArgLengthError fn (Some fntp) args)
 
-guessExpr env ctx (L _ (I.EqExpr x y)) = do
-  (xGuess, Pair xtp x') <- guessExpr env ctx x
-  (yGuess, Pair ytp y') <- guessExpr env ctx y
-  let uni_err = TypeUnificationError (unILExpr x) (SomeType xtp)
-                                     (unILExpr y) (SomeType ytp)
+guessExpr enms env ctx (L _ (S.EqExpr x y)) = do
+  x_enms <- HS.union enms <$> addlEnms y
+  y_enms <- HS.union enms <$> addlEnms x
+  (xGuess, Pair xtp x') <- guessExpr x_enms env ctx x
+  (yGuess, Pair ytp y') <- guessExpr y_enms env ctx y
+  let uni_err = TypeUnificationError x (SomeType xtp)
+                                     y (SomeType ytp)
   case (isAbstractType xtp, isAbstractType ytp) of
     (FalseRepr, FalseRepr) -> do
       case (testEquality xtp ytp, xGuess, yGuess, unifyTypes xtp ytp) of
         (Just Refl, _, _, _) ->
           pure (False, Pair T.BoolRepr (E.EqExpr x' y'))
         (Nothing, False, True, _) -> do
-          y'' <- checkExpr env ctx xtp y
+          y'' <- checkExpr y_enms env ctx xtp y
           pure (False, Pair T.BoolRepr (E.EqExpr x' y''))
         (Nothing, True, False, _) -> do
-          x'' <- checkExpr env ctx ytp x
+          x'' <- checkExpr x_enms env ctx ytp x
           pure (False, Pair T.BoolRepr (E.EqExpr x'' y'))
         (Nothing, True, True, Just (SomeNonAbsTp uni_tp)) ->
-          do { x'' <- checkExpr env ctx uni_tp x
-             ; y'' <- checkExpr env ctx uni_tp y
+          do { x'' <- checkExpr x_enms env ctx uni_tp x
+             ; y'' <- checkExpr y_enms env ctx uni_tp y
              ; pure (False, Pair T.BoolRepr (E.EqExpr x'' y''))
              } -- `catchError` (const . trace "hi" $ throwError uni_err)
         _ -> throwError uni_err
-    (TrueRepr, _) -> throwError (AbstractEqualityError (unILExpr x) (SomeType xtp))
-    (_, TrueRepr) -> throwError (AbstractEqualityError (unILExpr y) (SomeType ytp))
+    (TrueRepr, _) -> throwError (AbstractEqualityError x (SomeType xtp))
+    (_, TrueRepr) -> throwError (AbstractEqualityError y (SomeType ytp))
 
-guessExpr env ctx (L _ (I.LteExpr x y)) = do
-  x' <- checkExpr env ctx T.IntRepr x
-  y' <- checkExpr env ctx T.IntRepr y
+guessExpr enms env ctx (L _ (S.LteExpr x y)) = do
+  x' <- checkExpr enms env ctx T.IntRepr x
+  y' <- checkExpr enms env ctx T.IntRepr y
   pure (False, Pair T.BoolRepr (E.LteExpr x' y'))
-guessExpr env ctx (L _ (I.LtExpr x y)) = do
-  x' <- checkExpr env ctx T.IntRepr x
-  y' <- checkExpr env ctx T.IntRepr y
+guessExpr enms env ctx (L _ (S.LtExpr x y)) = do
+  x' <- checkExpr enms env ctx T.IntRepr x
+  y' <- checkExpr enms env ctx T.IntRepr y
   pure (False, Pair T.BoolRepr (E.LtExpr x' y'))
-guessExpr env ctx (L _ (I.GteExpr x y)) = do
-  x' <- checkExpr env ctx T.IntRepr x
-  y' <- checkExpr env ctx T.IntRepr y
+guessExpr enms env ctx (L _ (S.GteExpr x y)) = do
+  x' <- checkExpr enms env ctx T.IntRepr x
+  y' <- checkExpr enms env ctx T.IntRepr y
   pure (False, Pair T.BoolRepr (E.GteExpr x' y'))
-guessExpr env ctx (L _ (I.GtExpr x y)) = do
-  x' <- checkExpr env ctx T.IntRepr x
-  y' <- checkExpr env ctx T.IntRepr y
+guessExpr enms env ctx (L _ (S.GtExpr x y)) = do
+  x' <- checkExpr enms env ctx T.IntRepr x
+  y' <- checkExpr enms env ctx T.IntRepr y
   pure (False, Pair T.BoolRepr (E.GtExpr x' y'))
-guessExpr env ctx (L _ (I.PlusExpr x y)) = do
-  x' <- checkExpr env ctx T.IntRepr x
-  y' <- checkExpr env ctx T.IntRepr y
+guessExpr enms env ctx (L _ (S.PlusExpr x y)) = do
+  x' <- checkExpr enms env ctx T.IntRepr x
+  y' <- checkExpr enms env ctx T.IntRepr y
   pure (False, Pair T.IntRepr (E.PlusExpr x' y'))
-guessExpr env ctx (L _ (I.MinusExpr x y)) = do
-  x' <- checkExpr env ctx T.IntRepr x
-  y' <- checkExpr env ctx T.IntRepr y
+guessExpr enms env ctx (L _ (S.MinusExpr x y)) = do
+  x' <- checkExpr enms env ctx T.IntRepr x
+  y' <- checkExpr enms env ctx T.IntRepr y
   pure (False, Pair T.IntRepr (E.MinusExpr x' y'))
-guessExpr env ctx (L _ (I.TimesExpr x y)) = do
-  x' <- checkExpr env ctx T.IntRepr x
-  y' <- checkExpr env ctx T.IntRepr y
+guessExpr enms env ctx (L _ (S.TimesExpr x y)) = do
+  x' <- checkExpr enms env ctx T.IntRepr x
+  y' <- checkExpr enms env ctx T.IntRepr y
   pure (False, Pair T.IntRepr (E.TimesExpr x' y'))
-guessExpr env ctx (L _ (I.ModExpr x y)) = do
-  x' <- checkExpr env ctx T.IntRepr x
-  y' <- checkExpr env ctx T.IntRepr y
+guessExpr enms env ctx (L _ (S.ModExpr x y)) = do
+  x' <- checkExpr enms env ctx T.IntRepr x
+  y' <- checkExpr enms env ctx T.IntRepr y
   pure (False, Pair T.IntRepr (E.ModExpr x' y'))
-guessExpr env ctx (L _ (I.DivExpr x y)) = do
-  x' <- checkExpr env ctx T.IntRepr x
-  y' <- checkExpr env ctx T.IntRepr y
+guessExpr enms env ctx (L _ (S.DivExpr x y)) = do
+  x' <- checkExpr enms env ctx T.IntRepr x
+  y' <- checkExpr enms env ctx T.IntRepr y
   pure (False, Pair T.IntRepr (E.DivExpr x' y'))
 
-guessExpr env ctx (L _ (I.MemberExpr x y)) = do
-  (xGuess, Pair xtp x') <- guessExpr env ctx x
-  (yGuess, Pair ytp y') <- guessExpr env ctx y
-  let uni_err = EnumSetUnificationError (unILExpr x) (SomeType xtp)
-                                        (unILExpr y) (SomeType ytp)
+guessExpr enms env ctx (L _ (S.MemberExpr x y)) = do
+  x_enms <- HS.union enms <$> addlEnms y
+  y_enms <- HS.union enms <$> addlEnms x
+  (xGuess, Pair xtp x') <- guessExpr x_enms env ctx x
+  (yGuess, Pair ytp y') <- guessExpr y_enms env ctx y
+  let uni_err = EnumSetUnificationError x (SomeType xtp)
+                                        y (SomeType ytp)
   case (xtp, ytp) of
     (T.EnumRepr xcs, T.SetRepr ycs) -> do
       case (testEquality xcs ycs, xGuess, yGuess, unifyEnumNames xcs ycs) of
         (Just Refl, _, _, _) ->
           pure (False, Pair T.BoolRepr (E.MemberExpr x' y'))
         (Nothing, False, True, _) -> do
-          y'' <- checkExpr env ctx (T.SetRepr xcs) y
+          y'' <- checkExpr y_enms env ctx (T.SetRepr xcs) y
           pure (False, Pair T.BoolRepr (E.MemberExpr x' y''))
         (Nothing, True, False, _) -> do
-          x'' <- checkExpr env ctx (T.EnumRepr ycs) x
+          x'' <- checkExpr x_enms env ctx (T.EnumRepr ycs) x
           pure (False, Pair T.BoolRepr (E.MemberExpr x'' y'))
         (Nothing, True, True, SomeNonEmptySyms uni_cs) ->
-          do { x'' <- checkExpr env ctx (T.EnumRepr uni_cs) x
-             ; y'' <- checkExpr env ctx (T.SetRepr  uni_cs) y
+          do { x'' <- checkExpr x_enms env ctx (T.EnumRepr uni_cs) x
+             ; y'' <- checkExpr y_enms env ctx (T.SetRepr  uni_cs) y
              ; pure (False, Pair T.BoolRepr (E.MemberExpr x'' y''))
              } `catchError` (const $ throwError uni_err)
         _ -> throwError uni_err
-    (T.EnumRepr _, _) -> throwError (TypeMismatchError (unILExpr y)
+    (T.EnumRepr _, _) -> throwError (TypeMismatchError y
                                                        (TypeString "a set")
                                                        (Just $ SomeType ytp))
-    (_,_) -> throwError (TypeMismatchError (unILExpr x)
+    (_,_) -> throwError (TypeMismatchError x
                                            (TypeString "an enum")
                                            (Just $ SomeType xtp))
 
-guessExpr env ctx (L _ (I.AndExpr x y)) = do
-  x' <- checkExpr env ctx T.BoolRepr x
-  y' <- checkExpr env ctx T.BoolRepr y
+guessExpr enms env ctx (L _ (S.AndExpr x y)) = do
+  x' <- checkExpr enms env ctx T.BoolRepr x
+  y' <- checkExpr enms env ctx T.BoolRepr y
   pure (False, Pair T.BoolRepr (E.AndExpr x' y'))
-guessExpr env ctx (L _ (I.OrExpr x y)) = do
-  x' <- checkExpr env ctx T.BoolRepr x
-  y' <- checkExpr env ctx T.BoolRepr y
+guessExpr enms env ctx (L _ (S.OrExpr x y)) = do
+  x' <- checkExpr enms env ctx T.BoolRepr x
+  y' <- checkExpr enms env ctx T.BoolRepr y
   pure (False, Pair T.BoolRepr (E.OrExpr x' y'))
-guessExpr env ctx (L _ (I.XorExpr x y)) = do
-  x' <- checkExpr env ctx T.BoolRepr x
-  y' <- checkExpr env ctx T.BoolRepr y
+guessExpr enms env ctx (L _ (S.XorExpr x y)) = do
+  x' <- checkExpr enms env ctx T.BoolRepr x
+  y' <- checkExpr enms env ctx T.BoolRepr y
   pure (False, Pair T.BoolRepr (E.XorExpr x' y'))
-guessExpr env ctx (L _ (I.ImpliesExpr x y)) = do
-  x' <- checkExpr env ctx T.BoolRepr x
-  y' <- checkExpr env ctx T.BoolRepr y
+guessExpr enms env ctx (L _ (S.ImpliesExpr x y)) = do
+  x' <- checkExpr enms env ctx T.BoolRepr x
+  y' <- checkExpr enms env ctx T.BoolRepr y
   pure (False, Pair T.BoolRepr (E.ImpliesExpr x' y'))
-guessExpr env ctx (L _ (I.NotExpr x)) = do
-  x' <- checkExpr env ctx T.BoolRepr x
+guessExpr enms env ctx (L _ (S.NotExpr x)) = do
+  x' <- checkExpr enms env ctx T.BoolRepr x
   pure (False, Pair T.BoolRepr (E.NotExpr x'))
 
-guessExpr env ctx (L _ (I.IsInstanceExpr x (_, Some tp, dcns))) = do
-  x' <- checkExpr env ctx tp x
-  dcns' <- concat <$> mapM (resolveDerivedConstraint env tp) dcns
+guessExpr enms env ctx (L _ (S.IsInstanceExpr x tp)) = do
+  (Some tp', dcns, enms') <- checkType tp
+  x' <- checkExpr (enms `HS.union` enms') env ctx tp' x
+  dcns' <- concat <$> mapM (resolveDerivedConstraint env tp') dcns
   let res = if null dcns' then E.LiteralExpr (E.BoolLit True)
                           else foldr1 E.AndExpr (giveSelf x' <$> dcns')
   pure (False, Pair T.BoolRepr res)
@@ -314,39 +375,41 @@ fieldIndex nm ftps = case traverseAndCollect (go nm) ftps of
 
 
 -- | Check that the type of an expression is equal to some known type.
-checkExpr :: Assignment T.FunctionTypeRepr env
-          -> Assignment T.TypeRepr ctx
+checkExpr :: EnumNameSet
+          -> Assignment T.FunctionTypeRepr env
+          -> Assignment ContextElem ctx
           -> T.TypeRepr tp
-          -> I.LExpr ctx
+          -> S.LExpr
           -> CtxM2 env (E.Expr env ctx tp)
-checkExpr env _ tp (L _ (I.LiteralExpr l)) = do
-  CheckedLit l' <- checkLit env tp l
+checkExpr enms env _ tp (L _ (S.LiteralExpr l)) = do
+  CheckedLit l' <- checkLit enms env tp l
   return $ E.LiteralExpr l'
-checkExpr env ctx tp x = do
-  (isGuess, Pair tp' x') <- guessExpr env ctx x
+checkExpr enms env ctx tp x = do
+  (isGuess, Pair tp' x') <- guessExpr enms env ctx x
   case (isGuess, testEquality tp tp') of
     -- NOTE: currently the below case never occurs
-    (True, _) -> throwError (TypeInferenceError (unILExpr x))
-    (False, Nothing) -> throwError (TypeMismatchError (unILExpr x) (SomeType tp)
+    (True, _) -> throwError (TypeInferenceError x)
+    (False, Nothing) -> throwError (TypeMismatchError x (SomeType tp)
                                                       (Just $ SomeType tp'))
     (False, Just Refl) -> pure x'
 
 -- | Check that a list of expressions have the respective types of a list of
 -- types. Returns 'Nothing' if the function is given a different number of
 -- terms and types.
-checkExprs :: Assignment T.FunctionTypeRepr env
-           -> Assignment T.TypeRepr ctx
+checkExprs :: EnumNameSet
+           -> Assignment T.FunctionTypeRepr env
+           -> Assignment ContextElem ctx
            -> Assignment T.TypeRepr tps
-           -> [I.LExpr ctx]
+           -> [(S.LExpr, EnumNameSet)]
            -> CtxM2 env (Maybe (Assignment (E.Expr env ctx) tps))
-checkExprs _ _ Empty [] = pure $ Just Empty
-checkExprs env ctx (tps :> tp) (x:xs) = do
-  x' <- checkExpr env ctx tp x
-  mxs' <- checkExprs env ctx tps xs
+checkExprs _ _ _ Empty [] = pure $ Just Empty
+checkExprs enms env ctx (tps :> tp) ((x,enms'):xs) = do
+  x' <- checkExpr (enms `HS.union` enms') env ctx tp x
+  mxs' <- checkExprs enms env ctx tps xs
   case mxs' of
     Just xs' -> pure $ Just (xs' :> x')
     Nothing -> pure Nothing
-checkExprs _ _ _ _ = pure Nothing
+checkExprs _ _ _ _ _ = pure Nothing
 
 
 -- Type inference and checking for literals
@@ -358,18 +421,22 @@ data GuessedLit where
 -- | Guess, or infer, the type of a literal without any knowledge of what its
 -- type should be. The 'Bool' returned is true if and only if the type
 -- returned is a guess rather than an inference.
-guessLit :: Assignment T.FunctionTypeRepr env 
-         -> I.LLiteral -> CtxM2 env (Bool, GuessedLit)
+guessLit :: EnumNameSet
+         -> Assignment T.FunctionTypeRepr env 
+         -> S.LLiteral -> CtxM2 env (Bool, GuessedLit)
 
-guessLit _ (L _ (I.BoolLit b)) = pure (False, GuessedLit T.BoolRepr (E.BoolLit b))
-guessLit _ (L _ (I.IntLit z))  = pure (False, GuessedLit T.IntRepr  (E.IntLit z))
+guessLit _ _ (L _ (S.BoolLit b)) = pure (False, GuessedLit T.BoolRepr (E.BoolLit b))
+guessLit _ _ (L _ (S.IntLit z))  = pure (False, GuessedLit T.IntRepr  (E.IntLit z))
 
-guessLit _ (L _ (I.EnumLit (L _ e))) | Some e' <- someSymbol e =
+guessLit enms _ (L _ (S.EnumLit (L p e))) | Some e' <- someSymbol e = do
+  when (e `HS.notMember` enms) $ emitWarning (EnumNameNotInScope (L p e))
   pure (True , GuessedLit (T.EnumRepr (Empty :> e'))
                           (E.EnumLit  (Empty :> e') baseIndex))
-guessLit _ (L _ (I.SetLit es)) | Some es' <- someSymbols (fmap unLoc es) =
+guessLit enms _ (L _ (S.SetLit es)) | Some es' <- someSymbols (unLoc <$> es) = do
+  forM_ es $ \(L p e) ->
+    when (e `HS.notMember` enms) $ emitWarning (EnumNameNotInScope (L p e))
   let idxs = toListWithIndex (\i _ -> Some i) es'
-   in case decideLeq (knownNat @1) (ctxSizeNat (size es')) of
+  case decideLeq (knownNat @1) (ctxSizeNat (size es')) of
         Left LeqProof -> pure (True, GuessedLit (T.SetRepr es')
                                                 (E.SetLit  es' idxs))
                    -- we want to be able to give a guess for the type of
@@ -379,64 +446,72 @@ guessLit _ (L _ (I.SetLit es)) | Some es' <- someSymbols (fmap unLoc es) =
                     in pure (True, GuessedLit (T.SetRepr emptySet)
                                               (E.SetLit emptySet []))
   
-guessLit env (L _ (I.StructLit Nothing fvs)) = do
-  (areGuesses, fvs') <- unzip <$> mapM (guessFieldLit env) fvs
+guessLit enms env (L _ (S.StructLit Nothing fvs)) = do
+  (areGuesses, fvs') <- unzip <$> mapM (guessFieldLit enms env) fvs
   GuessedFieldLits fvs'' <- pure $ toGuessedFieldLits (reverse fvs')
   pure (or areGuesses, GuessedLit (E.literalType (E.StructLit fvs'')) (E.StructLit fvs''))
-guessLit env (L p (I.StructLit (Just (_, Some (T.StructRepr ftps), _dcns)) fvs)) = do
-  mfvs' <- checkFieldLits env ftps (reverse fvs)
+guessLit enms env (L p (S.StructLit (Just tp) fvs)) = do
+  (Some tp', _dcns, enms') <- checkType tp
   -- TODO: Check that this is a valid instance given dcns?
-  case mfvs' of
-     Just (CheckedFieldLits fvs') -> pure (False, GuessedLit (T.StructRepr ftps) (E.StructLit fvs'))
-     Nothing -> throwError (StructLiteralLengthError p (Some ftps) (fst <$> fvs))
-guessLit _ (L _ (I.StructLit (Just (tp, _, _)) _)) =
-  throwError (StructLiteralTypeError tp)
+  case tp' of
+    T.StructRepr ftps -> do
+      mfvs' <- checkFieldLits (enms `HS.union` enms') env ftps (reverse fvs)
+      case mfvs' of
+         Just (CheckedFieldLits fvs') ->
+           pure (False, GuessedLit (T.StructRepr ftps) (E.StructLit fvs'))
+         Nothing ->
+           throwError (StructLiteralLengthError p (Some ftps) (fst <$> fvs))
+    _ -> throwError (StructLiteralTypeError tp)
 
 data CheckedLit tp where
   CheckedLit :: IsAbstractType tp ~ 'False => E.Literal tp -> CheckedLit tp
 
 -- | Check that the type of a literal is equal to some known type.
-checkLit :: Assignment T.FunctionTypeRepr env
-         -> T.TypeRepr tp -> I.LLiteral -> CtxM2 env (CheckedLit tp)
+checkLit :: EnumNameSet
+         -> Assignment T.FunctionTypeRepr env
+         -> T.TypeRepr tp -> S.LLiteral -> CtxM2 env (CheckedLit tp)
 
-checkLit _ (T.EnumRepr cs) (L _ (I.EnumLit e)) = do
-  Some i <- enumElemIndex cs e
+checkLit enms _ (T.EnumRepr cs) (L _ (S.EnumLit (L p e))) = do
+  when (e `HS.notMember` enms) $ emitWarning (EnumNameNotInScope (L p e))
+  Some i <- enumElemIndex cs (L p e)
   pure $ CheckedLit (E.EnumLit cs i)
-checkLit _ tp l@(L p (I.EnumLit _)) =
-  throwError (TypeMismatchError (L p (S.LiteralExpr (unILLit l))) (SomeType tp)
+checkLit _ _ tp l@(L p (S.EnumLit _)) =
+  throwError (TypeMismatchError (L p (S.LiteralExpr l)) (SomeType tp)
                                 (Just $ TypeString "an enum"))
-checkLit _ (T.SetRepr cs) (L _ (I.SetLit es)) = do
-  es' <- forM es (enumElemIndex cs)
+checkLit enms _ (T.SetRepr cs) (L _ (S.SetLit es)) = do
+  forM_ es $ \(L p e) ->
+    when (e `HS.notMember` enms) $ emitWarning (EnumNameNotInScope (L p e))
+  es' <- mapM (enumElemIndex cs) es
   pure $ CheckedLit (E.SetLit cs es')
-checkLit _ tp l@(L p (I.SetLit _)) =
-  throwError (TypeMismatchError (L p (S.LiteralExpr (unILLit l))) (SomeType tp)
+checkLit _ _ tp l@(L p (S.SetLit _)) =
+  throwError (TypeMismatchError (L p (S.LiteralExpr l)) (SomeType tp)
                                 (Just $ TypeString "a set"))
 
-checkLit env (T.StructRepr ftps) (L p (I.StructLit Nothing fvs)) = do
-  mfvs' <- checkFieldLits env ftps (reverse fvs)
+checkLit enms env (T.StructRepr ftps) (L p (S.StructLit Nothing fvs)) = do
+  mfvs' <- checkFieldLits enms env ftps (reverse fvs)
   case mfvs' of
    Just (CheckedFieldLits fvs') -> pure $ CheckedLit (E.StructLit fvs')
    Nothing -> throwError (StructLiteralLengthError p (Some ftps) (fst <$> fvs))
-checkLit env tp@(T.StructRepr _) l@(L p (I.StructLit _ _)) = do
-  (_, GuessedLit tp' l') <- guessLit env l
+checkLit enms env tp@(T.StructRepr _) l@(L p (S.StructLit _ _)) = do
+  (_, GuessedLit tp' l') <- guessLit enms env l
   case testEquality tp tp' of
     Nothing ->
-      throwError (TypeMismatchError (L p (S.LiteralExpr (unILLit l)))
+      throwError (TypeMismatchError (L p (S.LiteralExpr l))
                                     (SomeType tp)
                                     (Just $ SomeType tp'))
     Just Refl ->
       pure $ CheckedLit l'
-checkLit _ tp l@(L p (I.StructLit _ _)) =
-  throwError (TypeMismatchError (L p (S.LiteralExpr (unILLit l))) (SomeType tp)
+checkLit _ _ tp l@(L p (S.StructLit _ _)) =
+  throwError (TypeMismatchError (L p (S.LiteralExpr l)) (SomeType tp)
                                 (Just $ TypeString "a struct"))
 
-checkLit env tp l@(L p _) = do
-  (isGuess, GuessedLit tp' l') <- guessLit env l
+checkLit enms env tp l@(L p _) = do
+  (isGuess, GuessedLit tp' l') <- guessLit enms env l
   case (isGuess, testEquality tp tp') of
     (True, _) ->
-      throwError (TypeInferenceError (L p (S.LiteralExpr (unILLit l))))
+      throwError (TypeInferenceError (L p (S.LiteralExpr l)))
     (False, Nothing) ->
-      throwError (TypeMismatchError (L p (S.LiteralExpr (unILLit l)))
+      throwError (TypeMismatchError (L p (S.LiteralExpr l))
                                     (SomeType tp)
                                     (Just $ SomeType tp'))
     (False, Just Refl) ->
@@ -456,10 +531,11 @@ data GuessedFieldLit where
   GuessedFieldLit :: IsAbstractType tp ~ 'False
                   => FieldLiteral '(nm, tp) -> GuessedFieldLit
 
-guessFieldLit :: Assignment T.FunctionTypeRepr env 
-              -> (LText, I.LLiteral) -> CtxM2 env (Bool, GuessedFieldLit)
-guessFieldLit env (L _ s, l) = do
-  (isGuess, GuessedLit _ l') <- guessLit env l
+guessFieldLit :: EnumNameSet
+              -> Assignment T.FunctionTypeRepr env 
+              -> (LText, S.LLiteral) -> CtxM2 env (Bool, GuessedFieldLit)
+guessFieldLit enms env (L _ s, l) = do
+  (isGuess, GuessedLit _ l') <- guessLit enms env l
   Some s' <- pure $ someSymbol s
   pure $ (isGuess, GuessedFieldLit (E.FieldLiteral s' l'))
 
@@ -479,21 +555,22 @@ data CheckedFieldLits ftps where
                  => Assignment FieldLiteral ftps
                  -> CheckedFieldLits ftps
 
-checkFieldLits :: Assignment T.FunctionTypeRepr env 
+checkFieldLits :: EnumNameSet
+               -> Assignment T.FunctionTypeRepr env 
                -> Assignment T.FieldRepr ftps
-               -> [(LText, I.LLiteral)]
+               -> [(LText, S.LLiteral)]
                -> CtxM2 env (Maybe (CheckedFieldLits ftps))
-checkFieldLits _ Empty [] = pure $ Just (CheckedFieldLits Empty)
-checkFieldLits env (ftps :> FieldRepr s1 ftp) ((L p s2, l):fvs) = do
+checkFieldLits _ _ Empty [] = pure $ Just (CheckedFieldLits Empty)
+checkFieldLits enms env (ftps :> FieldRepr s1 ftp) ((L p s2, l):fvs) = do
   when (symbolRepr s1 /= s2) $
     throwError (StructLiteralNameMismatchError (L p s2) (symbolRepr s1))
-  CheckedLit l' <- checkLit env ftp l
+  CheckedLit l' <- checkLit enms env ftp l
   let fv' = E.FieldLiteral s1 l'
-  mfvs' <- checkFieldLits env ftps fvs
+  mfvs' <- checkFieldLits enms env ftps fvs
   case mfvs' of
     Just (CheckedFieldLits fvs') -> pure $ Just (CheckedFieldLits (fvs' :> fv'))
     Nothing -> pure Nothing
-checkFieldLits _ _ _ = pure Nothing
+checkFieldLits _ _ _ _ = pure Nothing
 
 
 -- Unification of type guesses

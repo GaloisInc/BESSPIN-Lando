@@ -45,6 +45,7 @@ library
                        bytestring,
                        parameterized-utils >= 2.1.0,
                        array,
+                       containers,
                        hashmap,
                        mtl,
                        pretty,

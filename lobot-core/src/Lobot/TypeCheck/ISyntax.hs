@@ -21,25 +21,20 @@ resolved, all identifiers have been scope checked, but no terms have been type
 checked.
 -}
 module Lobot.TypeCheck.ISyntax
-  ( Kind(..)
+  ( Decl(..)
+  , Kind(..)
+  , EnumNameSet
   , Check(..)
   , CheckField(..)
   , FunctionType(..)
   , DerivedConstraint(..)
   , getDerivedConstraintKinds
-  , Type
-  , unIType
-  , Expr(..)
-  , unIExpr
-  , LExpr
-  , unILExpr
-  , Literal(..)
-  , unILit
-  , LLiteral
-  , unILLit
   ) where
 
+import Data.Text (Text)
+import qualified Data.HashSet as HS
 import Data.List.NonEmpty
+import Data.Functor.Const
 import Data.Parameterized.Classes
 import Data.Parameterized.Some
 import Data.Parameterized.Context
@@ -48,14 +43,22 @@ import Lobot.Lexer
 import qualified Lobot.Syntax as S
 import qualified Lobot.Types as T
 
+data Decl = KindDecl Kind
+          | CheckDecl Check
+          | TypeSynDecl LText (Some T.TypeRepr) EnumNameSet
+          | FunctionDecl LText FunctionType
+
 data Kind where
   Kind :: { kindName :: LText
           , kindType ::  T.TypeRepr tp
-          , kindConstraints :: [LExpr (EmptyCtx ::> tp)]
+          , kindConstraints :: [S.LExpr]
           , kindDerivedConstraints :: [DerivedConstraint]
+          , kindInScopeEnums :: EnumNameSet
           } -> Kind
 
 deriving instance Show Kind
+
+type EnumNameSet = HS.Set Text
 
 data CheckField tp = CheckField { checkFieldName :: LText
                                 , checkFieldType :: T.TypeRepr tp
@@ -68,8 +71,9 @@ instance ShowF CheckField
 data Check where
   Check :: { checkName :: LText
            , checkFields :: Assignment CheckField tps
-           , checkConstraints :: [LExpr tps]
-           , checkRequirements :: [LExpr tps]
+           , checkConstraints :: [S.LExpr]
+           , checkRequirements :: [S.LExpr]
+           , checkInScopeEnums :: EnumNameSet
            } -> Check
 
 deriving instance Show Check
@@ -77,10 +81,16 @@ deriving instance Show Check
 -- | Unlike 'S.FunctionType', this saves the 'DerivedConstraint's on the
 -- function's argument and return types, though they are currently not
 -- used for anything.
-data FunctionType = FunType { funType :: Some T.FunctionTypeRepr
-                            , funArgConstraints :: [[DerivedConstraint]]
-                            , funRetConstraints :: [DerivedConstraint]
-                            } deriving Show
+data FunctionType where 
+  FunType :: { funArgTypes :: Assignment T.TypeRepr args
+             , funRetType  :: T.TypeRepr ret
+             , funArgConstraints :: Assignment (Const [DerivedConstraint]) args
+             , funRetConstraints :: [DerivedConstraint]
+             , funArgInScopeEnums :: [EnumNameSet]
+             , funRetInScopeEnums :: EnumNameSet
+             } -> FunctionType
+
+deriving instance Show FunctionType
 
 -- | After the first pass of typechecking, all kind names have been resolved
 -- in types, but no expressions (and thus no kind constraints) have been
@@ -96,87 +106,3 @@ data DerivedConstraint = FromKind LText
 getDerivedConstraintKinds :: DerivedConstraint -> NonEmpty LText
 getDerivedConstraintKinds (FromKind k) = k :| []
 getDerivedConstraintKinds (FromField _ dcns) = dcns >>= getDerivedConstraintKinds
-
-type Type = (S.LType, Some T.TypeRepr, [DerivedConstraint])
-
-unIType :: Type -> S.LType
-unIType (tp, _, _) = tp
-
-data Expr (ctx :: Ctx T.Type) where
-  LiteralExpr    :: LLiteral -> Expr ctx
-  -- | this case differs from 'S.VarExpr'
-  VarExpr        :: LText -> Index ctx tp -> Expr ctx
-  -- | this case differs from 'S.SelfFieldExpr'
-  SelfFieldExpr  :: LText -> Index ftps tp -> Expr (EmptyCtx ::> T.StructType ftps)
-  FieldExpr      :: LExpr ctx -> LText -> Expr ctx
-  ApplyExpr      :: LText -> [LExpr ctx] -> Expr ctx
-  EqExpr         :: LExpr ctx -> LExpr ctx -> Expr ctx
-  LteExpr        :: LExpr ctx -> LExpr ctx -> Expr ctx
-  LtExpr         :: LExpr ctx -> LExpr ctx -> Expr ctx
-  GteExpr        :: LExpr ctx -> LExpr ctx -> Expr ctx
-  GtExpr         :: LExpr ctx -> LExpr ctx -> Expr ctx
-  PlusExpr       :: LExpr ctx -> LExpr ctx -> Expr ctx
-  MinusExpr      :: LExpr ctx -> LExpr ctx -> Expr ctx
-  TimesExpr      :: LExpr ctx -> LExpr ctx -> Expr ctx
-  ModExpr        :: LExpr ctx -> LExpr ctx -> Expr ctx
-  DivExpr        :: LExpr ctx -> LExpr ctx -> Expr ctx
-  AndExpr        :: LExpr ctx -> LExpr ctx -> Expr ctx
-  OrExpr         :: LExpr ctx -> LExpr ctx -> Expr ctx
-  XorExpr        :: LExpr ctx -> LExpr ctx -> Expr ctx
-  MemberExpr     :: LExpr ctx -> LExpr ctx -> Expr ctx
-  ImpliesExpr    :: LExpr ctx -> LExpr ctx -> Expr ctx
-  NotExpr        :: LExpr ctx -> Expr ctx
-  -- | this case differs from 'S.IsInstanceExpr'
-  IsInstanceExpr :: LExpr ctx -> Type -> Expr ctx
-
-deriving instance Show (Expr ctx)
-
-unIExpr :: Expr ctx -> S.Expr
-unIExpr (LiteralExpr l) = S.LiteralExpr (unILLit l)
-unIExpr (VarExpr s _) = S.VarExpr s
-unIExpr (SelfFieldExpr f _) = S.VarExpr f
-unIExpr (FieldExpr x f) = S.FieldExpr (unILExpr x) f
-unIExpr (ApplyExpr fn args) = S.ApplyExpr fn (unILExpr <$> args)
-unIExpr (EqExpr x y) = S.EqExpr (unILExpr x) (unILExpr y)
-unIExpr (LteExpr x y) = S.LteExpr (unILExpr x) (unILExpr y)
-unIExpr (LtExpr x y) = S.LtExpr (unILExpr x) (unILExpr y)
-unIExpr (GteExpr x y) = S.GteExpr (unILExpr x) (unILExpr y)
-unIExpr (GtExpr x y) = S.GtExpr (unILExpr x) (unILExpr y)
-unIExpr (PlusExpr x y) = S.PlusExpr (unILExpr x) (unILExpr y)
-unIExpr (MinusExpr x y) = S.MinusExpr (unILExpr x) (unILExpr y)
-unIExpr (TimesExpr x y) = S.TimesExpr (unILExpr x) (unILExpr y)
-unIExpr (ModExpr x y) = S.ModExpr (unILExpr x) (unILExpr y)
-unIExpr (DivExpr x y) = S.DivExpr (unILExpr x) (unILExpr y)
-unIExpr (AndExpr x y) = S.AndExpr (unILExpr x) (unILExpr y)
-unIExpr (OrExpr x y) = S.OrExpr (unILExpr x) (unILExpr y)
-unIExpr (XorExpr x y) = S.XorExpr (unILExpr x) (unILExpr y)
-unIExpr (MemberExpr x y) = S.MemberExpr (unILExpr x) (unILExpr y)
-unIExpr (ImpliesExpr x y) = S.ImpliesExpr (unILExpr x) (unILExpr y)
-unIExpr (NotExpr x) = S.NotExpr (unILExpr x)
-unIExpr (IsInstanceExpr x tp) = S.IsInstanceExpr (unILExpr x) (unIType tp)
-
-type LExpr ctx = Loc (Expr ctx)
-
-unILExpr :: LExpr ctx -> S.LExpr
-unILExpr (L p x) = L p (unIExpr x)
-
-data Literal = BoolLit Bool
-             | IntLit Integer
-             | EnumLit LText
-             | SetLit [LText]
-             | StructLit (Maybe Type) [(LText, LLiteral)]
-             -- ^ this case differs from 'S.StructLit'
-             deriving Show
-
-type LLiteral = Loc Literal
-
-unILLit :: LLiteral -> S.LLiteral
-unILLit (L p l) = L p (unILit l)
-
-unILit :: Literal -> S.Literal
-unILit (BoolLit b) = S.BoolLit b
-unILit (IntLit z) = S.IntLit z
-unILit (EnumLit e) = S.EnumLit e
-unILit (SetLit es) = S.SetLit es
-unILit (StructLit mb_tp fls) =
-  S.StructLit (unIType <$> mb_tp) (fmap (\(t,l) -> (t, unILLit l)) fls)
