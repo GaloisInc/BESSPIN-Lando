@@ -27,7 +27,7 @@ import Data.Set (Set)
 import Data.Text (Text)
 import Data.List.NonEmpty (NonEmpty(..))
 import Control.Monad (foldM_)
-import Control.Monad.State (StateT)
+import Control.Monad.State (StateT, evalStateT)
 import Control.Monad.Writer (WriterT, tell)
 import Control.Monad.Except (throwError)
 -- import Data.Functor.Const
@@ -57,13 +57,16 @@ data NamedThing cns where
 
 type WithWarnings a = WriterT (Set TypeWarning) a
 
-type CtxM cns err = StateT (H.Map Text (NamedThing cns))
-                           (WithWarnings (Either err))
+type TCM cns err = StateT (H.Map Text (NamedThing cns))
+                          (WithWarnings (Either err))
 
-emitWarning :: TypeWarning -> CtxM cns err ()
+evalTCM :: TCM cns err a -> WithWarnings (Either err) a
+evalTCM m = evalStateT m H.empty
+
+emitWarning :: TypeWarning -> TCM cns err ()
 emitWarning = tell . Set.singleton
 
-ensureUnique :: (a -> Text) -> [a] -> (a -> err) -> CtxM cns err ()
+ensureUnique :: (a -> Text) -> [a] -> (a -> err) -> TCM cns err ()
 ensureUnique f xs err =
   foldM_ (\xset x -> if (f x) `HS.notMember` xset
                      then pure $ HS.insert (f x) xset

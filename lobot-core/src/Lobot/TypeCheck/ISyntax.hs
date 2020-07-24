@@ -60,10 +60,11 @@ deriving instance Show Kind
 
 type EnumNameSet = HS.Set Text
 
-data CheckField tp = CheckField { checkFieldName :: LText
-                                , checkFieldType :: T.TypeRepr tp
-                                , checkFieldDerivedConstraints :: [DerivedConstraint]
-                                }
+data CheckField tp =
+  CheckField { checkFieldName :: LText
+             , checkFieldType :: T.TypeRepr tp
+             , checkFieldDerivedConstraints :: [DerivedConstraint]
+             }
   deriving (Show)
 
 instance ShowF CheckField
