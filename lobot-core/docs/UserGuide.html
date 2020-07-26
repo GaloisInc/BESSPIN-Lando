@@ -708,6 +708,39 @@ type my_struct = struct
 <p>Types divide up the universe of all values into <code>bool</code>, <code>int</code>, enums, enumsets, structs, and abstract types. Kinds describe subsets of types. In the very first example of this guide, we saw the <code>nat</code> kind:</p>
 <p><code>nat : kind of int where 1 &lt;= self</code></p>
 <p>The value <code>1</code> is a <code>nat</code>, but the value <code>0</code> is not a <code>nat</code>.</p>
+<p>The general syntactic form of a kind definition is as follows:</p>
+<pre><code>&lt;k&gt; : kind of &lt;k1&gt; ... &lt;km&gt; where &lt;c1&gt;, ..., &lt;cn&gt;</code></pre>
+<p>where <code>&lt;k&gt;</code> is fresh name we are giving to this kind, each <code>&lt;ki&gt;</code> is either the name of another kind or it is a <em>base type</em> (like <code>int</code> or <code>struct with ...</code>), and each <code>&lt;cj&gt;</code> is a boolean-typed expression, or <em>constraint</em>. We can also use line breaks if putting the entire definition all on one line is cumbersome:</p>
+<pre><code>&lt;k&gt; : kind of &lt;k1&gt; ... &lt;km&gt;
+  where &lt;c1&gt;
+        ...
+        &lt;cn&gt;</code></pre>
+<p>The <code>&lt;k&gt;</code> kind <em>inherits</em> the constraints of all the <code>&lt;ki&gt;</code>, and adds the constraints <code>&lt;cj&gt;</code>. Although <em>kind inheritance</em> is related to <em>class inheritance</em> of object-oriented programming languages, it is fundamentally different. Here, the inheritance is implicit rather than explicit. For instance, if we define two kinds <code>nat</code> <code>even_nat</code> like so:</p>
+<pre><code>nat : kind of int where self &gt; 0
+even_nat : kind of nat where self % 2 == 0</code></pre>
+<p>It is clear that <code>even_nat</code> inherits from <code>nat</code>. However, we could have equivalently written:</p>
+<pre><code>even_nat_2 : kind of int
+  where self &gt; 0
+        self % 2 == 0</code></pre>
+<p>Here, <code>even_nat_2</code> is <em>identical</em> to <code>even_nat</code>, so it makes perfect sense to say that <code>even_nat_2</code> “inherits” from <code>nat</code> even though it did not use <code>nat</code> in any part of its definition.</p>
+<p>In the case where <code>m = 1</code>, and <code>&lt;k1&gt;</code> is <code>struct with ...</code>, we typically use the following formatting:</p>
+<pre><code>&lt;k&gt; : kind of struct
+  with &lt;f1&gt; : &lt;t1&gt;
+       ...
+       &lt;fp&gt; : &lt;tp&gt;
+  where &lt;c1&gt;
+        ...
+        &lt;cn&gt;</code></pre>
+<p>However, it is often preferable to first create a type synonym for the base <code>struct</code> type, and then define <code>&lt;k&gt;</code> in terms of that:</p>
+<pre><code>type &lt;s&gt; = struct
+  with &lt;f1&gt; : &lt;t1&gt;
+       ...
+       &lt;fp&gt; : &lt;tp&gt;
+
+&lt;k&gt; : kind of &lt;s&gt;
+  where &lt;c1&gt;
+        ...
+        &lt;cn&gt;</code></pre>
 <h2 data-number="4.6" id="checks"><span class="header-section-number">4.6</span> Checks</h2>
 <p>In this section we introduce <em>checks</em>, commands that tell Lobot to ensure that a property holds.</p>
 <h2 data-number="4.7" id="json-api"><span class="header-section-number">4.7</span> JSON API</h2>

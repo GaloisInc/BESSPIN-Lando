@@ -1091,6 +1091,76 @@ example of this guide, we saw the `nat` kind:
 
 The value `1` is a `nat`, but the value `0` is not a `nat`.
 
+The general syntactic form of a kind definition is as follows:
+
+```
+<k> : kind of <k1> ... <km> where <c1>, ..., <cn>
+```
+
+where `<k>` is fresh name we are giving to this kind, each `<ki>` is either the
+name of another kind or it is a _base type_ (like `int` or `struct with ...`),
+and each `<cj>` is a boolean-typed expression, or _constraint_. We can also use
+line breaks if putting the entire definition all on one line is cumbersome:
+
+```
+<k> : kind of <k1> ... <km>
+  where <c1>
+        ...
+        <cn>
+```
+
+The `<k>` kind _inherits_ the constraints of all the `<ki>`, and adds the
+constraints `<cj>`. Although _kind inheritance_ is related to _class
+inheritance_ of object-oriented programming languages, it is fundamentally
+different. Here, the inheritance is implicit rather than explicit. For instance,
+if we define two kinds `nat` `even_nat` like so:
+
+```
+nat : kind of int where self > 0
+even_nat : kind of nat where self % 2 == 0
+```
+
+It is clear that `even_nat` inherits from `nat`. However, we could have
+equivalently written:
+
+```
+even_nat_2 : kind of int
+  where self > 0
+        self % 2 == 0
+```
+
+Here, `even_nat_2` is _identical_ to `even_nat`, so it makes perfect sense to
+say that `even_nat_2` "inherits" from `nat` even though it did not use `nat` in
+any part of its definition.
+
+In the case where `m = 1`, and `<k1>` is `struct with ...`, we typically use the
+following formatting:
+
+```
+<k> : kind of struct
+  with <f1> : <t1>
+       ...
+       <fp> : <tp>
+  where <c1>
+        ...
+        <cn>
+```
+
+However, it is often preferable to first create a type synonym for the base
+`struct` type, and then define `<k>` in terms of that:
+
+```
+type <s> = struct
+  with <f1> : <t1>
+       ...
+       <fp> : <tp>
+
+<k> : kind of <s>
+  where <c1>
+        ...
+        <cn>
+```
+
 ## Checks
 
 In this section we introduce _checks_, commands that tell Lobot to ensure that a
