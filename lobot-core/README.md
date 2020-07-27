@@ -25,11 +25,11 @@ Once those tools are installed, the following should \"just work\":
 cabal v2-build
 ```
 
-This will build the `lobotIG` tool in some hidden subdirectory, which you can
+This will build the `lobot` tool in some hidden subdirectory, which you can
 `find` via:
 
 ```bash
-find $(pwd) -type f -name lobotIG
+find $(pwd) -type f -name lobot
 ```
 
 Now you have the path to the executable, and can `alias` to it in order to run
@@ -42,15 +42,10 @@ have not yet been solidified. See the `examples` directory for various examples
 (some of which will work out of the box, others of which will require a bit of
 system configuration before running).
 
-The basic way you \"run\" Lobot is by invoking `lobotIG`:
+The basic way you \"run\" Lobot is by invoking `lobot`:
 
 ```bash
-lobotIG examples/example2.lobot
+lobot --help
 ```
 
-Currently, the tool simply loads in a Lobot file and enumerates all instances of
-the final declaration in the file. It only enumerates 100 instances; this limit
-is somewhat arbitrary, but is not configurable at the command line. It is
-important to have some kind of limit, since data types can have infinitely many
-instances.
-
+See the user's guide for more details.
