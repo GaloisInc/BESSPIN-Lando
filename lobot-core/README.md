@@ -35,6 +35,12 @@ find $(pwd) -type f -name lobot
 Now you have the path to the executable, and can `alias` to it in order to run
 it easily.
 
+Before running `lobot`, install the `z3` tool, or you will get a runtime error.
+You can download the binary [here](https://github.com/Z3Prover/z3/releases).
+Simply download, unzip, and move the `bin/z3` executable anywhere on your path.
+Alternatively, use your favorite package manager (brew, apt-get, etc.) to
+install it.
+
 # Running
 
 The Lobot user\'s guide doesn\'t exist yet, as various aspects of the language
