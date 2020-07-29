@@ -17,9 +17,24 @@ Stability   : experimental
 Portability : POSIX
 
 This module defines the monad used while type checking the Lobot AST.
+
 -}
 
-module Lobot.TypeCheck.Monad where
+module Lobot.TypeCheck.Monad 
+  ( TCM
+  , WithWarnings
+  , NamedThing(..)
+  , evalTCM
+  , emitWarning
+  , ensureUnique
+  -- ** Type errors and warnings
+  , TypeError(..)
+  , TypeWarning(..)
+  , SomeTypeOrString(..)
+  , ppTypeError
+  , ppTypeWarning
+  , ppSomeTypeOrString
+  ) where
 
 import qualified Data.HashMap.Strict as H
 import qualified Data.HashSet as HS
@@ -46,6 +61,16 @@ import Lobot.Syntax.Pretty as S
 import Lobot.TypeCheck.IDecls (DerivedConstraint, getDerivedConstraintKinds, EnumNameSet)
 
 
+-- | Either a named kind or function, used in the state of 'TCM'. Note that
+-- this type is parameterized by a type of constraints, as this type varies
+-- between the two passes of type checking.
+-- 
+-- For kinds, this holds the kind's type, its list of constraints, a 'Bool' of
+-- whether this list is nonempty, and the set of enum names which this kind
+-- has in scope. For functions, this holds the function's argument types,
+-- return type, argument type constraints, return type constraint, set of enum
+-- names which each argument type should bring into scope, and set of enum
+-- names which the return type should bring into scope.
 data NamedThing cns where
   NamedKind     :: T.TypeRepr tp
                 -> cns (EmptyCtx ::> tp) -> Bool
@@ -59,6 +84,10 @@ data NamedThing cns where
 
 type WithWarnings a = WriterT (Set TypeWarning) a
 
+-- | The monad used in both passes of type checking, with the type argument
+-- @cns@ being what varies between passes. This monad contains a state which
+-- is a map from 'Text' to 'NamedThing's, accumulates 'TypeWarning's, and
+-- has error type 'err'.
 newtype TCM cns err a =
   TCM { unTCM :: StateT (H.HashMap Text (NamedThing cns))
                         (WithWarnings (Either err)) a }
@@ -70,12 +99,16 @@ newtype TCM cns err a =
 
 deriving instance MonadError err (TCM cns err)
 
+-- | Evaluate a 'TCM' computation
 evalTCM :: TCM cns err a -> WithWarnings (Either err) a
 evalTCM m = evalStateT (unTCM m) H.empty
 
+-- | Emit a single warning in a 'TCM' computation
 emitWarning :: TypeWarning -> TCM cns err ()
 emitWarning = tell . Set.singleton
 
+-- | Throws the given error if the names associated to given list, as
+-- determined by the given function, are not unique.
 ensureUnique :: (a -> Text) -> [a] -> (a -> err) -> TCM cns err ()
 ensureUnique f xs err =
   foldM_ (\xset x -> if (f x) `HS.member` xset
