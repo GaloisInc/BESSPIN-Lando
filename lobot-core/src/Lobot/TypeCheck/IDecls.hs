@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 {-|
-Module      : Lobot.TypeCheck.ISyntax
+Module      : Lobot.TypeCheck.IDecls
 Description : An intermediate untyped syntax used during typechecking.
 Copyright   : (c) Matthew Yacavone, 2020
 License     : BSD3
@@ -20,7 +20,7 @@ and second passes, where all types have been checked, all kind names have been
 resolved, all identifiers have been scope checked, but no terms have been type
 checked.
 -}
-module Lobot.TypeCheck.ISyntax
+module Lobot.TypeCheck.IDecls
   ( Decl(..)
   , Kind(..)
   , EnumNameSet

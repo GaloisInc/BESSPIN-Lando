@@ -52,8 +52,8 @@ import Lobot.Syntax as S
 import Lobot.Types as T
 
 import Lobot.TypeCheck.Monad
-import Lobot.TypeCheck.ISyntax (EnumNameSet, DerivedConstraint)
-import qualified Lobot.TypeCheck.ISyntax as I
+import Lobot.TypeCheck.IDecls (EnumNameSet, DerivedConstraint)
+import qualified Lobot.TypeCheck.IDecls as I
 
 
 firstPass :: [S.Decl]
@@ -71,24 +71,28 @@ type TCM1 = TCM P1Cns TypeError
 addKind :: I.Kind -> TCM1 ()
 addKind (I.Kind (L p nm) tp cns dcns enms) = do
   is_in <- H.member nm <$> get
-  let hasCns = not (null cns) || not (null dcns)
   if is_in then throwError (KindNameAlreadyDefined (L p nm))
-           else modify (H.insert nm (NamedKind tp (P1Cns cns (Empty :> Const dcns)) hasCns enms))
+           else let cns' = P1Cns cns (Empty :> Const dcns)
+                    hasCns = not (null cns) || not (null dcns)
+                 in modify (H.insert nm (NamedKind tp cns' hasCns enms))
 
 addAbsType :: LText -> Some TypeRepr -> TCM1 ()
 addAbsType nm (Some tp) = addKind (I.Kind nm tp [] [] HS.empty)
 
 addFunction :: LText -> I.FunctionType -> TCM1 ()
-addFunction (L p nm) (I.FunType arg_tps ret_tp arg_dcns ret_dcns arg_enms ret_enms) = do
+addFunction (L p nm) (I.FunType arg_tps ret_tp arg_dcns
+                                ret_dcns arg_enms ret_enms) = do
   is_in <- H.member nm <$> get
-  let (arg_dcns', ret_dcns') = (P1Cns [] arg_dcns, P1Cns [] (Empty :> Const ret_dcns))
-  if is_in then throwError (KindNameAlreadyDefined (L p nm))
-           else modify (H.insert nm (NamedFunction arg_tps ret_tp
-                                                   arg_dcns' ret_dcns'
-                                                   arg_enms ret_enms))
+  if is_in then throwError (FunctionNameAlreadyDefined (L p nm))
+           else let arg_dcns' = P1Cns [] arg_dcns
+                    ret_dcns' = P1Cns [] (Empty :> Const ret_dcns)
+                 in modify (H.insert nm (NamedFunction arg_tps ret_tp
+                                                       arg_dcns' ret_dcns'
+                                                       arg_enms ret_enms))
 
 
-lookupKindType :: LText -> TCM cns TypeError (Some T.TypeRepr, Bool, EnumNameSet)
+lookupKindType :: LText
+               -> TCM cns TypeError (Some T.TypeRepr, Bool, EnumNameSet)
 lookupKindType (L p k) = do
   mb_k' <- H.lookup k <$> get
   case mb_k' of
@@ -120,8 +124,8 @@ firstPassDecl (S.CheckDecl ck) = do
   -- [(Some TypeRepr, [DerivedConstraint], EnumNameSet)]
   -- First, compute the types
   tcTypeResults <- traverse tcType (snd <$> S.checkFields ck)
-  namedTypes' <- forM (zip (S.checkFields ck) tcTypeResults) $ \((nm, _), (Some tp, dcns, _)) -> do
-    return $ Some $ I.CheckField nm tp dcns
+  namedTypes' <- forM (zip (S.checkFields ck) tcTypeResults) $
+    \((nm, _), (Some tp, dcns, _)) -> pure $ Some $ I.CheckField nm tp dcns
   Some namedTypes <- return $ fromList namedTypes'
   -- let tps = fmapFC namedTypeType cftps
   -- Next, compute the constraints

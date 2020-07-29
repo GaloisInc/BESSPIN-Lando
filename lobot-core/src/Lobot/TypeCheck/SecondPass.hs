@@ -49,7 +49,7 @@ import Lobot.Syntax as S
 import Lobot.Types as T
 
 import Lobot.TypeCheck.Monad
-import Lobot.TypeCheck.ISyntax as I
+import Lobot.TypeCheck.IDecls as I
 import Lobot.TypeCheck.FirstPass (tcType)
 
 
@@ -129,7 +129,8 @@ tcCheck :: forall env .
 tcCheck env (I.Check (L _ nm) flds cns reqs enms) = do
   let tps = fmapFC (\(I.CheckField (S.L _ nm') tp _) -> VarElem nm' tp) flds
   cns'  <- mapM (tcExpr enms env tps T.BoolRepr) cns
-  let collectDCs :: Index tps tp -> CheckField tp -> TCM2 env [E.Expr env tps 'T.BoolType]
+  let collectDCs :: Index tps tp -> CheckField tp
+                 -> TCM2 env [E.Expr env tps 'T.BoolType]
       collectDCs i (CheckField _ tp dcns) = do
         kes <- concat <$> mapM (resolveDerivedConstraint env tp) dcns
         return $ giveSelf (E.VarExpr i) <$> kes
@@ -152,7 +153,8 @@ resolveDerivedConstraint env tp (FromKind (L p nm)) = do
   Some k <- lookupKind env (L p nm)
   case testEquality tp (K.kindType k) of
     Just Refl -> pure $ K.kindConstraints k
-    _ -> throwError (InternalError p $ "Malformed derived constraint: FromKind " `append` nm)
+    _ -> throwError . InternalError p $
+           "Malformed derived constraint: FromKind " `append` nm
 
 resolveDerivedConstraint env tp (FromField (L p f) ds)
   | T.StructRepr ftps <- tp
@@ -161,7 +163,8 @@ resolveDerivedConstraint env tp (FromField (L p f) ds)
     = do ds' <- concat <$> mapM (resolveDerivedConstraint env ftp) ds
          pure $ fmap (giveSelf (E.FieldExpr K.SelfExpr idx)) ds'
   | otherwise
-    = throwError (InternalError p $ "Malformed derived constraint: FromField " `append` f)
+    = throwError . InternalError p $
+        "Malformed derived constraint: FromField " `append` f
 
 
 -- Type inference and checking for expressions
@@ -366,11 +369,13 @@ data SomeField (ftps :: Ctx (Symbol, T.Type)) (nm :: Symbol) :: * where
   SomeField :: T.TypeRepr tp -> Index ftps '(nm, tp) -> SomeField ftps nm
 
 -- adapted from 'elemIndex'
-fieldIndex :: SymbolRepr nm -> Assignment FieldRepr ftps -> Maybe (SomeField ftps nm)
+fieldIndex :: SymbolRepr nm -> Assignment FieldRepr ftps
+           -> Maybe (SomeField ftps nm)
 fieldIndex nm ftps = case traverseAndCollect (go nm) ftps of
                        Left x  -> Just x
                        Right _ -> Nothing
-  where go :: SymbolRepr nm -> Index ftps pr -> FieldRepr pr -> Either (SomeField ftps nm) ()
+  where go :: SymbolRepr nm -> Index ftps pr -> FieldRepr pr
+           -> Either (SomeField ftps nm) ()
         go nm' i (FieldRepr nm'' tp)
           | Just Refl <- testEquality nm' nm'' = Left (SomeField tp i)
           | otherwise = Right ()
@@ -399,11 +404,11 @@ tcExpr enms env ctx tp x = do
 -- types. Returns 'Nothing' if the function is given a different number of
 -- terms and types.
 tcExprs :: EnumNameSet
-           -> Assignment T.FunctionTypeRepr env
-           -> Assignment ContextElem ctx
-           -> Assignment T.TypeRepr tps
-           -> [(S.LExpr, EnumNameSet)]
-           -> TCM2 env (Maybe (Assignment (E.Expr env ctx) tps))
+        -> Assignment T.FunctionTypeRepr env
+        -> Assignment ContextElem ctx
+        -> Assignment T.TypeRepr tps
+        -> [(S.LExpr, EnumNameSet)]
+        -> TCM2 env (Maybe (Assignment (E.Expr env ctx) tps))
 tcExprs _ _ _ Empty [] = pure $ Just Empty
 tcExprs enms env ctx (tps :> tp) ((x,enms'):xs) = do
   x' <- tcExpr (enms `HS.union` enms') env ctx tp x
@@ -434,6 +439,7 @@ tcInferLit enms _ (L _ (S.EnumLit (L p e))) | Some e' <- someSymbol e = do
   when (e `HS.notMember` enms) $ emitWarning (EnumNameNotInScope (L p e))
   pure (True , InferredLit (T.EnumRepr (Empty :> e'))
                           (E.EnumLit  (Empty :> e') baseIndex))
+
 tcInferLit enms _ (L _ (S.SetLit es)) | Some es' <- someSymbols (unLoc <$> es) = do
   forM_ es $ \(L p e) ->
     when (e `HS.notMember` enms) $ emitWarning (EnumNameNotInScope (L p e))
@@ -447,11 +453,12 @@ tcInferLit enms _ (L _ (S.SetLit es)) | Some es' <- someSymbols (unLoc <$> es) =
         Right _ -> let emptySet = (Empty :> knownSymbol @"")
                     in pure (True, InferredLit (T.SetRepr emptySet)
                                               (E.SetLit emptySet []))
-  
+
 tcInferLit enms env (L _ (S.StructLit Nothing fvs)) = do
   (areGuesses, fvs') <- unzip <$> mapM (tcInferFieldLit enms env) fvs
   InferredFieldLits fvs'' <- pure $ toInferredFieldLits (reverse fvs')
-  pure (or areGuesses, InferredLit (E.literalType (E.StructLit fvs'')) (E.StructLit fvs''))
+  pure (or areGuesses, InferredLit (E.literalType (E.StructLit fvs''))
+                                   (E.StructLit fvs''))
 tcInferLit enms env (L p (S.StructLit (Just tp) fvs)) = do
   (Some tp', _dcns, enms') <- tcType tp
   -- TODO: Check that this is a valid instance given dcns?
@@ -480,6 +487,7 @@ tcLit enms _ (T.EnumRepr cs) (L _ (S.EnumLit (L p e))) = do
 tcLit _ _ tp l@(L p (S.EnumLit _)) =
   throwError (TypeMismatchError (L p (S.LiteralExpr l)) (SomeType tp)
                                 (Just $ TypeString "an enum"))
+
 tcLit enms _ (T.SetRepr cs) (L _ (S.SetLit es)) = do
   forM_ es $ \(L p e) ->
     when (e `HS.notMember` enms) $ emitWarning (EnumNameNotInScope (L p e))
@@ -523,8 +531,9 @@ enumElemIndex :: 1 <= CtxSize cs => Assignment SymbolRepr cs -> LText
               -> TCM2 env (Some (Index cs))
 enumElemIndex cs (L p s)
   | Some s' <- someSymbol s, Just i <- elemIndex s' cs = pure (Some i)
-  | otherwise = throwError (TypeMismatchError (L p (S.LiteralExpr (L p (S.EnumLit (L p s)))))
-                                              (SomeType (T.SetRepr cs)) Nothing)
+  | otherwise = throwError $
+      TypeMismatchError (L p (S.LiteralExpr (L p (S.EnumLit (L p s)))))
+                        (SomeType (T.SetRepr cs)) Nothing
 
 
 -- Type inference and checking for field literals
@@ -558,10 +567,10 @@ data CheckedFieldLits ftps where
                  -> CheckedFieldLits ftps
 
 tcFieldLits :: EnumNameSet
-               -> Assignment T.FunctionTypeRepr env 
-               -> Assignment T.FieldRepr ftps
-               -> [(LText, S.LLiteral)]
-               -> TCM2 env (Maybe (CheckedFieldLits ftps))
+            -> Assignment T.FunctionTypeRepr env 
+            -> Assignment T.FieldRepr ftps
+            -> [(LText, S.LLiteral)]
+            -> TCM2 env (Maybe (CheckedFieldLits ftps))
 tcFieldLits _ _ Empty [] = pure $ Just (CheckedFieldLits Empty)
 tcFieldLits enms env (ftps :> FieldRepr s1 ftp) ((L p s2, l):fvs) = do
   when (symbolRepr s1 /= s2) $

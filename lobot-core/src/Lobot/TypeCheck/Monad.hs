@@ -1,5 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -27,9 +30,9 @@ import Data.Set (Set)
 import Data.Text (Text)
 import Data.List.NonEmpty (NonEmpty(..))
 import Control.Monad (foldM_)
-import Control.Monad.State (StateT, evalStateT)
-import Control.Monad.Writer (WriterT, tell)
-import Control.Monad.Except (throwError)
+import Control.Monad.State
+import Control.Monad.Writer
+import Control.Monad.Except
 -- import Data.Functor.Const
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Some
@@ -41,7 +44,7 @@ import Lobot.Syntax as S
 import Lobot.Types as T
 import Lobot.Pretty as P
 import Lobot.Syntax.Pretty as S
-import Lobot.TypeCheck.ISyntax (DerivedConstraint, getDerivedConstraintKinds, EnumNameSet)
+import Lobot.TypeCheck.IDecls (DerivedConstraint, getDerivedConstraintKinds, EnumNameSet)
 
 
 data NamedThing cns where
@@ -57,11 +60,19 @@ data NamedThing cns where
 
 type WithWarnings a = WriterT (Set TypeWarning) a
 
-type TCM cns err = StateT (H.Map Text (NamedThing cns))
-                          (WithWarnings (Either err))
+newtype TCM cns err a =
+  TCM { unTCM :: StateT (H.Map Text (NamedThing cns))
+                        (WithWarnings (Either err)) a }
+  deriving ( Functor
+           , Applicative
+           , Monad
+           , MonadState (H.Map Text (NamedThing cns))
+           , MonadWriter (Set TypeWarning) )
+
+deriving instance MonadError err (TCM cns err)
 
 evalTCM :: TCM cns err a -> WithWarnings (Either err) a
-evalTCM m = evalStateT m H.empty
+evalTCM m = evalStateT (unTCM m) H.empty
 
 emitWarning :: TypeWarning -> TCM cns err ()
 emitWarning = tell . Set.singleton
@@ -85,12 +96,12 @@ data TypeError = TypeMismatchError S.LExpr SomeTypeOrString (Maybe SomeTypeOrStr
                | EmptyEnumOrSetError S.LType
                | SubsetTypeError S.LType
                | KindUnionMismatchError LText (Some T.TypeRepr) (Some T.TypeRepr)
+               -- ^ argument order: kind name, expected type, actual type
                | NoSuchFieldError LText S.LExpr (Some T.TypeRepr)
                | StructLiteralTypeError S.LType
                | StructLiteralNameMismatchError LText Text
                | StructLiteralLengthError AlexPosn (Some (Assignment FieldRepr)) [LText]
                | StructLiteralAbstractTypeError AlexPosn (Some (Assignment FieldRepr))
-                 -- ^ argument order: kind name, expected type, actual type
                | KindNameNotInScope LText
                | FunctionNameNotInScope LText
                | FieldNameNotInScope LText
@@ -195,7 +206,7 @@ ppTypeError fp (OtherNameNotInScope (L p nm)) =
   PP.<+> PP.text "Identifier" PP.<+> ppQText nm PP.<+> PP.text "not in scope."
 ppTypeError fp (KindNameAlreadyDefined (L p k)) =
   PP.text (errorPrefix fp p)
-  PP.<+> PP.text "A kind with name" PP.<+> ppQText k PP.<+> PP.text "is already defined."
+  PP.<+> PP.text "A kind or type with name" PP.<+> ppQText k PP.<+> PP.text "is already defined."
 ppTypeError fp (FunctionNameAlreadyDefined (L p fn)) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "A function with name" PP.<+> ppQText fn PP.<+> PP.text "is already defined."
