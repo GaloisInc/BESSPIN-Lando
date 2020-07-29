@@ -121,7 +121,7 @@ kindType :: { LType }
 kindType : type                                         { $1 }
          | 'struct' nlLAYEND 'with' optLAYSEP fields    { loc $1 $ StructType $5 }
          -- ^ Note: We don't need a LAYEND after the 'with' here as it's
-         --   handled by the LAYENDs in `kindDeclType`.
+         --   handled by the LAYENDs in 'kindDeclType'.
 
 checkDeclType :: { ([(LText,LType)],[LExpr],[LExpr]) }
 checkDeclType : 'check' nlLAYEND 'on' optLAYSEP fields thatLAYEND 'that' optLAYSEP cns nlLAYEND { ($5, [], $9) }

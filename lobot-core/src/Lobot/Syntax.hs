@@ -6,7 +6,7 @@
 
 {-|
 Module      : Lobot.Syntax
-Description : The untyped AST for the Lobot Lobot sublanguage.
+Description : The untyped AST for the Lobot sublanguage.
 Copyright   : (c) Ben Selfridge, Matthew Yacavone, 2020
 License     : BSD3
 Maintainer  : myac@galoicom

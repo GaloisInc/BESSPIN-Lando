@@ -298,7 +298,7 @@ tok t@(LAYEND _) (p,_,_,s) len =
   pure $ L p (Token t (take len s))
 tok t inp len = tokStr (const t) inp len
 
--- | Emit a token using `tokStr` then execute the given action on the
+-- | Emit a token using 'tokStr' then execute the given action on the
 -- generated token.
 tokStrAnd :: (LToken -> Alex ()) -> (String -> TokenType) -> AlexAction LToken
 tokStrAnd action t inp len = do
@@ -306,7 +306,7 @@ tokStrAnd action t inp len = do
   action tk
   pure tk
 
--- | Emit a token using `tok` then execute the given action on the
+-- | Emit a token using 'tok' then execute the given action on the
 -- generated token.
 tokAnd :: (LToken -> Alex ()) -> TokenType -> AlexAction LToken
 tokAnd action = tokStrAnd action . const
