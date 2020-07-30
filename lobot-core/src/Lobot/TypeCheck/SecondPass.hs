@@ -105,9 +105,8 @@ tcDecl env (I.KindDecl ik) =
   Just . Left <$> tcKind env ik
 tcDecl env (I.CheckDecl ick) =
   Just . Right <$> tcCheck env ick
-tcDecl env (I.TypeSynDecl (L _ nm) (Some tp) enms) = do
-  addKind nm (K.Kind nm tp env []) enms
-  pure Nothing
+tcDecl env (I.TypeSynDecl nm (Some tp) enms) = do
+  tcDecl env (I.KindDecl (I.Kind nm tp [] [] enms))
 tcDecl _env (I.FunctionDecl (L _ nm) ftp) = do
   addFunction nm ftp
   pure Nothing
