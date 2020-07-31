@@ -3,8 +3,7 @@ posint : kind of int where 1 <= self
 
 -- Unique pairs of positive integers.
 unique_posint_pair : kind of struct
-  with x : posint
-       y : posint
+  with x y : posint
   where x <= y
 
 -- Pairs that sum to 100.

@@ -141,12 +141,12 @@ argTypes : type                     { [$1] }
          | type commaSep argTypes   { $1 : $3 }
 
 
-type    : 'bool'                       { loc $1 $ BoolType }
-        | 'int'                        { loc $1 $ IntType }
-        | '{' enumIdents '}'           { loc $1 $ EnumType (fmap unLoc $2) }
-        | 'subset' type                { loc $1 $ SetType $2 }
-        | 'struct' withClause(field)   { loc $1 $ StructType $2 }
-        | kindNames                    { $1 }
+type    : 'bool'                      { loc $1 $ BoolType }
+        | 'int'                       { loc $1 $ IntType }
+        | '{' enumIdents '}'          { loc $1 $ EnumType (fmap unLoc $2) }
+        | 'subset' type               { loc $1 $ SetType $2 }
+        | 'struct' withClauseFields   { loc $1 $ StructType $2 }
+        | kindNames                   { $1 }
 
 withClause(x) : 'with' optLAYSEP anySepList(x) anyLAYEND           { $3 }
               | 'with' optLAYSEP '{' '}' anyLAYEND                 { [] }
@@ -156,9 +156,10 @@ anySepList(x) : x                        { [$1] }
               | x anySep                 { [$1] }
               | x anySep anySepList(x)   { $1 : $3 }
 
-fields : anySepList(field) { $1 }
+fields           : anySepList(field) { concat $1 }
+withClauseFields : withClause(field) { concat $1 }
 
-field : ident ':' type anyLAYEND { (locText $1, $3) }
+field : idents ':' type anyLAYEND { fmap (\f -> (f,$3)) $1 }
 
 kindNames : idents { loc (head $1) $ KindNames $1 }
 
