@@ -1,6 +1,6 @@
 -- Taken from https://www.youtube.com/watch?v=_e64FiDWvqs
 
-domain : kind of int where 1 <= self, self <= 3
+domain : kind of int where 1 <= self <= 3
 
 problem : kind of struct
   with a : domain
@@ -8,7 +8,7 @@ problem : kind of struct
        c : domain
 
 problem1 : kind of problem
-  where a > b, not (b = c), not (a = c)
+  where a > b, b /= c, a /= c
 
 problem2 : kind of problem
   where a > b, b = c

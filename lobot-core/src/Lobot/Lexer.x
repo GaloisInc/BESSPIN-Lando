@@ -94,6 +94,7 @@ tokens :-
     self          { tok SELF }
     "."           { tok DOT }
     "="           { tok EQUALS }
+    "/="          { tok NOTEQUALS }
     "<="          { tok LTE }
     "<"           { tok LT }
     ">="          { tok GTE }
@@ -156,6 +157,7 @@ data TokenType = BOOL
                | SELF
                | DOT
                | EQUALS
+               | NOTEQUALS
                | LTE
                | LT
                | GTE

@@ -3,8 +3,7 @@ person : kind of struct
   with age : int,
        birth_assigned_sex : {Male, Female, Other},
        gender : {Male, Female, Other}
-  where 0 <= age,
-        age <= 122
+  where 0 <= age <= 122
 
 male : kind of person where gender = Male
 female : kind of person where gender = Female
@@ -13,7 +12,6 @@ cisgender : kind of binary person
   where birth_assigned_sex = gender
 
 teenager : kind of person
-  where 13 <= age,
-        age <= 19
+  where 13 <= age <= 19
 
 cisgender_teenager : kind of cisgender teenager
