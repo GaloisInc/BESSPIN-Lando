@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
@@ -338,6 +339,12 @@ tcInferExpr enms env ctx (L _ (S.MemberExpr x y)) = do
     (_,_) -> throwError (TypeMismatchError x
                                            (TypeString "an enum")
                                            (Just $ SomeType xtp))
+-- we entirely leverage the previous case here
+tcInferExpr enms env ctx (L p (S.NotMemberExpr x y)) =
+  tcInferExpr enms env ctx (L p (S.MemberExpr x y)) >>= \case
+    (False, Pair T.BoolRepr (E.MemberExpr x' y')) ->
+      pure (False, Pair T.BoolRepr (E.NotMemberExpr x' y'))
+    _ -> throwError $ InternalError p "NonMemberExpr!"
 
 tcInferExpr enms env ctx (L _ (S.AndExpr x y)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x

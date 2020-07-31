@@ -108,6 +108,7 @@ tokens :-
     "&"           { tok AND }
     "^"           { tok XOR }
     in            { tok IN }
+    notin         { tok NOTIN }
     "=>"          { tok IMPLIES }
     not           { tok NOT }
     true          { tok TRUE }
@@ -171,6 +172,7 @@ data TokenType = BOOL
                | AND
                | XOR
                | IN
+               | NOTIN
                | IMPLIES
                | NOT
                | TRUE

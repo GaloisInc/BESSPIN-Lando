@@ -45,6 +45,7 @@ import qualified Data.ByteString as BS
 
 import Data.Bits (xor)
 import Data.List (find)
+import Data.Maybe (isNothing)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Classes
 import Data.Parameterized.Context
@@ -96,6 +97,10 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   MemberExpr  :: Expr env ctx (EnumType cs)
               -> Expr env ctx (SetType cs)
               -> Expr env ctx BoolType
+  -- | Set non-membership.
+  NotMemberExpr  :: Expr env ctx (EnumType cs)
+                 -> Expr env ctx (SetType cs)
+                 -> Expr env ctx BoolType
   -- | Logical and.
   AndExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical or.
@@ -258,6 +263,10 @@ evalExpr fns ls e = case e of
     EvalResult (EnumLit _ i) _ <- evalExpr fns ls e1
     EvalResult (SetLit _ s) _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (isJust (find (== Some i) s)))
+  NotMemberExpr e1 e2 -> do
+    EvalResult (EnumLit _ i) _ <- evalExpr fns ls e1
+    EvalResult (SetLit _ s) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (isNothing (find (== Some i) s)))
   AndExpr e1 e2 -> do
     EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
     EvalResult (BoolLit b2) _ <- evalExpr fns ls e2

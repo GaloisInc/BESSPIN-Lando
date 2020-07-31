@@ -347,6 +347,12 @@ symEvalExpr sym symFns symLits e = case e of
     elt_bv_and_set_bv <- WI.bvAndBits sym elt_bv set_bv
     elt_bv_in_set_bv <- WI.bvEq sym elt_bv elt_bv_and_set_bv
     return $ SymLiteral BoolRepr elt_bv_in_set_bv
+  NotMemberExpr e1 e2 -> do
+    SymLiteral (EnumRepr _) elt_bv <- symEvalExpr sym symFns symLits e1
+    SymLiteral (SetRepr _) set_bv <- symEvalExpr sym symFns symLits e2
+    elt_bv_and_set_bv <- WI.bvAndBits sym elt_bv set_bv
+    elt_bv_notin_set_bv <- WI.bvNe sym elt_bv elt_bv_and_set_bv
+    return $ SymLiteral BoolRepr elt_bv_notin_set_bv
   AndExpr e1 e2 -> do
     SymLiteral BoolRepr b1 <- symEvalExpr sym symFns symLits e1
     SymLiteral BoolRepr b2 <- symEvalExpr sym symFns symLits e2

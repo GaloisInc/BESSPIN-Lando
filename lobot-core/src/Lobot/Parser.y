@@ -69,6 +69,7 @@ import Lobot.Utils
   '|'         { L _ (Token OR _) }
   '^'         { L _ (Token XOR _) }
   'in'        { L _ (Token IN _) }
+  'notin'     { L _ (Token NOTIN _) }
   '=>'        { L _ (Token IMPLIES _) }
   'not'       { L _ (Token NOT _) }
   'true'      { L _ (Token TRUE _) }
@@ -98,7 +99,7 @@ import Lobot.Utils
 %left     '*' '/' '%'
 %nonassoc NEG
 %nonassoc 'not'
-%nonassoc 'in'
+%nonassoc 'in' 'notin'
 %left     '.'
 
 %%
@@ -189,6 +190,7 @@ expr1 : lit                          { loc $1 $ LiteralExpr $1 }
       | expr1 '/' expr1              { loc $1 $ ModExpr $1 $3 }
       | '-' expr1 %prec NEG          { negExpr $1 $2 }
       | expr1 'in' expr1             { loc $1 $ MemberExpr $1 $3 }
+      | expr1 'notin' expr1          { loc $1 $ NotMemberExpr $1 $3 }
       | 'not' expr1                  { loc $1 $ NotExpr $2 }
       | ident '(' ')'                { loc $1 $ ApplyExpr (locText $1) [] }
       | ident '(' args ')'           { loc $1 $ ApplyExpr (locText $1) $3 }

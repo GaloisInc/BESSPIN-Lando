@@ -73,7 +73,9 @@ data Expr = LiteralExpr LLiteral
           | VarExpr LText
           | FieldExpr LExpr LText -- ^ struct.field
           | ApplyExpr LText [LExpr]
+          | IsInstanceExpr LExpr LType -- ^ expr : type (in a constraint)
           | EqExpr LExpr LExpr
+          -- Integer operations
           | LteExpr LExpr LExpr
           | LtExpr LExpr LExpr
           | GteExpr LExpr LExpr
@@ -84,13 +86,15 @@ data Expr = LiteralExpr LLiteral
           | ModExpr LExpr LExpr
           | DivExpr LExpr LExpr
           | NegExpr LExpr
+          -- Enum operations
+          | MemberExpr LExpr LExpr
+          | NotMemberExpr LExpr LExpr
+          -- Boolean operations
           | AndExpr LExpr LExpr
           | OrExpr LExpr LExpr
           | XorExpr LExpr LExpr
-          | MemberExpr LExpr LExpr
           | ImpliesExpr LExpr LExpr
           | NotExpr LExpr
-          | IsInstanceExpr LExpr LType -- ^ expr : type (in a constraint)
           deriving (Show, Eq)
 
 data Literal = BoolLit Bool

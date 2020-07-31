@@ -6,4 +6,4 @@ ex : kind of struct
 
 ex_check : check
   on ex : ex
-  that not (B in ex.chosen_opts) => C in ex.chosen_opts
+  that B notin ex.chosen_opts => C in ex.chosen_opts

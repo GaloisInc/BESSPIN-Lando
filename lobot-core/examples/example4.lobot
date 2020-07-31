@@ -6,11 +6,11 @@ riscv : kind of struct
   where (D in exts) => (F in exts),
         M in privs,
         (S in privs) => (U in privs),
-        (S in privs) => (not (vm = SVNone)),
-        (not (S in privs)) => (vm = SVNone)
+        (S in privs) => (vm /= SVNone),
+        (S notin privs) => (vm = SVNone)
 
 bluespec_build : kind of struct
   with riscv : riscv,
        sim : {Bluesim, IVerilog, Verilator},
        tv : bool
-  where not (riscv.vm = SV48)
+  where riscv.vm /= SV48
