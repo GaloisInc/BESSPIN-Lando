@@ -273,8 +273,7 @@ which is negative. We can help Lobot out by constraining the search space a bit:
 ```
 add1_is_0 : kind of int
   where add1(self) = 0
-        -10 <= self
-        self <= 10
+        -10 <= self <= 10
 ```
 
 Now, when we attempt to enumerate values of this kind, we have more success:
@@ -304,7 +303,7 @@ some range:
 ```
 add1_check : check
   on x : int
-  where -500 <= x, x <= 500
+  where -500 <= x <= 500
   that add1(x) = x + 1
 ```
 
@@ -350,8 +349,8 @@ A _kind_ is a type plus a list of constraints. For instance, we can define the
 kind of integers between 0 and 5, or 5 and 10:
 
 ```
-int_0_5  : kind of int where 0 <= self, self <= 5
-int_5_10 : kind of int where 5 <= self, self <= 10
+int_0_5  : kind of int where 0 <= self <= 5
+int_5_10 : kind of int where 5 <= self <= 10
 ```
 
 We can then use values of this kind in other kinds:
@@ -378,10 +377,8 @@ Both of the above definitions are equivalent to:
 two_ints : kind of struct
   with x : int
        y : int
-  where 0 <= x
-        x <= 5
-        5 <= y
-        y <= 10
+  where 0 <= x <= 5
+        5 <= y <= 10
 ```
 
 We can also combine multiple kinds into a kind that represents all the
@@ -452,7 +449,7 @@ We can use Lobot to cheat:
 ```
 -- file: logic_homework1.lobot
 problem1 : kind of struct
-  with p : bool, q : bool, r : bool
+  with p q r : bool
   where p => ((q | r) => (r => not p))
 ```
 
@@ -727,7 +724,7 @@ We can now state our desired property as a `check`:
 ```
 write_nlines_check : check
   on i : int
-  where 0 <= i, i <= 50
+  where 0 <= i <= 50
   that wc_wrapper(L, write_nlines(i)) = i
 ```
 
