@@ -176,6 +176,8 @@ ppExpr' _ env ctx nms (ModExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "%" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (DivExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "/" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (NegExpr e) =
+  PP.text "-" PP.<+> ppExpr' False env ctx nms e
 ppExpr' _ env ctx nms (MemberExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "in" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (AndExpr e1 e2) =

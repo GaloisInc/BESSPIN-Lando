@@ -158,6 +158,7 @@ giveSelf s e = case e of
   TimesExpr e1 e2 -> TimesExpr (giveSelf s e1) (giveSelf s e2)
   ModExpr e1 e2 -> ModExpr (giveSelf s e1) (giveSelf s e2)
   DivExpr e1 e2 -> DivExpr (giveSelf s e1) (giveSelf s e2)
+  NegExpr e' -> NegExpr (giveSelf s e')
   MemberExpr e1 e2 -> MemberExpr (giveSelf s e1) (giveSelf s e2)
   AndExpr e1 e2 -> AndExpr (giveSelf s e1) (giveSelf s e2)
   OrExpr e1 e2 -> OrExpr (giveSelf s e1) (giveSelf s e2)

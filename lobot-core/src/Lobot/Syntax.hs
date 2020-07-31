@@ -83,6 +83,7 @@ data Expr = LiteralExpr LLiteral
           | TimesExpr LExpr LExpr
           | ModExpr LExpr LExpr
           | DivExpr LExpr LExpr
+          | NegExpr LExpr
           | AndExpr LExpr LExpr
           | OrExpr LExpr LExpr
           | XorExpr LExpr LExpr

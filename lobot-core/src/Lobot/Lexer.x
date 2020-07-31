@@ -45,7 +45,7 @@ $white_no_nl = [\v\ ]
 @nl          = \r?\n | \r
 @nls         = ($white_no_nl*@nl)+
 
-@int        = [\-\+]?[0-9]+
+@int        = [0-9]+
 @identlower = [a-z][a-zA-Z0-9_]*
 @identupper = [A-Z][a-zA-Z0-9_]*
 

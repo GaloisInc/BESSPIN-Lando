@@ -304,6 +304,9 @@ tcInferExpr enms env ctx (L _ (S.DivExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
   pure (False, Pair T.IntRepr (E.DivExpr x' y'))
+tcInferExpr enms env ctx (L _ (S.NegExpr x)) = do
+  x' <- tcExpr enms env ctx T.IntRepr x
+  pure (False, Pair T.IntRepr (E.NegExpr x'))
 
 tcInferExpr enms env ctx (L _ (S.MemberExpr x y)) = do
   x_enms <- HS.union enms <$> addlEnms y

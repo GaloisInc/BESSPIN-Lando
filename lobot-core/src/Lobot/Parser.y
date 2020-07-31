@@ -96,6 +96,7 @@ import Lobot.Utils
 %nonassoc '=' '<=' '<' '>=' '>'
 %left     '+' '-'
 %left     '*' '/' '%'
+%nonassoc NEG
 %nonassoc 'not'
 %nonassoc 'in'
 %left     '.'
@@ -170,7 +171,6 @@ expr : expr '&' expr                 { loc $1 $ AndExpr $1 $3 }
      | expr '|' expr                 { loc $1 $ OrExpr $1 $3 }
      | expr '^' expr                 { loc $1 $ XorExpr $1 $3 }
      | expr '=>' expr                { loc $1 $ ImpliesExpr $1 $3 }
-     | 'not' expr                    { loc $1 $ NotExpr $2 }
      | ineqSeq                       { snd $1 }
      | expr1                         { $1 }
 
@@ -187,7 +187,9 @@ expr1 : lit                          { loc $1 $ LiteralExpr $1 }
       | expr1 '*' expr1              { loc $1 $ TimesExpr $1 $3 }
       | expr1 '%' expr1              { loc $1 $ ModExpr $1 $3 }
       | expr1 '/' expr1              { loc $1 $ ModExpr $1 $3 }
+      | '-' expr1 %prec NEG          { negExpr $1 $2 }
       | expr1 'in' expr1             { loc $1 $ MemberExpr $1 $3 }
+      | 'not' expr1                  { loc $1 $ NotExpr $2 }
       | ident '(' ')'                { loc $1 $ ApplyExpr (locText $1) [] }
       | ident '(' args ')'           { loc $1 $ ApplyExpr (locText $1) $3 }
       | expr1 ':' idents anyLAYEND   { loc $1 $ IsInstanceExpr $1 (loc (head $3) $ KindNames $3) }
@@ -242,6 +244,12 @@ commaSep : ','          {}
          | LAYSEP ','   {}
 
 {
+
+-- | 'NegExpr', but negates integer literals as a special case
+negExpr :: Loc a -> LExpr -> LExpr
+negExpr (L p _) (L _ (LiteralExpr (L _ (IntLit z)))) =
+  L p (LiteralExpr (L p (IntLit (- z))))
+negExpr (L p _) e = L p (NegExpr e)
 
 locText :: LToken -> LText
 locText (L p (Token (IDLC s) _)) = L p (pack s)

@@ -338,6 +338,9 @@ symEvalExpr sym symFns symLits e = case e of
     SymLiteral IntRepr sv1 <- symEvalExpr sym symFns symLits e1
     SymLiteral IntRepr sv2 <- symEvalExpr sym symFns symLits e2
     SymLiteral IntRepr <$> WI.intDiv sym sv1 sv2
+  NegExpr e' -> do
+    SymLiteral IntRepr sv <- symEvalExpr sym symFns symLits e'
+    SymLiteral IntRepr <$> WI.intNeg sym sv
   MemberExpr e1 e2 -> do
     SymLiteral (EnumRepr _) elt_bv <- symEvalExpr sym symFns symLits e1
     SymLiteral (SetRepr _) set_bv <- symEvalExpr sym symFns symLits e2

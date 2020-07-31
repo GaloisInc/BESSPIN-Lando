@@ -90,6 +90,8 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   ModExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
   -- | Divide two integer expressions.
   DivExpr   :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
+  -- | Negate an integer.
+  NegExpr   :: Expr env ctx IntType -> Expr env ctx IntType
   -- | Set membership.
   MemberExpr  :: Expr env ctx (EnumType cs)
               -> Expr env ctx (SetType cs)
@@ -249,6 +251,9 @@ evalExpr fns ls e = case e of
     EvalResult (IntLit x1) _ <- evalExpr fns ls e1
     EvalResult (IntLit x2) _ <- evalExpr fns ls e2
     pure $ litEvalResult (IntLit (x1 `mod` x2))
+  NegExpr e' -> do
+    EvalResult (IntLit x) _ <- evalExpr fns ls e'
+    pure $ litEvalResult (IntLit (- x))
   MemberExpr e1 e2 -> do
     EvalResult (EnumLit _ i) _ <- evalExpr fns ls e1
     EvalResult (SetLit _ s) _ <- evalExpr fns ls e2
