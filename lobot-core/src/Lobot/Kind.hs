@@ -165,6 +165,7 @@ giveSelf s e = case e of
   OrExpr e1 e2 -> OrExpr (giveSelf s e1) (giveSelf s e2)
   XorExpr e1 e2 -> XorExpr (giveSelf s e1) (giveSelf s e2)
   ImpliesExpr e1 e2 -> ImpliesExpr (giveSelf s e1) (giveSelf s e2)
+  IffExpr e1 e2 -> IffExpr (giveSelf s e1) (giveSelf s e2)
   NotExpr e' -> NotExpr (giveSelf s e')
 {-# COMPLETE
     LiteralExpr

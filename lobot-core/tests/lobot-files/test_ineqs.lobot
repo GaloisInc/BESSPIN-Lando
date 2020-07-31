@@ -1,0 +1,6 @@
+test_ineqs : kind of struct
+  with a b c d : int
+  where a > b >= c = d /= b
+        0 <= a <= 4
+        0 <= b <= 2
+        0 <= c

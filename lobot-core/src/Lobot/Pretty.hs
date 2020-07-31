@@ -190,4 +190,6 @@ ppExpr' _ env ctx nms (XorExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "^" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (ImpliesExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "=>" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (IffExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "<=>" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (NotExpr e) = PP.text "not" PP.<+> ppExpr' False env ctx nms e

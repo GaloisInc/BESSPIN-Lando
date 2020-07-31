@@ -94,6 +94,7 @@ data Expr = LiteralExpr LLiteral
           | OrExpr LExpr LExpr
           | XorExpr LExpr LExpr
           | ImpliesExpr LExpr LExpr
+          | IffExpr LExpr LExpr
           | NotExpr LExpr
           deriving (Show, Eq)
 

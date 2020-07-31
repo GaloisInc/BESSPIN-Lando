@@ -1,1 +1,1 @@
-test_enum_1 : kind of {A, B, C}
+type test_enum_1 = {A, B, C}

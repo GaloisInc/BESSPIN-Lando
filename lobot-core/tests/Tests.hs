@@ -52,7 +52,7 @@ testLobotFile fileName = do
       Right (TypeCheckResult Empty ks _, []) -> case last ks of
         Some k -> case isAbstractType (kindType k) of
           FalseRepr -> do
-            (insts, _) <- collectAndFilterInstances z3 Empty Empty (Empty :> kindType k) (kindConstraints k) countLimit
+            (insts, _) <- runSession z3 Empty Empty (Empty :> kindType k) (kindConstraints k) (collectAndFilterInstances countLimit)
             return $ TestResult (Some k) (Some <$> insts)
           TrueRepr -> do
             putStrLn $ "Bad test " ++ fileName ++ ", last kind is abstract"

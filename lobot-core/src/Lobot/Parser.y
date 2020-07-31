@@ -71,6 +71,7 @@ import Lobot.Utils
   'in'        { L _ (Token IN _) }
   'notin'     { L _ (Token NOTIN _) }
   '=>'        { L _ (Token IMPLIES _) }
+  '<=>'       { L _ (Token IFF _) }
   'not'       { L _ (Token NOT _) }
   'true'      { L _ (Token TRUE _) }
   'false'     { L _ (Token FALSE _) }
@@ -90,7 +91,8 @@ import Lobot.Utils
   LAYSEP        { L _ (Token LAYSEP _) }
 
 %nonassoc ':' 'with'
-%left     '=>'
+%nonassoc '<=>'
+%right    '=>'
 %left     '^'
 %left     '|'
 %left     '&'
@@ -168,33 +170,40 @@ kindNames : idents { loc (head $1) $ KindNames $1 }
 
 
 expr :: { LExpr }
-expr : expr '&' expr                 { loc $1 $ AndExpr $1 $3 }
-     | expr '|' expr                 { loc $1 $ OrExpr $1 $3 }
-     | expr '^' expr                 { loc $1 $ XorExpr $1 $3 }
-     | expr '=>' expr                { loc $1 $ ImpliesExpr $1 $3 }
-     | ineqSeq                       { snd $1 }
+expr : iffSeq                        { snd $1 }
      | expr1                         { $1 }
 
-ineqSeq : expr1 ineq expr1           { ($1, $2 $1 $3) }
-        | expr1 ineq ineqSeq         { ($1, loc $1 $ AndExpr ($2 $1 (fst $3)) (snd $3)) }
+iffSeq : expr1 '<=>' expr1           { ($1, loc $1 $ IffExpr $1 $3) }
+       | expr1 '<=>' iffSeq          { ($1, loc $1 $ AndExpr (loc $1 $ IffExpr $1 (fst $3)) (snd $3)) }
 
 expr1 :: { LExpr }
-expr1 : lit                          { loc $1 $ LiteralExpr $1 }
+expr1 : expr1 '&' expr1              { loc $1 $ AndExpr $1 $3 }
+      | expr1 '|' expr1              { loc $1 $ OrExpr $1 $3 }
+      | expr1 '^' expr1              { loc $1 $ XorExpr $1 $3 }
+      | expr1 '=>' expr1             { loc $1 $ ImpliesExpr $1 $3 }
+      | ineqSeq                      { snd $1 }
+      | expr2                        { $1 }
+
+ineqSeq : expr2 ineq expr2           { ($1, $2 $1 $3) }
+        | expr2 ineq ineqSeq         { ($1, loc $1 $ AndExpr ($2 $1 (fst $3)) (snd $3)) }
+
+expr2 :: { LExpr }
+expr2 : lit                          { loc $1 $ LiteralExpr $1 }
       | 'self'                       { loc $1 $ SelfExpr }
       | ident                        { loc $1 $ VarExpr (locText $1) }
-      | expr1 '.' ident              { loc $1 $ FieldExpr $1 (locText $3) }
-      | expr1 '+' expr1              { loc $1 $ PlusExpr $1 $3 }
-      | expr1 '-' expr1              { loc $1 $ MinusExpr $1 $3 }
-      | expr1 '*' expr1              { loc $1 $ TimesExpr $1 $3 }
-      | expr1 '%' expr1              { loc $1 $ ModExpr $1 $3 }
-      | expr1 '/' expr1              { loc $1 $ ModExpr $1 $3 }
-      | '-' expr1 %prec NEG          { negExpr $1 $2 }
-      | expr1 'in' expr1             { loc $1 $ MemberExpr $1 $3 }
-      | expr1 'notin' expr1          { loc $1 $ NotMemberExpr $1 $3 }
-      | 'not' expr1                  { loc $1 $ NotExpr $2 }
+      | expr2 '.' ident              { loc $1 $ FieldExpr $1 (locText $3) }
+      | expr2 '+' expr2              { loc $1 $ PlusExpr $1 $3 }
+      | expr2 '-' expr2              { loc $1 $ MinusExpr $1 $3 }
+      | expr2 '*' expr2              { loc $1 $ TimesExpr $1 $3 }
+      | expr2 '%' expr2              { loc $1 $ ModExpr $1 $3 }
+      | expr2 '/' expr2              { loc $1 $ ModExpr $1 $3 }
+      | '-' expr2 %prec NEG          { negExpr $1 $2 }
+      | expr2 'in' expr2             { loc $1 $ MemberExpr $1 $3 }
+      | expr2 'notin' expr2          { loc $1 $ NotMemberExpr $1 $3 }
+      | 'not' expr2                  { loc $1 $ NotExpr $2 }
       | ident '(' ')'                { loc $1 $ ApplyExpr (locText $1) [] }
       | ident '(' args ')'           { loc $1 $ ApplyExpr (locText $1) $3 }
-      | expr1 ':' idents anyLAYEND   { loc $1 $ IsInstanceExpr $1 (loc (head $3) $ KindNames $3) }
+      | expr2 ':' idents anyLAYEND   { loc $1 $ IsInstanceExpr $1 (loc (head $3) $ KindNames $3) }
       | '(' expr ')'                 { loc $1 $ unLoc $2 }
 
 args : expr                 { [$1] }

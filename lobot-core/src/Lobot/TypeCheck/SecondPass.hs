@@ -362,6 +362,10 @@ tcInferExpr enms env ctx (L _ (S.ImpliesExpr x y)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
   y' <- tcExpr enms env ctx T.BoolRepr y
   pure (False, Pair T.BoolRepr (E.ImpliesExpr x' y'))
+tcInferExpr enms env ctx (L _ (S.IffExpr x y)) = do
+  x' <- tcExpr enms env ctx T.BoolRepr x
+  y' <- tcExpr enms env ctx T.BoolRepr y
+  pure (False, Pair T.BoolRepr (E.IffExpr x' y'))
 tcInferExpr enms env ctx (L _ (S.NotExpr x)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
   pure (False, Pair T.BoolRepr (E.NotExpr x'))

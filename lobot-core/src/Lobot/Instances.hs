@@ -369,6 +369,10 @@ symEvalExpr sym symFns symLits e = case e of
     SymLiteral BoolRepr b1 <- symEvalExpr sym symFns symLits e1
     SymLiteral BoolRepr b2 <- symEvalExpr sym symFns symLits e2
     SymLiteral BoolRepr <$> WI.impliesPred sym b1 b2
+  IffExpr e1 e2 -> do
+    SymLiteral BoolRepr b1 <- symEvalExpr sym symFns symLits e1
+    SymLiteral BoolRepr b2 <- symEvalExpr sym symFns symLits e2
+    SymLiteral BoolRepr <$> WI.eqPred sym b1 b2
   NotExpr e' -> do
     SymLiteral BoolRepr b <- symEvalExpr sym symFns symLits e'
     SymLiteral BoolRepr <$> WI.notPred sym b

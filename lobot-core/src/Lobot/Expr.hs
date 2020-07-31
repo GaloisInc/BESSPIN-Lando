@@ -109,6 +109,8 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   XorExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical implication.
   ImpliesExpr :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
+  -- | Logical bi-implication.
+  IffExpr :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical negation.
   NotExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType
 
@@ -283,6 +285,10 @@ evalExpr fns ls e = case e of
     EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
     EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (not b1 || b2))
+  IffExpr e1 e2 -> do
+    EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
+    EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (b1 == b2))
   NotExpr e' -> do
     EvalResult (BoolLit b) _ <- evalExpr fns ls e'
     pure $ litEvalResult (BoolLit (not b))

@@ -5,8 +5,9 @@ TestResult
         , kindType = IntRepr
         , kindFunctionEnv = []
         , kindConstraints =
-            [ LteExpr (LiteralExpr (IntLit 0)) (VarExpr 0)
-            , LteExpr (VarExpr 0) (LiteralExpr (IntLit 100))
+            [ AndExpr
+                (LteExpr (LiteralExpr (IntLit 0)) (VarExpr 0))
+                (LteExpr (VarExpr 0) (LiteralExpr (IntLit 100)))
             ]
         }
   , instances =

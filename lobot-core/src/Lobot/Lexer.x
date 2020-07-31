@@ -110,6 +110,7 @@ tokens :-
     in            { tok IN }
     notin         { tok NOTIN }
     "=>"          { tok IMPLIES }
+    "<=>"         { tok IFF }
     not           { tok NOT }
     true          { tok TRUE }
     false         { tok FALSE }
@@ -174,6 +175,7 @@ data TokenType = BOOL
                | IN
                | NOTIN
                | IMPLIES
+               | IFF
                | NOT
                | TRUE
                | FALSE

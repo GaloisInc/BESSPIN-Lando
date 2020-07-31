@@ -1,0 +1,3 @@
+test_iffs : kind of struct
+  with p q r : bool
+  where p <=> q <=> not r

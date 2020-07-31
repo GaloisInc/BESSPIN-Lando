@@ -166,6 +166,8 @@ ppExpr' _ (XorExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "^" PP.<+> ppLExpr' False e2
 ppExpr' _ (ImpliesExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "=>" PP.<+> ppLExpr' False e2
+ppExpr' _ (IffExpr e1 e2) =
+  ppLExpr' False e1 PP.<+> PP.text "<=>" PP.<+> ppLExpr' False e2
 ppExpr' _ (NotExpr e) = PP.text "not" PP.<+> ppLExpr' False e
 ppExpr' _ (IsInstanceExpr e t) =
   ppLExpr' False e PP.<+> PP.colon PP.<+> ppLType t

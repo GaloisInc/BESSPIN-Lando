@@ -1,1 +1,1 @@
-abc : kind of subset { A, B, C }
+type abc = subset { A, B, C }
