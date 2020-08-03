@@ -1146,6 +1146,61 @@ type <s> = struct
 In this section we introduce _checks_, commands that tell Lobot to ensure that a
 property holds.
 
+## Syntactic Sugar
+
+In this section we describe Lobot's syntactic sugar, the parts of Lobot's
+syntax which are expanded to other expressions before or during type checking.
+These constructs are included purely for convenience and add no additional
+expressiveness to the language.
+
+* Instance expressions: The Lobot expression `<x> : <k1> ... <km>`, where `<x>`
+  is any expression and each `<ki>` is the name of a kind, expands to the
+  conjunction of all the constraints of `<k1>` through `<kn>` with `<x>`
+  substituted for `self` in each. For example, in the following Lobot file:
+  
+  ```
+  even_pos_int : kind of int
+    where 0 <= self, self mod 2 == 0
+  
+  ex : kind of struct
+    with x : int
+    where x * x : even_pos_int
+  ```
+  
+  the expression `x * x : even_pos_int` in `ex` is expanded to:
+  
+  ```
+  (x * x <= self) & ((x * x) mod 2 == 0)
+  ```
+
+* Inequality chains: A chain of inequalities:
+  
+  ```
+  <x1> <I1> <x2> <I2> ... <I(n-1)> <xn>
+  ```
+  
+  where each `<xi>` is a Lobot expression and each `<Ii>` is one of `=`, `!=`,
+  `<`, `<=`, `>`, or `>=`, expands to the conjuction:
+  
+  ```
+  <x1> <I1> <x2> & <x2> <I2> <x3> & ... & <x(n-1)> <I(n-1)> <xn>
+  ```
+
+* If-and-only-if chains: A chain of if-and-only-if's:
+  
+  ```
+  <x1> <=> <x2> <=> ... <=> <xn>
+  ```
+  
+  where each `<xi>` is a Lobot expression expands to the conjunction:
+  
+  ```
+  <x1> <=> <x2> & <x2> <=> <x3> & ... & <x(n-1)> <=> <xn>
+  ```
+  
+  Note that the same does not hold for implications, for example `p => q => r`
+  is equivalent to `p => (q => r)`, not `(p => q) & (q => r)`.
+
 ## JSON API
 
 In order to use a command line tool from Lobot, we typically need to _wrap_ the
