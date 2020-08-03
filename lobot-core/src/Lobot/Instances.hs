@@ -57,6 +57,7 @@ import Data.Parameterized.Nonce
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
+import Data.Constraint (Dict(..))
 import Numeric.Natural
 import Prelude hiding ((!!))
 import Unsafe.Coerce (unsafeCoerce) -- I know, I know.
@@ -504,7 +505,7 @@ getNextInstance SessionData{..} =
       let negateLiteral :: NonAbstract ctx
                         => Index ctx tp -> Literal tp -> IO [Expr env ctx BoolType]
           negateLiteral i l = do
-            Proof <- return $ nonAbstractIndex tps i
+            Dict <- return $ nonAbstractIndex tps i
             return $ [NotExpr (EqExpr (VarExpr i) (LiteralExpr l))]
       negateExprs <- traverseAndCollect negateLiteral ls
       let negateExpr = foldr OrExpr (LiteralExpr (BoolLit False)) negateExprs

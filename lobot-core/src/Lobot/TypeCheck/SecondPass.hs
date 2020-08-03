@@ -41,6 +41,7 @@ import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
+import Data.Constraint (Dict(..))
 
 import Lobot.Utils hiding (unzip)
 import Lobot.Expr as E
@@ -250,7 +251,7 @@ tcInferExpr enms env ctx (L _ (S.EqExpr x y)) = do
   let uni_err = TypeUnificationError x (SomeType xtp)
                                      y (SomeType ytp)
   case (isNonAbstract xtp, isNonAbstract ytp) of
-    (Just Proof, Just Proof) -> do
+    (Just Dict, Just Dict) -> do
       case (testEquality xtp ytp, xGuess, yGuess, unifyTypes xtp ytp) of
         (Just Refl, _, _, _) ->
           pure (False, Pair T.BoolRepr (E.EqExpr x' y'))

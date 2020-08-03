@@ -52,6 +52,7 @@ import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 import Data.Parameterized.TH.GADT
+import Data.Constraint (Dict(..))
 import GHC.TypeLits
 
 -- | A expression involving a particular variable context, given a particular
@@ -185,14 +186,14 @@ evalExpr fns ls e = case e of
   VarExpr i -> do
     let l = ls ! i
         e' = case isNonAbstract (literalType l) of
-               Just Proof -> LiteralExpr l
+               Just Dict -> LiteralExpr l
                Nothing -> VarExpr i
     pure $ EvalResult l e'
   FieldExpr se i -> do
     EvalResult (StructLit fls) se' <- evalExpr fns ls se
     let l = fieldLiteralValue (fls ! i)
         e' = case isNonAbstract (literalType l) of
-               Just Proof -> LiteralExpr l
+               Just Dict -> LiteralExpr l
                Nothing -> FieldExpr se' i
     pure $ EvalResult l e'
   ApplyExpr fi es -> do
@@ -202,12 +203,12 @@ evalExpr fns ls e = case e of
         argEs = fmapFC evalResultExpr evalArgs
     (l,st) <- lift $ fnImplRun fn argLits
     let e' = case isNonAbstract (literalType l) of
-               Just Proof -> LiteralExpr l
+               Just Dict -> LiteralExpr l
                Nothing -> ApplyExpr fi argEs
     -- TODO: Is there a way to clean this up?
     () <- case isNonAbstract (functionRetType (fnImplType fn)) of
       Nothing -> return ()
-      Just Proof -> addCall fi argEs l st
+      Just Dict -> addCall fi argEs l st
     return $ EvalResult l e'
   EqExpr e1 e2 -> do
     EvalResult l1 _ <- evalExpr fns ls e1
