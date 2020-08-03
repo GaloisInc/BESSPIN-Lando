@@ -1,5 +1,5 @@
 small_int : kind of int
-  where 0 <= self, self <= 3
+  where 0 <= self <= 3
 
 pos_int : kind of int
   where 0 <= self
@@ -14,5 +14,5 @@ ex : kind of struct
 ex2 : kind of struct
   with x : small_int
        y : pos_int
-  where 0 <= y, y <= add1(x)
+  where 0 <= y <= add1(x)
 

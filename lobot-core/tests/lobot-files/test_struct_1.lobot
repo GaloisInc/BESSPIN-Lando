@@ -3,6 +3,6 @@ test_struct : kind of struct
        b : bool,
        e : {A, B, C},
        s : subset {A, B, C}
-  where 0 <= i, i <= 10,
+  where 0 <= i <= 10,
         b => A in s,
         e in s

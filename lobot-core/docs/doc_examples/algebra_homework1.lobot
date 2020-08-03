@@ -1,5 +1,5 @@
 type pair = struct with x : int, y : int
 
-problem1 : kind of pair
+problem2 : kind of pair
   where x - 7 * y = -11
         5 * x + 2 * y = -18

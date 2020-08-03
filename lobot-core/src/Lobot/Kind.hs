@@ -149,6 +149,7 @@ giveSelf s e = case e of
   FieldExpr kd i' -> FieldExpr (giveSelf s kd) i'
   ApplyExpr fi es -> ApplyExpr fi (fmapFC (giveSelf s) es)
   EqExpr e1 e2 -> EqExpr (giveSelf s e1) (giveSelf s e2)
+  NeqExpr e1 e2 -> NeqExpr (giveSelf s e1) (giveSelf s e2)
   LteExpr e1 e2 -> LteExpr (giveSelf s e1) (giveSelf s e2)
   LtExpr e1 e2 -> LtExpr (giveSelf s e1) (giveSelf s e2)
   GteExpr e1 e2 -> GteExpr (giveSelf s e1) (giveSelf s e2)
@@ -158,11 +159,14 @@ giveSelf s e = case e of
   TimesExpr e1 e2 -> TimesExpr (giveSelf s e1) (giveSelf s e2)
   ModExpr e1 e2 -> ModExpr (giveSelf s e1) (giveSelf s e2)
   DivExpr e1 e2 -> DivExpr (giveSelf s e1) (giveSelf s e2)
+  NegExpr e' -> NegExpr (giveSelf s e')
   MemberExpr e1 e2 -> MemberExpr (giveSelf s e1) (giveSelf s e2)
+  NotMemberExpr e1 e2 -> NotMemberExpr (giveSelf s e1) (giveSelf s e2)
   AndExpr e1 e2 -> AndExpr (giveSelf s e1) (giveSelf s e2)
   OrExpr e1 e2 -> OrExpr (giveSelf s e1) (giveSelf s e2)
   XorExpr e1 e2 -> XorExpr (giveSelf s e1) (giveSelf s e2)
   ImpliesExpr e1 e2 -> ImpliesExpr (giveSelf s e1) (giveSelf s e2)
+  IffExpr e1 e2 -> IffExpr (giveSelf s e1) (giveSelf s e2)
   NotExpr e' -> NotExpr (giveSelf s e')
 {-# COMPLETE
     LiteralExpr

@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
@@ -106,9 +107,8 @@ tcDecl env (I.KindDecl ik) =
   Just . Left <$> tcKind env ik
 tcDecl env (I.CheckDecl ick) =
   Just . Right <$> tcCheck env ick
-tcDecl env (I.TypeSynDecl (L _ nm) (Some tp) enms) = do
-  addKind nm (K.Kind nm tp env []) enms
-  pure Nothing
+tcDecl env (I.TypeSynDecl nm (Some tp) enms) = do
+  tcDecl env (I.KindDecl (I.Kind nm tp [] [] enms))
 tcDecl _env (I.FunctionDecl (L _ nm) ftp) = do
   addFunction nm ftp
   pure Nothing
@@ -269,6 +269,12 @@ tcInferExpr enms env ctx (L _ (S.EqExpr x y)) = do
         _ -> throwError uni_err
     (Nothing, _) -> throwError (AbstractEqualityError x (SomeType xtp))
     (_, Nothing) -> throwError (AbstractEqualityError y (SomeType ytp))
+-- we entirely leverage the previous case here
+tcInferExpr enms env ctx (L p (S.NeqExpr x y)) =
+  tcInferExpr enms env ctx (L p (S.EqExpr x y)) >>= \case
+    (False, Pair T.BoolRepr (E.EqExpr x' y')) ->
+      pure (False, Pair T.BoolRepr (E.NeqExpr x' y'))
+    _ -> throwError $ InternalError p "NeqExpr!"
 
 tcInferExpr enms env ctx (L _ (S.LteExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
@@ -306,6 +312,9 @@ tcInferExpr enms env ctx (L _ (S.DivExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
   pure (False, Pair T.IntRepr (E.DivExpr x' y'))
+tcInferExpr enms env ctx (L _ (S.NegExpr x)) = do
+  x' <- tcExpr enms env ctx T.IntRepr x
+  pure (False, Pair T.IntRepr (E.NegExpr x'))
 
 tcInferExpr enms env ctx (L _ (S.MemberExpr x y)) = do
   x_enms <- HS.union enms <$> addlEnms y
@@ -337,6 +346,12 @@ tcInferExpr enms env ctx (L _ (S.MemberExpr x y)) = do
     (_,_) -> throwError (TypeMismatchError x
                                            (TypeString "an enum")
                                            (Just $ SomeType xtp))
+-- we entirely leverage the previous case here
+tcInferExpr enms env ctx (L p (S.NotMemberExpr x y)) =
+  tcInferExpr enms env ctx (L p (S.MemberExpr x y)) >>= \case
+    (False, Pair T.BoolRepr (E.MemberExpr x' y')) ->
+      pure (False, Pair T.BoolRepr (E.NotMemberExpr x' y'))
+    _ -> throwError $ InternalError p "NonMemberExpr!"
 
 tcInferExpr enms env ctx (L _ (S.AndExpr x y)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
@@ -354,6 +369,10 @@ tcInferExpr enms env ctx (L _ (S.ImpliesExpr x y)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
   y' <- tcExpr enms env ctx T.BoolRepr y
   pure (False, Pair T.BoolRepr (E.ImpliesExpr x' y'))
+tcInferExpr enms env ctx (L _ (S.IffExpr x y)) = do
+  x' <- tcExpr enms env ctx T.BoolRepr x
+  y' <- tcExpr enms env ctx T.BoolRepr y
+  pure (False, Pair T.BoolRepr (E.IffExpr x' y'))
 tcInferExpr enms env ctx (L _ (S.NotExpr x)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
   pure (False, Pair T.BoolRepr (E.NotExpr x'))

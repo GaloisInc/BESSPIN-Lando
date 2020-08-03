@@ -118,13 +118,14 @@
 <p>In order to build Lobot, you must obtain <code>ghc</code> and <code>cabal</code>, the compiler and build tool for Haskell. GHC must be at least version 8.8, which is the latest stable release.</p>
 <p>Once those tools are installed, the following should "just work":</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="ex">cabal</span> v2-build</span></code></pre></div>
-<p>This will build the <code>lobotIG</code> tool in some hidden subdirectory, which you can <code>find</code> via:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="fu">find</span> <span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span> -type f -name lobotIG</span></code></pre></div>
+<p>This will build the <code>lobot</code> tool in some hidden subdirectory, which you can <code>find</code> via:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="fu">find</span> <span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span> -type f -name lobot</span></code></pre></div>
 <p>Now you have the path to the executable, and can <code>alias</code> to it in order to run it easily.</p>
+<p>Before running <code>lobot</code>, install the <code>z3</code> tool, or you will get a runtime error. You can download the binary <a href="https://github.com/Z3Prover/z3/releases">here</a>. Simply download, unzip, and move the <code>bin/z3</code> executable anywhere on your path. Alternatively, use your favorite package manager (brew, apt-get, etc.) to install it.</p>
 <h1 data-number="3" id="running"><span class="header-section-number">3</span> Running</h1>
 <p>The Lobot user's guide doesn't exist yet, as various aspects of the language have not yet been solidified. See the <code>examples</code> directory for various examples (some of which will work out of the box, others of which will require a bit of system configuration before running).</p>
-<p>The basic way you "run" Lobot is by invoking <code>lobotIG</code>:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="ex">lobotIG</span> examples/example2.lobot</span></code></pre></div>
-<p>Currently, the tool simply loads in a Lobot file and enumerates all instances of the final declaration in the file. It only enumerates 100 instances; this limit is somewhat arbitrary, but is not configurable at the command line. It is important to have some kind of limit, since data types can have infinitely many instances.</p>
+<p>The basic way you "run" Lobot is by invoking <code>lobot</code>:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="ex">lobot</span> --help</span></code></pre></div>
+<p>See the user’s guide for more details.</p>
 </body>
 </html>

@@ -4,10 +4,9 @@ add1_0 : kind of int where self = add1(0)
 
 add1_is_0 : kind of int
   where add1(self) = 0
-        -10 <= self
-        self <= 10
+        -10 <= self <= 10
 
 add1_check : check
   on x : int
-  where -500 <= x, x <= 500
+  where -500 <= x <= 500
   that add1(x) = x + 1

@@ -55,6 +55,7 @@ import Lobot.Utils
   'self'      { L _ (Token SELF _) }
   '.'         { L _ (Token DOT _) }
   '='         { L _ (Token EQUALS _) }
+  '!='        { L _ (Token NOTEQUALS _) }
   '<='        { L _ (Token LTE _) }
   '<'         { L _ (Token LT _) }
   '>='        { L _ (Token GTE _) }
@@ -68,8 +69,10 @@ import Lobot.Utils
   '|'         { L _ (Token OR _) }
   '^'         { L _ (Token XOR _) }
   'in'        { L _ (Token IN _) }
+  'notin'     { L _ (Token NOTIN _) }
   '=>'        { L _ (Token IMPLIES _) }
-  'not'       { L _ (Token NOT _) }
+  '<=>'       { L _ (Token IFF _) }
+  '!'         { L _ (Token NOT _) }
   'true'      { L _ (Token TRUE _) }
   'false'     { L _ (Token FALSE _) }
   '{'         { L _ (Token LBRACE _) }
@@ -88,15 +91,17 @@ import Lobot.Utils
   LAYSEP        { L _ (Token LAYSEP _) }
 
 %nonassoc ':' 'with'
-%left     '=>'
+%nonassoc '<=>'
+%right    '=>'
 %left     '^'
 %left     '|'
 %left     '&'
-%nonassoc '=' '<=' '<' '>=' '>'
+%nonassoc '=' '!=' '<=' '<' '>=' '>'
 %left     '+' '-'
 %left     '*' '/' '%'
-%nonassoc 'not'
-%nonassoc 'in'
+%nonassoc NEG
+%nonassoc '!'
+%nonassoc 'in' 'notin'
 %left     '.'
 
 %%
@@ -141,12 +146,12 @@ argTypes : type                     { [$1] }
          | type commaSep argTypes   { $1 : $3 }
 
 
-type    : 'bool'                       { loc $1 $ BoolType }
-        | 'int'                        { loc $1 $ IntType }
-        | '{' enumIdents '}'           { loc $1 $ EnumType (fmap unLoc $2) }
-        | 'subset' type                { loc $1 $ SetType $2 }
-        | 'struct' withClause(field)   { loc $1 $ StructType $2 }
-        | kindNames                    { $1 }
+type    : 'bool'                      { loc $1 $ BoolType }
+        | 'int'                       { loc $1 $ IntType }
+        | '{' enumIdents '}'          { loc $1 $ EnumType (fmap unLoc $2) }
+        | 'subset' type               { loc $1 $ SetType $2 }
+        | 'struct' withClauseFields   { loc $1 $ StructType $2 }
+        | kindNames                   { $1 }
 
 withClause(x) : 'with' optLAYSEP anySepList(x) anyLAYEND           { $3 }
               | 'with' optLAYSEP '{' '}' anyLAYEND                 { [] }
@@ -156,41 +161,61 @@ anySepList(x) : x                        { [$1] }
               | x anySep                 { [$1] }
               | x anySep anySepList(x)   { $1 : $3 }
 
-fields : anySepList(field) { $1 }
+fields           : anySepList(field) { concat $1 }
+withClauseFields : withClause(field) { concat $1 }
 
-field : ident ':' type anyLAYEND { (locText $1, $3) }
+field : idents ':' type anyLAYEND { fmap (\f -> (f,$3)) $1 }
 
 kindNames : idents { loc (head $1) $ KindNames $1 }
 
 
 expr :: { LExpr }
-expr : lit                         { loc $1 $ LiteralExpr $1 }
-     | 'self'                      { loc $1 $ SelfExpr }
-     | ident                       { loc $1 $ VarExpr (locText $1) }
-     | expr '.' ident              { loc $1 $ FieldExpr $1 (locText $3) }
-     | expr '=' expr               { loc $1 $ EqExpr $1 $3 }
-     | expr '<=' expr              { loc $1 $ LteExpr $1 $3 }
-     | expr '<' expr               { loc $1 $ LtExpr $1 $3 }
-     | expr '>=' expr              { loc $1 $ GteExpr $1 $3 }
-     | expr '>' expr               { loc $1 $ GtExpr $1 $3 }
-     | expr '+' expr               { loc $1 $ PlusExpr $1 $3 }
-     | expr '-' expr               { loc $1 $ MinusExpr $1 $3 }
-     | expr '*' expr               { loc $1 $ TimesExpr $1 $3 }
-     | expr '%' expr               { loc $1 $ ModExpr $1 $3 }
-     | expr '/' expr               { loc $1 $ ModExpr $1 $3 }
-     | expr '&' expr               { loc $1 $ AndExpr $1 $3 }
-     | expr '|' expr               { loc $1 $ OrExpr $1 $3 }
-     | expr '^' expr               { loc $1 $ XorExpr $1 $3 }
-     | expr 'in' expr              { loc $1 $ MemberExpr $1 $3 }
-     | expr '=>' expr              { loc $1 $ ImpliesExpr $1 $3 }
-     | 'not' expr                  { loc $1 $ NotExpr $2 }
-     | ident '(' ')'               { loc $1 $ ApplyExpr (locText $1) [] }
-     | ident '(' args ')'          { loc $1 $ ApplyExpr (locText $1) $3 }
-     | expr ':' idents anyLAYEND   { loc $1 $ IsInstanceExpr $1 (loc (head $3) $ KindNames $3) }
-     | '(' expr ')'                { loc $1 $ unLoc $2 }
+expr : iffSeq                        { snd $1 }
+     | expr1                         { $1 }
+
+iffSeq : expr1 '<=>' expr1           { ($1, loc $1 $ IffExpr $1 $3) }
+       | expr1 '<=>' iffSeq          { ($1, loc $1 $ AndExpr (loc $1 $ IffExpr $1 (fst $3)) (snd $3)) }
+
+expr1 :: { LExpr }
+expr1 : expr1 '&' expr1              { loc $1 $ AndExpr $1 $3 }
+      | expr1 '|' expr1              { loc $1 $ OrExpr $1 $3 }
+      | expr1 '^' expr1              { loc $1 $ XorExpr $1 $3 }
+      | expr1 '=>' expr1             { loc $1 $ ImpliesExpr $1 $3 }
+      | ineqSeq                      { snd $1 }
+      | expr2                        { $1 }
+
+ineqSeq : expr2 ineq expr2           { ($1, $2 $1 $3) }
+        | expr2 ineq ineqSeq         { ($1, loc $1 $ AndExpr ($2 $1 (fst $3)) (snd $3)) }
+
+expr2 :: { LExpr }
+expr2 : lit                          { loc $1 $ LiteralExpr $1 }
+      | 'self'                       { loc $1 $ SelfExpr }
+      | ident                        { loc $1 $ VarExpr (locText $1) }
+      | expr2 '.' ident              { loc $1 $ FieldExpr $1 (locText $3) }
+      | expr2 '+' expr2              { loc $1 $ PlusExpr $1 $3 }
+      | expr2 '-' expr2              { loc $1 $ MinusExpr $1 $3 }
+      | expr2 '*' expr2              { loc $1 $ TimesExpr $1 $3 }
+      | expr2 '%' expr2              { loc $1 $ ModExpr $1 $3 }
+      | expr2 '/' expr2              { loc $1 $ ModExpr $1 $3 }
+      | '-' expr2 %prec NEG          { negExpr $1 $2 }
+      | expr2 'in' expr2             { loc $1 $ MemberExpr $1 $3 }
+      | expr2 'notin' expr2          { loc $1 $ NotMemberExpr $1 $3 }
+      | '!' expr2                    { loc $1 $ NotExpr $2 }
+      | ident '(' ')'                { loc $1 $ ApplyExpr (locText $1) [] }
+      | ident '(' args ')'           { loc $1 $ ApplyExpr (locText $1) $3 }
+      | expr2 ':' idents anyLAYEND   { loc $1 $ IsInstanceExpr $1 (loc (head $3) $ KindNames $3) }
+      | '(' expr ')'                 { loc $1 $ unLoc $2 }
 
 args : expr                 { [$1] }
      | expr commaSep args   { $1 : $3 }
+
+ineq :: { LExpr -> LExpr -> LExpr }
+ineq : '='    { \x y -> loc x $ EqExpr x y }
+     | '!='   { \x y -> loc x $ NeqExpr x y }
+     | '<='   { \x y -> loc x $ LteExpr x y }
+     | '<'    { \x y -> loc x $ LtExpr x y }
+     | '>='   { \x y -> loc x $ GteExpr x y }
+     | '>'    { \x y -> loc x $ GtExpr x y }
 
 
 lit :: { LLiteral }
@@ -230,6 +255,12 @@ commaSep : ','          {}
          | LAYSEP ','   {}
 
 {
+
+-- | 'NegExpr', but negates integer literals as a special case
+negExpr :: Loc a -> LExpr -> LExpr
+negExpr (L p _) (L _ (LiteralExpr (L _ (IntLit z)))) =
+  L p (LiteralExpr (L p (IntLit (- z))))
+negExpr (L p _) e = L p (NegExpr e)
 
 locText :: LToken -> LText
 locText (L p (Token (IDLC s) _)) = L p (pack s)

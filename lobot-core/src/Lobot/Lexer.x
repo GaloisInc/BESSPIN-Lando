@@ -45,7 +45,7 @@ $white_no_nl = [\v\ ]
 @nl          = \r?\n | \r
 @nls         = ($white_no_nl*@nl)+
 
-@int        = [\-\+]?[0-9]+
+@int        = [0-9]+
 @identlower = [a-z][a-zA-Z0-9_]*
 @identupper = [A-Z][a-zA-Z0-9_]*
 
@@ -94,6 +94,7 @@ tokens :-
     self          { tok SELF }
     "."           { tok DOT }
     "="           { tok EQUALS }
+    "!="          { tok NOTEQUALS }
     "<="          { tok LTE }
     "<"           { tok LT }
     ">="          { tok GTE }
@@ -107,8 +108,10 @@ tokens :-
     "&"           { tok AND }
     "^"           { tok XOR }
     in            { tok IN }
+    notin         { tok NOTIN }
     "=>"          { tok IMPLIES }
-    not           { tok NOT }
+    "<=>"         { tok IFF }
+    "!"           { tok NOT }
     true          { tok TRUE }
     false         { tok FALSE }
     "{"           { tokAnd pushLinesLayout LBRACE }
@@ -156,6 +159,7 @@ data TokenType = BOOL
                | SELF
                | DOT
                | EQUALS
+               | NOTEQUALS
                | LTE
                | LT
                | GTE
@@ -169,7 +173,9 @@ data TokenType = BOOL
                | AND
                | XOR
                | IN
+               | NOTIN
                | IMPLIES
+               | IFF
                | NOT
                | TRUE
                | FALSE

@@ -175,14 +175,14 @@ nat_sum_100 : kind of unique_nat_pair
 <pre><code>All checks pass. (File had no checks)</code></pre>
 <p>This means that the file was syntactically valid and well-typed, which is great! It also doesn’t give us any information about the types we defined. We can count the number of instances of one of our <code>kind</code>s in the following way:</p>
 <pre><code>$ lobot -c nat_sum_100 nat_sum_100.lobot
-Generating instances...
 Found 50 valid instances, generated 0 invalid instances</code></pre>
 <p>Lobot determined that there are 50 instances of the <code>nat_sum_100</code> kind. If we want to enumerate them, we can use the <code>-e</code> option:</p>
 <pre><code>$ lobot -e nat_sum_100 nat_sum_100.lobot
-Generating instances...
+
 Instance 1:
   nat_sum_100 with {x = 50, y = 50}
-Press enter to see the next instance</code></pre>
+
+Press enter to see the next instance.</code></pre>
 <p>Each time we hit enter, we see a new instance.</p>
 <p>What if we want to verify that some property always holds of our <code>nat_sum_100</code> kind? For instance, we might like to ensure that for any instance <code>p</code> of <code>nat_sum_100</code>, <code>p.x &lt;= 50</code>. We can encode that as a <code>check</code> command in the Lobot source file:</p>
 <pre><code>-- Check that all instances satisfy p.x &lt;= 50
@@ -191,12 +191,10 @@ check1 : check
   that p.x &lt;= 50</code></pre>
 <p>We run this check with the <code>-r</code> option:</p>
 <pre><code>$ lobot -r check1 nat_sum_100.lobot
-Generating instances...
-Check &#39;check1&#39; holds. (Generated 0 instances)</code></pre>
+&#39;check1&#39; holds. (Discarded 0 potential counterexamples)</code></pre>
 <p>Lobot determined that the check holds for all instances of the <code>nat_sum_100</code> kind. What if we change the check condition <code>p.x &lt;= 50</code> to <code>p.x &lt; 50</code>?</p>
 <pre><code>$ lobot -r check1 nat_sum_100.lobot
-Generating instances...
-Check &#39;check1&#39; failed with counterexample:
+&#39;check1&#39; failed with counterexample:
   p = struct with {x = 50, y = 50}</code></pre>
 <p>Lobot fails, and finds a counterexample for us. Great!</p>
 <h2 data-number="1.3" id="example-2-the-real-world"><span class="header-section-number">1.3</span> Example 2: The real world</h2>
@@ -235,26 +233,26 @@ $ add1 -1000000
 <p>Just like any other kind, we can enumerate instances one-by-one, or we can count the number of instances. Let’s enumerate <code>add1_0</code>:</p>
 <pre><code>Instance 1:
   1
-Press enter to see the next instance
 
 Enumerated all 1 valid instances, generated 1 invalid instances</code></pre>
 <p>Lobot has determined that there is exactly one instance of <code>add1_0</code>, which is not terribly impressive, since every function has exactly one value when you call it. Let’s see what happens if we try the inverse problem of finding the solution to <code>add1(x) = 0</code>:</p>
 <pre><code>add1_is_0 : kind of int where add1(self) = 0</code></pre>
 <p>Let’s enumerate this kind:</p>
 <pre><code>$ lobot -e add1_is_0 add1.lobot
-Generating instances of &#39;add1_is_0&#39;...
+
 Hit instance limit of 100!
 Found 0 valid instances, generated 100 invalid instances
+
 Press enter to continue enumerating up to 100 more instances.</code></pre>
 <p>Looks like we generated 100 invalid instances, but were not able to find a solution. We could keep pressing enter to just continue the search, but instead, let’s use the <code>-v</code> option to try and figure out what’s going on:</p>
 <pre><code>$ lobot -e add1_is_0 -v add1.lobot
+
 Generated an invalid instance:
   1
 The constraints that failed were:
   add1(self) = 0
 Learned the values of the following function calls:
   add1(1) = 2
-Press enter to see the next instance
 
 Generated an invalid instance:
   3
@@ -262,7 +260,6 @@ The constraints that failed were:
   add1(self) = 0
 Learned the values of the following function calls:
   add1(3) = 4
-Press enter to see the next instance
 
 Generated an invalid instance:
   5
@@ -270,17 +267,17 @@ The constraints that failed were:
   add1(self) = 0
 Learned the values of the following function calls:
   add1(5) = 6
-Press enter to see the next instance</code></pre>
+
+Press enter to see the next instance.</code></pre>
 <p>Here, we see that Lobot is attempting to find a solution to <code>add1(x) = 0</code> by enumerating positive values of <code>x</code> until it finds one (for whatever reason, the underlying SMT solver is only trying odd numbers). However, this strategy will never yield a valid instance, because the solution to this equation is <code>-1</code>, which is negative. We can help Lobot out by constraining the search space a bit:</p>
 <pre><code>add1_is_0 : kind of int
   where add1(self) = 0
-        -10 &lt;= self
-        self &lt;= 10</code></pre>
+        -10 &lt;= self &lt;= 10</code></pre>
 <p>Now, when we attempt to enumerate values of this kind, we have more success:</p>
 <pre><code>$ lobot -e add1_is_0 add1.lobot 
+
 Instance 1:
   -1
-Press enter to see the next instance
 
 Enumerated all 1 valid instances, generated 20 invalid instances</code></pre>
 <p>Not only has Lobot found the solution, <code>-1</code>, it has determined that it is the only solution in the range <code>-10 &lt;= x &lt;= 10</code> by exhaustively checking every value in that range. Since <code>add1</code> could have been any function, and Lobot knows nothing about its behavior, we couldn’t reasonably expect it to do anything more clever than an exhaustive search.</p>
@@ -288,11 +285,10 @@ Enumerated all 1 valid instances, generated 20 invalid instances</code></pre>
 <p>Finally, let’s create a lobot check that <code>add1</code> is correct for all integers in some range:</p>
 <pre><code>add1_check : check
   on x : int
-  where -500 &lt;= x, x &lt;= 500
+  where -500 &lt;= x &lt;= 500
   that add1(x) = x + 1</code></pre>
 <pre><code>$ lobot -l 2000 add1.lobot
-Generating instances...
-Check &#39;add1_check&#39; holds. (Discarded 1001 potential counterexamples)
+&#39;add1_check&#39; holds. (Discarded 1001 potential counterexamples)
 All checks pass.</code></pre>
 <p>Lobot can’t prove that <code>add1(x) = x + 1</code> for all <code>x</code>, but it can do it for any finite range we like.</p>
 <h1 data-number="2" id="getting-started"><span class="header-section-number">2</span> Getting started</h1>
@@ -313,8 +309,8 @@ All checks pass.</code></pre>
 <p>We will describe each of these in depth in later sections.</p>
 <p>A <em>constraint</em> is an expression that can be evaluated over a value of a particular type. For instance, if <code>a : bool</code> and <code>b : bool</code>, then <code>a | b</code> is the constraint that either <code>a = true</code> or <code>b = true</code>.</p>
 <p>A <em>kind</em> is a type plus a list of constraints. For instance, we can define the kind of integers between 0 and 5, or 5 and 10:</p>
-<pre><code>int_0_5  : kind of int where 0 &lt;= self, self &lt;= 5
-int_5_10 : kind of int where 5 &lt;= self, self &lt;= 10</code></pre>
+<pre><code>int_0_5  : kind of int where 0 &lt;= self &lt;= 5
+int_5_10 : kind of int where 5 &lt;= self &lt;= 10</code></pre>
 <p>We can then use values of this kind in other kinds:</p>
 <pre><code>two_ints : kind of struct
   with x : int_0_5
@@ -329,10 +325,8 @@ int_5_10 : kind of int where 5 &lt;= self, self &lt;= 10</code></pre>
 <pre><code>two_ints : kind of struct
   with x : int
        y : int
-  where 0 &lt;= x
-        x &lt;= 5
-        5 &lt;= y
-        y &lt;= 10</code></pre>
+  where 0 &lt;= x &lt;= 5
+        5 &lt;= y &lt;= 10</code></pre>
 <p>We can also combine multiple kinds into a kind that represents all the constraints of the “parent” kind:</p>
 <pre><code>int_5 : kind of int_0_5 int_5_10</code></pre>
 <h3 data-number="3.1.1" id="type-synonyms"><span class="header-section-number">3.1.1</span> Type synonyms</h3>
@@ -350,13 +344,12 @@ int_5_10 : kind of int where 5 &lt;= self, self &lt;= 10</code></pre>
 <pre><code>-- file: bool.lobot
 type my_bool = bool</code></pre>
 <pre><code>$ lobot -e my_bool bool.lobot
+
 Instance 1:
   false
-Press enter to see the next instance
 
 Instance 2:
   true
-Press enter to see the next instance
 
 Enumerated all 2 valid instances, generated 0 invalid instances</code></pre>
 <p>If we are in an introductory logic course and are assigned the following homework problem:</p>
@@ -364,32 +357,27 @@ Enumerated all 2 valid instances, generated 0 invalid instances</code></pre>
 <p>We can use Lobot to cheat:</p>
 <pre><code>-- file: logic_homework1.lobot
 problem1 : kind of struct
-  with p : bool, q : bool, r : bool
+  with p q r : bool
   where p =&gt; ((q | r) =&gt; (r =&gt; not p))</code></pre>
 <pre><code>$ lobot -e problem1 logic_homework1.lobot
+
 Instance 1:
   problem1 with {p = false, q = false, r = false}
-Press enter to see the next instance
 
 Instance 2:
   problem1 with {p = false, q = false, r = true}
-Press enter to see the next instance
 
 Instance 3:
   problem1 with {p = false, q = true, r = true}
-Press enter to see the next instance
 
 Instance 4:
   problem1 with {p = false, q = true, r = false}
-Press enter to see the next instance
 
 Instance 5:
   problem1 with {p = true, q = false, r = false}
-Press enter to see the next instance
 
 Instance 6:
   problem1 with {p = true, q = true, r = false}
-Press enter to see the next instance
 
 Enumerated all 6 valid instances, generated 0 invalid instances</code></pre>
 <h3 data-number="3.1.3" id="integers"><span class="header-section-number">3.1.3</span> Integers</h3>
@@ -397,11 +385,11 @@ Enumerated all 6 valid instances, generated 0 invalid instances</code></pre>
 <pre><code>-- file: int.lobot
 type my_int = int</code></pre>
 <p>We can attempt to count the integers (rather than enumerate them one-by-one) with the <code>-c</code> option:</p>
-<pre><code>lobot -c my_int int.lobot
+<pre><code>$ lobot -c my_int int.lobot
 Hit instance limit of 100!
 Found 100 valid instances, generated 0 invalid instances</code></pre>
 <p>Lobot informs us that we have hit the built-in instance limit of <code>100</code>, resulting in <code>100</code> instances of <code>int</code>. We can increase this limit with <code>-l</code>:</p>
-<pre><code>lobot -c my_int -l 10000 int.lobot
+<pre><code>$ lobot -c my_int -l 10000 int.lobot
 Hit instance limit of 10000!
 Found 10000 valid instances, generated 0 invalid instances</code></pre>
 <p>After a minute or two, Lobot finally determines that there are at least <code>10000</code> instances of <code>int</code>. So, in case you didn’t realize it – there are more than ten thousand integers!</p>
@@ -412,19 +400,21 @@ Found 10000 valid instances, generated 0 invalid instances</code></pre>
         p &gt; 1
         q &gt; 1</code></pre>
 <pre><code>$ lobot -e factor_120 int.lobot
+
 Instance 1:
   factor_120 with {p = 20, q = 6}
+
 Press enter to see the next instance.</code></pre>
 <p>If we are in a high school algebra class, we can use Lobot to do our homework on linear systems of equations for us:</p>
 <pre><code>type pair = struct with x : int, y : int
 
-problem1 : kind of pair
+problem2 : kind of pair
   where x - 7 * y = -11
         5 * x + 2 * y = -18</code></pre>
-<pre><code>lobot -e problem1 algebra_homework1.lobot
+<pre><code>$ lobot -e problem2 algebra_homework1.lobot
+
 Instance 1:
-  problem1 with {x = -4, y = 1}
-Press enter to see the next instance
+  problem2 with {x = -4, y = 1}
 
 Enumerated all 1 valid instances, generated 0 invalid instances</code></pre>
 <p>This of course assumes that the linear system has an integer solution (which they usually do when they arrive in the form of algebra homework).</p>
@@ -432,53 +422,44 @@ Enumerated all 1 valid instances, generated 0 invalid instances</code></pre>
 <p>Enumerations are like <code>enum</code>s in the C programming language, or “sum types” in Haskell. They are finite, user-defined types that encode a variety of different choices.</p>
 <pre><code>type abc = {A, B, C}</code></pre>
 <pre><code>$ lobot -e abc enum.lobot
+
 Instance 1:
   A
-Press enter to see the next instance
 
 Instance 2:
   B
-Press enter to see the next instance
 
 Instance 3:
   C
-Press enter to see the next instance
 
 Enumerated all 3 valid instances, generated 0 invalid instances</code></pre>
 <p>Here, we introduce an enum type called <code>abc</code> with three constructors, <code>A</code>, <code>B</code>, and <code>C</code>. The constructors of an enum must start with capital letters. We can also use subsets of enumerations:</p>
 <pre><code>type abc_set = subset abc</code></pre>
 <pre><code>$ lobot -e abc_set enum.lobot
+
 Instance 1:
   {}
-Press enter to see the next instance
 
 Instance 2:
   {A}
-Press enter to see the next instance
 
 Instance 3:
   {A, B}
-Press enter to see the next instance
 
 Instance 4:
   {A, B, C}
-Press enter to see the next instance
 
 Instance 5:
   {B, C}
-Press enter to see the next instance
 
 Instance 6:
   {C}
-Press enter to see the next instance
 
 Instance 7:
   {A, C}
-Press enter to see the next instance
 
 Instance 8:
   {B}
-Press enter to see the next instance
 
 Enumerated all 8 valid instances, generated 0 invalid instances</code></pre>
 <p>We can create more constrained kinds of subsets:</p>
@@ -490,13 +471,12 @@ doesnt_have_c : kind of abc_set
 
 both : kind of a_implies_c doesnt_have_c</code></pre>
 <pre><code>$ lobot -e both enum.lobot
+
 Instance 1:
   {}
-Press enter to see the next instance
 
 Instance 2:
   {B}
-Press enter to see the next instance
 
 Enumerated all 2 valid instances, generated 0 invalid instances</code></pre>
 <h3 data-number="3.1.5" id="structs"><span class="header-section-number">3.1.5</span> Structs</h3>
@@ -530,13 +510,13 @@ Cannot generate instances of abstract type.</code></pre>
 <pre><code>abstract write_nlines : int -&gt; filepath</code></pre>
 <p>The <code>wc</code> command can take a variety of options, so we might as well model that:</p>
 <pre><code>-- C for characters, L for lines, W for words
-wc_option = { C, L, W }
+type wc_option = { C, L, W }
 
-wc_wrapper : (wc_option, filepath) -&gt; int</code></pre>
+abstract wc_wrapper : (wc_option, filepath) -&gt; int</code></pre>
 <p>We can now state our desired property as a <code>check</code>:</p>
 <pre><code>write_nlines_check : check
   on i : int
-  where 0 &lt;= i, i &lt;= 50
+  where 0 &lt;= i &lt;= 50
   that wc_wrapper(L, write_nlines(i)) = i</code></pre>
 <p>Now, in order to actually run this Lobot file, the <code>write_nlines</code> and <code>wc_wrapper</code> commands must be on our <code>PATH</code>, and they must conform to Lobot’s function call API (described more fully <a href="#json-api">here</a>).</p>
 <p>Here is a python-based implementation of <code>write_nlines</code>:</p>
@@ -621,7 +601,7 @@ print(json.dumps(json_output))</code></pre>
 {&quot;variant&quot;: &quot;int&quot;, &quot;value&quot;: 5}</code></pre>
 <p>Once both these commands are on our PATH, we can verify the <code>check</code>:</p>
 <pre><code>$ lobot -r write_nlines_check fn.lobot
-Check &#39;write_nlines_check&#39; holds. (Generated 51 instances)</code></pre>
+&#39;write_nlines_check&#39; holds. (Discarded 51 potential counterexamples)</code></pre>
 <h1 data-number="4" id="language-reference"><span class="header-section-number">4</span> Language Reference</h1>
 <p>In this section, we provide an exhaustive reference to every language feature that Lobot currently supports.</p>
 <h2 data-number="4.1" id="types"><span class="header-section-number">4.1</span> Types</h2>

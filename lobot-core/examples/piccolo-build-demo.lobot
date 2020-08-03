@@ -7,8 +7,8 @@ riscv : kind of struct
   where (D in exts) => (F in exts)
         M in privs
         (S in privs) => (U in privs)
-        (S in privs) => (not (vm = SVNone))
-        (not (S in privs)) => (vm = SVNone)
+        (S in privs) => (vm != SVNone)
+        (S notin privs) => (vm = SVNone)
 
 -- Definition of a bluespec build configuration, which contains a riscv.
 bluespec_config : kind of struct

@@ -10,12 +10,12 @@ australia_coloring : kind of struct
        nsw : color
        v : color
        t : color
-  where not (wa = nt)
-        not (wa = sa)
-        not (nt = sa)
-        not (nt = q)
-        not (sa = q)
-        not (sa = nsw)
-        not (sa = v)
-        not (q = nsw)
-        not (nsw = v)
+  where wa != nt
+        wa != sa
+        nt != sa
+        nt != q
+        sa != q
+        sa != nsw
+        sa != v
+        q != nsw
+        nsw != v

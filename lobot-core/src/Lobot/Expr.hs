@@ -45,6 +45,7 @@ import qualified Data.ByteString as BS
 
 import Data.Bits (xor)
 import Data.List (find)
+import Data.Maybe (isNothing)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Classes
 import Data.Parameterized.Context
@@ -73,6 +74,11 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
               => Expr env ctx tp
               -> Expr env ctx tp
               -> Expr env ctx BoolType
+  -- | Inequality of two expressions.
+  NeqExpr     :: NonAbstract tp
+              => Expr env ctx tp
+              -> Expr env ctx tp
+              -> Expr env ctx BoolType
   -- | Less-than-or-equal for two integer expressions.
   LteExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx BoolType
   -- | Less-than for two integer expressions.
@@ -91,10 +97,16 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   ModExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
   -- | Divide two integer expressions.
   DivExpr   :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
+  -- | Negate an integer.
+  NegExpr   :: Expr env ctx IntType -> Expr env ctx IntType
   -- | Set membership.
   MemberExpr  :: Expr env ctx (EnumType cs)
               -> Expr env ctx (SetType cs)
               -> Expr env ctx BoolType
+  -- | Set non-membership.
+  NotMemberExpr  :: Expr env ctx (EnumType cs)
+                 -> Expr env ctx (SetType cs)
+                 -> Expr env ctx BoolType
   -- | Logical and.
   AndExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical or.
@@ -103,6 +115,8 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   XorExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical implication.
   ImpliesExpr :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
+  -- | Logical bi-implication.
+  IffExpr :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical negation.
   NotExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType
 
@@ -214,6 +228,10 @@ evalExpr fns ls e = case e of
     EvalResult l1 _ <- evalExpr fns ls e1
     EvalResult l2 _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (litEq l1 l2))
+  NeqExpr e1 e2 -> do
+    EvalResult l1 _ <- evalExpr fns ls e1
+    EvalResult l2 _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (not $ litEq l1 l2))
   LteExpr e1 e2 -> do
     EvalResult (IntLit x1) _ <- evalExpr fns ls e1
     EvalResult (IntLit x2) _ <- evalExpr fns ls e2
@@ -250,10 +268,17 @@ evalExpr fns ls e = case e of
     EvalResult (IntLit x1) _ <- evalExpr fns ls e1
     EvalResult (IntLit x2) _ <- evalExpr fns ls e2
     pure $ litEvalResult (IntLit (x1 `mod` x2))
+  NegExpr e' -> do
+    EvalResult (IntLit x) _ <- evalExpr fns ls e'
+    pure $ litEvalResult (IntLit (- x))
   MemberExpr e1 e2 -> do
     EvalResult (EnumLit _ i) _ <- evalExpr fns ls e1
     EvalResult (SetLit _ s) _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (isJust (find (== Some i) s)))
+  NotMemberExpr e1 e2 -> do
+    EvalResult (EnumLit _ i) _ <- evalExpr fns ls e1
+    EvalResult (SetLit _ s) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (isNothing (find (== Some i) s)))
   AndExpr e1 e2 -> do
     EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
     EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
@@ -270,6 +295,10 @@ evalExpr fns ls e = case e of
     EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
     EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (not b1 || b2))
+  IffExpr e1 e2 -> do
+    EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
+    EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (b1 == b2))
   NotExpr e' -> do
     EvalResult (BoolLit b) _ <- evalExpr fns ls e'
     pure $ litEvalResult (BoolLit (not b))

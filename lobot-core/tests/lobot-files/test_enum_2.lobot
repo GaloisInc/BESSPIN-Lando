@@ -1,2 +1,2 @@
 test_enum_2 : kind of {A, B, C}
-  where not (self = A)
+  where self != A

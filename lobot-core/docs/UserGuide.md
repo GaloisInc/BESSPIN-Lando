@@ -86,7 +86,6 @@ the number of instances of one of our `kind`s in the following way:
 
 ```
 $ lobot -c nat_sum_100 nat_sum_100.lobot
-Generating instances...
 Found 50 valid instances, generated 0 invalid instances
 ```
 
@@ -95,10 +94,11 @@ want to enumerate them, we can use the `-e` option:
 
 ```
 $ lobot -e nat_sum_100 nat_sum_100.lobot
-Generating instances...
+
 Instance 1:
   nat_sum_100 with {x = 50, y = 50}
-Press enter to see the next instance
+
+Press enter to see the next instance.
 ```
 
 Each time we hit enter, we see a new instance.
@@ -119,8 +119,7 @@ We run this check with the `-r` option:
 
 ```
 $ lobot -r check1 nat_sum_100.lobot
-Generating instances...
-Check 'check1' holds. (Generated 0 instances)
+'check1' holds. (Discarded 0 potential counterexamples)
 ```
 
 Lobot determined that the check holds for all instances of the `nat_sum_100`
@@ -128,8 +127,7 @@ kind. What if we change the check condition `p.x <= 50` to `p.x < 50`?
 
 ```
 $ lobot -r check1 nat_sum_100.lobot
-Generating instances...
-Check 'check1' failed with counterexample:
+'check1' failed with counterexample:
   p = struct with {x = 50, y = 50}
 ```
 
@@ -211,7 +209,6 @@ the number of instances. Let's enumerate `add1_0`:
 ```
 Instance 1:
   1
-Press enter to see the next instance
 
 Enumerated all 1 valid instances, generated 1 invalid instances
 ```
@@ -229,9 +226,10 @@ Let's enumerate this kind:
 
 ```
 $ lobot -e add1_is_0 add1.lobot
-Generating instances of 'add1_is_0'...
+
 Hit instance limit of 100!
 Found 0 valid instances, generated 100 invalid instances
+
 Press enter to continue enumerating up to 100 more instances.
 ```
 
@@ -241,13 +239,13 @@ let's use the `-v` option to try and figure out what's going on:
 
 ```
 $ lobot -e add1_is_0 -v add1.lobot
+
 Generated an invalid instance:
   1
 The constraints that failed were:
   add1(self) = 0
 Learned the values of the following function calls:
   add1(1) = 2
-Press enter to see the next instance
 
 Generated an invalid instance:
   3
@@ -255,7 +253,6 @@ The constraints that failed were:
   add1(self) = 0
 Learned the values of the following function calls:
   add1(3) = 4
-Press enter to see the next instance
 
 Generated an invalid instance:
   5
@@ -263,7 +260,8 @@ The constraints that failed were:
   add1(self) = 0
 Learned the values of the following function calls:
   add1(5) = 6
-Press enter to see the next instance
+
+Press enter to see the next instance.
 ```
 
 Here, we see that Lobot is attempting to find a solution to `add1(x) = 0` by
@@ -275,17 +273,16 @@ which is negative. We can help Lobot out by constraining the search space a bit:
 ```
 add1_is_0 : kind of int
   where add1(self) = 0
-        -10 <= self
-        self <= 10
+        -10 <= self <= 10
 ```
 
 Now, when we attempt to enumerate values of this kind, we have more success:
 
 ```
 $ lobot -e add1_is_0 add1.lobot 
+
 Instance 1:
   -1
-Press enter to see the next instance
 
 Enumerated all 1 valid instances, generated 20 invalid instances
 ```
@@ -306,14 +303,13 @@ some range:
 ```
 add1_check : check
   on x : int
-  where -500 <= x, x <= 500
+  where -500 <= x <= 500
   that add1(x) = x + 1
 ```
 
 ```
 $ lobot -l 2000 add1.lobot
-Generating instances...
-Check 'add1_check' holds. (Discarded 1001 potential counterexamples)
+'add1_check' holds. (Discarded 1001 potential counterexamples)
 All checks pass.
 ```
 
@@ -353,8 +349,8 @@ A _kind_ is a type plus a list of constraints. For instance, we can define the
 kind of integers between 0 and 5, or 5 and 10:
 
 ```
-int_0_5  : kind of int where 0 <= self, self <= 5
-int_5_10 : kind of int where 5 <= self, self <= 10
+int_0_5  : kind of int where 0 <= self <= 5
+int_5_10 : kind of int where 5 <= self <= 10
 ```
 
 We can then use values of this kind in other kinds:
@@ -381,10 +377,8 @@ Both of the above definitions are equivalent to:
 two_ints : kind of struct
   with x : int
        y : int
-  where 0 <= x
-        x <= 5
-        5 <= y
-        y <= 10
+  where 0 <= x <= 5
+        5 <= y <= 10
 ```
 
 We can also combine multiple kinds into a kind that represents all the
@@ -433,13 +427,12 @@ type my_bool = bool
 
 ```
 $ lobot -e my_bool bool.lobot
+
 Instance 1:
   false
-Press enter to see the next instance
 
 Instance 2:
   true
-Press enter to see the next instance
 
 Enumerated all 2 valid instances, generated 0 invalid instances
 ```
@@ -456,35 +449,30 @@ We can use Lobot to cheat:
 ```
 -- file: logic_homework1.lobot
 problem1 : kind of struct
-  with p : bool, q : bool, r : bool
-  where p => ((q | r) => (r => not p))
+  with p q r : bool
+  where p => ((q | r) => (r => !p))
 ```
 
 ```
 $ lobot -e problem1 logic_homework1.lobot
+
 Instance 1:
   problem1 with {p = false, q = false, r = false}
-Press enter to see the next instance
 
 Instance 2:
   problem1 with {p = false, q = false, r = true}
-Press enter to see the next instance
 
 Instance 3:
   problem1 with {p = false, q = true, r = true}
-Press enter to see the next instance
 
 Instance 4:
   problem1 with {p = false, q = true, r = false}
-Press enter to see the next instance
 
 Instance 5:
   problem1 with {p = true, q = false, r = false}
-Press enter to see the next instance
 
 Instance 6:
   problem1 with {p = true, q = true, r = false}
-Press enter to see the next instance
 
 Enumerated all 6 valid instances, generated 0 invalid instances
 ```
@@ -502,7 +490,7 @@ We can attempt to count the integers (rather than enumerate them one-by-one)
 with the `-c` option:
 
 ```
-lobot -c my_int int.lobot
+$ lobot -c my_int int.lobot
 Hit instance limit of 100!
 Found 100 valid instances, generated 0 invalid instances
 ```
@@ -511,7 +499,7 @@ Lobot informs us that we have hit the built-in instance limit of `100`,
 resulting in `100` instances of `int`. We can increase this limit with `-l`:
 
 ```
-lobot -c my_int -l 10000 int.lobot
+$ lobot -c my_int -l 10000 int.lobot
 Hit instance limit of 10000!
 Found 10000 valid instances, generated 0 invalid instances
 ```
@@ -532,8 +520,10 @@ factor_120 : kind of struct
 
 ```
 $ lobot -e factor_120 int.lobot
+
 Instance 1:
   factor_120 with {p = 20, q = 6}
+
 Press enter to see the next instance.
 ```
 
@@ -543,16 +533,16 @@ linear systems of equations for us:
 ```
 type pair = struct with x : int, y : int
 
-problem1 : kind of pair
+problem2 : kind of pair
   where x - 7 * y = -11
         5 * x + 2 * y = -18
 ```
 
 ```
-lobot -e problem1 algebra_homework1.lobot
+$ lobot -e problem2 algebra_homework1.lobot
+
 Instance 1:
-  problem1 with {x = -4, y = 1}
-Press enter to see the next instance
+  problem2 with {x = -4, y = 1}
 
 Enumerated all 1 valid instances, generated 0 invalid instances
 ```
@@ -572,17 +562,15 @@ type abc = {A, B, C}
 
 ```
 $ lobot -e abc enum.lobot
+
 Instance 1:
   A
-Press enter to see the next instance
 
 Instance 2:
   B
-Press enter to see the next instance
 
 Instance 3:
   C
-Press enter to see the next instance
 
 Enumerated all 3 valid instances, generated 0 invalid instances
 ```
@@ -597,37 +585,30 @@ type abc_set = subset abc
 
 ```
 $ lobot -e abc_set enum.lobot
+
 Instance 1:
   {}
-Press enter to see the next instance
 
 Instance 2:
   {A}
-Press enter to see the next instance
 
 Instance 3:
   {A, B}
-Press enter to see the next instance
 
 Instance 4:
   {A, B, C}
-Press enter to see the next instance
 
 Instance 5:
   {B, C}
-Press enter to see the next instance
 
 Instance 6:
   {C}
-Press enter to see the next instance
 
 Instance 7:
   {A, C}
-Press enter to see the next instance
 
 Instance 8:
   {B}
-Press enter to see the next instance
 
 Enumerated all 8 valid instances, generated 0 invalid instances
 ```
@@ -639,20 +620,19 @@ a_implies_c : kind of abc_set
   where A in self => C in self
 
 doesnt_have_c : kind of abc_set
-  where not (C in self)
+  where C notin self
 
 both : kind of a_implies_c doesnt_have_c
 ```
 
 ```
 $ lobot -e both enum.lobot
+
 Instance 1:
   {}
-Press enter to see the next instance
 
 Instance 2:
   {B}
-Press enter to see the next instance
 
 Enumerated all 2 valid instances, generated 0 invalid instances
 ```
@@ -734,9 +714,9 @@ The `wc` command can take a variety of options, so we might as well model that:
 
 ```
 -- C for characters, L for lines, W for words
-wc_option = { C, L, W }
+type wc_option = { C, L, W }
 
-wc_wrapper : (wc_option, filepath) -> int
+abstract wc_wrapper : (wc_option, filepath) -> int
 ```
 
 We can now state our desired property as a `check`:
@@ -744,7 +724,7 @@ We can now state our desired property as a `check`:
 ```
 write_nlines_check : check
   on i : int
-  where 0 <= i, i <= 50
+  where 0 <= i <= 50
   that wc_wrapper(L, write_nlines(i)) = i
 ```
 
@@ -877,7 +857,7 @@ Once both these commands are on our PATH, we can verify the `check`:
 
 ```
 $ lobot -r write_nlines_check fn.lobot
-Check 'write_nlines_check' holds. (Generated 51 instances)
+'write_nlines_check' holds. (Discarded 51 potential counterexamples)
 ```
 
 # Language Reference
@@ -1165,6 +1145,61 @@ type <s> = struct
 
 In this section we introduce _checks_, commands that tell Lobot to ensure that a
 property holds.
+
+## Syntactic Sugar
+
+In this section we describe Lobot's syntactic sugar, the parts of Lobot's
+syntax which are expanded to other expressions before or during type checking.
+These constructs are included purely for convenience and add no additional
+expressiveness to the language.
+
+* Instance expressions: The Lobot expression `<x> : <k1> ... <km>`, where `<x>`
+  is any expression and each `<ki>` is the name of a kind, expands to the
+  conjunction of all the constraints of `<k1>` through `<kn>` with `<x>`
+  substituted for `self` in each. For example, in the following Lobot file:
+  
+  ```
+  even_pos_int : kind of int
+    where 0 <= self, self mod 2 == 0
+  
+  ex : kind of struct
+    with x : int
+    where x * x : even_pos_int
+  ```
+  
+  the expression `x * x : even_pos_int` in `ex` is expanded to:
+  
+  ```
+  (x * x <= self) & ((x * x) mod 2 == 0)
+  ```
+
+* Inequality chains: A chain of inequalities:
+  
+  ```
+  <x1> <I1> <x2> <I2> ... <I(n-1)> <xn>
+  ```
+  
+  where each `<xi>` is a Lobot expression and each `<Ii>` is one of `=`, `!=`,
+  `<`, `<=`, `>`, or `>=`, expands to the conjuction:
+  
+  ```
+  <x1> <I1> <x2> & <x2> <I2> <x3> & ... & <x(n-1)> <I(n-1)> <xn>
+  ```
+
+* If-and-only-if chains: A chain of if-and-only-if's:
+  
+  ```
+  <x1> <=> <x2> <=> ... <=> <xn>
+  ```
+  
+  where each `<xi>` is a Lobot expression expands to the conjunction:
+  
+  ```
+  <x1> <=> <x2> & <x2> <=> <x3> & ... & <x(n-1)> <=> <xn>
+  ```
+  
+  Note that the same does not hold for implications, for example `p => q => r`
+  is equivalent to `p => (q => r)`, not `(p => q) & (q => r)`.
 
 ## JSON API
 
