@@ -450,7 +450,7 @@ We can use Lobot to cheat:
 -- file: logic_homework1.lobot
 problem1 : kind of struct
   with p q r : bool
-  where p => ((q | r) => (r => not p))
+  where p => ((q | r) => (r => !p))
 ```
 
 ```
@@ -620,7 +620,7 @@ a_implies_c : kind of abc_set
   where A in self => C in self
 
 doesnt_have_c : kind of abc_set
-  where not (C in self)
+  where C notin self
 
 both : kind of a_implies_c doesnt_have_c
 ```

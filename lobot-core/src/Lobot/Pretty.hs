@@ -158,6 +158,8 @@ ppExpr' _ env ctx nms (ApplyExpr fi es) =
 ppExpr' False env ctx nms e = PP.parens (ppExpr' True env ctx nms e)
 ppExpr' _ env ctx nms (EqExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.equals PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (NeqExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "!=" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (LteExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "<=" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (LtExpr e1 e2) =

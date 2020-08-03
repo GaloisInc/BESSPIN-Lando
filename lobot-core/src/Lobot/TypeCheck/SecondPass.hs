@@ -268,6 +268,12 @@ tcInferExpr enms env ctx (L _ (S.EqExpr x y)) = do
         _ -> throwError uni_err
     (TrueRepr, _) -> throwError (AbstractEqualityError x (SomeType xtp))
     (_, TrueRepr) -> throwError (AbstractEqualityError y (SomeType ytp))
+-- we entirely leverage the previous case here
+tcInferExpr enms env ctx (L p (S.NeqExpr x y)) =
+  tcInferExpr enms env ctx (L p (S.EqExpr x y)) >>= \case
+    (False, Pair T.BoolRepr (E.EqExpr x' y')) ->
+      pure (False, Pair T.BoolRepr (E.NeqExpr x' y'))
+    _ -> throwError $ InternalError p "NeqExpr!"
 
 tcInferExpr enms env ctx (L _ (S.LteExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x

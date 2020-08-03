@@ -17,8 +17,7 @@ TestResult
                    (GteExpr (FieldExpr (VarExpr 0) 1) (FieldExpr (VarExpr 0) 2))
                    (AndExpr
                       (EqExpr (FieldExpr (VarExpr 0) 2) (FieldExpr (VarExpr 0) 3))
-                      (NotExpr
-                         (EqExpr (FieldExpr (VarExpr 0) 3) (FieldExpr (VarExpr 0) 1)))))
+                      (NeqExpr (FieldExpr (VarExpr 0) 3) (FieldExpr (VarExpr 0) 1))))
             , AndExpr
                 (LteExpr (LiteralExpr (IntLit 0)) (FieldExpr (VarExpr 0) 0))
                 (LteExpr (FieldExpr (VarExpr 0) 0) (LiteralExpr (IntLit 4)))

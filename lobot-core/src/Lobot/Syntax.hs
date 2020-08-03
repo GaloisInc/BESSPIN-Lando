@@ -75,6 +75,7 @@ data Expr = LiteralExpr LLiteral
           | ApplyExpr LText [LExpr]
           | IsInstanceExpr LExpr LType -- ^ expr : type (in a constraint)
           | EqExpr LExpr LExpr
+          | NeqExpr LExpr LExpr
           -- Integer operations
           | LteExpr LExpr LExpr
           | LtExpr LExpr LExpr

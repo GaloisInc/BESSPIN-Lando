@@ -8,7 +8,7 @@ problem : kind of struct
        c : domain
 
 problem1 : kind of problem
-  where a > b, b /= c, a /= c
+  where a > b, b != c, a != c
 
 problem2 : kind of problem
   where a > b, b = c

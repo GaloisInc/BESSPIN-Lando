@@ -134,6 +134,8 @@ ppExpr' _ (ApplyExpr fn es) =
 ppExpr' False e = PP.parens (ppExpr' True e)
 ppExpr' _ (EqExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.equals PP.<+> ppLExpr' False e2
+ppExpr' _ (NeqExpr e1 e2) =
+  ppLExpr' False e1 PP.<+> PP.text "!=" PP.<+> ppLExpr' False e2
 ppExpr' _ (LteExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "<=" PP.<+> ppLExpr' False e2
 ppExpr' _ (LtExpr e1 e2) =
@@ -168,6 +170,6 @@ ppExpr' _ (ImpliesExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "=>" PP.<+> ppLExpr' False e2
 ppExpr' _ (IffExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.text "<=>" PP.<+> ppLExpr' False e2
-ppExpr' _ (NotExpr e) = PP.text "not" PP.<+> ppLExpr' False e
+ppExpr' _ (NotExpr e) = PP.text "!" PP.<+> ppLExpr' False e
 ppExpr' _ (IsInstanceExpr e t) =
   ppLExpr' False e PP.<+> PP.colon PP.<+> ppLType t

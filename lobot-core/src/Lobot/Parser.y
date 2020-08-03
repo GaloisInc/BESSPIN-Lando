@@ -55,7 +55,7 @@ import Lobot.Utils
   'self'      { L _ (Token SELF _) }
   '.'         { L _ (Token DOT _) }
   '='         { L _ (Token EQUALS _) }
-  '/='        { L _ (Token NOTEQUALS _) }
+  '!='        { L _ (Token NOTEQUALS _) }
   '<='        { L _ (Token LTE _) }
   '<'         { L _ (Token LT _) }
   '>='        { L _ (Token GTE _) }
@@ -72,7 +72,7 @@ import Lobot.Utils
   'notin'     { L _ (Token NOTIN _) }
   '=>'        { L _ (Token IMPLIES _) }
   '<=>'       { L _ (Token IFF _) }
-  'not'       { L _ (Token NOT _) }
+  '!'         { L _ (Token NOT _) }
   'true'      { L _ (Token TRUE _) }
   'false'     { L _ (Token FALSE _) }
   '{'         { L _ (Token LBRACE _) }
@@ -96,11 +96,11 @@ import Lobot.Utils
 %left     '^'
 %left     '|'
 %left     '&'
-%nonassoc '=' '<=' '<' '>=' '>'
+%nonassoc '=' '!=' '<=' '<' '>=' '>'
 %left     '+' '-'
 %left     '*' '/' '%'
 %nonassoc NEG
-%nonassoc 'not'
+%nonassoc '!'
 %nonassoc 'in' 'notin'
 %left     '.'
 
@@ -200,7 +200,7 @@ expr2 : lit                          { loc $1 $ LiteralExpr $1 }
       | '-' expr2 %prec NEG          { negExpr $1 $2 }
       | expr2 'in' expr2             { loc $1 $ MemberExpr $1 $3 }
       | expr2 'notin' expr2          { loc $1 $ NotMemberExpr $1 $3 }
-      | 'not' expr2                  { loc $1 $ NotExpr $2 }
+      | '!' expr2                    { loc $1 $ NotExpr $2 }
       | ident '(' ')'                { loc $1 $ ApplyExpr (locText $1) [] }
       | ident '(' args ')'           { loc $1 $ ApplyExpr (locText $1) $3 }
       | expr2 ':' idents anyLAYEND   { loc $1 $ IsInstanceExpr $1 (loc (head $3) $ KindNames $3) }
@@ -211,7 +211,7 @@ args : expr                 { [$1] }
 
 ineq :: { LExpr -> LExpr -> LExpr }
 ineq : '='    { \x y -> loc x $ EqExpr x y }
-     | '/='   { \x y -> loc x $ NotExpr (loc x $ EqExpr x y) }
+     | '!='   { \x y -> loc x $ NeqExpr x y }
      | '<='   { \x y -> loc x $ LteExpr x y }
      | '<'    { \x y -> loc x $ LtExpr x y }
      | '>='   { \x y -> loc x $ GteExpr x y }

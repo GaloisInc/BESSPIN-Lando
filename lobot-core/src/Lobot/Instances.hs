@@ -302,6 +302,7 @@ symEvalExpr sym symFns symLits e = case e of
     sl1 <- symEvalExpr sym symFns symLits e1
     sl2 <- symEvalExpr sym symFns symLits e2
     SymLiteral BoolRepr <$> symLiteralEq sym sl1 sl2
+  NeqExpr e1 e2 -> symEvalExpr sym symFns symLits (NotExpr (EqExpr e1 e2))
   LteExpr e1 e2 -> do
     SymLiteral IntRepr sv1 <- symEvalExpr sym symFns symLits e1
     SymLiteral IntRepr sv2 <- symEvalExpr sym symFns symLits e2

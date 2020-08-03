@@ -149,6 +149,7 @@ giveSelf s e = case e of
   FieldExpr kd i' -> FieldExpr (giveSelf s kd) i'
   ApplyExpr fi es -> ApplyExpr fi (fmapFC (giveSelf s) es)
   EqExpr e1 e2 -> EqExpr (giveSelf s e1) (giveSelf s e2)
+  NeqExpr e1 e2 -> NeqExpr (giveSelf s e1) (giveSelf s e2)
   LteExpr e1 e2 -> LteExpr (giveSelf s e1) (giveSelf s e2)
   LtExpr e1 e2 -> LtExpr (giveSelf s e1) (giveSelf s e2)
   GteExpr e1 e2 -> GteExpr (giveSelf s e1) (giveSelf s e2)

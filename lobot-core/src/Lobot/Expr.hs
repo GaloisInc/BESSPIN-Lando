@@ -73,6 +73,11 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
               => Expr env ctx tp
               -> Expr env ctx tp
               -> Expr env ctx BoolType
+  -- | Inequality of two expressions.
+  NeqExpr     :: IsAbstractType tp ~ 'False
+              => Expr env ctx tp
+              -> Expr env ctx tp
+              -> Expr env ctx BoolType
   -- | Less-than-or-equal for two integer expressions.
   LteExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx BoolType
   -- | Less-than for two integer expressions.
@@ -222,6 +227,10 @@ evalExpr fns ls e = case e of
     EvalResult l1 _ <- evalExpr fns ls e1
     EvalResult l2 _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (litEq l1 l2))
+  NeqExpr e1 e2 -> do
+    EvalResult l1 _ <- evalExpr fns ls e1
+    EvalResult l2 _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (not $ litEq l1 l2))
   LteExpr e1 e2 -> do
     EvalResult (IntLit x1) _ <- evalExpr fns ls e1
     EvalResult (IntLit x2) _ <- evalExpr fns ls e2

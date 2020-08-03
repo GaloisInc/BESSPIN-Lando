@@ -94,7 +94,7 @@ tokens :-
     self          { tok SELF }
     "."           { tok DOT }
     "="           { tok EQUALS }
-    "/="          { tok NOTEQUALS }
+    "!="          { tok NOTEQUALS }
     "<="          { tok LTE }
     "<"           { tok LT }
     ">="          { tok GTE }
@@ -111,7 +111,7 @@ tokens :-
     notin         { tok NOTIN }
     "=>"          { tok IMPLIES }
     "<=>"         { tok IFF }
-    not           { tok NOT }
+    "!"           { tok NOT }
     true          { tok TRUE }
     false         { tok FALSE }
     "{"           { tokAnd pushLinesLayout LBRACE }

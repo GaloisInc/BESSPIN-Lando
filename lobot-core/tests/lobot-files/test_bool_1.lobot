@@ -1,1 +1,1 @@
-test_bool_1 : kind of bool where not self
+test_bool_1 : kind of bool where !self
