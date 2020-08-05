@@ -42,6 +42,7 @@ import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
+import Data.Constraint (Dict(..))
 
 import Lobot.Utils hiding (unzip)
 import Lobot.Expr as E
@@ -249,8 +250,8 @@ tcInferExpr enms env ctx (L _ (S.EqExpr x y)) = do
   (yGuess, Pair ytp y') <- tcInferExpr y_enms env ctx y
   let uni_err = TypeUnificationError x (SomeType xtp)
                                      y (SomeType ytp)
-  case (isAbstractType xtp, isAbstractType ytp) of
-    (FalseRepr, FalseRepr) -> do
+  case (isNonAbstract xtp, isNonAbstract ytp) of
+    (Just Dict, Just Dict) -> do
       case (testEquality xtp ytp, xGuess, yGuess, unifyTypes xtp ytp) of
         (Just Refl, _, _, _) ->
           pure (False, Pair T.BoolRepr (E.EqExpr x' y'))
@@ -266,8 +267,8 @@ tcInferExpr enms env ctx (L _ (S.EqExpr x y)) = do
              ; pure (False, Pair T.BoolRepr (E.EqExpr x'' y''))
              } `catchError` (const $ throwError uni_err)
         _ -> throwError uni_err
-    (TrueRepr, _) -> throwError (AbstractEqualityError x (SomeType xtp))
-    (_, TrueRepr) -> throwError (AbstractEqualityError y (SomeType ytp))
+    (Nothing, _) -> throwError (AbstractEqualityError x (SomeType xtp))
+    (_, Nothing) -> throwError (AbstractEqualityError y (SomeType ytp))
 -- we entirely leverage the previous case here
 tcInferExpr enms env ctx (L p (S.NeqExpr x y)) =
   tcInferExpr enms env ctx (L p (S.EqExpr x y)) >>= \case
@@ -441,7 +442,7 @@ tcExprs _ _ _ _ _ = pure Nothing
 -- Type inference and checking for literals
 
 data InferredLit where
-  InferredLit :: IsAbstractType tp ~ 'False
+  InferredLit :: NonAbstract tp
               => T.TypeRepr tp -> E.Literal tp -> InferredLit
 
 -- | Guess, or infer, the type of a literal without any knowledge of what its
@@ -492,7 +493,7 @@ tcInferLit enms env (L p (S.StructLit (Just tp) fvs)) = do
     _ -> throwError (StructLiteralTypeError tp)
 
 data CheckedLit tp where
-  CheckedLit :: IsAbstractType tp ~ 'False => E.Literal tp -> CheckedLit tp
+  CheckedLit :: NonAbstract tp => E.Literal tp -> CheckedLit tp
 
 -- | Check that the type of a literal is equal to some known type.
 tcLit :: EnumNameSet
@@ -558,7 +559,7 @@ enumElemIndex cs (L p s)
 -- Type inference and checking for field literals
 
 data InferredFieldLit where
-  InferredFieldLit :: IsAbstractType tp ~ 'False
+  InferredFieldLit :: NonAbstract tp
                    => FieldLiteral '(nm, tp) -> InferredFieldLit
 
 tcInferFieldLit :: EnumNameSet
@@ -570,7 +571,7 @@ tcInferFieldLit enms env (L _ s, l) = do
   pure $ (isGuess, InferredFieldLit (E.FieldLiteral s' l'))
 
 data InferredFieldLits where
-  InferredFieldLits :: AnyAbstractFields ftps ~ 'False
+  InferredFieldLits :: NonAbstract ftps
                    => Assignment FieldLiteral ftps
                    -> InferredFieldLits
 
@@ -581,7 +582,7 @@ toInferredFieldLits (InferredFieldLit fl : ifls)
   = InferredFieldLits (fls :> fl)
 
 data CheckedFieldLits ftps where
-  CheckedFieldLits :: AnyAbstractFields ftps ~ 'False
+  CheckedFieldLits :: NonAbstract ftps
                  => Assignment FieldLiteral ftps
                  -> CheckedFieldLits ftps
 
@@ -606,12 +607,12 @@ tcFieldLits _ _ _ _ = pure Nothing
 -- Unification of type guesses
 
 data SomeNonAbstractType where
-  SomeNonAbsTp :: IsAbstractType tp ~ 'False
+  SomeNonAbsTp :: NonAbstract tp
                => TypeRepr tp -> SomeNonAbstractType
 
 -- | Given guesses for the types of two terms, try to produce a single type
 -- which is a valid guess for the type of both terms.
-unifyTypes :: (IsAbstractType tp1 ~ 'False, IsAbstractType tp2 ~ 'False)
+unifyTypes :: (NonAbstract tp1, NonAbstract tp2)
            => TypeRepr tp1 -> TypeRepr tp2 -> Maybe SomeNonAbstractType
 
 unifyTypes T.BoolRepr T.BoolRepr = Just $ SomeNonAbsTp T.BoolRepr
@@ -629,20 +630,18 @@ unifyTypes (T.StructRepr ftps1) (T.StructRepr ftps2) = do
                                                      (toFieldMap ftps2)
   SomeNonAbsFlds uni_ftps <- toNonAbstractFields <$> sequence (H.elems uni_ftps_map)
   Just $ SomeNonAbsTp (T.StructRepr uni_ftps)
-  where toFieldMap :: AnyAbstractFields ftps ~ 'False
+  where toFieldMap :: NonAbstract ftps
                    => Assignment FieldRepr ftps
                    -> H.Map Text (Maybe SomeNonAbstractField)
         toFieldMap Empty = H.empty
-        toFieldMap (ftps :> ftp@(FieldRepr f tp))
-          | FalseRepr <- isAbstractType tp
+        toFieldMap (ftps :> ftp@(FieldRepr f _))
           = H.insert (symbolRepr f) (Just (SomeNonAbsFld ftp)) (toFieldMap ftps)
-          | otherwise = error "FIXME: Why can't GHC figure out this is impossible?"
 
 unifyTypes _ _ = Nothing
 
 
 data SomeNonAbstractField where
-  SomeNonAbsFld :: IsAbstractType tp ~ 'False => FieldRepr '(nm, tp)
+  SomeNonAbsFld :: NonAbstract tp => FieldRepr '(nm, tp)
                 -> SomeNonAbstractField
 
 -- | Given guesses for the types of two fields with the same name, try to
@@ -653,7 +652,7 @@ unifyFields (SomeNonAbsFld (FieldRepr f tp1)) (SomeNonAbsFld (FieldRepr _ tp2))
   = (\(SomeNonAbsTp uni_tp) -> SomeNonAbsFld (FieldRepr f uni_tp)) <$> unifyTypes tp1 tp2
 
 data SomeNonAbstractFields where
-  SomeNonAbsFlds :: AnyAbstractFields ftps ~ 'False
+  SomeNonAbsFlds :: NonAbstract ftps
                  => Assignment FieldRepr ftps
                  -> SomeNonAbstractFields
 

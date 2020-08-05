@@ -1,8 +1,10 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts#-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
@@ -12,13 +14,14 @@
 {-|
 Module      : Lobot.Types
 Description : The types of the Lobot language.
-Copyright   : (c) Ben Selfridge, 2020
+Copyright   : (c) Ben Selfridge, Matthew Yacavone, 2020
 License     : BSD3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : POSIX
 
-This module defines the types of data and functions in Lobot.
+This module defines the types of data and functions in Lobot, as well as some
+type families and functions for ensuring types are non-abstract.
 -}
 
 module Lobot.Types
@@ -30,24 +33,17 @@ module Lobot.Types
   , FunctionType(..), FunType
   , FunctionTypeRepr(..)
     -- * Abstract type utilities
-  , IsAbstractType
-  , AnyAbstractTypes
-  , IsAbstractField
-  , AnyAbstractFields
-  , isAbstractType
-  , anyAbstractTypes
-  , noAbstractTypes
-  , noAbstractTypesIx
-  , isAbstractField
-  , anyAbstractFields
+  , HasAbstractTypes(..)
+  , nonAbstractIndex
   ) where
 
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Classes
 import Data.Parameterized.Context
 import Data.Parameterized.SymbolRepr
+import Data.Constraint (Dict(..))
 import GHC.TypeLits
-import Unsafe.Coerce (unsafeCoerce)
+import GHC.Exts (Constraint)
 
 -- | The types of LOBOT.
 data Type = BoolType
@@ -152,51 +148,56 @@ instance ( KnownSymbol nm
          ) => KnownRepr FunctionTypeRepr (FunType nm args ret) where
   knownRepr = FunctionTypeRepr knownRepr knownRepr knownRepr
 
-type family IsAbstractType (tp :: Type) :: Bool where
-  IsAbstractType (AbsType _) = 'True
-  IsAbstractType (StructType ftps) = AnyAbstractFields ftps
-  IsAbstractType _ = 'False
 
--- | Determine if a type is abstract.
-isAbstractType :: TypeRepr tp -> BoolRepr (IsAbstractType tp)
-isAbstractType (AbsRepr _) = TrueRepr
-isAbstractType (StructRepr ftps) = anyAbstractFields ftps
-isAbstractType BoolRepr = FalseRepr
-isAbstractType IntRepr = FalseRepr
-isAbstractType (EnumRepr _) = FalseRepr
-isAbstractType (SetRepr _) = FalseRepr
+class HasAbstractTypes k (r :: k -> *) where
+  -- | A type family which indicates which @t :: k@ are abstract. Note that
+  -- since associated type families are not closed, if @t :: k@ should be
+  -- considered abstract then @NonAbstract t@ should be an absurd constraint,
+  -- e.g. @'True ~ 'False@.
+  type NonAbstract (t :: k) :: Constraint
+  -- | A function which, if it can, provides a proof that a @t :: k@ is
+  -- abstract, given a term-level representation @r t@.
+  isNonAbstract :: r t -> Maybe (Dict (NonAbstract t))
 
-type family IsAbstractField (ftp :: (Symbol, Type)) :: Bool where
-  IsAbstractField '(_, tp) = IsAbstractType tp
+instance HasAbstractTypes Type TypeRepr where
+  type NonAbstract BoolType = ()
+  type NonAbstract IntType = ()
+  type NonAbstract (EnumType cs) = ()
+  type NonAbstract (SetType cs) = ()
+  type NonAbstract (StructType ftps) = NonAbstract ftps
+  type NonAbstract (AbsType _) = 'True ~ 'False
+  isNonAbstract BoolRepr = Just Dict
+  isNonAbstract IntRepr = Just Dict
+  isNonAbstract (EnumRepr _) = Just Dict
+  isNonAbstract (SetRepr _) = Just Dict
+  isNonAbstract (StructRepr flds) = do Dict <- isNonAbstract flds
+                                       Just Dict
+  isNonAbstract (AbsRepr _) = Nothing
 
-isAbstractField :: FieldRepr ftp -> BoolRepr (IsAbstractField ftp)
-isAbstractField (FieldRepr _ tp) = isAbstractType tp
+instance HasAbstractTypes (Symbol, Type) FieldRepr where
+  type NonAbstract '(_, tp) = NonAbstract tp
+  isNonAbstract (FieldRepr _ tp) = isNonAbstract tp
 
-type family AnyAbstractTypes (tps :: Ctx Type) :: Bool where
-  AnyAbstractTypes EmptyCtx = 'False
-  AnyAbstractTypes (tps ::> tp) = IsAbstractType tp || AnyAbstractTypes tps
+instance HasAbstractTypes k r => HasAbstractTypes (Ctx k) (Assignment r) where
+  type NonAbstract EmptyCtx = ()
+  type NonAbstract (ctx ::> t) = (NonAbstract ctx, NonAbstract t)
+  isNonAbstract Empty = Just Dict
+  isNonAbstract (ctx :> x) = do Dict <- isNonAbstract ctx
+                                Dict <- isNonAbstract x
+                                Just Dict
 
-anyAbstractTypes :: Assignment TypeRepr tps -> BoolRepr (AnyAbstractTypes tps)
-anyAbstractTypes Empty = FalseRepr
-anyAbstractTypes (tps :> tp) = isAbstractType tp %|| anyAbstractTypes tps
+newtype NonAbstractDict t = PfNonAbs { pfNonAbs :: Dict (NonAbstract t) }
 
-noAbstractTypes :: AnyAbstractTypes (tps ::> tp) ~ 'False
-                => Assignment TypeRepr (tps ::> tp)
-                -> ( IsAbstractType tp :~: 'False
-                   , AnyAbstractTypes tps :~: 'False
-                   )
-noAbstractTypes _ = (unsafeCoerce Refl, unsafeCoerce Refl)
+nonAbstractCtx :: (HasAbstractTypes k r, NonAbstract ctx)
+               => Assignment r ctx
+               -> Assignment NonAbstractDict ctx
+nonAbstractCtx Empty = Empty
+nonAbstractCtx (ctx :> _) = nonAbstractCtx ctx :> PfNonAbs Dict
 
-noAbstractTypesIx :: AnyAbstractTypes tps ~ 'False
-                  => Assignment TypeRepr tps
-                  -> Index tps tp
-                  -> IsAbstractType tp :~: 'False
-noAbstractTypesIx _ _ = unsafeCoerce Refl
-
-type family AnyAbstractFields (ftps :: Ctx (Symbol, Type)) :: Bool where
-  AnyAbstractFields EmptyCtx = 'False
-  AnyAbstractFields (ftps ::> ftp) = IsAbstractField ftp || AnyAbstractFields ftps
-
-anyAbstractFields :: Assignment FieldRepr ftps -> BoolRepr (AnyAbstractFields ftps)
-anyAbstractFields Empty = FalseRepr
-anyAbstractFields (ftps :> ftp) = isAbstractField ftp %|| anyAbstractFields ftps
+-- | Given an index into a context of non-abstract things, provide a proof
+-- that the thing at the given index is indeed non-abstract.
+nonAbstractIndex :: (HasAbstractTypes k r, NonAbstract ctx)
+                 => Assignment r ctx
+                 -> Index ctx t
+                 -> Dict (NonAbstract t)
+nonAbstractIndex rs i = pfNonAbs $ (nonAbstractCtx rs) ! i

@@ -29,7 +29,6 @@ import Data.Set (Set)
 
 import Data.Text (Text)
 import Data.List.NonEmpty (NonEmpty(..))
-import Control.Monad (foldM_)
 import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.Except
@@ -121,7 +120,7 @@ data TypeWarning = EnumNameNotInScope LText
 
 ppTypeError :: FilePath -> TypeError -> PP.Doc
 ppTypeError fp (TypeMismatchError (L p x) exp_tp Nothing)
-  | SomeType tp <- exp_tp, TrueRepr <- isAbstractType tp
+  | SomeType tp <- exp_tp, Nothing <- isNonAbstract tp
   = PP.text (errorPrefix fp p)
     PP.<+> PP.text "Cannot construct a term of abstract type:"
     PP.<+> PP.nest 6 (ppSomeTypeOrString exp_tp)

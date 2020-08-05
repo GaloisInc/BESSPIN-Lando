@@ -57,6 +57,7 @@ import Data.Parameterized.Nonce
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
+import Data.Constraint (Dict(..))
 import Numeric.Natural
 import Prelude hiding ((!!))
 import Unsafe.Coerce (unsafeCoerce) -- I know, I know.
@@ -139,14 +140,13 @@ freshUninterpSymFunction sym fntp@FunctionTypeRepr{..} = do
   symFn <- WI.freshTotalUninterpFn sym cSymbol baseArgTypes baseRetType
   return $ SymFunction fntp symFn
 
-freshSymLiteralConstants :: (AnyAbstractTypes ctx ~ 'False, WS.SMTLib2Tweaks solver)
+freshSymLiteralConstants :: (NonAbstract ctx, WS.SMTLib2Tweaks solver)
                          => WB.ExprBuilder t st fs
                          -> WS.Session t solver
                          -> Assignment TypeRepr ctx
                          -> IO (Assignment (SymLiteral t) ctx)
 freshSymLiteralConstants _ _ Empty = return Empty
 freshSymLiteralConstants sym session (tps :> tp) = do
-  (Refl, Refl) <- return $ noAbstractTypes (tps :> tp)
   r <- freshSymLiteralConstants sym session tps
   c <- freshSymLiteralConstant sym session "" tp
   return $ r :> c
@@ -155,7 +155,7 @@ freshSymLiteralConstants sym session (tps :> tp) = do
 -- probably simplyify this one.
 -- | Declare a fresh constant 'SymLiteral'. If this type is abstract, or
 -- contains any abstract types, return 'Nothing'.
-freshSymLiteralConstant :: (IsAbstractType tp ~ 'False, WS.SMTLib2Tweaks solver)
+freshSymLiteralConstant :: (NonAbstract tp, WS.SMTLib2Tweaks solver)
                         => WB.ExprBuilder t st fs
                         -> WS.Session t solver
                         -> String
@@ -187,23 +187,22 @@ freshSymLiteralConstant sym session prefix tp = do
       structExpr <- WI.mkStruct sym symExprs
       return $ SymLiteral tp structExpr
 
-freshSymFieldLiteralExprs :: (AnyAbstractFields ftps ~ 'False, WS.SMTLib2Tweaks solver)
+freshSymFieldLiteralExprs :: (NonAbstract ftps, WS.SMTLib2Tweaks solver)
                           => WB.ExprBuilder t st fs
                           -> WS.Session t solver
                           -> String
                           -> Assignment FieldRepr ftps
                           -> IO (Assignment (WB.Expr t) (FieldBaseTypes ftps))
 freshSymFieldLiteralExprs _ _ _ Empty = return Empty
-freshSymFieldLiteralExprs sym session prefix (ftps :> FieldRepr nm tp)
-  | FalseRepr <- isAbstractType tp = do
-      let prefix' = prefix ++ "." ++ T.unpack (symbolRepr nm)
-      SymLiteral _ e <- freshSymLiteralConstant sym session prefix' tp
-      symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
-      return $ symExprs :> e
+freshSymFieldLiteralExprs sym session prefix (ftps :> FieldRepr nm tp) = do
+  let prefix' = prefix ++ "." ++ T.unpack (symbolRepr nm)
+  SymLiteral _ e <- freshSymLiteralConstant sym session prefix' tp
+  symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
+  return $ symExprs :> e
 
 -- | Check if two 'SymLiteral's are equal.
 symLiteralEq :: forall t st fs tp .
-                IsAbstractType tp ~ 'False
+                NonAbstract tp
              => WB.ExprBuilder t st fs
              -> SymLiteral t tp
              -> SymLiteral t tp
@@ -217,7 +216,7 @@ symLiteralEq sym (SymLiteral tp e1) (SymLiteral _ e2) = case tp of
 
 -- | Inject a 'Literal' into a 'WB.Expr' by initiating the symbolic values to
 -- concrete ones.
-symExpr :: IsAbstractType tp ~ 'False
+symExpr :: NonAbstract tp
         => WB.ExprBuilder t st fs
         -> Literal tp
         -> IO (WB.Expr t (TypeBaseType tp))
@@ -238,39 +237,37 @@ symExpr sym l = case l of
 
 -- | Inject a 'Literal' into a 'SymLiteral' by initiating the symbolic values to
 -- concrete ones.
-symLiteral :: IsAbstractType tp ~ 'False
+symLiteral :: NonAbstract tp
            => WB.ExprBuilder t st fs
            -> Literal tp
            -> IO (SymLiteral t tp)
 symLiteral sym l = SymLiteral (literalType l) <$> symExpr sym l
 
-_symLiterals :: AnyAbstractTypes tps ~ 'False
+_symLiterals :: NonAbstract tps
             => WB.ExprBuilder t st fs
             -> Assignment Literal tps
             -> IO (Assignment (SymLiteral t) tps)
 _symLiterals _ Empty = return empty
-_symLiterals sym (ls :> l)
-  | FalseRepr <- isAbstractType (literalType l) = do
-      sl <- symLiteral sym l
-      sls <- _symLiterals sym ls
-      return $ sls :> sl
+_symLiterals sym (ls :> l) = do
+  sl <- symLiteral sym l
+  sls <- _symLiterals sym ls
+  return $ sls :> sl
 
 -- | Convert an 'Assignment' of 'FieldLiteral's to an 'Assignment' of 'WB.Expr's
 -- by calling 'symFieldLiteral' on each element.
-symFieldLiteralExprs :: AnyAbstractFields ftps ~ 'False
+symFieldLiteralExprs :: NonAbstract ftps
                      => WB.ExprBuilder t st fs
                      -> Assignment FieldLiteral ftps
                      -> IO (Assignment (WB.Expr t) (FieldBaseTypes ftps))
 symFieldLiteralExprs _ Empty = return empty
-symFieldLiteralExprs sym (fls :> fl)
-  | FalseRepr <- isAbstractField (fieldLiteralType fl) = do
-      sfl <- symFieldLiteral sym fl
-      sfls <- symFieldLiteralExprs sym fls
-      return $ sfls :> symFieldLiteralExpr sfl
+symFieldLiteralExprs sym (fls :> fl) = do
+  sfl <- symFieldLiteral sym fl
+  sfls <- symFieldLiteralExprs sym fls
+  return $ sfls :> symFieldLiteralExpr sfl
 
 -- | Inject a 'FieldLiteral' into a 'SymFieldLiteral' by setting the
 -- symbolic values equal to concrete ones.
-symFieldLiteral :: IsAbstractField ftp ~ 'False
+symFieldLiteral :: NonAbstract ftp
                 => WB.ExprBuilder t st fs
                 -> FieldLiteral ftp
                 -> IO (SymFieldLiteral t ftp)
@@ -425,7 +422,7 @@ literalFromGroundValue' :: FieldRepr '(nm, tp)
 literalFromGroundValue' (FieldRepr nm tp) btp val =
   FieldLiteral nm <$> literalFromGroundValue tp btp val
 
-groundEvalLiteral :: IsAbstractType tp ~ 'False
+groundEvalLiteral :: NonAbstract tp
                   => WG.GroundEvalFn t
                   -> SymLiteral t tp
                   -> IO (Literal tp)
@@ -455,22 +452,20 @@ groundEvalLiteral WG.GroundEvalFn{..} (SymLiteral tp e) = case tp of
       Nothing -> error $
         "PANIC: Lobot.Instances.groundEvalLiteral: \n" ++ show ftps ++ "\n" ++ show (fieldBaseTypes ftps) ++ "\n" ++ show (ctxSizeNat (size gvws))
 
-groundEvalLiterals :: AnyAbstractTypes ctx ~ 'False
+groundEvalLiterals :: NonAbstract ctx
                    => WG.GroundEvalFn t
-                   -> Assignment TypeRepr ctx
                    -> Assignment (SymLiteral t) ctx
                    -> IO (Assignment Literal ctx)
-groundEvalLiterals _ Empty Empty = return Empty
-groundEvalLiterals ge (tps :> tp) (symLits :> symLit) = do
-  (Refl, Refl) <- return $ noAbstractTypes (tps :> tp)
-  ls <- groundEvalLiterals ge tps symLits
+groundEvalLiterals _ Empty = return Empty
+groundEvalLiterals ge (symLits :> symLit) = do
+  ls <- groundEvalLiterals ge symLits
   l  <- groundEvalLiteral  ge symLit
   return $ ls :> l
 
 data BuilderState s = EmptyBuilderState
 
 data SessionData env ctx where
-  SessionData :: (AnyAbstractTypes ctx ~ 'False, WS.SMTLib2Tweaks solver)
+  SessionData :: (NonAbstract ctx, WS.SMTLib2Tweaks solver)
                  => { sym :: WB.ExprBuilder t st fs
                     , session :: WS.Session t solver
                     , env :: Assignment FunctionTypeRepr env
@@ -520,11 +515,11 @@ getNextInstance SessionData{..} =
   WS.runCheckSat session $ \result ->
   case result of
     WS.Sat (ge,_) -> do
-      ls <- groundEvalLiterals ge tps symLits
-      let negateLiteral :: AnyAbstractTypes ctx ~ 'False
+      ls <- groundEvalLiterals ge symLits
+      let negateLiteral :: NonAbstract ctx
                         => Index ctx tp -> Literal tp -> IO [Expr env ctx BoolType]
           negateLiteral i l = do
-            Refl <- return $ noAbstractTypesIx tps i
+            Dict <- return $ nonAbstractIndex tps i
             return $ [NotExpr (EqExpr (VarExpr i) (LiteralExpr l))]
       negateExprs <- traverseAndCollect negateLiteral ls
       let negateExpr = foldr OrExpr (LiteralExpr (BoolLit False)) negateExprs
@@ -536,7 +531,7 @@ getNextInstance SessionData{..} =
     WS.Unsat _ -> do return NoInstance
     WS.Unknown -> do return Unknown
 
-runSession :: AnyAbstractTypes ctx ~ 'False
+runSession :: NonAbstract ctx
            => FilePath
            -- ^ Path to z3 executable
            -> Assignment FunctionTypeRepr env

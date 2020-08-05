@@ -53,13 +53,14 @@ import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 import Data.Parameterized.TH.GADT
+import Data.Constraint (Dict(..))
 import GHC.TypeLits
 
 -- | A expression involving a particular variable context, given a particular
 -- function environment.
 data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   -- | An expression built from a literal value.
-  LiteralExpr :: IsAbstractType tp ~ 'False => Literal tp -> Expr env ctx tp
+  LiteralExpr :: NonAbstract tp => Literal tp -> Expr env ctx tp
   -- | An expression referring to a particular value in the current context.
   VarExpr     :: Index ctx tp -> Expr env ctx tp
   -- | An expression referring to a field of an instance of some kind.
@@ -69,12 +70,12 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
               -> Assignment (Expr env ctx) args
               -> Expr env ctx ret
   -- | Equality of two expressions.
-  EqExpr      :: IsAbstractType tp ~ 'False
+  EqExpr      :: NonAbstract tp
               => Expr env ctx tp
               -> Expr env ctx tp
               -> Expr env ctx BoolType
   -- | Inequality of two expressions.
-  NeqExpr     :: IsAbstractType tp ~ 'False
+  NeqExpr     :: NonAbstract tp
               => Expr env ctx tp
               -> Expr env ctx tp
               -> Expr env ctx BoolType
@@ -126,7 +127,7 @@ instance ShowF (Expr env ctx)
 -- whose return type is not abstract. This is used for refining the solver's
 -- model of the function to improve its search during instance generation.
 data FunctionCallResult env ctx where
-  FunctionCallResult :: IsAbstractType ret ~ 'False
+  FunctionCallResult :: NonAbstract ret
                      => Index env (FunType nm args ret)
                      -- ^ Index of the called function
                      -> Assignment (Expr env ctx) args
@@ -160,7 +161,7 @@ runEvalM k = S.runStateT (unEvalM k) []
 lift :: Monad m => m a -> EvalM env ctx m a
 lift = EvalM . S.lift
 
-addCall :: (IsAbstractType ret ~ 'False, Monad m)
+addCall :: (NonAbstract ret, Monad m)
         => Index env (FunType nm args ret)
         -> Assignment (Expr env ctx) args
         -> Literal ret
@@ -174,7 +175,7 @@ data EvalResult env ctx tp =
              , evalResultExpr :: Expr env ctx tp
              }
 
-litEvalResult :: IsAbstractType tp ~ 'False
+litEvalResult :: NonAbstract tp
               => Literal tp
               -> EvalResult env ctx tp
 litEvalResult l = EvalResult l (LiteralExpr l)
@@ -198,16 +199,16 @@ evalExpr fns ls e = case e of
   LiteralExpr l -> pure $ litEvalResult l
   VarExpr i -> do
     let l = ls ! i
-        e' = case isAbstractType (literalType l) of
-               FalseRepr -> LiteralExpr l
-               TrueRepr -> VarExpr i
+        e' = case isNonAbstract (literalType l) of
+               Just Dict -> LiteralExpr l
+               Nothing -> VarExpr i
     pure $ EvalResult l e'
   FieldExpr se i -> do
     EvalResult (StructLit fls) se' <- evalExpr fns ls se
     let l = fieldLiteralValue (fls ! i)
-        e' = case isAbstractType (literalType l) of
-               FalseRepr -> LiteralExpr l
-               TrueRepr -> FieldExpr se' i
+        e' = case isNonAbstract (literalType l) of
+               Just Dict -> LiteralExpr l
+               Nothing -> FieldExpr se' i
     pure $ EvalResult l e'
   ApplyExpr fi es -> do
     let fn = fns ! fi
@@ -215,13 +216,13 @@ evalExpr fns ls e = case e of
     let argLits = fmapFC evalResultLit evalArgs
         argEs = fmapFC evalResultExpr evalArgs
     (l,st) <- lift $ fnImplRun fn argLits
-    let e' = case isAbstractType (literalType l) of
-               FalseRepr -> LiteralExpr l
-               TrueRepr -> ApplyExpr fi argEs
+    let e' = case isNonAbstract (literalType l) of
+               Just Dict -> LiteralExpr l
+               Nothing -> ApplyExpr fi argEs
     -- TODO: Is there a way to clean this up?
-    () <- case isAbstractType (functionRetType (fnImplType fn)) of
-      TrueRepr -> return ()
-      FalseRepr -> addCall fi argEs l st
+    () <- case isNonAbstract (functionRetType (fnImplType fn)) of
+      Nothing -> return ()
+      Just Dict -> addCall fi argEs l st
     return $ EvalResult l e'
   EqExpr e1 e2 -> do
     EvalResult l1 _ <- evalExpr fns ls e1

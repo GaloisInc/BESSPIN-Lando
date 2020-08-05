@@ -44,6 +44,7 @@ library
                        parameterized-utils >= 2.1.0,
                        array,
                        containers,
+                       constraints,
                        hashmap,
                        mtl,
                        pretty,
