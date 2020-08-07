@@ -14,19 +14,25 @@ Maintainer  : myac@galoicom
 Stability   : experimental
 Portability : POSIX
 
-This module defines an intermediate version of the untyped syntax for use
-during during typechecking. In particular, this type is used between the first
-and second passes, where all types have been checked, all kind names have been
-resolved, all identifiers have been scope checked, but no terms have been type
-checked.
+This module defines an intermediate version 'S.Decl' from "Lobot.Syntax" for
+use between the first and second passes of type checking. Relative to
+"Lobot.Syntax", the definition of 'Decl' in this module replaces every 'Type'
+from "Lobot.Syntax" with a 'TypeRepr' from "Lobot.Types", a list of
+'DerivedConstraint's, and a set of enum names this type should bring into
+scope. See "Lobot.TypeCheck" and "Lobot.TypeCheck.FirstPass" for broader
+context about this type.
+
 -}
+
 module Lobot.TypeCheck.IDecls
-  ( Decl(..)
+  ( -- ** Intermediate declarations
+    Decl(..)
   , Kind(..)
   , EnumNameSet
   , Check(..)
   , CheckField(..)
   , FunctionType(..)
+    -- ** Derived Constraints
   , DerivedConstraint(..)
   , getDerivedConstraintKinds
   ) where
