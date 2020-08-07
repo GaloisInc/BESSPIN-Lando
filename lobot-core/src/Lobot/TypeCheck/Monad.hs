@@ -179,7 +179,7 @@ ppTypeError fp (NoSuchFieldError (L p f) (L _ x) (Some tp)) =
   PP.$$ PP.nest 2 (S.ppExpr x PP.<+> PP.text ":" PP.<+> ppTypeRepr tp)
 ppTypeError fp (StructLiteralTypeError (L p tp)) =
   PP.text (errorPrefix fp p)
-  PP.<+> PP.text "Type given for a struct literal is not a struct:" PP.<+> S.ppType tp
+  PP.<+> PP.text "Type given for a struct literal is not an unconstrained struct type:" PP.<+> S.ppType tp
 ppTypeError fp (StructLiteralNameMismatchError (L p s1) s2) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "Field in struct literal" PP.<+> ppQText s1

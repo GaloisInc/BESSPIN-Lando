@@ -480,10 +480,9 @@ tcInferLit enms env (L _ (S.StructLit Nothing fvs)) = do
   pure (or areGuesses, InferredLit (E.literalType (E.StructLit fvs''))
                                    (E.StructLit fvs''))
 tcInferLit enms env (L p (S.StructLit (Just tp) fvs)) = do
-  (Some tp', _dcns, enms') <- tcType tp
-  -- TODO: Check that this is a valid instance given dcns?
-  case tp' of
-    T.StructRepr ftps -> do
+  tcType tp >>= \case
+    (Some (T.StructRepr ftps), [], enms')
+     -> do
       mfvs' <- tcFieldLits (enms `HS.union` enms') env ftps (reverse fvs)
       case mfvs' of
          Just (CheckedFieldLits fvs') ->
