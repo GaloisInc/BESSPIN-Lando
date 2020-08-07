@@ -65,6 +65,7 @@ executable lobot
                        aeson,
                        ansi-terminal,
                        bytestring,
+                       constraints,
                        directory,
                        hashmap,
                        optparse-applicative,

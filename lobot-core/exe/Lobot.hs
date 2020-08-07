@@ -51,6 +51,7 @@ import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
+import Data.Constraint (Dict(..))
 import Numeric.Natural
 
 import Options.Applicative
@@ -178,7 +179,7 @@ lobot Options{..} = do
 
 -- | TODO Move to Kind.hs?
 data SomeNonAbstractKind env where
-  SomeNonAbsKind :: IsAbstractType tp ~ 'False
+  SomeNonAbsKind :: NonAbstract tp
                  => TypeRepr tp
                  -> [KindExpr env tp BoolType]
                  -> SomeNonAbstractKind env
@@ -189,14 +190,14 @@ lookupKind :: Text -> [Some (Kind env)] -> IO (SomeNonAbstractKind env)
 lookupKind nm ks = case find (\(Some k) -> kindName k == nm) ks of
   Nothing -> do putStrLn $ "Kind '" ++ T.unpack nm ++ "' not found."
                 exitFailure
-  Just (Some k) -> case isAbstractType (kindType k) of
-    TrueRepr -> do putStrLn $ "Cannot generate instances of abstract type."
-                   exitFailure
-    FalseRepr -> pure $ SomeNonAbsKind (kindType k) (kindConstraints k)
+  Just (Some k) -> case isNonAbstract (kindType k) of
+    Nothing -> do putStrLn $ "Cannot generate instances of abstract type."
+                  exitFailure
+    Just Dict -> pure $ SomeNonAbsKind (kindType k) (kindConstraints k)
 
 -- | TODO Move to Kind.hs?
 data SomeNonAbstractCheck env where
-  SomeNonAbsCheck :: AnyAbstractTypes tps ~ 'False
+  SomeNonAbsCheck :: NonAbstract tps
                   => Text -> [Text]
                   -> Assignment TypeRepr tps
                   -> [Expr env tps BoolType]
@@ -215,10 +216,10 @@ toNonAbstractCheck :: Some (Check env) -> IO (SomeNonAbstractCheck env)
 toNonAbstractCheck (Some ck) =
   let fldnms = toListFC namedTypeName (checkFields ck)
       tps    = fmapFC   namedTypeType (checkFields ck)
-  in case anyAbstractTypes tps of
-    TrueRepr -> do putStrLn $ "Cannot generate instances of abstract type."
-                   exitFailure
-    FalseRepr -> do
+  in case isNonAbstract tps of
+    Nothing -> do putStrLn $ "Cannot generate instances of abstract type."
+                  exitFailure
+    Just Dict -> do
       let cns = checkConstraints ck ++ [negReqs]
           negReqs = NotExpr (foldr AndExpr (LiteralExpr (BoolLit True))
                                    (checkRequirements ck))
@@ -370,7 +371,7 @@ generateInstances :: forall env ctx.
                      -- instances generated so far, respectively.
                   -> SessionData env ctx
                   -> IO ([Assignment Literal ctx], Natural)
-generateInstances genMsg limit onLimit onInst s@SessionData{..} = do
+generateInstances genMsg limit onLimit onInst s = do
   putStrNow genMsg
   whenNoANSI $ putStrLn ""
   go HS.empty limit 0 0
