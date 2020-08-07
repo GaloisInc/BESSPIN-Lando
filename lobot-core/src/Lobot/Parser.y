@@ -228,6 +228,10 @@ lit : 'true'                          { loc $1 $ BoolLit True }
     | kindNames withClause(fieldval)  { loc $1 $ StructLit (Just $1) $2 }
 
 fieldval : ident '=' lit                  { (locText $1, $3) }
+         | ident '=' ident                {% alexErrorWPos (getPos $3)
+                                               ("Parse error on input '"
+                                                ++ (tokenString . unLoc $ $3)
+                                                ++ "', expected a literal") }
 
 
 enumIdents :: { [LText] }
@@ -297,8 +301,8 @@ parseError (L p (Token _ s), es) =
 fmtExpected :: [String] -> String
 fmtExpected = go . concatMap modifyStr
   where modifyStr :: String -> [String]
-        modifyStr "LAYEND_WHERE"  = ["'where' (layout)"]
-        modifyStr "LAYEND_THAT"   = ["'that' (layout)"]
+        modifyStr "LAYEND_WHERE"  = ["'where'"]
+        modifyStr "LAYEND_THAT"   = ["'that'"]
         modifyStr "LAYEND_RBRACE" = []
         modifyStr "LAYEND_OTHER"  = []
         modifyStr "LAYEND_NL"     = ["different indentation"]
