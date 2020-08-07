@@ -567,7 +567,7 @@ tcInferFieldLit :: EnumNameSet
 tcInferFieldLit enms env (L _ s, l) = do
   (isGuess, InferredLit tp l') <- tcInferLit enms env l
   Some s' <- pure $ someSymbol s
-  pure $ (isGuess, InferredFieldLit (E.FieldLiteral (FieldRepr s' tp) l'))
+  pure $ (isGuess, InferredFieldLit (E.FieldLiteral s' tp l'))
 
 data InferredFieldLits where
   InferredFieldLits :: NonAbstract ftps
@@ -591,11 +591,11 @@ tcFieldLits :: EnumNameSet
             -> [(LText, S.LLiteral)]
             -> TCM2 env (Maybe (CheckedFieldLits ftps))
 tcFieldLits _ _ Empty [] = pure $ Just (CheckedFieldLits Empty)
-tcFieldLits enms env (ftps :> ftp@(FieldRepr s1 tp)) ((L p s2, l):fvs) = do
+tcFieldLits enms env (ftps :> FieldRepr s1 tp) ((L p s2, l):fvs) = do
   unless (symbolRepr s1 == s2) $
     throwError (StructLiteralNameMismatchError (L p s2) (symbolRepr s1))
   CheckedLit l' <- tcLit enms env tp l
-  let fv' = E.FieldLiteral ftp l'
+  let fv' = E.FieldLiteral s1 tp l'
   mfvs' <- tcFieldLits enms env ftps fvs
   case mfvs' of
     Just (CheckedFieldLits fvs') -> pure $ Just (CheckedFieldLits (fvs' :> fv'))

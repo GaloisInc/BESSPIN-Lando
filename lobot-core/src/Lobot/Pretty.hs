@@ -100,14 +100,15 @@ ppLiteralWithKindName knm (StructLit fls) =
 ppLiteralWithKindName _ l = ppLiteral l
 
 ppFieldLiteral :: FieldLiteral ftp -> PP.Doc
-ppFieldLiteral (FieldLiteral (FieldRepr nm _) lt) =
+ppFieldLiteral (FieldLiteral nm _ lt) =
   symbolDoc nm PP.<+> PP.equals PP.<+> ppLiteral lt
 
 exprStructFields :: Assignment FunctionTypeRepr env
                  -> Assignment TypeRepr ctx
                  -> Expr env ctx (StructType ftps)
                  -> Assignment FieldRepr ftps
-exprStructFields _ _ (LiteralExpr (StructLit fls)) = fmapFC fieldLiteralType fls
+exprStructFields _ _ (LiteralExpr (StructLit fls)) =
+  fmapFC fieldLiteralFieldType fls
 exprStructFields _ ctx (VarExpr i)
   | StructRepr fls <- ctx ! i = fls
 exprStructFields env ctx (FieldExpr structExpr i) =

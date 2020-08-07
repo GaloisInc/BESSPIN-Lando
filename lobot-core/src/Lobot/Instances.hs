@@ -272,7 +272,7 @@ symFieldLiteral :: NonAbstract ftp
                 => WB.ExprBuilder t st fs
                 -> FieldLiteral ftp
                 -> IO (SymFieldLiteral t ftp)
-symFieldLiteral sym (FieldLiteral (FieldRepr nm tp) l) =
+symFieldLiteral sym (FieldLiteral nm tp l) =
   SymFieldLiteral nm tp <$> symLiteral sym l
 
 convertFieldIndex :: Index ftps ftp
@@ -421,8 +421,8 @@ literalFromGroundValue' :: FieldRepr '(nm, tp)
                         -> WT.BaseTypeRepr btp
                         -> WG.GroundValue btp
                         -> Maybe (FieldLiteral '(nm, tp))
-literalFromGroundValue' ftp@(FieldRepr _ tp) btp val = do
-  FieldLiteral ftp <$> literalFromGroundValue tp btp val
+literalFromGroundValue' (FieldRepr nm tp) btp val = do
+  FieldLiteral nm tp <$> literalFromGroundValue tp btp val
 
 groundEvalLiteral :: NonAbstract tp
                   => WG.GroundEvalFn t

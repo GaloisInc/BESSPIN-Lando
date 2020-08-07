@@ -24,8 +24,7 @@ module Lobot.Expr
     Expr(..)
     -- * Literals
   , FieldLiteral(..)
-  , fieldLiteralType
-  , fieldLiteralName
+  , fieldLiteralFieldType
   , Literal(..)
   , literalType
   , litEq
@@ -324,23 +323,20 @@ literalType (BoolLit _) = BoolRepr
 literalType (IntLit _) = IntRepr
 literalType (EnumLit cs _) = EnumRepr cs
 literalType (SetLit cs _) = SetRepr cs
-literalType (StructLit fls) = StructRepr (fmapFC fieldLiteralType fls)
+literalType (StructLit fls) = StructRepr (fmapFC fieldLiteralFieldType fls)
 literalType (AbsLit s _) = AbsRepr s
 
 -- | An instance of a particular field. This is just the field name paired with
 -- a concrete literal.
 data FieldLiteral (p :: (Symbol, Type)) where
-  FieldLiteral :: { _fieldLiteralType  :: FieldRepr '(nm, tp)
+  FieldLiteral :: { fieldLiteralName  :: SymbolRepr nm
+                  , fieldLiteralType  :: TypeRepr tp
                   , fieldLiteralValue :: Literal tp
                   } -> FieldLiteral '(nm, tp)
 
--- | Get the type of a field literal.
-fieldLiteralType :: FieldLiteral p -> FieldRepr p
-fieldLiteralType (FieldLiteral ftp _) = ftp
-
--- | Get the name associated to a field literal.
-fieldLiteralName :: FieldLiteral '(nm, tp) -> SymbolRepr nm
-fieldLiteralName = fieldName . fieldLiteralType
+-- | Get the field type of a field literal.
+fieldLiteralFieldType :: FieldLiteral p -> FieldRepr p
+fieldLiteralFieldType (FieldLiteral nm tp _) = FieldRepr nm tp
 
 deriving instance Show (FieldLiteral p)
 instance ShowF FieldLiteral
@@ -357,12 +353,12 @@ litEq (StructLit fls1) (StructLit fls2) = fls1 `flsEq` fls2
   where flsEq :: forall (ftps :: Ctx (Symbol, Type)) .
                  Assignment FieldLiteral ftps -> Assignment FieldLiteral ftps -> Bool
         flsEq Empty Empty = True
-        flsEq (as :> a) (bs :> b) | FieldLiteral _ _ <- a
+        flsEq (as :> a) (bs :> b) | FieldLiteral _ _ _ <- a
           = a `fieldValueEq` b && flsEq as bs
 litEq (AbsLit _ a1) (AbsLit _ a2) = a1 == a2
 
 fieldValueEq :: FieldLiteral ftp -> FieldLiteral ftp -> Bool
-fieldValueEq fv1@(FieldLiteral _ _) fv2 =
+fieldValueEq fv1@(FieldLiteral _ _ _) fv2 =
   litEq (fieldLiteralValue fv1) (fieldLiteralValue fv2)
 
 -- | Implementation of a function.
@@ -407,15 +403,14 @@ instance HashableF (Expr env ctx) where
     ])
 
 instance TestEquality FieldLiteral where
-  testEquality (FieldLiteral (FieldRepr nm  tp ) lt )
-               (FieldLiteral (FieldRepr nm' tp') lt')
+  testEquality (FieldLiteral nm tp lt) (FieldLiteral nm' tp' lt')
     | Just Refl <- testEquality nm nm'
     , Just Refl <- testEquality tp tp'
     , Just Refl <- testEquality lt lt' = Just Refl
     | otherwise = Nothing
 
 instance HashableF FieldLiteral where
-  s `hashWithSaltF` (FieldLiteral (FieldRepr nm tp) lt) =
+  s `hashWithSaltF` (FieldLiteral nm tp lt) =
     s `hashWithSaltF` nm `hashWithSaltF` tp `hashWithSaltF` lt
 
 instance Eq (FunctionCallResult env ctx) where

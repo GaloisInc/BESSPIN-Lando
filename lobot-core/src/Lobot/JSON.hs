@@ -160,7 +160,7 @@ literalParseJSON = withObject "Some Literal" $ \o -> do
       return $ Some (AbsLit s bs)
 
 fieldLiteralToJSON :: FieldLiteral ftp -> Value
-fieldLiteralToJSON (FieldLiteral (FieldRepr nm _) l) =
+fieldLiteralToJSON (FieldLiteral nm _ l) =
   object [ "name" .= symbolRepr nm
          , "value" .= literalToJSON l
          ]
@@ -171,4 +171,4 @@ fieldLiteralParseJSON = withObject "Some FieldLiteral" $ \o -> do
   valValue <- o .: "value"
   Some nm <- return $ someSymbol nmTxt
   Some val <- literalParseJSON valValue
-  return $ Some (FieldLiteral (FieldRepr nm (literalType val)) val)
+  return $ Some (FieldLiteral nm (literalType val) val)

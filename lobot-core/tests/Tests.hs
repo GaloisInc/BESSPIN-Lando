@@ -12,10 +12,10 @@ import Lobot.Types
 import qualified Data.ByteString.Lazy.Char8 as LBS
 
 import Data.Parameterized.BoolRepr
-import Data.Parameterized.Classes
 import Data.Parameterized.Context hiding (last)
 import Data.Parameterized.Some
 import Data.Traversable (forM)
+import Data.Constraint (Dict(..))
 import Numeric.Natural
 import System.Exit (exitFailure)
 import System.FilePath (takeBaseName, replaceExtension)
@@ -50,11 +50,11 @@ testLobotFile fileName = do
         putStrLn "No kinds in file"
         exitFailure
       Right (TypeCheckResult Empty ks _, []) -> case last ks of
-        Some k -> case isAbstractType (kindType k) of
-          FalseRepr -> do
+        Some k -> case isNonAbstract (kindType k) of
+          Just Dict -> do
             (insts, _) <- runSession z3 Empty Empty (Empty :> kindType k) (kindConstraints k) (collectAndFilterInstances countLimit)
             return $ TestResult (Some k) (Some <$> insts)
-          TrueRepr -> do
+          Nothing -> do
             putStrLn $ "Bad test " ++ fileName ++ ", last kind is abstract"
             exitFailure
       Right (TypeCheckResult _ _ _, []) -> do
@@ -62,7 +62,7 @@ testLobotFile fileName = do
         exitFailure
       Right (_, ws) -> do
         putStrLn $ "Bad test " ++ fileName ++ ", generated warnings:"
-        forM ws $ \w -> print $ ppTypeWarning fileName w
+        _ <- forM ws $ \w -> print $ ppTypeWarning fileName w
         exitFailure
 
 goldenTests :: IO TestTree

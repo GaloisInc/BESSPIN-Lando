@@ -19,20 +19,38 @@ TestResult
   , instances =
       [ [ StructLit
             [ FieldLiteral
-                { fieldLiteralName = p , fieldLiteralValue = BoolLit False }
+                { fieldLiteralName = p
+                , fieldLiteralType = BoolRepr
+                , fieldLiteralValue = BoolLit False
+                }
             , FieldLiteral
-                { fieldLiteralName = q , fieldLiteralValue = BoolLit False }
+                { fieldLiteralName = q
+                , fieldLiteralType = BoolRepr
+                , fieldLiteralValue = BoolLit False
+                }
             , FieldLiteral
-                { fieldLiteralName = r , fieldLiteralValue = BoolLit True }
+                { fieldLiteralName = r
+                , fieldLiteralType = BoolRepr
+                , fieldLiteralValue = BoolLit True
+                }
             ]
         ]
       , [ StructLit
             [ FieldLiteral
-                { fieldLiteralName = p , fieldLiteralValue = BoolLit True }
+                { fieldLiteralName = p
+                , fieldLiteralType = BoolRepr
+                , fieldLiteralValue = BoolLit True
+                }
             , FieldLiteral
-                { fieldLiteralName = q , fieldLiteralValue = BoolLit True }
+                { fieldLiteralName = q
+                , fieldLiteralType = BoolRepr
+                , fieldLiteralValue = BoolLit True
+                }
             , FieldLiteral
-                { fieldLiteralName = r , fieldLiteralValue = BoolLit False }
+                { fieldLiteralName = r
+                , fieldLiteralType = BoolRepr
+                , fieldLiteralValue = BoolLit False
+                }
             ]
         ]
       ]

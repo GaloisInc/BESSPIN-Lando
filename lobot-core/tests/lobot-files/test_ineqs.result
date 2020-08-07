@@ -30,79 +30,163 @@ TestResult
   , instances =
       [ [ StructLit
             [ FieldLiteral
-                { fieldLiteralName = a , fieldLiteralValue = IntLit 2 }
+                { fieldLiteralName = a
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 2
+                }
             , FieldLiteral
-                { fieldLiteralName = b , fieldLiteralValue = IntLit 1 }
+                { fieldLiteralName = b
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 1
+                }
             , FieldLiteral
-                { fieldLiteralName = c , fieldLiteralValue = IntLit 0 }
+                { fieldLiteralName = c
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 0
+                }
             , FieldLiteral
-                { fieldLiteralName = d , fieldLiteralValue = IntLit 0 }
+                { fieldLiteralName = d
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 0
+                }
             ]
         ]
       , [ StructLit
             [ FieldLiteral
-                { fieldLiteralName = a , fieldLiteralValue = IntLit 3 }
+                { fieldLiteralName = a
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 3
+                }
             , FieldLiteral
-                { fieldLiteralName = b , fieldLiteralValue = IntLit 2 }
+                { fieldLiteralName = b
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 2
+                }
             , FieldLiteral
-                { fieldLiteralName = c , fieldLiteralValue = IntLit 1 }
+                { fieldLiteralName = c
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 1
+                }
             , FieldLiteral
-                { fieldLiteralName = d , fieldLiteralValue = IntLit 1 }
+                { fieldLiteralName = d
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 1
+                }
             ]
         ]
       , [ StructLit
             [ FieldLiteral
-                { fieldLiteralName = a , fieldLiteralValue = IntLit 4 }
+                { fieldLiteralName = a
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 4
+                }
             , FieldLiteral
-                { fieldLiteralName = b , fieldLiteralValue = IntLit 1 }
+                { fieldLiteralName = b
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 1
+                }
             , FieldLiteral
-                { fieldLiteralName = c , fieldLiteralValue = IntLit 0 }
+                { fieldLiteralName = c
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 0
+                }
             , FieldLiteral
-                { fieldLiteralName = d , fieldLiteralValue = IntLit 0 }
+                { fieldLiteralName = d
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 0
+                }
             ]
         ]
       , [ StructLit
             [ FieldLiteral
-                { fieldLiteralName = a , fieldLiteralValue = IntLit 3 }
+                { fieldLiteralName = a
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 3
+                }
             , FieldLiteral
-                { fieldLiteralName = b , fieldLiteralValue = IntLit 1 }
+                { fieldLiteralName = b
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 1
+                }
             , FieldLiteral
-                { fieldLiteralName = c , fieldLiteralValue = IntLit 0 }
+                { fieldLiteralName = c
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 0
+                }
             , FieldLiteral
-                { fieldLiteralName = d , fieldLiteralValue = IntLit 0 }
+                { fieldLiteralName = d
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 0
+                }
             ]
         ]
       , [ StructLit
             [ FieldLiteral
-                { fieldLiteralName = a , fieldLiteralValue = IntLit 3 }
+                { fieldLiteralName = a
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 3
+                }
             , FieldLiteral
-                { fieldLiteralName = b , fieldLiteralValue = IntLit 2 }
+                { fieldLiteralName = b
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 2
+                }
             , FieldLiteral
-                { fieldLiteralName = c , fieldLiteralValue = IntLit 0 }
+                { fieldLiteralName = c
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 0
+                }
             , FieldLiteral
-                { fieldLiteralName = d , fieldLiteralValue = IntLit 0 }
+                { fieldLiteralName = d
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 0
+                }
             ]
         ]
       , [ StructLit
             [ FieldLiteral
-                { fieldLiteralName = a , fieldLiteralValue = IntLit 4 }
+                { fieldLiteralName = a
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 4
+                }
             , FieldLiteral
-                { fieldLiteralName = b , fieldLiteralValue = IntLit 2 }
+                { fieldLiteralName = b
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 2
+                }
             , FieldLiteral
-                { fieldLiteralName = c , fieldLiteralValue = IntLit 1 }
+                { fieldLiteralName = c
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 1
+                }
             , FieldLiteral
-                { fieldLiteralName = d , fieldLiteralValue = IntLit 1 }
+                { fieldLiteralName = d
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 1
+                }
             ]
         ]
       , [ StructLit
             [ FieldLiteral
-                { fieldLiteralName = a , fieldLiteralValue = IntLit 4 }
+                { fieldLiteralName = a
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 4
+                }
             , FieldLiteral
-                { fieldLiteralName = b , fieldLiteralValue = IntLit 2 }
+                { fieldLiteralName = b
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 2
+                }
             , FieldLiteral
-                { fieldLiteralName = c , fieldLiteralValue = IntLit 0 }
+                { fieldLiteralName = c
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 0
+                }
             , FieldLiteral
-                { fieldLiteralName = d , fieldLiteralValue = IntLit 0 }
+                { fieldLiteralName = d
+                , fieldLiteralType = IntRepr
+                , fieldLiteralValue = IntLit 0
+                }
             ]
         ]
       ]

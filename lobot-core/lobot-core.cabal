@@ -83,6 +83,7 @@ test-suite lobot-tests
   build-depends:      lobot-core,
                       base,
                       bytestring,
+                      constraints,
                       filepath,
                       parameterized-utils,
                       pretty-show,
