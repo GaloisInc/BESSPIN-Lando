@@ -25,14 +25,14 @@ module Lobot.TypeCheck.SecondPass
   ( secondPass
   ) where
 
-import qualified Data.HashMap as H
+import qualified Data.HashMap.Strict as H
 import qualified Data.HashSet as HS
 
 import Data.Text (Text, append)
 import Data.List (union)
 import Data.Maybe (catMaybes)
 import Data.Either (partitionEithers)
-import Control.Monad (when, forM_)
+import Control.Monad (unless, forM_)
 import Control.Monad.State (get, modify)
 import Control.Monad.Except (throwError, catchError)
 import Data.Parameterized.BoolRepr
@@ -456,13 +456,13 @@ tcInferLit _ _ (L _ (S.BoolLit b)) = pure (False, InferredLit T.BoolRepr (E.Bool
 tcInferLit _ _ (L _ (S.IntLit z))  = pure (False, InferredLit T.IntRepr  (E.IntLit z))
 
 tcInferLit enms _ (L _ (S.EnumLit (L p e))) | Some e' <- someSymbol e = do
-  when (e `HS.notMember` enms) $ emitWarning (EnumNameNotInScope (L p e))
+  unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
   pure (True , InferredLit (T.EnumRepr (Empty :> e'))
                           (E.EnumLit  (Empty :> e') baseIndex))
 
 tcInferLit enms _ (L _ (S.SetLit es)) | Some es' <- someSymbols (unLoc <$> es) = do
   forM_ es $ \(L p e) ->
-    when (e `HS.notMember` enms) $ emitWarning (EnumNameNotInScope (L p e))
+    unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
   let idxs = toListWithIndex (\i _ -> Some i) es'
   case decideLeq (knownNat @1) (ctxSizeNat (size es')) of
         Left LeqProof -> pure (True, InferredLit (T.SetRepr es')
@@ -500,7 +500,7 @@ tcLit :: EnumNameSet
       -> T.TypeRepr tp -> S.LLiteral -> TCM2 env (CheckedLit tp)
 
 tcLit enms _ (T.EnumRepr cs) (L _ (S.EnumLit (L p e))) = do
-  when (e `HS.notMember` enms) $ emitWarning (EnumNameNotInScope (L p e))
+  unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
   Some i <- enumElemIndex cs (L p e)
   pure $ CheckedLit (E.EnumLit cs i)
 tcLit _ _ tp l@(L p (S.EnumLit _)) =
@@ -509,7 +509,7 @@ tcLit _ _ tp l@(L p (S.EnumLit _)) =
 
 tcLit enms _ (T.SetRepr cs) (L _ (S.SetLit es)) = do
   forM_ es $ \(L p e) ->
-    when (e `HS.notMember` enms) $ emitWarning (EnumNameNotInScope (L p e))
+    unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
   es' <- mapM (enumElemIndex cs) es
   pure $ CheckedLit (E.SetLit cs es')
 tcLit _ _ tp l@(L p (S.SetLit _)) =
@@ -592,7 +592,7 @@ tcFieldLits :: EnumNameSet
             -> TCM2 env (Maybe (CheckedFieldLits ftps))
 tcFieldLits _ _ Empty [] = pure $ Just (CheckedFieldLits Empty)
 tcFieldLits enms env (ftps :> ftp@(FieldRepr s1 tp)) ((L p s2, l):fvs) = do
-  when (symbolRepr s1 /= s2) $
+  unless (symbolRepr s1 == s2) $
     throwError (StructLiteralNameMismatchError (L p s2) (symbolRepr s1))
   CheckedLit l' <- tcLit enms env tp l
   let fv' = E.FieldLiteral ftp l'
@@ -631,7 +631,7 @@ unifyTypes (T.StructRepr ftps1) (T.StructRepr ftps2) = do
   Just $ SomeNonAbsTp (T.StructRepr uni_ftps)
   where toFieldMap :: NonAbstract ftps
                    => Assignment FieldRepr ftps
-                   -> H.Map Text (Maybe SomeNonAbstractField)
+                   -> H.HashMap Text (Maybe SomeNonAbstractField)
         toFieldMap Empty = H.empty
         toFieldMap (ftps :> ftp@(FieldRepr f _))
           = H.insert (symbolRepr f) (Just (SomeNonAbsFld ftp)) (toFieldMap ftps)

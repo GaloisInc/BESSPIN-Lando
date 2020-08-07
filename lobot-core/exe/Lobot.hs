@@ -237,7 +237,7 @@ browseKindInstances k limit verbose s@SessionData{..} =
   void $ generateInstances msg limit onLimit onInst s
   where msg = "Generating instances of '" ++ T.unpack k ++ "'..."
         onInst :: InstanceResult env (EmptyCtx ::> tp)
-               -> [FunctionCallResult env (EmptyCtx ::> tp)]
+               -> HS.HashSet (FunctionCallResult env (EmptyCtx ::> tp))
                -> Natural -> Natural -> IO Bool
         onInst (HasInstance (Empty :> l) fcns calls) calls' n _
           | null fcns || verbose = do
@@ -247,7 +247,7 @@ browseKindInstances k limit verbose s@SessionData{..} =
             when (not (null fcns)) $ do
               putStrLn "The constraints that failed were:"
               forM_ fcns (\c -> print . PP.nest 2 $ ppExpr env tps (Empty :> Const "self") c)
-            when (verbose && not (null calls')) $ do
+            when (verbose && not (HS.null calls')) $ do
               putStrLn "Learned the values of the following function calls:"
               forM_ calls' (\c -> print . PP.nest 2 $ ppFunctionCallResult env tps (Empty :> Const "self") c)
             let outps = mapMaybe (\(FunctionCallResult fi args _ st) ->
@@ -294,7 +294,8 @@ generateKindInstances k limit =
   generateInstances msg limit onLimit onInst
   where msg = "Generating instances of '" ++ T.unpack k ++ "'..."
         onInst :: InstanceResult env (EmptyCtx ::> tp)
-               -> [FunctionCallResult env ctx] -> Natural -> Natural -> IO Bool
+               -> HS.HashSet (FunctionCallResult env ctx)
+               -> Natural -> Natural -> IO Bool
         onInst (HasInstance _ _ _) _ _ _ = pure True
         onInst _ _ 0 ivis = do
           putStrLn $ "Found no valid instances! (Generated "
@@ -323,7 +324,8 @@ runCheck ck fldnms limit s = do
   pure $ listToMaybe ls
   where msg = "Generating counterexamples of '" ++ T.unpack ck ++ "'..."
         onInst :: InstanceResult env ctx
-               -> [FunctionCallResult env ctx] -> Natural -> Natural -> IO Bool
+               -> HS.HashSet (FunctionCallResult env ctx)
+               -> Natural -> Natural -> IO Bool
         onInst (ValidInstance ls _) _ _ _ = do
           putStrLn $ "'" ++ T.unpack ck ++ "' failed with counterexample:"
           forM_ (zip fldnms (toListFC Some ls)) $ \(fldnm, Some l) ->
@@ -358,7 +360,7 @@ generateInstances :: forall env ctx.
                      -- again) if and only if the returned boolean is true.
                      -- The 'Natural' arguments given are the number of valid
                      -- and invalid instances generated so far, respectively.
-                  -> (InstanceResult env ctx -> [FunctionCallResult env ctx]
+                  -> (InstanceResult env ctx -> HS.HashSet (FunctionCallResult env ctx)
                                              -> Natural -> Natural -> IO Bool)
                      -- ^ The function to call each time the solver generates,
                      -- or fails to generate, an instance. Instance generation
@@ -375,7 +377,7 @@ generateInstances genMsg limit onLimit onInst s = do
   putStrNow genMsg
   whenNoANSI $ putStrLn ""
   go HS.empty limit 0 0
-  where go :: HS.Set (FunctionCallResult env ctx)
+  where go :: HS.HashSet (FunctionCallResult env ctx)
            -> Natural -> Natural -> Natural
            -> IO ([Assignment Literal ctx], Natural)
         go call_set limit' vis ivis
@@ -391,18 +393,18 @@ generateInstances genMsg limit onLimit onInst s = do
                     True  -> ([ls], vis+1, ivis) -- ls is a valid instance
                     False -> ([],   vis, ivis+1) -- ls is an invalid instance
               -- only pass calls we haven't seen before to onInst
-              let calls' = filter (`HS.notMember` call_set) calls
+              let calls' = HS.fromList calls `HS.difference` call_set
               clearLinesWithCursor 1
               cont <- onInst (HasInstance ls fcns calls) calls' vis' ivis'
               if cont then do
                 whenANSI $ putStrNow (msg vis' ivis')
-                let call_set' = foldr HS.insert call_set calls'
+                let call_set' = calls' `HS.union` call_set
                 (lss, tot) <- go call_set' limit' vis' ivis'
                 return (toAdd ++ lss, tot)
               else return (toAdd, vis'+ivis')
             ir -> do
               clearLinesWithCursor 1
-              _ <- onInst ir [] vis ivis
+              _ <- onInst ir HS.empty vis ivis
               return ([], vis+ivis)
         msg :: Natural -> Natural -> String
         msg 0 0      = genMsg

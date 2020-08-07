@@ -45,10 +45,10 @@ library
                        array,
                        containers,
                        constraints,
-                       hashmap,
                        mtl,
                        pretty,
                        text,
+                       unordered-containers,
                        what4
   hs-source-dirs:      src
   build-tools:         alex, happy
@@ -67,12 +67,12 @@ executable lobot
                        bytestring,
                        constraints,
                        directory,
-                       hashmap,
                        optparse-applicative,
                        parameterized-utils,
                        pretty,
                        process,
-                       text
+                       text,
+                       unordered-containers
 
 test-suite lobot-tests
   type:               exitcode-stdio-1.0

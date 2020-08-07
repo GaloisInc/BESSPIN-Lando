@@ -58,7 +58,7 @@ data Kind where
 
 deriving instance Show Kind
 
-type EnumNameSet = HS.Set Text
+type EnumNameSet = HS.HashSet Text
 
 data CheckField tp =
   CheckField { checkFieldName :: LText

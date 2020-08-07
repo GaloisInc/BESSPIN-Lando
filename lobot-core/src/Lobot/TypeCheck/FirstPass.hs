@@ -29,7 +29,7 @@ module Lobot.TypeCheck.FirstPass
   , tcType
   ) where
 
-import qualified Data.HashMap as H
+import qualified Data.HashMap.Strict as H
 import qualified Data.HashSet as HS
 
 import Data.Maybe (catMaybes)
