@@ -25,6 +25,7 @@ module Lobot.Expr
     -- * Literals
   , FieldLiteral(..)
   , fieldLiteralType
+  , fieldLiteralName
   , Literal(..)
   , literalType
   , litEq
@@ -329,9 +330,17 @@ literalType (AbsLit s _) = AbsRepr s
 -- | An instance of a particular field. This is just the field name paired with
 -- a concrete literal.
 data FieldLiteral (p :: (Symbol, Type)) where
-  FieldLiteral :: { fieldLiteralName :: SymbolRepr nm
+  FieldLiteral :: { _fieldLiteralType  :: FieldRepr '(nm, tp)
                   , fieldLiteralValue :: Literal tp
                   } -> FieldLiteral '(nm, tp)
+
+-- | Get the type of a field literal.
+fieldLiteralType :: FieldLiteral p -> FieldRepr p
+fieldLiteralType (FieldLiteral ftp _) = ftp
+
+-- | Get the name associated to a field literal.
+fieldLiteralName :: FieldLiteral '(nm, tp) -> SymbolRepr nm
+fieldLiteralName = fieldName . fieldLiteralType
 
 deriving instance Show (FieldLiteral p)
 instance ShowF FieldLiteral
@@ -356,11 +365,6 @@ fieldValueEq :: FieldLiteral ftp -> FieldLiteral ftp -> Bool
 fieldValueEq fv1@(FieldLiteral _ _) fv2 =
   litEq (fieldLiteralValue fv1) (fieldLiteralValue fv2)
 
--- | Get the type of a 'FieldLiteral'.
-fieldLiteralType :: FieldLiteral ftp -> FieldRepr ftp
-fieldLiteralType FieldLiteral{..} =
-  FieldRepr fieldLiteralName (literalType fieldLiteralValue)
-
 -- | Implementation of a function.
 data FunctionImpl m fntp where
   FunctionImpl :: { fnImplType :: FunctionTypeRepr (FunType nm args ret)
@@ -368,7 +372,7 @@ data FunctionImpl m fntp where
                   } -> FunctionImpl m (FunType nm args ret)
 
 
--- TestEquality, OrdF, and HashableF instances for the types in this file
+-- TestEquality and HashableF instances for the types in this file
 
 $(return [])
 
@@ -377,13 +381,6 @@ instance TestEquality Literal where
     [ (TypeApp (TypeApp (ConType [t|Index|]) AnyType) AnyType, [|testEquality|])
     , (TypeApp (TypeApp (ConType [t|Assignment|]) AnyType) AnyType, [|testEquality|])
     , (TypeApp (ConType [t|SymbolRepr|]) AnyType, [|testEquality|])
-    ])
-
-instance OrdF Literal where
-  compareF = $(structuralTypeOrd [t|Literal|]
-    [ (TypeApp (TypeApp (ConType [t|Index|]) AnyType) AnyType, [|compareF|])
-    , (TypeApp (TypeApp (ConType [t|Assignment|]) AnyType) AnyType, [|compareF|])
-    , (TypeApp (ConType [t|SymbolRepr|]) AnyType, [|compareF|])
     ])
 
 instance HashableF Literal where
@@ -401,14 +398,6 @@ instance TestEquality (Expr env ctx) where
     , (TypeApp (TypeApp (ConType [t|Assignment|]) AnyType) AnyType, [|testEquality|])
     ])
 
-instance OrdF (Expr env ctx) where
-  compareF = $(structuralTypeOrd [t|Expr|]
-    [ (TypeApp (TypeApp (TypeApp (ConType [t|Expr|]) AnyType) AnyType) AnyType, [|compareF|])
-    , (TypeApp (ConType [t|Literal|]) AnyType, [|compareF|])
-    , (TypeApp (TypeApp (ConType [t|Index|]) AnyType) AnyType, [|compareF|])
-    , (TypeApp (TypeApp (ConType [t|Assignment|]) AnyType) AnyType, [|compareF|])
-    ])
-
 instance HashableF (Expr env ctx) where
   hashWithSaltF = $(structuralHashWithSalt [t|Expr|]
     [ (TypeApp (TypeApp (TypeApp (ConType [t|Expr|]) AnyType) AnyType) AnyType, [|hashWithSaltF|])
@@ -418,18 +407,16 @@ instance HashableF (Expr env ctx) where
     ])
 
 instance TestEquality FieldLiteral where
-  testEquality (FieldLiteral nm tp) (FieldLiteral nm' tp')
+  testEquality (FieldLiteral (FieldRepr nm  tp ) lt )
+               (FieldLiteral (FieldRepr nm' tp') lt')
     | Just Refl <- testEquality nm nm'
-    , Just Refl <- testEquality tp tp' = Just Refl
+    , Just Refl <- testEquality tp tp'
+    , Just Refl <- testEquality lt lt' = Just Refl
     | otherwise = Nothing
 
-instance OrdF FieldLiteral where
-  compareF (FieldLiteral nm tp) (FieldLiteral nm' tp') =
-    joinOrderingF (compareF nm nm') $ joinOrderingF (compareF tp tp') EQF
-
 instance HashableF FieldLiteral where
-  s `hashWithSaltF` (FieldLiteral nm tp) =
-    s `hashWithSaltF` nm `hashWithSaltF` tp
+  s `hashWithSaltF` (FieldLiteral (FieldRepr nm tp) lt) =
+    s `hashWithSaltF` nm `hashWithSaltF` tp `hashWithSaltF` lt
 
 instance Eq (FunctionCallResult env ctx) where
   (FunctionCallResult fi args ret st) == (FunctionCallResult fi' args' ret' st')
@@ -437,16 +424,6 @@ instance Eq (FunctionCallResult env ctx) where
     , Just Refl <- testEquality ret ret'
     , Just Refl <- testEquality fi fi' = st == st'
     | otherwise = False
-
-instance Ord (FunctionCallResult env ctx) where
-  compare (FunctionCallResult fi args ret st) (FunctionCallResult fi' args' ret' st') =
-    case compareF args args' of
-      EQF -> case compareF ret ret' of
-        EQF -> toOrdering (compareF fi fi') <> compare st st'
-        LTF -> LT
-        GTF -> GT
-      LTF -> LT
-      GTF -> GT
 
 instance Hashable (FunctionCallResult env ctx) where
   s `hashWithSalt` (FunctionCallResult fi args ret st) =

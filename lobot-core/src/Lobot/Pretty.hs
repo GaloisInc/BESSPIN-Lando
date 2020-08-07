@@ -100,8 +100,8 @@ ppLiteralWithKindName knm (StructLit fls) =
 ppLiteralWithKindName _ l = ppLiteral l
 
 ppFieldLiteral :: FieldLiteral ftp -> PP.Doc
-ppFieldLiteral FieldLiteral{..} =
-  symbolDoc fieldLiteralName PP.<+> PP.equals PP.<+> ppLiteral fieldLiteralValue
+ppFieldLiteral (FieldLiteral (FieldRepr nm _) lt) =
+  symbolDoc nm PP.<+> PP.equals PP.<+> ppLiteral lt
 
 exprStructFields :: Assignment FunctionTypeRepr env
                  -> Assignment TypeRepr ctx

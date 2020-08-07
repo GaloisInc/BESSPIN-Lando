@@ -6,6 +6,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -41,6 +42,7 @@ import Data.Parameterized.BoolRepr
 import Data.Parameterized.Classes
 import Data.Parameterized.Context
 import Data.Parameterized.SymbolRepr
+import Data.Parameterized.TH.GADT
 import Data.Constraint (Dict(..))
 import GHC.TypeLits
 import GHC.Exts (Constraint)
@@ -201,3 +203,22 @@ nonAbstractIndex :: (HasAbstractTypes k r, NonAbstract ctx)
                  -> Index ctx t
                  -> Dict (NonAbstract t)
 nonAbstractIndex rs i = pfNonAbs $ (nonAbstractCtx rs) ! i
+
+
+-- HashableF instances for the types in this file
+
+$(return [])
+
+instance HashableF TypeRepr where
+  hashWithSaltF = $(structuralHashWithSalt [t|TypeRepr|]
+    [ (TypeApp (ConType [t|FieldRepr|]) AnyType, [|hashWithSaltF|])
+    , (TypeApp (TypeApp (ConType [t|Assignment|]) AnyType) AnyType, [|hashWithSaltF|])
+    , (TypeApp (ConType [t|SymbolRepr|]) AnyType, [|hashWithSaltF|])
+    ])
+
+instance HashableF FieldRepr where
+  hashWithSaltF = $(structuralHashWithSalt [t|FieldRepr|]
+    [ (TypeApp (ConType [t|TypeRepr|]) AnyType, [|hashWithSaltF|])
+    , (TypeApp (TypeApp (ConType [t|Assignment|]) AnyType) AnyType, [|hashWithSaltF|])
+    , (TypeApp (ConType [t|SymbolRepr|]) AnyType, [|hashWithSaltF|])
+    ])

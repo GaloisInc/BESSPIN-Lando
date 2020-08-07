@@ -116,6 +116,7 @@ symLiteralExprs (symLits :> symLit) = symLiteralExprs symLits :> symLiteralExpr 
 -- | Symbolic 'FieldLiteral'.
 data SymFieldLiteral t (p :: (Symbol, Type)) where
   SymFieldLiteral :: { _symFieldLiteralName :: SymbolRepr nm
+                     , _symFieldLiteralType :: TypeRepr tp
                      , _symFieldLiteralValue :: SymLiteral t tp
                      } -> SymFieldLiteral t '(nm, tp)
 
@@ -127,7 +128,7 @@ data SymFunction t fntp where
 
 -- | Extract the What4 expression from a symbolic field literal.
 symFieldLiteralExpr :: SymFieldLiteral t ftp -> WB.Expr t (FieldBaseType ftp)
-symFieldLiteralExpr (SymFieldLiteral _ sl) = symLiteralExpr sl
+symFieldLiteralExpr (SymFieldLiteral _ _ sl) = symLiteralExpr sl
 
 -- | Declare a fresh uninterpreted 'SymFunction'.
 freshUninterpSymFunction :: WB.ExprBuilder t st fs
@@ -271,7 +272,8 @@ symFieldLiteral :: NonAbstract ftp
                 => WB.ExprBuilder t st fs
                 -> FieldLiteral ftp
                 -> IO (SymFieldLiteral t ftp)
-symFieldLiteral sym (FieldLiteral nm l) = SymFieldLiteral nm <$> symLiteral sym l
+symFieldLiteral sym (FieldLiteral (FieldRepr nm tp) l) =
+  SymFieldLiteral nm tp <$> symLiteral sym l
 
 convertFieldIndex :: Index ftps ftp
                   -> Index (FieldBaseTypes ftps) (FieldBaseType ftp)
@@ -419,8 +421,8 @@ literalFromGroundValue' :: FieldRepr '(nm, tp)
                         -> WT.BaseTypeRepr btp
                         -> WG.GroundValue btp
                         -> Maybe (FieldLiteral '(nm, tp))
-literalFromGroundValue' (FieldRepr nm tp) btp val =
-  FieldLiteral nm <$> literalFromGroundValue tp btp val
+literalFromGroundValue' ftp@(FieldRepr _ tp) btp val = do
+  FieldLiteral ftp <$> literalFromGroundValue tp btp val
 
 groundEvalLiteral :: NonAbstract tp
                   => WG.GroundEvalFn t
