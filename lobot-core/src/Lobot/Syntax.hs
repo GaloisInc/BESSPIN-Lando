@@ -28,8 +28,6 @@ module Lobot.Syntax
   , LType
   , Expr(..)
   , LExpr
-  , Literal(..)
-  , LLiteral
   , LText
   ) where
 
@@ -68,7 +66,11 @@ data Type = BoolType
           | KindNames [LText]
           deriving (Show, Eq)
 
-data Expr = LiteralExpr LLiteral
+data Expr = BoolLit Bool
+          | IntLit Integer
+          | EnumLit LText
+          | SetLit [LText]
+          | StructExpr (Maybe LType) [(LText, LExpr)]
           | SelfExpr
           | VarExpr LText
           | FieldExpr LExpr LText -- ^ struct.field
@@ -99,13 +101,5 @@ data Expr = LiteralExpr LLiteral
           | NotExpr LExpr
           deriving (Show, Eq)
 
-data Literal = BoolLit Bool
-             | IntLit Integer
-             | EnumLit LText
-             | SetLit [LText]
-             | StructLit (Maybe LType) [(LText, LLiteral)]
-             deriving (Show, Eq)
-
 type LType       = Loc Type
 type LExpr       = Loc Expr
-type LLiteral    = Loc Literal

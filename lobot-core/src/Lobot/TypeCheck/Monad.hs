@@ -130,10 +130,10 @@ data TypeError = TypeMismatchError S.LExpr SomeTypeOrString (Maybe SomeTypeOrStr
                | KindUnionMismatchError LText (Some T.TypeRepr) (Some T.TypeRepr)
                -- ^ argument order: kind name, expected type, actual type
                | NoSuchFieldError LText S.LExpr (Some T.TypeRepr)
-               | StructLiteralTypeError S.LType
-               | StructLiteralNameMismatchError LText Text
-               | StructLiteralLengthError AlexPosn (Some (Assignment FieldRepr)) [LText]
-               | StructLiteralAbstractTypeError AlexPosn (Some (Assignment FieldRepr))
+               | StructExprTypeError S.LType
+               | StructExprNameMismatchError LText Text
+               | StructExprLengthError AlexPosn (Some (Assignment FieldRepr)) [LText]
+               | StructExprAbstractTypeError AlexPosn (Some (Assignment FieldRepr))
                | KindNameNotInScope LText
                | FunctionNameNotInScope LText
                | FieldNameNotInScope LText
@@ -210,18 +210,18 @@ ppTypeError fp (NoSuchFieldError (L p f) (L _ x) (Some tp)) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "No such field" PP.<+> ppQText f PP.<+> PP.text "of expression:"
   PP.$$ PP.nest 2 (S.ppExpr x PP.<+> PP.text ":" PP.<+> ppTypeRepr tp)
-ppTypeError fp (StructLiteralTypeError (L p tp)) =
+ppTypeError fp (StructExprTypeError (L p tp)) =
   PP.text (errorPrefix fp p)
-  PP.<+> PP.text "Type given for a struct literal is not an unconstrained struct type:" PP.<+> S.ppType tp
-ppTypeError fp (StructLiteralNameMismatchError (L p s1) s2) =
+  PP.<+> PP.text "Type given for a struct instance is not an unconstrained struct type:" PP.<+> S.ppType tp
+ppTypeError fp (StructExprNameMismatchError (L p s1) s2) =
   PP.text (errorPrefix fp p)
-  PP.<+> PP.text "Field in struct literal" PP.<+> ppQText s1
+  PP.<+> PP.text "Field in struct instance" PP.<+> ppQText s1
   PP.<+> PP.text "does not match the exepcted field" PP.<+> ppQText s2
-ppTypeError fp (StructLiteralLengthError p (Some ftps) fvs) =
+ppTypeError fp (StructExprLengthError p (Some ftps) fvs) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "Struct literal should have" PP.<+> PP.int (sizeInt . size $ ftps)
   PP.<+> PP.text "fields, but has" PP.<+> PP.int (length fvs)
-ppTypeError fp (StructLiteralAbstractTypeError p _) =
+ppTypeError fp (StructExprAbstractTypeError p _) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "Cannot construct a literal of a struct type containg an abstract type."
 ppTypeError fp (KindNameNotInScope (L p k)) =

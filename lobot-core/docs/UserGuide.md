@@ -96,7 +96,7 @@ want to enumerate them, we can use the `-e` option:
 $ lobot -e nat_sum_100 nat_sum_100.lobot
 
 Instance 1:
-  nat_sum_100 with {x = 50, y = 50}
+  nat_sum_100 with x = 50, y = 50
 
 Press enter to see the next instance.
 ```
@@ -128,7 +128,7 @@ kind. What if we change the check condition `p.x <= 50` to `p.x < 50`?
 ```
 $ lobot -r check1 nat_sum_100.lobot
 'check1' failed with counterexample:
-  p = struct with {x = 50, y = 50}
+  p = struct with x = 50, y = 50
 ```
 
 Lobot fails, and finds a counterexample for us. Great!
@@ -457,22 +457,22 @@ problem1 : kind of struct
 $ lobot -e problem1 logic_homework1.lobot
 
 Instance 1:
-  problem1 with {p = false, q = false, r = false}
+  problem1 with p = false, q = false, r = false
 
 Instance 2:
-  problem1 with {p = false, q = false, r = true}
+  problem1 with p = false, q = false, r = true
 
 Instance 3:
-  problem1 with {p = false, q = true, r = true}
+  problem1 with p = false, q = true, r = true
 
 Instance 4:
-  problem1 with {p = false, q = true, r = false}
+  problem1 with p = false, q = true, r = false
 
 Instance 5:
-  problem1 with {p = true, q = false, r = false}
+  problem1 with p = true, q = false, r = false
 
 Instance 6:
-  problem1 with {p = true, q = true, r = false}
+  problem1 with p = true, q = true, r = false
 
 Enumerated all 6 valid instances, generated 0 invalid instances
 ```
@@ -522,7 +522,7 @@ factor_120 : kind of struct
 $ lobot -e factor_120 int.lobot
 
 Instance 1:
-  factor_120 with {p = 20, q = 6}
+  factor_120 with p = 20, q = 6
 
 Press enter to see the next instance.
 ```
@@ -542,7 +542,7 @@ problem2 : kind of pair
 $ lobot -e problem2 algebra_homework1.lobot
 
 Instance 1:
-  problem2 with {x = -4, y = 1}
+  problem2 with x = -4, y = 1
 
 Enumerated all 1 valid instances, generated 0 invalid instances
 ```
@@ -1039,7 +1039,7 @@ In this section we describe syntax for literals of various types.
 * Structs:
 
   For a struct type `struct with <f1> : <t1>, ... <fn> : <tn>`, the string
-  `struct with { <f1> = <l1>, ... <fn> = <ln> }` is a literal of that type,
+  `struct with <f1> = <l1>, ... <fn> = <ln>` is a literal of that type,
   where each `<li>` is a literal of type `<ti>`.
   
 * Abstract types: 

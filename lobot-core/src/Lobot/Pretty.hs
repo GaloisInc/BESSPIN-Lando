@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 
 {-|
@@ -90,29 +91,31 @@ ppLiteral (SetLit cs is) =
   PP.braces (commas (viewSome (symbolDoc . (cs !)) <$> is))
 ppLiteral (StructLit fls) =
   PP.text "struct" PP.<+> PP.text "with"
-  PP.<+> PP.braces (commas (toListFC ppFieldLiteral fls))
+  PP.<+> commas (toListFC (ppFieldInst ppLiteral) fls)
 ppLiteral (AbsLit s _) = PP.text "<" PP.<> PP.text (T.unpack (symbolRepr s)) PP.<> PP.text ">"
 
 ppLiteralWithKindName :: T.Text -> Literal tp -> PP.Doc
 ppLiteralWithKindName knm (StructLit fls) =
   PP.text (T.unpack knm) PP.<+> PP.text "with"
-  PP.<+> PP.braces (commas (toListFC ppFieldLiteral fls))
+  PP.<+> commas (toListFC (ppFieldInst ppLiteral) fls)
 ppLiteralWithKindName _ l = ppLiteral l
 
-ppFieldLiteral :: FieldLiteral ftp -> PP.Doc
-ppFieldLiteral (FieldLiteral nm _ lt) =
-  symbolDoc nm PP.<+> PP.equals PP.<+> ppLiteral lt
+ppFieldInst :: (forall t. f t -> PP.Doc) -> FieldInst f p -> PP.Doc
+ppFieldInst ppAssgn (FieldInst nm _ x) =
+  symbolDoc nm PP.<+> PP.equals PP.<+> ppAssgn x
 
 exprStructFields :: Assignment FunctionTypeRepr env
                  -> Assignment TypeRepr ctx
                  -> Expr env ctx (StructType ftps)
                  -> Assignment FieldRepr ftps
 exprStructFields _ _ (LiteralExpr (StructLit fls)) =
-  fmapFC fieldLiteralFieldType fls
+  fmapFC fieldInstFieldType fls
+exprStructFields _ _ (StructExpr fvs) =
+  fmapFC fieldInstFieldType fvs
 exprStructFields _ ctx (VarExpr i)
   | StructRepr fls <- ctx ! i = fls
-exprStructFields env ctx (FieldExpr structExpr i) =
-  let StructRepr fls = fieldType (exprStructFields env ctx structExpr ! i)
+exprStructFields env ctx (FieldExpr structExp i) =
+  let StructRepr fls = fieldType (exprStructFields env ctx structExp ! i)
   in fls
 exprStructFields env _ (ApplyExpr fi _) =
   let FunctionTypeRepr _ _ (StructRepr fls) = env ! fi
@@ -157,6 +160,9 @@ ppExpr' _ env ctx nms (ApplyExpr fi es) =
   in symbolDoc fnm PP.<>
      PP.parens (commas (toListFC (ppExpr' True env ctx nms) es))
 ppExpr' False env ctx nms e = PP.parens (ppExpr' True env ctx nms e)
+ppExpr' _ env ctx nms (StructExpr fls) =
+  PP.text "struct" PP.<+> PP.text "with"
+  PP.<+> commas (toListFC (ppFieldInst (ppExpr env ctx nms)) fls)
 ppExpr' _ env ctx nms (EqExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.equals PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (NeqExpr e1 e2) =

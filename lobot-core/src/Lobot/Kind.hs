@@ -145,6 +145,7 @@ getFailingConstraints env ls constraints =
 giveSelf :: Expr env ctx a -> Expr env (EmptyCtx ::> a) b -> Expr env ctx b
 giveSelf s e = case e of
   LiteralExpr l -> LiteralExpr l
+  StructExpr fvs -> structExpr (fmapFC (fmapFC (giveSelf s)) fvs)
   SelfExpr -> s
   FieldExpr kd i' -> FieldExpr (giveSelf s kd) i'
   ApplyExpr fi es -> ApplyExpr fi (fmapFC (giveSelf s) es)
@@ -170,6 +171,7 @@ giveSelf s e = case e of
   NotExpr e' -> NotExpr (giveSelf s e')
 {-# COMPLETE
     LiteralExpr
+  , StructExpr
   , SelfExpr
   , FieldExpr
   , ApplyExpr
@@ -183,11 +185,14 @@ giveSelf s e = case e of
   , TimesExpr
   , ModExpr
   , DivExpr
+  , NegExpr
   , MemberExpr
+  , NotMemberExpr
   , AndExpr
   , OrExpr
   , XorExpr
   , ImpliesExpr
+  , IffExpr
   , NotExpr #-}
 
 singletonIndexRefl :: forall tp tp' . Index (EmptyCtx ::> tp') tp -> tp :~: tp'

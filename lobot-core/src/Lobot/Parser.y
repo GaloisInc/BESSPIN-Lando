@@ -123,14 +123,14 @@ kindDeclType : 'kind' 'of' kindType nlLAYEND                                    
              | 'kind' 'of' kindType whereLAYEND 'where' optLAYSEP cns nlLAYEND   { ($3,$7) }
 
 kindType :: { LType }
-kindType : type                                         { $1 }
-         | 'struct' nlLAYEND 'with' optLAYSEP fields    { loc $1 $ StructType $5 }
+kindType : type                                          { $1 }
+         | 'struct' nlLAYEND 'with' optLAYSEP fieldTps   { loc $1 $ StructType $5 }
          -- ^ Note: We don't need a LAYEND after the 'with' here as it's
          --   handled by the LAYENDs in 'kindDeclType'.
 
 checkDeclType :: { ([(LText,LType)],[LExpr],[LExpr]) }
-checkDeclType : 'check' nlLAYEND 'on' optLAYSEP fields thatLAYEND 'that' optLAYSEP cns nlLAYEND { ($5, [], $9) }
-              | 'check' nlLAYEND 'on' optLAYSEP fields whereLAYEND 'where' optLAYSEP cns thatLAYEND 'that' optLAYSEP cns nlLAYEND { ($5, $9, $13) }
+checkDeclType : 'check' nlLAYEND 'on' optLAYSEP fieldTps thatLAYEND 'that' optLAYSEP cns nlLAYEND { ($5, [], $9) }
+              | 'check' nlLAYEND 'on' optLAYSEP fieldTps whereLAYEND 'where' optLAYSEP cns thatLAYEND 'that' optLAYSEP cns nlLAYEND { ($5, $9, $13) }
 
 cns : expr              { [$1] }
     | expr anySep       { [$1] }
@@ -150,21 +150,19 @@ type    : 'bool'                      { loc $1 $ BoolType }
         | 'int'                       { loc $1 $ IntType }
         | '{' enumIdents '}'          { loc $1 $ EnumType (fmap unLoc $2) }
         | 'subset' type               { loc $1 $ SetType $2 }
-        | 'struct' withClauseFields   { loc $1 $ StructType $2 }
+        | 'struct' withClauseFieldTps { loc $1 $ StructType $2 }
         | kindNames                   { $1 }
 
 withClause(x) : 'with' optLAYSEP anySepList(x) anyLAYEND           { $3 }
-              | 'with' optLAYSEP '{' '}' anyLAYEND                 { [] }
-              | 'with' optLAYSEP '{' anySepList(x) '}' anyLAYEND   { $4 }
 
 anySepList(x) : x                        { [$1] }
               | x anySep                 { [$1] }
               | x anySep anySepList(x)   { $1 : $3 }
 
-fields           : anySepList(field) { concat $1 }
-withClauseFields : withClause(field) { concat $1 }
+fieldTps           : anySepList(fieldTp) { concat $1 }
+withClauseFieldTps : withClause(fieldTp) { concat $1 }
 
-field : idents ':' type anyLAYEND { fmap (\f -> (f,$3)) $1 }
+fieldTp : idents ':' type anyLAYEND { fmap (\f -> (f,$3)) $1 }
 
 kindNames : idents { loc (head $1) $ KindNames $1 }
 
@@ -188,7 +186,13 @@ ineqSeq : expr2 ineq expr2           { ($1, $2 $1 $3) }
         | expr2 ineq ineqSeq         { ($1, loc $1 $ AndExpr ($2 $1 (fst $3)) (snd $3)) }
 
 expr2 :: { LExpr }
-expr2 : lit                          { loc $1 $ LiteralExpr $1 }
+expr2 : 'true'                       { loc $1 $ BoolLit True }
+      | 'false'                      { loc $1 $ BoolLit False }
+      | int                          { loc $1 $ IntLit (tkInt $1) }
+      | enumIdent                    { loc $1 $ EnumLit (locText $1) }
+      | '{' enumIdents '}'           { loc $1 $ SetLit $2 }
+      | 'struct' withClause(field)   { loc $1 $ StructExpr Nothing $2 }
+      | kindNames withClause(field)  { loc $1 $ StructExpr (Just $1) $2 }
       | 'self'                       { loc $1 $ SelfExpr }
       | ident                        { loc $1 $ VarExpr (locText $1) }
       | expr2 '.' ident              { loc $1 $ FieldExpr $1 (locText $3) }
@@ -197,7 +201,7 @@ expr2 : lit                          { loc $1 $ LiteralExpr $1 }
       | expr2 '*' expr2              { loc $1 $ TimesExpr $1 $3 }
       | expr2 '%' expr2              { loc $1 $ ModExpr $1 $3 }
       | expr2 '/' expr2              { loc $1 $ ModExpr $1 $3 }
-      | '-' expr2 %prec NEG          { negExpr $1 $2 }
+      | '-' expr2 %prec NEG          { loc $1 $ negExpr $2 }
       | expr2 'in' expr2             { loc $1 $ MemberExpr $1 $3 }
       | expr2 'notin' expr2          { loc $1 $ NotMemberExpr $1 $3 }
       | '!' expr2                    { loc $1 $ NotExpr $2 }
@@ -205,6 +209,8 @@ expr2 : lit                          { loc $1 $ LiteralExpr $1 }
       | ident '(' args ')'           { loc $1 $ ApplyExpr (locText $1) $3 }
       | expr2 ':' idents anyLAYEND   { loc $1 $ IsInstanceExpr $1 (loc (head $3) $ KindNames $3) }
       | '(' expr ')'                 { loc $1 $ unLoc $2 }
+
+field : ident '=' expr   { (locText $1, $3) }
 
 args : expr                 { [$1] }
      | expr commaSep args   { $1 : $3 }
@@ -216,22 +222,6 @@ ineq : '='    { \x y -> loc x $ EqExpr x y }
      | '<'    { \x y -> loc x $ LtExpr x y }
      | '>='   { \x y -> loc x $ GteExpr x y }
      | '>'    { \x y -> loc x $ GtExpr x y }
-
-
-lit :: { LLiteral }
-lit : 'true'                          { loc $1 $ BoolLit True }
-    | 'false'                         { loc $1 $ BoolLit False }
-    | int                             { loc $1 $ IntLit (tkInt $1) }
-    | enumIdent                       { loc $1 $ EnumLit (locText $1) }
-    | '{' enumIdents '}'              { loc $1 $ SetLit $2 }
-    | 'struct' withClause(fieldval)   { loc $1 $ StructLit Nothing $2 }
-    | kindNames withClause(fieldval)  { loc $1 $ StructLit (Just $1) $2 }
-
-fieldval : ident '=' lit                  { (locText $1, $3) }
-         | ident '=' ident                {% alexErrorWPos (getPos $3)
-                                               ("Parse error on input '"
-                                                ++ (tokenString . unLoc $ $3)
-                                                ++ "', expected a literal") }
 
 
 enumIdents :: { [LText] }
@@ -261,10 +251,9 @@ commaSep : ','          {}
 {
 
 -- | 'NegExpr', but negates integer literals as a special case
-negExpr :: Loc a -> LExpr -> LExpr
-negExpr (L p _) (L _ (LiteralExpr (L _ (IntLit z)))) =
-  L p (LiteralExpr (L p (IntLit (- z))))
-negExpr (L p _) e = L p (NegExpr e)
+negExpr :: LExpr -> Expr
+negExpr (L _ (IntLit z)) = IntLit (- z)
+negExpr e = NegExpr e
 
 locText :: LToken -> LText
 locText (L p (Token (IDLC s) _)) = L p (pack s)

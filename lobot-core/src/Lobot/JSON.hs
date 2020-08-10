@@ -110,7 +110,7 @@ literalToJSON tp = case tp of
                         , "values" .= (viewSome indexVal <$> i)
                         ]
   StructLit flds -> object [ "variant" .= T.pack "struct"
-                           , "fields" .= toListFC fieldLiteralToJSON flds
+                           , "fields" .= toListFC fieldInstToJSON flds
                            ]
   AbsLit s bs -> object [ "variant" .= symbolRepr s
                         , "value" .= T.decodeUtf8 bs
@@ -151,7 +151,7 @@ literalParseJSON = withObject "Some Literal" $ \o -> do
               "constructors: " ++ show iVals
     "struct" -> do
       fldValues <- o .: "fields"
-      someFlds <- traverse fieldLiteralParseJSON fldValues
+      someFlds <- traverse fieldInstParseJSON fldValues
       Some flds <- return $ fromList someFlds
       return $ Some (StructLit flds)
     _ -> do
@@ -159,16 +159,16 @@ literalParseJSON = withObject "Some Literal" $ \o -> do
       bs <- T.encodeUtf8 <$> o .: "value"
       return $ Some (AbsLit s bs)
 
-fieldLiteralToJSON :: FieldLiteral ftp -> Value
-fieldLiteralToJSON (FieldLiteral nm _ l) =
+fieldInstToJSON :: FieldInst Literal ftp -> Value
+fieldInstToJSON (FieldInst nm _ l) =
   object [ "name" .= symbolRepr nm
          , "value" .= literalToJSON l
          ]
 
-fieldLiteralParseJSON :: Value -> Parser (Some FieldLiteral)
-fieldLiteralParseJSON = withObject "Some FieldLiteral" $ \o -> do
+fieldInstParseJSON :: Value -> Parser (Some (FieldInst Literal))
+fieldInstParseJSON = withObject "Some (FieldInst Literal)" $ \o -> do
   nmTxt <- o .: "name"
   valValue <- o .: "value"
   Some nm <- return $ someSymbol nmTxt
   Some val <- literalParseJSON valValue
-  return $ Some (FieldLiteral nm (literalType val) val)
+  return $ Some (FieldInst nm (literalType val) val)

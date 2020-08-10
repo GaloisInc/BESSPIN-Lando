@@ -18,38 +18,38 @@ TestResult
         }
   , instances =
       [ [ StructLit
-            [ FieldLiteral
-                { fieldLiteralName = p
-                , fieldLiteralType = BoolRepr
-                , fieldLiteralValue = BoolLit False
+            [ FieldInst
+                { fieldInstName = p
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit False
                 }
-            , FieldLiteral
-                { fieldLiteralName = q
-                , fieldLiteralType = BoolRepr
-                , fieldLiteralValue = BoolLit False
+            , FieldInst
+                { fieldInstName = q
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit False
                 }
-            , FieldLiteral
-                { fieldLiteralName = r
-                , fieldLiteralType = BoolRepr
-                , fieldLiteralValue = BoolLit True
+            , FieldInst
+                { fieldInstName = r
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit True
                 }
             ]
         ]
       , [ StructLit
-            [ FieldLiteral
-                { fieldLiteralName = p
-                , fieldLiteralType = BoolRepr
-                , fieldLiteralValue = BoolLit True
+            [ FieldInst
+                { fieldInstName = p
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit True
                 }
-            , FieldLiteral
-                { fieldLiteralName = q
-                , fieldLiteralType = BoolRepr
-                , fieldLiteralValue = BoolLit True
+            , FieldInst
+                { fieldInstName = q
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit True
                 }
-            , FieldLiteral
-                { fieldLiteralName = r
-                , fieldLiteralType = BoolRepr
-                , fieldLiteralValue = BoolLit False
+            , FieldInst
+                { fieldInstName = r
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit False
                 }
             ]
         ]

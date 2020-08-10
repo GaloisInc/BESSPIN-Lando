@@ -29,163 +29,163 @@ TestResult
         }
   , instances =
       [ [ StructLit
-            [ FieldLiteral
-                { fieldLiteralName = a
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 2
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 2
                 }
-            , FieldLiteral
-                { fieldLiteralName = b
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 1
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 1
                 }
-            , FieldLiteral
-                { fieldLiteralName = c
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 0
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
                 }
-            , FieldLiteral
-                { fieldLiteralName = d
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 0
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldLiteral
-                { fieldLiteralName = a
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 3
-                }
-            , FieldLiteral
-                { fieldLiteralName = b
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 2
-                }
-            , FieldLiteral
-                { fieldLiteralName = c
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 1
-                }
-            , FieldLiteral
-                { fieldLiteralName = d
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 1
+            , FieldInst
+                { fieldInstName = d
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
                 }
             ]
         ]
       , [ StructLit
-            [ FieldLiteral
-                { fieldLiteralName = a
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 4
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 3
                 }
-            , FieldLiteral
-                { fieldLiteralName = b
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 1
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 2
                 }
-            , FieldLiteral
-                { fieldLiteralName = c
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 0
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 1
                 }
-            , FieldLiteral
-                { fieldLiteralName = d
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 0
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldLiteral
-                { fieldLiteralName = a
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 3
-                }
-            , FieldLiteral
-                { fieldLiteralName = b
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 1
-                }
-            , FieldLiteral
-                { fieldLiteralName = c
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 0
-                }
-            , FieldLiteral
-                { fieldLiteralName = d
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 0
+            , FieldInst
+                { fieldInstName = d
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 1
                 }
             ]
         ]
       , [ StructLit
-            [ FieldLiteral
-                { fieldLiteralName = a
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 3
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 4
                 }
-            , FieldLiteral
-                { fieldLiteralName = b
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 2
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 1
                 }
-            , FieldLiteral
-                { fieldLiteralName = c
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 0
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
                 }
-            , FieldLiteral
-                { fieldLiteralName = d
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 0
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldLiteral
-                { fieldLiteralName = a
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 4
-                }
-            , FieldLiteral
-                { fieldLiteralName = b
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 2
-                }
-            , FieldLiteral
-                { fieldLiteralName = c
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 1
-                }
-            , FieldLiteral
-                { fieldLiteralName = d
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 1
+            , FieldInst
+                { fieldInstName = d
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
                 }
             ]
         ]
       , [ StructLit
-            [ FieldLiteral
-                { fieldLiteralName = a
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 4
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 3
                 }
-            , FieldLiteral
-                { fieldLiteralName = b
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 2
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 1
                 }
-            , FieldLiteral
-                { fieldLiteralName = c
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 0
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
                 }
-            , FieldLiteral
-                { fieldLiteralName = d
-                , fieldLiteralType = IntRepr
-                , fieldLiteralValue = IntLit 0
+            , FieldInst
+                { fieldInstName = d
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 3
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 2
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
+                }
+            , FieldInst
+                { fieldInstName = d
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 4
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 2
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 1
+                }
+            , FieldInst
+                { fieldInstName = d
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 1
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 4
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 2
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
+                }
+            , FieldInst
+                { fieldInstName = d
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
                 }
             ]
         ]

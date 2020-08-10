@@ -135,13 +135,14 @@
 <li><a href="#expressions"><span class="toc-section-number">4.4</span> Expressions</a></li>
 <li><a href="#kinds"><span class="toc-section-number">4.5</span> Kinds</a></li>
 <li><a href="#checks"><span class="toc-section-number">4.6</span> Checks</a></li>
-<li><a href="#json-api"><span class="toc-section-number">4.7</span> JSON API</a>
+<li><a href="#syntactic-sugar"><span class="toc-section-number">4.7</span> Syntactic Sugar</a></li>
+<li><a href="#json-api"><span class="toc-section-number">4.8</span> JSON API</a>
 <ul>
-<li><a href="#function-calls"><span class="toc-section-number">4.7.1</span> Function calls</a></li>
-<li><a href="#booleans-and-integers"><span class="toc-section-number">4.7.2</span> Booleans and integers</a></li>
-<li><a href="#enums-and-enumsets"><span class="toc-section-number">4.7.3</span> Enums and enumsets</a></li>
-<li><a href="#structs-1"><span class="toc-section-number">4.7.4</span> Structs</a></li>
-<li><a href="#abstract-types-1"><span class="toc-section-number">4.7.5</span> Abstract types</a></li>
+<li><a href="#function-calls"><span class="toc-section-number">4.8.1</span> Function calls</a></li>
+<li><a href="#booleans-and-integers"><span class="toc-section-number">4.8.2</span> Booleans and integers</a></li>
+<li><a href="#enums-and-enumsets"><span class="toc-section-number">4.8.3</span> Enums and enumsets</a></li>
+<li><a href="#structs-1"><span class="toc-section-number">4.8.4</span> Structs</a></li>
+<li><a href="#abstract-types-1"><span class="toc-section-number">4.8.5</span> Abstract types</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -180,7 +181,7 @@ Found 50 valid instances, generated 0 invalid instances</code></pre>
 <pre><code>$ lobot -e nat_sum_100 nat_sum_100.lobot
 
 Instance 1:
-  nat_sum_100 with {x = 50, y = 50}
+  nat_sum_100 with x = 50, y = 50
 
 Press enter to see the next instance.</code></pre>
 <p>Each time we hit enter, we see a new instance.</p>
@@ -195,7 +196,7 @@ check1 : check
 <p>Lobot determined that the check holds for all instances of the <code>nat_sum_100</code> kind. What if we change the check condition <code>p.x &lt;= 50</code> to <code>p.x &lt; 50</code>?</p>
 <pre><code>$ lobot -r check1 nat_sum_100.lobot
 &#39;check1&#39; failed with counterexample:
-  p = struct with {x = 50, y = 50}</code></pre>
+  p = struct with x = 50, y = 50</code></pre>
 <p>Lobot fails, and finds a counterexample for us. Great!</p>
 <h2 data-number="1.3" id="example-2-the-real-world"><span class="header-section-number">1.3</span> Example 2: The real world</h2>
 <p>Lobot is designed to directly interact with applications as a core language feature. For instance, suppose I have a shell command called <code>add1</code> that works like this:</p>
@@ -358,26 +359,26 @@ Enumerated all 2 valid instances, generated 0 invalid instances</code></pre>
 <pre><code>-- file: logic_homework1.lobot
 problem1 : kind of struct
   with p q r : bool
-  where p =&gt; ((q | r) =&gt; (r =&gt; not p))</code></pre>
+  where p =&gt; ((q | r) =&gt; (r =&gt; !p))</code></pre>
 <pre><code>$ lobot -e problem1 logic_homework1.lobot
 
 Instance 1:
-  problem1 with {p = false, q = false, r = false}
+  problem1 with p = false, q = false, r = false
 
 Instance 2:
-  problem1 with {p = false, q = false, r = true}
+  problem1 with p = false, q = false, r = true
 
 Instance 3:
-  problem1 with {p = false, q = true, r = true}
+  problem1 with p = false, q = true, r = true
 
 Instance 4:
-  problem1 with {p = false, q = true, r = false}
+  problem1 with p = false, q = true, r = false
 
 Instance 5:
-  problem1 with {p = true, q = false, r = false}
+  problem1 with p = true, q = false, r = false
 
 Instance 6:
-  problem1 with {p = true, q = true, r = false}
+  problem1 with p = true, q = true, r = false
 
 Enumerated all 6 valid instances, generated 0 invalid instances</code></pre>
 <h3 data-number="3.1.3" id="integers"><span class="header-section-number">3.1.3</span> Integers</h3>
@@ -402,7 +403,7 @@ Found 10000 valid instances, generated 0 invalid instances</code></pre>
 <pre><code>$ lobot -e factor_120 int.lobot
 
 Instance 1:
-  factor_120 with {p = 20, q = 6}
+  factor_120 with p = 20, q = 6
 
 Press enter to see the next instance.</code></pre>
 <p>If we are in a high school algebra class, we can use Lobot to do our homework on linear systems of equations for us:</p>
@@ -414,7 +415,7 @@ problem2 : kind of pair
 <pre><code>$ lobot -e problem2 algebra_homework1.lobot
 
 Instance 1:
-  problem2 with {x = -4, y = 1}
+  problem2 with x = -4, y = 1
 
 Enumerated all 1 valid instances, generated 0 invalid instances</code></pre>
 <p>This of course assumes that the linear system has an integer solution (which they usually do when they arrive in the form of algebra homework).</p>
@@ -467,7 +468,7 @@ Enumerated all 8 valid instances, generated 0 invalid instances</code></pre>
   where A in self =&gt; C in self
 
 doesnt_have_c : kind of abc_set
-  where not (C in self)
+  where C notin self
 
 both : kind of a_implies_c doesnt_have_c</code></pre>
 <pre><code>$ lobot -e both enum.lobot
@@ -677,7 +678,7 @@ type my_struct = struct
 <li><p>Enumsets:</p>
 <p>For each enumset type <code>subset {&lt;A1&gt;, ... &lt;An&gt;}</code>, the string <code>{&lt;Ai_1&gt;, ... &lt;Ai_m&gt;}</code> is a literal of that type, where <code>m</code> is any nonnegative integer (we allow empty subset literals) and each <code>&lt;Ai_1&gt;</code> is one of the constructors <code>&lt;A1&gt;, ... &lt;An&gt;</code>. The <code>&lt;Ai_j&gt;</code> may appear in any order, and duplicates are allowed. Therefore, <code>{B, A, B}</code> is a literal of type <code>{A, B}</code>.</p></li>
 <li><p>Structs:</p>
-<p>For a struct type <code>struct with &lt;f1&gt; : &lt;t1&gt;, ... &lt;fn&gt; : &lt;tn&gt;</code>, the string <code>struct with { &lt;f1&gt; = &lt;l1&gt;, ... &lt;fn&gt; = &lt;ln&gt; }</code> is a literal of that type, where each <code>&lt;li&gt;</code> is a literal of type <code>&lt;ti&gt;</code>.</p></li>
+<p>For a struct type <code>struct with &lt;f1&gt; : &lt;t1&gt;, ... &lt;fn&gt; : &lt;tn&gt;</code>, the string <code>struct with &lt;f1&gt; = &lt;l1&gt;, ... &lt;fn&gt; = &lt;ln&gt;</code> is a literal of that type, where each <code>&lt;li&gt;</code> is a literal of type <code>&lt;ti&gt;</code>.</p></li>
 <li><p>Abstract types:</p>
 <p><strong>There are no literals of abstract types</strong>. Lobot does not deal directly with abstract types; the only way to “get your hands” on a value is by calling a function that returns one.</p></li>
 </ul>
@@ -723,10 +724,32 @@ even_nat : kind of nat where self % 2 == 0</code></pre>
         &lt;cn&gt;</code></pre>
 <h2 data-number="4.6" id="checks"><span class="header-section-number">4.6</span> Checks</h2>
 <p>In this section we introduce <em>checks</em>, commands that tell Lobot to ensure that a property holds.</p>
-<h2 data-number="4.7" id="json-api"><span class="header-section-number">4.7</span> JSON API</h2>
+<h2 data-number="4.7" id="syntactic-sugar"><span class="header-section-number">4.7</span> Syntactic Sugar</h2>
+<p>In this section we describe Lobot’s syntactic sugar, the parts of Lobot’s syntax which are expanded to other expressions before or during type checking. These constructs are included purely for convenience and add no additional expressiveness to the language.</p>
+<ul>
+<li><p>Instance expressions: The Lobot expression <code>&lt;x&gt; : &lt;k1&gt; ... &lt;km&gt;</code>, where <code>&lt;x&gt;</code> is any expression and each <code>&lt;ki&gt;</code> is the name of a kind, expands to the conjunction of all the constraints of <code>&lt;k1&gt;</code> through <code>&lt;kn&gt;</code> with <code>&lt;x&gt;</code> substituted for <code>self</code> in each. For example, in the following Lobot file:</p>
+<pre><code>even_pos_int : kind of int
+  where 0 &lt;= self, self mod 2 == 0
+
+ex : kind of struct
+  with x : int
+  where x * x : even_pos_int</code></pre>
+<p>the expression <code>x * x : even_pos_int</code> in <code>ex</code> is expanded to:</p>
+<pre><code>(x * x &lt;= self) &amp; ((x * x) mod 2 == 0)</code></pre></li>
+<li><p>Inequality chains: A chain of inequalities:</p>
+<pre><code>&lt;x1&gt; &lt;I1&gt; &lt;x2&gt; &lt;I2&gt; ... &lt;I(n-1)&gt; &lt;xn&gt;</code></pre>
+<p>where each <code>&lt;xi&gt;</code> is a Lobot expression and each <code>&lt;Ii&gt;</code> is one of <code>=</code>, <code>!=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, or <code>&gt;=</code>, expands to the conjuction:</p>
+<pre><code>&lt;x1&gt; &lt;I1&gt; &lt;x2&gt; &amp; &lt;x2&gt; &lt;I2&gt; &lt;x3&gt; &amp; ... &amp; &lt;x(n-1)&gt; &lt;I(n-1)&gt; &lt;xn&gt;</code></pre></li>
+<li><p>If-and-only-if chains: A chain of if-and-only-if’s:</p>
+<pre><code>&lt;x1&gt; &lt;=&gt; &lt;x2&gt; &lt;=&gt; ... &lt;=&gt; &lt;xn&gt;</code></pre>
+<p>where each <code>&lt;xi&gt;</code> is a Lobot expression expands to the conjunction:</p>
+<pre><code>&lt;x1&gt; &lt;=&gt; &lt;x2&gt; &amp; &lt;x2&gt; &lt;=&gt; &lt;x3&gt; &amp; ... &amp; &lt;x(n-1)&gt; &lt;=&gt; &lt;xn&gt;</code></pre>
+<p>Note that the same does not hold for implications, for example <code>p =&gt; q =&gt; r</code> is equivalent to <code>p =&gt; (q =&gt; r)</code>, not <code>(p =&gt; q) &amp; (q =&gt; r)</code>.</p></li>
+</ul>
+<h2 data-number="4.8" id="json-api"><span class="header-section-number">4.8</span> JSON API</h2>
 <p>In order to use a command line tool from Lobot, we typically need to <em>wrap</em> the function so that it conforms with Lobot’s JSON-based function call API. This section provides a complete specification for how Lobot function declarations translate to this API; i.e. given an abstract function’s type, we can determine exactly how the input arguments are encoded, and how the return value needs to be encoded for Lobot to be able to use it.</p>
 <p>We’ve seen examples of wrapper scripts elsewhere in this guide. In this section, we define the JSON encoding of Lobot values, as well as the calling convention Lobot uses to pass values to/from shell commands.</p>
-<h3 data-number="4.7.1" id="function-calls"><span class="header-section-number">4.7.1</span> Function calls</h3>
+<h3 data-number="4.8.1" id="function-calls"><span class="header-section-number">4.8.1</span> Function calls</h3>
 <p>Consider <code>add1</code>:</p>
 <pre><code>abstract add1 : int -&gt; int</code></pre>
 <p>When lobots evaluates the call <code>add1(5)</code>, it first converts the single argument <code>5</code> into the following JSON array:</p>
@@ -736,13 +759,13 @@ even_nat : kind of nat where self % 2 == 0</code></pre>
 <p>In general, when evaluating a call of <code>f(x1, x2, ...)</code>, Lobot first converts the <code>xi</code> to JSON strings <code>j1, j2, ...</code>, packages them up into a JSON array:</p>
 <pre><code>[ j1, j2, ... ]</code></pre>
 <p>and calls the <code>f</code> shell command, passing the resulting string over stdin. The command then should return some JSON-encoded value <code>y</code> over stdout.</p>
-<h3 data-number="4.7.2" id="booleans-and-integers"><span class="header-section-number">4.7.2</span> Booleans and integers</h3>
+<h3 data-number="4.8.2" id="booleans-and-integers"><span class="header-section-number">4.8.2</span> Booleans and integers</h3>
 <p>The boolean value <code>true</code> is encoded as</p>
 <pre><code>{ &quot;variant&quot;: &quot;bool&quot;, &quot;value&quot;: &quot;true&quot; }</code></pre>
 <p><code>false</code> is encoded similarly. An integer literal <code>&lt;x&gt;</code> is encoded as</p>
 <pre><code>{ &quot;variant&quot;: &quot;int&quot;, &quot;value&quot;: &lt;x&gt; }</code></pre>
 <p>Notice that the integer <code>&lt;x&gt;</code> appears without quotes, as it is a numeric JSON value.</p>
-<h3 data-number="4.7.3" id="enums-and-enumsets"><span class="header-section-number">4.7.3</span> Enums and enumsets</h3>
+<h3 data-number="4.8.3" id="enums-and-enumsets"><span class="header-section-number">4.8.3</span> Enums and enumsets</h3>
 <p>Consider the type</p>
 <pre><code>type abc = {A, B, C}</code></pre>
 <p>The value <code>B</code> is encoded as</p>
@@ -759,7 +782,7 @@ even_nat : kind of nat where self % 2 == 0</code></pre>
   &quot;values&quot;: [1, 2]
 }</code></pre>
 <p>Here, instead of a single <code>value</code>, we have an array of <code>values</code>, each of which is a unique index into the array of <code>constructors</code>.</p>
-<h3 data-number="4.7.4" id="structs-1"><span class="header-section-number">4.7.4</span> Structs</h3>
+<h3 data-number="4.8.4" id="structs-1"><span class="header-section-number">4.8.4</span> Structs</h3>
 <p>Consider a struct type defined as</p>
 <pre><code>type s = struct
   with f1 : tp1,
@@ -773,7 +796,7 @@ even_nat : kind of nat where self % 2 == 0</code></pre>
               ...
             ]
 }</code></pre>
-<h3 data-number="4.7.5" id="abstract-types-1"><span class="header-section-number">4.7.5</span> Abstract types</h3>
+<h3 data-number="4.8.5" id="abstract-types-1"><span class="header-section-number">4.8.5</span> Abstract types</h3>
 <p>Consider an abstract type:</p>
 <pre><code>abstract type foo</code></pre>
 <p>Concrete values of abstract types are represented “under the hood” as arbitrary strings of bytes (or, equivalently, characters) <code>&lt;s&gt;</code>. We encode this value in JSON like so:</p>

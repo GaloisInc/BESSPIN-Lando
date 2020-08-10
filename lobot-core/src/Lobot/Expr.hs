@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
@@ -22,9 +23,10 @@ This modules defines the core expression data type we use for constraints.
 module Lobot.Expr
   ( -- * Expressions
     Expr(..)
+  , structExpr
+  , FieldInst(..)
+  , fieldInstFieldType
     -- * Literals
-  , FieldLiteral(..)
-  , fieldLiteralFieldType
   , Literal(..)
   , literalType
   , litEq
@@ -61,6 +63,11 @@ import GHC.TypeLits
 data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   -- | An expression built from a literal value.
   LiteralExpr :: NonAbstract tp => Literal tp -> Expr env ctx tp
+  -- | Constructing an expression of struct type. Note that this overlaps with
+  -- the @'LiteralExpr' ('StructLit' _)@ case, so use 'structExpr' instead of
+  -- this constructor in most cases.
+  StructExpr  :: Assignment (FieldInst (Expr env ctx)) ftps
+              -> Expr env ctx (StructType ftps)
   -- | An expression referring to a particular value in the current context.
   VarExpr     :: Index ctx tp -> Expr env ctx tp
   -- | An expression referring to a field of an instance of some kind.
@@ -122,6 +129,42 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
 
 deriving instance Show (Expr env ctx tp)
 instance ShowF (Expr env ctx)
+
+-- | Like 'StructExpr', but if all the given expressions are 'LiteralExpr's,
+-- return a 'LiteralExpr' of a 'StructLit'.
+structExpr :: Assignment (FieldInst (Expr env ctx)) ftps
+           -> Expr env ctx (StructType ftps)
+structExpr fvs = case go fvs of
+  Just (fvs', Dict) -> LiteralExpr (StructLit fvs')
+  Nothing           -> StructExpr fvs
+  where go :: Assignment (FieldInst (Expr env ctx)) ftps 
+           -> Maybe (Assignment (FieldInst Literal) ftps, Dict (NonAbstract ftps))
+        go Empty = Just (Empty, Dict)
+        go (fvs' :> FieldInst nm tp (LiteralExpr l)) = do
+          (fvs'', Dict) <- go fvs'
+          Just (fvs'' :> FieldInst nm tp l, Dict)
+        go _ = Nothing
+
+-- | An instance of a particular field, along with term-level representives of
+-- the field's name and type. Mostly used as  @'FieldInst' 'Literal' tp@ or
+-- @'FieldInst' ('Expr' env ctx) tp@.
+data FieldInst (f :: Type -> *) (p :: (Symbol, Type)) where
+  FieldInst :: { fieldInstName :: SymbolRepr nm
+               , fieldInstType :: TypeRepr tp
+               , fieldInstValue :: f tp
+               } -> FieldInst f '(nm, tp)
+
+deriving instance Show (FieldInst (Expr env ctx) p)
+deriving instance Show (FieldInst Literal p)
+instance ShowF (FieldInst (Expr env ctx))
+instance ShowF (FieldInst Literal)
+
+instance FunctorFC FieldInst where
+  fmapFC f (FieldInst nm tp x) = FieldInst nm tp $ f x
+
+-- | Get the field type of a field instance.
+fieldInstFieldType :: FieldInst f p -> FieldRepr p
+fieldInstFieldType (FieldInst nm tp _) = FieldRepr nm tp
 
 -- | The result of a function call on a particular set of argument expressions,
 -- whose return type is not abstract. This is used for refining the solver's
@@ -197,6 +240,11 @@ evalExpr :: MonadFail m
          -> EvalM env ctx m (EvalResult env ctx tp)
 evalExpr fns ls e = case e of
   LiteralExpr l -> pure $ litEvalResult l
+  StructExpr fls -> do
+    evalFls <- traverseFC (evalField fns ls) fls
+    let flLits = fmapFC evalResultFieldLit evalFls
+        flEs = fmapFC evalResultFieldExpr evalFls
+    pure $ EvalResult (StructLit flLits) (structExpr flEs)
   VarExpr i -> do
     let l = ls ! i
         e' = case isNonAbstract (literalType l) of
@@ -205,7 +253,7 @@ evalExpr fns ls e = case e of
     pure $ EvalResult l e'
   FieldExpr se i -> do
     EvalResult (StructLit fls) se' <- evalExpr fns ls se
-    let l = fieldLiteralValue (fls ! i)
+    let l = fieldInstValue (fls ! i)
         e' = case isNonAbstract (literalType l) of
                Just Dict -> LiteralExpr l
                Nothing -> FieldExpr se' i
@@ -303,6 +351,21 @@ evalExpr fns ls e = case e of
     EvalResult (BoolLit b) _ <- evalExpr fns ls e'
     pure $ litEvalResult (BoolLit (not b))
 
+data EvalFieldResult env ctx p =
+  EvalFieldResult { evalResultFieldLit :: FieldInst Literal p
+                  , evalResultFieldExpr :: FieldInst (Expr env ctx) p
+                  }
+
+evalField :: MonadFail m
+          => Assignment (FunctionImpl m) env
+          -> Assignment Literal ctx
+          -> FieldInst (Expr env ctx) p
+          -> EvalM env ctx m (EvalFieldResult env ctx p)
+evalField fns ls (FieldInst nm tp e) = do
+  EvalResult l e' <- evalExpr fns ls e
+  pure $ EvalFieldResult (FieldInst nm (literalType l) l)
+                         (FieldInst nm tp e')
+
 -- | Concrete value inhabiting a type.
 data Literal tp where
   BoolLit   :: Bool -> Literal BoolType
@@ -311,7 +374,7 @@ data Literal tp where
             => Assignment SymbolRepr cs -> Index cs c -> Literal (EnumType cs)
   SetLit    :: 1 <= CtxSize cs
             => Assignment SymbolRepr cs -> [Some (Index cs)] -> Literal (SetType cs)
-  StructLit :: Assignment FieldLiteral ftps -> Literal (StructType ftps)
+  StructLit :: Assignment (FieldInst Literal) ftps -> Literal (StructType ftps)
   AbsLit    :: SymbolRepr s -> BS.ByteString -> Literal (AbsType s)
 
 deriving instance Show (Literal tp)
@@ -323,23 +386,8 @@ literalType (BoolLit _) = BoolRepr
 literalType (IntLit _) = IntRepr
 literalType (EnumLit cs _) = EnumRepr cs
 literalType (SetLit cs _) = SetRepr cs
-literalType (StructLit fls) = StructRepr (fmapFC fieldLiteralFieldType fls)
+literalType (StructLit fls) = StructRepr (fmapFC fieldInstFieldType fls)
 literalType (AbsLit s _) = AbsRepr s
-
--- | An instance of a particular field. This is just the field name paired with
--- a concrete literal.
-data FieldLiteral (p :: (Symbol, Type)) where
-  FieldLiteral :: { fieldLiteralName  :: SymbolRepr nm
-                  , fieldLiteralType  :: TypeRepr tp
-                  , fieldLiteralValue :: Literal tp
-                  } -> FieldLiteral '(nm, tp)
-
--- | Get the field type of a field literal.
-fieldLiteralFieldType :: FieldLiteral p -> FieldRepr p
-fieldLiteralFieldType (FieldLiteral nm tp _) = FieldRepr nm tp
-
-deriving instance Show (FieldLiteral p)
-instance ShowF FieldLiteral
 
 -- | Equality of abstract literals is equality of the underlying bytestrings.
 litEq :: Literal tp -> Literal tp -> Bool
@@ -351,15 +399,16 @@ litEq (SetLit _ s1) (SetLit _ s2) = all (\i -> isJust (find (==i) s2)) s1 &&
                                     all (\i -> isJust (find (==i) s1)) s2
 litEq (StructLit fls1) (StructLit fls2) = fls1 `flsEq` fls2
   where flsEq :: forall (ftps :: Ctx (Symbol, Type)) .
-                 Assignment FieldLiteral ftps -> Assignment FieldLiteral ftps -> Bool
+                 Assignment (FieldInst Literal) ftps ->
+                 Assignment (FieldInst Literal) ftps -> Bool
         flsEq Empty Empty = True
-        flsEq (as :> a) (bs :> b) | FieldLiteral _ _ _ <- a
+        flsEq (as :> a) (bs :> b) | FieldInst _ _ _ <- a
           = a `fieldValueEq` b && flsEq as bs
 litEq (AbsLit _ a1) (AbsLit _ a2) = a1 == a2
 
-fieldValueEq :: FieldLiteral ftp -> FieldLiteral ftp -> Bool
-fieldValueEq fv1@(FieldLiteral _ _ _) fv2 =
-  litEq (fieldLiteralValue fv1) (fieldLiteralValue fv2)
+fieldValueEq :: FieldInst Literal ftp -> FieldInst Literal ftp -> Bool
+fieldValueEq fv1@(FieldInst _ _ _) fv2 =
+  litEq (fieldInstValue fv1) (fieldInstValue fv2)
 
 -- | Implementation of a function.
 data FunctionImpl m fntp where
@@ -402,16 +451,16 @@ instance HashableF (Expr env ctx) where
     , (TypeApp (TypeApp (ConType [t|Assignment|]) AnyType) AnyType, [|hashWithSaltF|])
     ])
 
-instance TestEquality FieldLiteral where
-  testEquality (FieldLiteral nm tp lt) (FieldLiteral nm' tp' lt')
+instance TestEquality f => TestEquality (FieldInst f) where
+  testEquality (FieldInst nm tp fl) (FieldInst nm' tp' fl')
     | Just Refl <- testEquality nm nm'
     , Just Refl <- testEquality tp tp'
-    , Just Refl <- testEquality lt lt' = Just Refl
+    , Just Refl <- testEquality fl fl' = Just Refl
     | otherwise = Nothing
 
-instance HashableF FieldLiteral where
-  s `hashWithSaltF` (FieldLiteral nm tp lt) =
-    s `hashWithSaltF` nm `hashWithSaltF` tp `hashWithSaltF` lt
+instance HashableF f => HashableF (FieldInst f) where
+  s `hashWithSaltF` (FieldInst nm tp fl) =
+    s `hashWithSaltF` nm `hashWithSaltF` tp `hashWithSaltF` fl
 
 instance Eq (FunctionCallResult env ctx) where
   (FunctionCallResult fi args ret st) == (FunctionCallResult fi' args' ret' st')

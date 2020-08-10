@@ -113,13 +113,6 @@ symLiteralExprs :: Assignment (SymLiteral t) tps
 symLiteralExprs Empty = Empty
 symLiteralExprs (symLits :> symLit) = symLiteralExprs symLits :> symLiteralExpr symLit
 
--- | Symbolic 'FieldLiteral'.
-data SymFieldLiteral t (p :: (Symbol, Type)) where
-  SymFieldLiteral :: { _symFieldLiteralName :: SymbolRepr nm
-                     , _symFieldLiteralType :: TypeRepr tp
-                     , _symFieldLiteralValue :: SymLiteral t tp
-                     } -> SymFieldLiteral t '(nm, tp)
-
 -- | Symbolic 'FunctionImpl'.
 data SymFunction t fntp where
   SymFunction :: { symFunctionType :: FunctionTypeRepr (FunType nm args ret)
@@ -127,8 +120,8 @@ data SymFunction t fntp where
                  } -> SymFunction t (FunType nm args ret)
 
 -- | Extract the What4 expression from a symbolic field literal.
-symFieldLiteralExpr :: SymFieldLiteral t ftp -> WB.Expr t (FieldBaseType ftp)
-symFieldLiteralExpr (SymFieldLiteral _ _ sl) = symLiteralExpr sl
+symFieldLiteralExpr :: FieldInst (SymLiteral t) ftp -> WB.Expr t (FieldBaseType ftp)
+symFieldLiteralExpr (FieldInst _ _ sl) = symLiteralExpr sl
 
 -- | Declare a fresh uninterpreted 'SymFunction'.
 freshUninterpSymFunction :: WB.ExprBuilder t st fs
@@ -185,8 +178,8 @@ freshSymLiteralConstant sym session prefix tp = do
       return $ SymLiteral tp c
     StructRepr ftps -> do
       symExprs <- freshSymFieldLiteralExprs sym session prefix ftps
-      structExpr <- WI.mkStruct sym symExprs
-      return $ SymLiteral tp structExpr
+      structExp <- WI.mkStruct sym symExprs
+      return $ SymLiteral tp structExp
 
 freshSymFieldLiteralExprs :: (NonAbstract ftps, WS.SMTLib2Tweaks solver)
                           => WB.ExprBuilder t st fs
@@ -254,11 +247,11 @@ _symLiterals sym (ls :> l) = do
   sls <- _symLiterals sym ls
   return $ sls :> sl
 
--- | Convert an 'Assignment' of 'FieldLiteral's to an 'Assignment' of 'WB.Expr's
--- by calling 'symFieldLiteral' on each element.
+-- | Convert an 'Assignment' of @'FieldInst' 'Literal'@s to an 'Assignment'
+-- of 'WB.Expr's by calling 'symFieldLiteral' on each element.
 symFieldLiteralExprs :: NonAbstract ftps
                      => WB.ExprBuilder t st fs
-                     -> Assignment FieldLiteral ftps
+                     -> Assignment (FieldInst Literal) ftps
                      -> IO (Assignment (WB.Expr t) (FieldBaseTypes ftps))
 symFieldLiteralExprs _ Empty = return empty
 symFieldLiteralExprs sym (fls :> fl) = do
@@ -266,18 +259,34 @@ symFieldLiteralExprs sym (fls :> fl) = do
   sfls <- symFieldLiteralExprs sym fls
   return $ sfls :> symFieldLiteralExpr sfl
 
--- | Inject a 'FieldLiteral' into a 'SymFieldLiteral' by setting the
--- symbolic values equal to concrete ones.
+-- | Inject a @'FieldInst' 'Literal'@ into a @'FieldInst' ('SymLiteral' t)@
+-- by setting the symbolic values equal to concrete ones.
 symFieldLiteral :: NonAbstract ftp
                 => WB.ExprBuilder t st fs
-                -> FieldLiteral ftp
-                -> IO (SymFieldLiteral t ftp)
-symFieldLiteral sym (FieldLiteral nm tp l) =
-  SymFieldLiteral nm tp <$> symLiteral sym l
+                -> FieldInst Literal ftp
+                -> IO (FieldInst (SymLiteral t) ftp)
+symFieldLiteral sym (FieldInst nm tp x) = 
+  FieldInst nm tp <$> symLiteral sym x
 
 convertFieldIndex :: Index ftps ftp
                   -> Index (FieldBaseTypes ftps) (FieldBaseType ftp)
 convertFieldIndex i = unsafeCoerce i
+
+-- | Convert an 'Assignment' of @'FieldInst' 'Expr'@s to an 'Assignment' of
+-- 'WB.Expr's by calling 'symEvalExpr' on each element. Additionally, collect
+-- the type of each field and return a corresponding 'Assignment' of
+-- 'FieldRepr's.
+symFieldExprs :: WB.ExprBuilder t st fs
+              -> Assignment (SymFunction t) env
+              -> Assignment (SymLiteral t) ctx
+              -> Assignment (FieldInst (Expr env ctx)) ftps
+              -> IO ( Assignment FieldRepr ftps
+                    , Assignment (WB.Expr t) (FieldBaseTypes ftps) )
+symFieldExprs _ _ _ Empty = return (empty, empty)
+symFieldExprs sym symFns symLits (fvs :> FieldInst nm ftp fv) = do
+  sfv <- symEvalExpr sym symFns symLits fv
+  (ftps, sfvs) <- symFieldExprs sym symFns symLits fvs
+  return $ (ftps :> FieldRepr nm ftp, sfvs :> symLiteralExpr sfv)
 
 -- | Symbolically evaluate an expression given a symbolic instance.
 symEvalExpr :: WB.ExprBuilder t st fs
@@ -287,6 +296,9 @@ symEvalExpr :: WB.ExprBuilder t st fs
             -> IO (SymLiteral t tp')
 symEvalExpr sym symFns symLits e = case e of
   LiteralExpr l -> symLiteral sym l
+  StructExpr fvs -> do
+    (ftps, symExprs) <- symFieldExprs sym symFns symLits fvs
+    SymLiteral (StructRepr ftps) <$> WI.mkStruct sym symExprs
   VarExpr i -> return $ symLits ! i
   FieldExpr strE fi -> do
     SymLiteral (StructRepr ftps) str <- symEvalExpr sym symFns symLits strE
@@ -406,7 +418,7 @@ literalFromGroundValue tp btp val = case (tp, btp) of
 literalsFromGroundValues' :: Assignment FieldRepr ftps
                           -> Assignment WT.BaseTypeRepr btps
                           -> Assignment WG.GroundValueWrapper btps
-                          -> Maybe (Assignment FieldLiteral ftps)
+                          -> Maybe (Assignment (FieldInst Literal) ftps)
 literalsFromGroundValues' Empty Empty Empty = Just Empty
 literalsFromGroundValues' (ftps :> ftp@(FieldRepr _ _)) (btps :> btp) (gvs :> gv) =
   let mFls = literalsFromGroundValues' ftps btps gvs
@@ -420,9 +432,9 @@ literalsFromGroundValues' _ _ _ = Nothing
 literalFromGroundValue' :: FieldRepr '(nm, tp)
                         -> WT.BaseTypeRepr btp
                         -> WG.GroundValue btp
-                        -> Maybe (FieldLiteral '(nm, tp))
+                        -> Maybe (FieldInst Literal '(nm, tp))
 literalFromGroundValue' (FieldRepr nm tp) btp val = do
-  FieldLiteral nm tp <$> literalFromGroundValue tp btp val
+  FieldInst nm tp <$> literalFromGroundValue tp btp val
 
 groundEvalLiteral :: NonAbstract tp
                   => WG.GroundEvalFn t

@@ -19,8 +19,6 @@ module Lobot.Syntax.Pretty
   , ppType
   , ppLExpr
   , ppExpr
-  , ppLLiteral
-  , ppLiteral
   , ppText
   , ppLText
   ) where
@@ -90,27 +88,6 @@ ppType tp = case tp of
     where withClause = ppWClause "with" (fmap ppField flds)
   KindNames ks -> PP.hsep (fmap ppLText ks)
 
-ppLLiteral :: LLiteral -> PP.Doc
-ppLLiteral = ppLiteral . unLoc
-
-ppLiteral :: Literal -> PP.Doc
-ppLiteral (BoolLit True) = PP.text "true"
-ppLiteral (BoolLit False) = PP.text "false"
-ppLiteral (IntLit x) = PP.integer x
-ppLiteral (EnumLit e) = ppLText e
-ppLiteral (SetLit es) =
-  PP.braces (commas (ppLText <$> es))
-ppLiteral (StructLit Nothing fls) =
-  PP.text "struct" PP.<+> PP.text "with"
-  PP.<+> PP.braces (commas (fmap ppFieldLiteral fls))
-ppLiteral (StructLit (Just tp) fls) =
-  ppLType tp PP.<+> PP.text "with"
-  PP.<+> PP.braces (commas (fmap ppFieldLiteral fls))
-
-ppFieldLiteral :: (LText, LLiteral) -> PP.Doc
-ppFieldLiteral (fieldLiteralName, fieldLiteralValue) =
-  ppLText fieldLiteralName PP.<+> PP.equals PP.<+> ppLLiteral fieldLiteralValue
-
 ppLExpr :: LExpr -> PP.Doc
 ppLExpr = ppExpr . unLoc
 
@@ -123,7 +100,12 @@ ppExpr = ppExpr' True
 
 ppExpr' :: Bool
         -> Expr -> PP.Doc
-ppExpr' _ (LiteralExpr l) = ppLLiteral l
+ppExpr' _ (BoolLit True) = PP.text "true"
+ppExpr' _ (BoolLit False) = PP.text "false"
+ppExpr' _ (IntLit x) = PP.integer x
+ppExpr' _ (EnumLit e) = ppLText e
+ppExpr' _ (SetLit es) =
+  PP.braces (commas (ppLText <$> es))
 ppExpr' _ SelfExpr = PP.text "self"
 ppExpr' _ (VarExpr f) = ppLText f
 ppExpr' top (FieldExpr ctxExpr f) =
@@ -132,6 +114,12 @@ ppExpr' _ (ApplyExpr fn es) =
   ppLText fn PP.<>
   PP.parens (commas (fmap (ppLExpr' True) es))
 ppExpr' False e = PP.parens (ppExpr' True e)
+ppExpr' _ (StructExpr Nothing fls) =
+  PP.text "struct" PP.<+> PP.text "with"
+  PP.<+> commas (fmap ppFieldValue fls)
+ppExpr' _ (StructExpr (Just tp) fls) =
+  ppLType tp PP.<+> PP.text "with"
+  PP.<+> commas (fmap ppFieldValue fls)
 ppExpr' _ (EqExpr e1 e2) =
   ppLExpr' False e1 PP.<+> PP.equals PP.<+> ppLExpr' False e2
 ppExpr' _ (NeqExpr e1 e2) =
@@ -173,3 +161,7 @@ ppExpr' _ (IffExpr e1 e2) =
 ppExpr' _ (NotExpr e) = PP.text "!" PP.<+> ppLExpr' False e
 ppExpr' _ (IsInstanceExpr e t) =
   ppLExpr' False e PP.<+> PP.colon PP.<+> ppLType t
+
+ppFieldValue :: (LText, LExpr) -> PP.Doc
+ppFieldValue (nm, x) =
+  ppLText nm PP.<+> PP.equals PP.<+> ppLExpr x

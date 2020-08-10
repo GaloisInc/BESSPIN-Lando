@@ -59,6 +59,7 @@ import Data.Parameterized.TraversableFC
 import Data.Constraint (Dict(..))
 
 import Lobot.Utils hiding (unzip)
+import qualified Lobot.Utils as U
 import Lobot.Expr as E
 import Lobot.Kind as K
 import Lobot.Syntax as S
@@ -225,7 +226,7 @@ ifVarElem _ _ = False
 -- | Return the set of additional enums which should be brought into scope
 -- when the given expression is part of a binary operation, e.g. @=@ or @in@.
 -- This is nonempty only when the given expression is a function application,
--- a non-anonymous struct literal, or a field expression on any of these
+-- a non-anonymous struct expression, or a field expression on any of these
 -- expressions. Using this function ensures that cases like the following do
 -- not give enum name out of scope warnings:
 -- 
@@ -240,7 +241,7 @@ addlEnms (L _ (S.ApplyExpr (L p fn) _)) = do
   case mb_fn' of
     Just (NamedFunction _ _ _ _ _ ret_enms) -> pure ret_enms
     _ -> throwError (FunctionNameNotInScope (L p fn))
-addlEnms (L _ (S.LiteralExpr (L _ (S.StructLit (Just tp) _)))) =
+addlEnms (L _ (S.StructExpr (Just tp) _)) =
   (\(_,_,enms) -> enms) <$> tcType tp
 addlEnms (L _ (S.FieldExpr x _)) = addlEnms x
 addlEnms _ = pure HS.empty
@@ -254,14 +255,54 @@ tcInferExpr :: EnumNameSet
             -> S.LExpr
             -> TCM2 env (Bool, Pair T.TypeRepr (E.Expr env ctx))
 
-tcInferExpr enms env _ (L _ (S.LiteralExpr l)) = do
-  (isGuess, InferredLit tp l') <- tcInferLit enms env l
-  pure (isGuess, Pair tp (E.LiteralExpr l'))
+tcInferExpr _ _ _ (L _ (S.BoolLit b)) = pure (False, Pair T.BoolRepr (E.LiteralExpr (E.BoolLit b)))
+tcInferExpr _ _ _ (L _ (S.IntLit z))  = pure (False, Pair T.IntRepr  (E.LiteralExpr (E.IntLit z)))
+
+tcInferExpr enms _ _ (L _ (S.EnumLit (L p e))) | Some e' <- someSymbol e = do
+  unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
+  pure (True , Pair (T.EnumRepr (Empty :> e'))
+                    (E.LiteralExpr (E.EnumLit (Empty :> e') baseIndex)))
+
+tcInferExpr enms _ _ (L _ (S.SetLit es)) | Some es' <- someSymbols (unLoc <$> es) = do
+  forM_ es $ \(L p e) ->
+    unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
+  let idxs = toListWithIndex (\i _ -> Some i) es'
+  case decideLeq (knownNat @1) (ctxSizeNat (size es')) of
+        Left LeqProof -> pure (True, Pair (T.SetRepr es')
+                                          (E.LiteralExpr (E.SetLit  es' idxs)))
+                   -- we want to be able to give a guess for the type of
+                   --  an empty set, but the type doesn't allow it! so we
+                   --  do this awful hack...
+        Right _ -> let emptySet = (Empty :> knownSymbol @"")
+                    in pure (True, Pair (T.SetRepr emptySet)
+                                        (E.LiteralExpr (E.SetLit emptySet [])))
+
+-- in the case of an anonymous struct expression, we simply infer the types of
+-- all of its fields, and say the resulting type is a guess if any of the
+-- field types were
+tcInferExpr enms env ctx (L _ (S.StructExpr Nothing fvs)) = do
+  (areGuesses, Pair ftps fvs') <- mapSnd U.unzip . unzip <$>
+                                    mapM (tcInferField enms env ctx) fvs
+  pure (or areGuesses, Pair (T.StructRepr ftps) (E.structExpr fvs'))
+
+-- in the case of a non-anonymous struct expression, we type check its fields
+-- against the field types of the given type, the result never being a guess
+tcInferExpr enms env ctx (L p (S.StructExpr (Just tp) fvs)) = do
+  tcType tp >>= \case
+    (Some (T.StructRepr ftps), [], enms')
+     -> do
+      mfvs' <- tcFields (enms `HS.union` enms') env ctx ftps (reverse fvs)
+      case mfvs' of
+         Just fvs' -> pure (False, Pair (T.StructRepr ftps)
+                                        (E.structExpr fvs'))
+         Nothing ->
+           throwError (StructExprLengthError p (Some ftps) (fst <$> fvs))
+    _ -> throwError (StructExprTypeError tp)
 
 tcInferExpr enms env ctx (L p (S.VarExpr t))
   -- if t is an enum:
   | unLoc t `HS.member` enms
-    = tcInferExpr enms env ctx (L p (S.LiteralExpr (L p (S.EnumLit t))))
+    = tcInferExpr enms env ctx (L p (S.EnumLit t))
   -- if we're in a kind context and t is a field name:
   | (Empty :> SelfElem (T.StructRepr ftps)) <- ctx
   , Just (Some i) <- findIndex (\(FieldRepr f _) -> unLoc t == symbolRepr f) ftps
@@ -482,9 +523,44 @@ tcExpr :: EnumNameSet
        -> T.TypeRepr tp
        -> S.LExpr
        -> TCM2 env (E.Expr env ctx tp)
-tcExpr enms env _ tp (L _ (S.LiteralExpr l)) = do
-  CheckedLit l' <- tcLit enms env tp l
-  return $ E.LiteralExpr l'
+
+tcExpr enms _ _ (T.EnumRepr cs) (L _ (S.EnumLit (L p e))) = do
+  unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
+  Some i <- enumElemIndex cs (L p e)
+  pure $ E.LiteralExpr (E.EnumLit cs i)
+tcExpr _ _ _ tp l@(L _ (S.EnumLit _)) =
+  throwError (TypeMismatchError l (SomeType tp)
+                                  (Just $ TypeString "an enum"))
+
+tcExpr enms _ _ (T.SetRepr cs) (L _ (S.SetLit es)) = do
+  forM_ es $ \(L p e) ->
+    unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
+  es' <- mapM (enumElemIndex cs) es
+  pure $ E.LiteralExpr (E.SetLit cs es')
+tcExpr _ _ _ tp l@(L _ (S.SetLit _)) =
+  throwError (TypeMismatchError l (SomeType tp)
+                                  (Just $ TypeString "a set"))
+
+-- in the case of an anonymous struct expression, we simply type check its
+-- fields against the field types of the given type
+tcExpr enms env ctx (T.StructRepr ftps) (L p (S.StructExpr Nothing fvs)) = do
+  mfvs' <- tcFields enms env ctx ftps (reverse fvs)
+  case mfvs' of
+   Just fvs' -> pure $ E.structExpr fvs'
+   Nothing -> throwError (StructExprLengthError p (Some ftps) (fst <$> fvs))
+-- in the case of a non-anonymous struct expression, we check that the two
+-- given types are equal, then do the same thing as in 'tcInferLit'
+tcExpr enms env ctx tp@(T.StructRepr _) x@(L _ (S.StructExpr (Just _) _)) = do
+  (_, Pair tp' x') <- tcInferExpr enms env ctx x
+  case testEquality tp tp' of
+    Nothing ->
+      throwError (TypeMismatchError x (SomeType tp)
+                                      (Just $ SomeType tp'))
+    Just Refl -> pure x'
+tcExpr _ _ _ tp x@(L _ (S.StructExpr _ _)) =
+  throwError (TypeMismatchError x (SomeType tp)
+                                  (Just $ TypeString "a struct"))
+
 tcExpr enms env ctx tp x = do
   (isGuess, Pair tp' x') <- tcInferExpr enms env ctx x
   case (isGuess, testEquality tp tp') of
@@ -515,125 +591,6 @@ tcExprs enms env ctx (tps :> tp) ((x,enms'):xs) = do
     Nothing -> pure Nothing
 tcExprs _ _ _ _ _ = pure Nothing
 
-
--- Type inference and checking for literals. Note that we also ensure that
--- the type of an inferred or checked literal is non-abstract
-
-data InferredLit where
-  InferredLit :: NonAbstract tp
-              => T.TypeRepr tp -> E.Literal tp -> InferredLit
-
--- | Guess or infer the type of a literal without any knowledge of what its
--- type should be. The 'Bool' returned is true if and only if the type
--- returned is a guess rather than an inference.
-tcInferLit :: EnumNameSet
-           -> Assignment T.FunctionTypeRepr env 
-           -> S.LLiteral -> TCM2 env (Bool, InferredLit)
-
-tcInferLit _ _ (L _ (S.BoolLit b)) = pure (False, InferredLit T.BoolRepr (E.BoolLit b))
-tcInferLit _ _ (L _ (S.IntLit z))  = pure (False, InferredLit T.IntRepr  (E.IntLit z))
-
-tcInferLit enms _ (L _ (S.EnumLit (L p e))) | Some e' <- someSymbol e = do
-  unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
-  pure (True , InferredLit (T.EnumRepr (Empty :> e'))
-                          (E.EnumLit  (Empty :> e') baseIndex))
-
-tcInferLit enms _ (L _ (S.SetLit es)) | Some es' <- someSymbols (unLoc <$> es) = do
-  forM_ es $ \(L p e) ->
-    unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
-  let idxs = toListWithIndex (\i _ -> Some i) es'
-  case decideLeq (knownNat @1) (ctxSizeNat (size es')) of
-        Left LeqProof -> pure (True, InferredLit (T.SetRepr es')
-                                                (E.SetLit  es' idxs))
-                   -- we want to be able to give a guess for the type of
-                   --  an empty set, but the type doesn't allow it! so we
-                   --  do this awful hack...
-        Right _ -> let emptySet = (Empty :> knownSymbol @"")
-                    in pure (True, InferredLit (T.SetRepr emptySet)
-                                              (E.SetLit emptySet []))
-
--- in the case of an anonymous struct literal, we simply infer the types of
--- all of its fields, and say the resulting type is a guess if any of the
--- field types were
-tcInferLit enms env (L _ (S.StructLit Nothing fvs)) = do
-  (areGuesses, fvs') <- unzip <$> mapM (tcInferFieldLit enms env) fvs
-  InferredFieldLits fvs'' <- pure $ toInferredFieldLits (reverse fvs')
-  pure (or areGuesses, InferredLit (E.literalType (E.StructLit fvs''))
-                                   (E.StructLit fvs''))
-
--- in the case of a non-anonymous struct literal, we type check its fields
--- against the field types of the given type, the result never being a guess
-tcInferLit enms env (L p (S.StructLit (Just tp) fvs)) = do
-  tcType tp >>= \case
-    (Some (T.StructRepr ftps), [], enms')
-     -> do
-      mfvs' <- tcFieldLits (enms `HS.union` enms') env ftps (reverse fvs)
-      case mfvs' of
-         Just (CheckedFieldLits fvs') ->
-           pure (False, InferredLit (T.StructRepr ftps) (E.StructLit fvs'))
-         Nothing ->
-           throwError (StructLiteralLengthError p (Some ftps) (fst <$> fvs))
-    _ -> throwError (StructLiteralTypeError tp)
-
-data CheckedLit tp where
-  CheckedLit :: NonAbstract tp => E.Literal tp -> CheckedLit tp
-
--- | Check that the type of a literal is equal to some known type.
-tcLit :: EnumNameSet
-      -> Assignment T.FunctionTypeRepr env
-      -> T.TypeRepr tp -> S.LLiteral -> TCM2 env (CheckedLit tp)
-
-tcLit enms _ (T.EnumRepr cs) (L _ (S.EnumLit (L p e))) = do
-  unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
-  Some i <- enumElemIndex cs (L p e)
-  pure $ CheckedLit (E.EnumLit cs i)
-tcLit _ _ tp l@(L p (S.EnumLit _)) =
-  throwError (TypeMismatchError (L p (S.LiteralExpr l)) (SomeType tp)
-                                (Just $ TypeString "an enum"))
-
-tcLit enms _ (T.SetRepr cs) (L _ (S.SetLit es)) = do
-  forM_ es $ \(L p e) ->
-    unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
-  es' <- mapM (enumElemIndex cs) es
-  pure $ CheckedLit (E.SetLit cs es')
-tcLit _ _ tp l@(L p (S.SetLit _)) =
-  throwError (TypeMismatchError (L p (S.LiteralExpr l)) (SomeType tp)
-                                (Just $ TypeString "a set"))
-
--- in the case of an anonymous struct literal, we simply type check its fields
--- against the field types of the given type
-tcLit enms env (T.StructRepr ftps) (L p (S.StructLit Nothing fvs)) = do
-  mfvs' <- tcFieldLits enms env ftps (reverse fvs)
-  case mfvs' of
-   Just (CheckedFieldLits fvs') -> pure $ CheckedLit (E.StructLit fvs')
-   Nothing -> throwError (StructLiteralLengthError p (Some ftps) (fst <$> fvs))
--- in the case of a non-anonymous struct literal, we check that the two given
--- types are equal, then do the same thing as in 'tcInferLit'
-tcLit enms env tp@(T.StructRepr _) l@(L p (S.StructLit (Just _) _)) = do
-  (_, InferredLit tp' l') <- tcInferLit enms env l
-  case testEquality tp tp' of
-    Nothing ->
-      throwError (TypeMismatchError (L p (S.LiteralExpr l))
-                                    (SomeType tp)
-                                    (Just $ SomeType tp'))
-    Just Refl ->
-      pure $ CheckedLit l'
-tcLit _ _ tp l@(L p (S.StructLit _ _)) =
-  throwError (TypeMismatchError (L p (S.LiteralExpr l)) (SomeType tp)
-                                (Just $ TypeString "a struct"))
-
-tcLit enms env tp l@(L p _) = do
-  (isGuess, InferredLit tp' l') <- tcInferLit enms env l
-  case (isGuess, testEquality tp tp') of
-    (True, _) ->
-      throwError (TypeInferenceError (L p (S.LiteralExpr l)))
-    (False, Nothing) ->
-      throwError (TypeMismatchError (L p (S.LiteralExpr l))
-                                    (SomeType tp)
-                                    (Just $ SomeType tp'))
-    (False, Just Refl) ->
-      pure (CheckedLit l')
-
 -- | Returns the index of a given enum name in an assignment of 'SymbolRepr's,
 -- erroring if such an index is not found
 enumElemIndex :: 1 <= CtxSize cs => Assignment SymbolRepr cs -> LText
@@ -641,43 +598,22 @@ enumElemIndex :: 1 <= CtxSize cs => Assignment SymbolRepr cs -> LText
 enumElemIndex cs (L p s)
   | Some s' <- someSymbol s, Just i <- elemIndex s' cs = pure (Some i)
   | otherwise = throwError $
-      TypeMismatchError (L p (S.LiteralExpr (L p (S.EnumLit (L p s)))))
+      TypeMismatchError (L p (S.EnumLit (L p s)))
                         (SomeType (T.SetRepr cs)) Nothing
 
 
--- Type inference and checking for field literals. Note that like literals, we
--- also ensure that the type of an inferred or checked literal is non-abstract
+-- Type inference and checking for field instances
 
-data InferredFieldLit where
-  InferredFieldLit :: NonAbstract tp
-                   => FieldLiteral '(nm, tp) -> InferredFieldLit
-
--- | Guess or infer the type of a field literal without any knowledge of what
--- its type should be. The 'Bool' returned is true if and only if the type
--- returned is a guess rather than an inference.
-tcInferFieldLit :: EnumNameSet
-              -> Assignment T.FunctionTypeRepr env 
-              -> (LText, S.LLiteral) -> TCM2 env (Bool, InferredFieldLit)
-tcInferFieldLit enms env (L _ s, l) = do
-  (isGuess, InferredLit tp l') <- tcInferLit enms env l
+-- | Infer the type of a field expression in a struct expression.
+tcInferField :: EnumNameSet
+             -> Assignment T.FunctionTypeRepr env 
+             -> Assignment ContextElem ctx
+             -> (LText, S.LExpr)
+             -> TCM2 env (Bool, Pair FieldRepr (FieldInst (E.Expr env ctx)))
+tcInferField enms env ctx (L _ s, x) = do
+  (isGuess, Pair tp x') <- tcInferExpr enms env ctx x
   Some s' <- pure $ someSymbol s
-  pure $ (isGuess, InferredFieldLit (E.FieldLiteral s' tp l'))
-
-data InferredFieldLits where
-  InferredFieldLits :: NonAbstract ftps
-                   => Assignment FieldLiteral ftps
-                   -> InferredFieldLits
-
-toInferredFieldLits :: [InferredFieldLit] -> InferredFieldLits
-toInferredFieldLits [] = InferredFieldLits Empty
-toInferredFieldLits (InferredFieldLit fl : ifls)
-  | InferredFieldLits fls <- toInferredFieldLits ifls
-  = InferredFieldLits (fls :> fl)
-
-data CheckedFieldLits ftps where
-  CheckedFieldLits :: NonAbstract ftps
-                 => Assignment FieldLiteral ftps
-                 -> CheckedFieldLits ftps
+  pure $ (isGuess, Pair (FieldRepr s' tp) (E.FieldInst s' tp x'))
 
 -- | Check that a list of fields have the respective types of a list of
 -- types. Returns 'Nothing' if the function is given a different number of
@@ -685,22 +621,22 @@ data CheckedFieldLits ftps where
 -- NOTE: Currently this assumes that the list of types and the list of
 -- expressions are in opposite order! We should maybe figure out the right
 -- way to do this...
-tcFieldLits :: EnumNameSet
-            -> Assignment T.FunctionTypeRepr env 
-            -> Assignment T.FieldRepr ftps
-            -> [(LText, S.LLiteral)]
-            -> TCM2 env (Maybe (CheckedFieldLits ftps))
-tcFieldLits _ _ Empty [] = pure $ Just (CheckedFieldLits Empty)
-tcFieldLits enms env (ftps :> FieldRepr s1 tp) ((L p s2, l):fvs) = do
+tcFields :: EnumNameSet
+         -> Assignment T.FunctionTypeRepr env
+         -> Assignment ContextElem ctx
+         -> Assignment T.FieldRepr ftps
+         -> [(LText, S.LExpr)]
+         -> TCM2 env (Maybe (Assignment (FieldInst (E.Expr env ctx)) ftps))
+tcFields _ _ _ Empty [] = pure $ Just Empty
+tcFields enms env ctx (ftps :> FieldRepr s1 tp) ((L p s2, x):fvs) = do
   unless (symbolRepr s1 == s2) $
-    throwError (StructLiteralNameMismatchError (L p s2) (symbolRepr s1))
-  CheckedLit l' <- tcLit enms env tp l
-  let fv' = E.FieldLiteral s1 tp l'
-  mfvs' <- tcFieldLits enms env ftps fvs
+    throwError (StructExprNameMismatchError (L p s2) (symbolRepr s1))
+  x' <- tcExpr enms env ctx tp x
+  mfvs' <- tcFields enms env ctx ftps fvs
   case mfvs' of
-    Just (CheckedFieldLits fvs') -> pure $ Just (CheckedFieldLits (fvs' :> fv'))
+    Just fvs' -> pure $ Just (fvs' :> E.FieldInst s1 tp x')
     Nothing -> pure Nothing
-tcFieldLits _ _ _ _ = pure Nothing
+tcFields _ _ _ _ _ = pure Nothing
 
 
 -- Unification of type guesses
