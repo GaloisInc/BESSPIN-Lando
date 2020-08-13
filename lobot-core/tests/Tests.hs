@@ -15,7 +15,6 @@ import Data.Parameterized.BoolRepr
 import Data.Parameterized.Context hiding (last)
 import Data.Parameterized.Some
 import Data.Traversable (forM)
-import Data.Constraint (Dict(..))
 import Numeric.Natural
 import System.Exit (exitFailure)
 import System.FilePath (takeBaseName, replaceExtension)
@@ -51,7 +50,7 @@ testLobotFile fileName = do
         exitFailure
       Right (TypeCheckResult Empty ks _, []) -> case last ks of
         Some k -> case isNonAbstract (kindType k) of
-          Just Dict -> do
+          Just IsNonAbs -> do
             (insts, _) <- runSession z3 Empty Empty (Empty :> kindType k) (kindConstraints k) (collectAndFilterInstances countLimit)
             return $ TestResult (Some k) (Some <$> insts)
           Nothing -> do

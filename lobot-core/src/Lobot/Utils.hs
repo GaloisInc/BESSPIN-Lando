@@ -32,6 +32,8 @@ import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 
+newtype Flip f a b = Flip (f b a)
+
 fst3 :: (a, b, c) -> a
 fst3 (a, _, _) = a
 snd3 :: (a, b, c) -> b

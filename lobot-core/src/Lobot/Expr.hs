@@ -55,7 +55,6 @@ import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 import Data.Parameterized.TH.GADT
-import Data.Constraint (Dict(..))
 import GHC.TypeLits
 
 -- | A expression involving a particular variable context, given a particular
@@ -135,14 +134,14 @@ instance ShowF (Expr env ctx)
 structExpr :: Assignment (FieldInst (Expr env ctx)) ftps
            -> Expr env ctx (StructType ftps)
 structExpr fvs = case go fvs of
-  Just (fvs', Dict) -> LiteralExpr (StructLit fvs')
+  Just (fvs', IsNonAbs) -> LiteralExpr (StructLit fvs')
   Nothing           -> StructExpr fvs
   where go :: Assignment (FieldInst (Expr env ctx)) ftps 
-           -> Maybe (Assignment (FieldInst Literal) ftps, Dict (NonAbstract ftps))
-        go Empty = Just (Empty, Dict)
+           -> Maybe (Assignment (FieldInst Literal) ftps, IsNonAbstract ftps)
+        go Empty = Just (Empty, IsNonAbs)
         go (fvs' :> FieldInst nm tp (LiteralExpr l)) = do
-          (fvs'', Dict) <- go fvs'
-          Just (fvs'' :> FieldInst nm tp l, Dict)
+          (fvs'', IsNonAbs) <- go fvs'
+          Just (fvs'' :> FieldInst nm tp l, IsNonAbs)
         go _ = Nothing
 
 -- | An instance of a particular field, along with term-level representives of
@@ -248,14 +247,14 @@ evalExpr fns ls e = case e of
   VarExpr i -> do
     let l = ls ! i
         e' = case isNonAbstract (literalType l) of
-               Just Dict -> LiteralExpr l
+               Just IsNonAbs -> LiteralExpr l
                Nothing -> VarExpr i
     pure $ EvalResult l e'
   FieldExpr se i -> do
     EvalResult (StructLit fls) se' <- evalExpr fns ls se
     let l = fieldInstValue (fls ! i)
         e' = case isNonAbstract (literalType l) of
-               Just Dict -> LiteralExpr l
+               Just IsNonAbs -> LiteralExpr l
                Nothing -> FieldExpr se' i
     pure $ EvalResult l e'
   ApplyExpr fi es -> do
@@ -265,12 +264,12 @@ evalExpr fns ls e = case e of
         argEs = fmapFC evalResultExpr evalArgs
     (l,st) <- lift $ fnImplRun fn argLits
     let e' = case isNonAbstract (literalType l) of
-               Just Dict -> LiteralExpr l
+               Just IsNonAbs -> LiteralExpr l
                Nothing -> ApplyExpr fi argEs
     -- TODO: Is there a way to clean this up?
     () <- case isNonAbstract (functionRetType (fnImplType fn)) of
       Nothing -> return ()
-      Just Dict -> addCall fi argEs l st
+      Just IsNonAbs -> addCall fi argEs l st
     return $ EvalResult l e'
   EqExpr e1 e2 -> do
     EvalResult l1 _ <- evalExpr fns ls e1

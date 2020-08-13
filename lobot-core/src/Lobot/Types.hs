@@ -36,6 +36,7 @@ module Lobot.Types
   , FunctionTypeRepr(..)
     -- * Abstract type utilities
   , HasAbstractTypes(..)
+  , IsNonAbstract(..)
   , DecideNonAbstract(..)
   , nonAbstractIndex
   ) where
@@ -45,7 +46,6 @@ import Data.Parameterized.Classes
 import Data.Parameterized.Context
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TH.GADT
-import Data.Constraint (Dict(..))
 import GHC.TypeLits
 import GHC.Exts (Constraint)
 
@@ -175,37 +175,41 @@ instance HasAbstractTypes k => HasAbstractTypes (Ctx k) where
   type NonAbstract EmptyCtx = ()
   type NonAbstract (ctx ::> t) = (NonAbstract ctx, NonAbstract t)
 
+-- | A witness that the given type is non-abstract
+data IsNonAbstract (t :: k) where
+  IsNonAbs :: forall k (t :: k). (HasAbstractTypes k, NonAbstract t)
+           => IsNonAbstract t
+
 class HasAbstractTypes k => DecideNonAbstract (r :: k -> *) where
   -- | A function which, if it can, provides a proof that a @t :: k@ is
   -- abstract, given a term-level representation @r t@.
-  isNonAbstract :: r t -> Maybe (Dict (NonAbstract t))
+  isNonAbstract :: r t -> Maybe (IsNonAbstract t)
 
 instance DecideNonAbstract TypeRepr where
-  isNonAbstract BoolRepr = Just Dict
-  isNonAbstract IntRepr = Just Dict
-  isNonAbstract (EnumRepr _) = Just Dict
-  isNonAbstract (SetRepr _) = Just Dict
-  isNonAbstract (StructRepr flds) = do Dict <- isNonAbstract flds
-                                       Just Dict
+  isNonAbstract BoolRepr = Just IsNonAbs
+  isNonAbstract IntRepr = Just IsNonAbs
+  isNonAbstract (EnumRepr _) = Just IsNonAbs
+  isNonAbstract (SetRepr _) = Just IsNonAbs
+  isNonAbstract (StructRepr flds) = do IsNonAbs <- isNonAbstract flds
+                                       Just IsNonAbs
   isNonAbstract (AbsRepr _) = Nothing
 
 instance DecideNonAbstract FieldRepr where
-  isNonAbstract (FieldRepr _ tp) = isNonAbstract tp
+  isNonAbstract (FieldRepr _ tp) = do IsNonAbs <- isNonAbstract tp
+                                      Just IsNonAbs
 
 instance DecideNonAbstract r => DecideNonAbstract (Assignment r) where
-  isNonAbstract Empty = Just Dict
-  isNonAbstract (ctx :> x) = do Dict <- isNonAbstract ctx
-                                Dict <- isNonAbstract x
-                                Just Dict
-
-newtype NonAbstractDict t = PfNonAbs { pfNonAbs :: Dict (NonAbstract t) }
+  isNonAbstract Empty = Just IsNonAbs
+  isNonAbstract (ctx :> x) = do IsNonAbs <- isNonAbstract ctx
+                                IsNonAbs <- isNonAbstract x
+                                Just IsNonAbs
 
 nonAbstractCtx :: forall k (r :: k -> *) (ctx :: Ctx k).
                   (HasAbstractTypes k, NonAbstract ctx)
                => Assignment r ctx
-               -> Assignment NonAbstractDict ctx
+               -> Assignment IsNonAbstract ctx
 nonAbstractCtx Empty = Empty
-nonAbstractCtx (ctx :> _) = nonAbstractCtx ctx :> PfNonAbs Dict
+nonAbstractCtx (ctx :> _) = nonAbstractCtx ctx :> IsNonAbs
 
 -- | Given an index into a context of non-abstract things, provide a proof
 -- that the thing at the given index is indeed non-abstract.
@@ -213,8 +217,8 @@ nonAbstractIndex :: forall k (r :: k -> *) (ctx :: Ctx k) (t :: k).
                     (HasAbstractTypes k, NonAbstract ctx)
                  => Assignment r ctx
                  -> Index ctx t
-                 -> Dict (NonAbstract t)
-nonAbstractIndex rs i = pfNonAbs $ (nonAbstractCtx rs) ! i
+                 -> IsNonAbstract t
+nonAbstractIndex rs i = (nonAbstractCtx rs) ! i
 
 
 -- HashableF instances for the types in this file

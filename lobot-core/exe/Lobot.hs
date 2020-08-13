@@ -51,7 +51,6 @@ import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
-import Data.Constraint (Dict(..))
 import Numeric.Natural
 
 import Options.Applicative
@@ -193,7 +192,7 @@ lookupKind nm ks = case find (\(Some k) -> kindName k == nm) ks of
   Just (Some k) -> case isNonAbstract (kindType k) of
     Nothing -> do putStrLn $ "Cannot generate instances of abstract type."
                   exitFailure
-    Just Dict -> pure $ SomeNonAbsKind (kindType k) (kindConstraints k)
+    Just IsNonAbs -> pure $ SomeNonAbsKind (kindType k) (kindConstraints k)
 
 -- | TODO Move to Kind.hs?
 data SomeNonAbstractCheck env where
@@ -219,7 +218,7 @@ toNonAbstractCheck (Some ck) =
   in case isNonAbstract tps of
     Nothing -> do putStrLn $ "Cannot generate instances of abstract type."
                   exitFailure
-    Just Dict -> do
+    Just IsNonAbs -> do
       let cns = checkConstraints ck ++ [negReqs]
           negReqs = NotExpr (foldr AndExpr (LiteralExpr (BoolLit True))
                                    (checkRequirements ck))

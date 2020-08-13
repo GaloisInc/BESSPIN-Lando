@@ -2,8 +2,11 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -43,7 +46,7 @@ import qualified Data.HashMap.Strict as H
 import qualified Data.HashSet as HS
 
 import Data.Text (Text, append)
-import Data.List (union)
+import Data.List (union, (\\))
 import Data.Maybe (catMaybes)
 import Data.Either (partitionEithers)
 import Control.Monad (unless, forM_)
@@ -52,14 +55,15 @@ import Control.Monad.Except (throwError, catchError)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Some
 import Data.Parameterized.Pair
+import Data.Parameterized.Classes
 import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
-import Data.Constraint (Dict(..))
 
-import Lobot.Utils hiding (unzip)
-import qualified Lobot.Utils as U
+import Lobot.Utils
+import Prelude hiding (unzip, zipWith)
+
 import Lobot.Expr as E
 import Lobot.Kind as K
 import Lobot.Syntax as S
@@ -205,7 +209,8 @@ resolveDerivedConstraint env tp (FromField (L p f) ds)
         "Malformed derived constraint: FromField " `append` f
 
 
--- Type inference and checking for expressions
+
+-- * Type inference and checking for expressions
 
 -- | Instead of just providing an 'Assignment' of 'TypeRepr's to 'tcInferExpr'
 -- to represent the in-scope type context, we also indicate whether each
@@ -246,55 +251,56 @@ addlEnms (L _ (S.StructExpr (Just tp) _)) =
 addlEnms (L _ (S.FieldExpr x _)) = addlEnms x
 addlEnms _ = pure HS.empty
 
--- | Guess or infer the type of an expression without any knowledge of what
--- its type should be. The 'Bool' returned is true if and only if the type
--- returned is a guess rather than an inference.
+-- | Infer the type of an expression without any knowledge of what its type
+-- should be. In cases where the inferred type is open (see
+-- 'InferredTypeRepr'), there should be a corresponding case in 'tcExpr'.
 tcInferExpr :: EnumNameSet
             -> Assignment T.FunctionTypeRepr env
             -> Assignment ContextElem ctx
             -> S.LExpr
-            -> TCM2 env (Bool, Pair T.TypeRepr (E.Expr env ctx))
+            -> TCM2 env (Pair InferredTypeRepr (E.Expr env ctx))
 
-tcInferExpr _ _ _ (L _ (S.BoolLit b)) = pure (False, Pair T.BoolRepr (E.LiteralExpr (E.BoolLit b)))
-tcInferExpr _ _ _ (L _ (S.IntLit z))  = pure (False, Pair T.IntRepr  (E.LiteralExpr (E.IntLit z)))
+tcInferExpr _ _ _ (L _ (S.BoolLit b)) =
+  pure $ Pair ClosedBoolRepr (E.LiteralExpr (E.BoolLit b))
 
-tcInferExpr enms _ _ (L _ (S.EnumLit (L p e))) | Some e' <- someSymbol e = do
+tcInferExpr _ _ _ (L _ (S.IntLit z))  =
+  pure $ Pair ClosedIntRepr  (E.LiteralExpr (E.IntLit z))
+
+-- the inferred type of an enum literal is left open, thus this has a
+-- corresponding case in 'tcExpr'
+tcInferExpr enms _ _ (L _ (S.EnumLit (L p e))) = do
   unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
-  pure (True , Pair (T.EnumRepr (Empty :> e'))
-                    (E.LiteralExpr (E.EnumLit (Empty :> e') baseIndex)))
+  Some e' <- pure $ someSymbol e 
+  pure $ Pair (OpenEnumRepr (Empty :> e'))
+              (E.LiteralExpr (E.EnumLit (Empty :> e') baseIndex))
 
-tcInferExpr enms _ _ (L _ (S.SetLit es)) | Some es' <- someSymbols (unLoc <$> es) = do
+-- the inferred type of a set literal is left open, thus this has a
+-- corresponding case in 'tcExpr'. Note that this case also has strange
+-- behavior if @es == []@, see 'fromEnumNameList' and 'enumSetIndices'
+tcInferExpr enms _ _ (L _ (S.SetLit es)) = do
   forM_ es $ \(L p e) ->
     unless (e `HS.member` enms) $ emitWarning (EnumNameNotInScope (L p e))
-  let idxs = toListWithIndex (\i _ -> Some i) es'
-  case decideLeq (knownNat @1) (ctxSizeNat (size es')) of
-        Left LeqProof -> pure (True, Pair (T.SetRepr es')
-                                          (E.LiteralExpr (E.SetLit  es' idxs)))
-                   -- we want to be able to give a guess for the type of
-                   --  an empty set, but the type doesn't allow it! so we
-                   --  do this awful hack...
-        Right _ -> let emptySet = (Empty :> knownSymbol @"")
-                    in pure (True, Pair (T.SetRepr emptySet)
-                                        (E.LiteralExpr (E.SetLit emptySet [])))
+  Pair es' NonEmpty <- pure $ fromEnumNameList (someSymbol . unLoc <$> es)
+  pure $ Pair (OpenSetRepr es')
+              (E.LiteralExpr (E.SetLit es' (enumSetIndices es')))
 
 -- in the case of an anonymous struct expression, we simply infer the types of
--- all of its fields, and say the resulting type is a guess if any of the
--- field types were
+-- all of its fields. Since the resulting type is open if any of its inferred
+-- field types are, this has a corresponding case in 'tcExpr'
 tcInferExpr enms env ctx (L _ (S.StructExpr Nothing fvs)) = do
-  (areGuesses, Pair ftps fvs') <- mapSnd U.unzip . unzip <$>
-                                    mapM (tcInferField enms env ctx) fvs
-  pure (or areGuesses, Pair (T.StructRepr ftps) (E.structExpr fvs'))
+  Pair iftps fvs' <- unzip <$> mapM (tcInferField enms env ctx) fvs
+  pure $ Pair (infStructRepr iftps) (E.structExpr fvs')
 
 -- in the case of a non-anonymous struct expression, we type check its fields
--- against the field types of the given type, the result never being a guess
+-- against the field types of the given type
 tcInferExpr enms env ctx (L p (S.StructExpr (Just tp) fvs)) = do
   tcType tp >>= \case
     (Some (T.StructRepr ftps), [], enms')
      -> do
       mfvs' <- tcFields (enms `HS.union` enms') env ctx ftps (reverse fvs)
       case mfvs' of
-         Just fvs' -> pure (False, Pair (T.StructRepr ftps)
-                                        (E.structExpr fvs'))
+         Just fvs' -> pure $ Pair (closed (T.StructRepr ftps))
+                                  (E.structExpr fvs')
          Nothing ->
            throwError (StructExprLengthError p (Some ftps) (fst <$> fvs))
     _ -> throwError (StructExprTypeError tp)
@@ -303,32 +309,36 @@ tcInferExpr enms env ctx (L p (S.VarExpr t))
   -- if t is an enum:
   | unLoc t `HS.member` enms
     = tcInferExpr enms env ctx (L p (S.EnumLit t))
-  -- if we're in a kind context and t is a field name:
+  -- if we're in a `kind of struct` context and t is a field name:
   | (Empty :> SelfElem (T.StructRepr ftps)) <- ctx
   , Just (Some i) <- findIndex (\(FieldRepr f _) -> unLoc t == symbolRepr f) ftps
   , FieldRepr _ tp <- ftps ! i
-    = pure (False, Pair tp (E.FieldExpr (E.VarExpr baseIndex) i))
+    = pure $ Pair (closed tp) (E.FieldExpr (E.VarExpr baseIndex) i)
   -- if t is a variable name from the current context:
   | Just (Some i) <- findIndex (ifVarElem (\nm _ -> unLoc t == nm)) ctx
   , VarElem _ tp <- ctx ! i
-    = pure (False, Pair tp (E.VarExpr i))
+    = pure $ Pair (closed tp) (E.VarExpr i)
   -- otherwise, we error
   | otherwise
     = throwError (OtherNameNotInScope t)
 
+-- @self@ is only permitted in a kind context (one consisting only of @self@)
 tcInferExpr _ _ ctx (L p S.SelfExpr)
-  | (Empty :> SelfElem tp) <- ctx = pure (False, Pair tp K.SelfExpr)
+  | (Empty :> SelfElem tp) <- ctx = pure $ Pair (closed tp) K.SelfExpr
   | otherwise                     = throwError (UnexpectedSelfError p)
 
+-- the type of @x.f@ is left open if the inferred type corresponding to @f@ in
+-- the type of @x@ is open, thus this has a corresponding case in 'tcExpr'
 tcInferExpr enms env ctx (L _ (S.FieldExpr x (L p f))) = do
-  (_, Pair xtp x') <- tcInferExpr enms env ctx x
+  Pair (InfTp xtpc xtp) x' <- tcInferExpr enms env ctx x
   Some f' <- pure $ someSymbol f
-  case xtp of
-    StructRepr ftps -> case fieldIndex f' ftps of
-      Just (SomeField tp i) -> pure (False, Pair tp (E.FieldExpr x' i))
-      Nothing -> throwError (NoSuchFieldError (L p f) x (Some xtp))
+  case (xtpc, xtp) of
+    (ClStruct ftpcs, StructRepr ftps) ->
+      case getFieldIndex f' (zipWith InfFTp ftpcs ftps) of
+        Just (FieldIndex _ itp i) -> pure $ Pair itp (E.FieldExpr x' i)
+        Nothing -> throwError (NoSuchFieldError (L p f) x (Some xtp))
     _ -> throwError (TypeMismatchError x (TypeString "a struct")
-                                                    (Just $ SomeType xtp))
+                                         (Just $ SomeType xtp))
 
 tcInferExpr enms env ctx (L _ (S.ApplyExpr fn args)) = do
   (Some fi, arg_enms) <- lookupFunction env fn
@@ -336,158 +346,142 @@ tcInferExpr enms env ctx (L _ (S.ApplyExpr fn args)) = do
   mb_args' <-
     tcExprs enms env ctx functionArgTypes (reverse (zip args arg_enms))
   case mb_args' of
-    Just args' -> pure (False, Pair functionRetType (E.ApplyExpr fi args'))
+    Just args' -> pure $ Pair (closed functionRetType) (E.ApplyExpr fi args')
     Nothing -> throwError (FunctionArgLengthError fn (Some fntp) args)
 
 tcInferExpr enms env ctx (L _ (S.EqExpr x y)) = do
   x_enms <- HS.union enms <$> addlEnms y
   y_enms <- HS.union enms <$> addlEnms x
-  (xGuess, Pair xtp x') <- tcInferExpr x_enms env ctx x
-  (yGuess, Pair ytp y') <- tcInferExpr y_enms env ctx y
-  let uni_err = TypeUnificationError x (SomeType xtp)
-                                     y (SomeType ytp)
+  Pair xitp@(InfTp _ xtp) x' <- tcInferExpr x_enms env ctx x
+  Pair yitp@(InfTp _ ytp) y' <- tcInferExpr y_enms env ctx y
+  -- ensure that @x@ and @y@ both have non-abstract types
   case (isNonAbstract xtp, isNonAbstract ytp) of
-    (Just Dict, Just Dict) -> do
-      case (testEquality xtp ytp, xGuess, yGuess, unifyTypes xtp ytp) of
-        -- if @xtp :~: ytp@, then @EqExpr x' y'@ is certainly well-typed
-        (Just Refl, _, _, _) ->
-          pure (False, Pair T.BoolRepr (E.EqExpr x' y'))
-        -- if @ytp@ is a guess but @xtp@ isn't, try to check that @y' : xtp@
-        (Nothing, False, True, _) -> do
-          y'' <- tcExpr y_enms env ctx xtp y
-          pure (False, Pair T.BoolRepr (E.EqExpr x' y''))
-        -- if @xtp@ is a guess but @ytp@ isn't, try to check that @x' : ytp@
-        (Nothing, True, False, _) -> do
-          x'' <- tcExpr x_enms env ctx ytp x
-          pure (False, Pair T.BoolRepr (E.EqExpr x'' y'))
-        -- if both types are guesses and they are able to be unified, check
-        -- that both @x'@ and @y'@ have this unified type (although this will
-        -- always be the case, GHC doesn't know that yet)
-        (Nothing, True, True, Just (SomeNonAbsTp uni_tp)) ->
-          do { x'' <- tcExpr x_enms env ctx uni_tp x
-             ; y'' <- tcExpr y_enms env ctx uni_tp y
-             ; pure (False, Pair T.BoolRepr (E.EqExpr x'' y''))
-             } `catchError` (const $ throwError uni_err)
-        -- otherwise, we cannot unify @xtp@ and @ytp@
-        _ -> throwError uni_err
+    (Just IsNonAbs, Just IsNonAbs) -> do
+      -- ensure that @x@ and @y@ both have the same type
+      SameExprType _ x'' y'' <- unifyExprTypes env ctx (xitp, x', x_enms, x)
+                                                       (yitp, y', y_enms, y)
+      pure $ Pair ClosedBoolRepr (E.EqExpr x'' y'')
     (Nothing, _) -> throwError (AbstractEqualityError x (SomeType xtp))
     (_, Nothing) -> throwError (AbstractEqualityError y (SomeType ytp))
--- we entirely leverage the previous case here
-tcInferExpr enms env ctx (L p (S.NeqExpr x y)) =
-  tcInferExpr enms env ctx (L p (S.EqExpr x y)) >>= \case
-    (False, Pair T.BoolRepr (E.EqExpr x' y')) ->
-      pure (False, Pair T.BoolRepr (E.NeqExpr x' y'))
-    _ -> throwError $ InternalError p "NeqExpr!"
+-- this is entirely the same as the above
+tcInferExpr enms env ctx (L _ (S.NeqExpr x y)) = do
+  x_enms <- HS.union enms <$> addlEnms y
+  y_enms <- HS.union enms <$> addlEnms x
+  Pair xitp@(InfTp _ xtp) x' <- tcInferExpr x_enms env ctx x
+  Pair yitp@(InfTp _ ytp) y' <- tcInferExpr y_enms env ctx y
+  -- ensure that @x@ and @y@ both have non-abstract types
+  case (isNonAbstract xtp, isNonAbstract ytp) of
+    (Just IsNonAbs, Just IsNonAbs) -> do
+      -- ensure that @x@ and @y@ both have the same type
+      SameExprType _ x'' y'' <- unifyExprTypes env ctx (xitp, x', x_enms, x)
+                                                       (yitp, y', y_enms, y)
+      pure $ Pair ClosedBoolRepr (E.NeqExpr x'' y'')
+    (Nothing, _) -> throwError (AbstractEqualityError x (SomeType xtp))
+    (_, Nothing) -> throwError (AbstractEqualityError y (SomeType ytp))
 
 tcInferExpr enms env ctx (L _ (S.LteExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
-  pure (False, Pair T.BoolRepr (E.LteExpr x' y'))
+  pure $ Pair ClosedBoolRepr (E.LteExpr x' y')
 tcInferExpr enms env ctx (L _ (S.LtExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
-  pure (False, Pair T.BoolRepr (E.LtExpr x' y'))
+  pure $ Pair ClosedBoolRepr (E.LtExpr x' y')
 tcInferExpr enms env ctx (L _ (S.GteExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
-  pure (False, Pair T.BoolRepr (E.GteExpr x' y'))
+  pure $ Pair ClosedBoolRepr (E.GteExpr x' y')
 tcInferExpr enms env ctx (L _ (S.GtExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
-  pure (False, Pair T.BoolRepr (E.GtExpr x' y'))
+  pure $ Pair ClosedBoolRepr (E.GtExpr x' y')
 tcInferExpr enms env ctx (L _ (S.PlusExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
-  pure (False, Pair T.IntRepr (E.PlusExpr x' y'))
+  pure $ Pair ClosedIntRepr (E.PlusExpr x' y')
 tcInferExpr enms env ctx (L _ (S.MinusExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
-  pure (False, Pair T.IntRepr (E.MinusExpr x' y'))
+  pure $ Pair ClosedIntRepr (E.MinusExpr x' y')
 tcInferExpr enms env ctx (L _ (S.TimesExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
-  pure (False, Pair T.IntRepr (E.TimesExpr x' y'))
+  pure $ Pair ClosedIntRepr (E.TimesExpr x' y')
 tcInferExpr enms env ctx (L _ (S.ModExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
-  pure (False, Pair T.IntRepr (E.ModExpr x' y'))
+  pure $ Pair ClosedIntRepr (E.ModExpr x' y')
 tcInferExpr enms env ctx (L _ (S.DivExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
-  pure (False, Pair T.IntRepr (E.DivExpr x' y'))
+  pure $ Pair ClosedIntRepr (E.DivExpr x' y')
 tcInferExpr enms env ctx (L _ (S.NegExpr x)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
-  pure (False, Pair T.IntRepr (E.NegExpr x'))
+  pure $ Pair ClosedIntRepr (E.NegExpr x')
 
 tcInferExpr enms env ctx (L _ (S.MemberExpr x y)) = do
   x_enms <- HS.union enms <$> addlEnms y
   y_enms <- HS.union enms <$> addlEnms x
-  (xGuess, Pair xtp x') <- tcInferExpr x_enms env ctx x
-  (yGuess, Pair ytp y') <- tcInferExpr y_enms env ctx y
-  let uni_err = EnumSetUnificationError x (SomeType xtp)
-                                        y (SomeType ytp)
-  case (xtp, ytp) of
-    -- ensure that @x@ is an enum and @y@ is a set
-    (T.EnumRepr xcs, T.SetRepr ycs) -> do
-      case (testEquality xcs ycs, xGuess, yGuess, unifyEnumNames xcs ycs) of
-        -- if @xcs :~: ycs@, then @MemberExpr x' y'@ is certainly well-typed
-        (Just Refl, _, _, _) ->
-          pure (False, Pair T.BoolRepr (E.MemberExpr x' y'))
-        -- if @ycs@ is a guess but @xcs@ isn't, try to check that @y' : set xcs@
-        (Nothing, False, True, _) -> do
-          y'' <- tcExpr y_enms env ctx (T.SetRepr xcs) y
-          pure (False, Pair T.BoolRepr (E.MemberExpr x' y''))
-        -- if @xcs@ is a guess but @ycs@ isn't, try to check that @x' : ycs@
-        (Nothing, True, False, _) -> do
-          x'' <- tcExpr x_enms env ctx (T.EnumRepr ycs) x
-          pure (False, Pair T.BoolRepr (E.MemberExpr x'' y'))
-        -- if both enum set are guesses and they are able to be unified, check
-        -- that both @x'@ and @y'@ are each an enum/set of this unified type
-        -- (although this will always be the case, GHC doesn't know that yet)
-        (Nothing, True, True, SomeNonEmptySyms uni_cs) ->
-          do { x'' <- tcExpr x_enms env ctx (T.EnumRepr uni_cs) x
-             ; y'' <- tcExpr y_enms env ctx (T.SetRepr  uni_cs) y
-             ; pure (False, Pair T.BoolRepr (E.MemberExpr x'' y''))
-             } `catchError` (const $ throwError uni_err)
-        -- otherwise, we cannot unify @xcs@ and @ycs@
-        _ -> throwError uni_err
-    -- error accordingly if either @x@ isn't an enum or @y@ isn't a set 
-    (T.EnumRepr _, _) -> throwError (TypeMismatchError y
-                                                       (TypeString "a set")
-                                                       (Just $ SomeType ytp))
-    (_,_) -> throwError (TypeMismatchError x
-                                           (TypeString "an enum")
-                                           (Just $ SomeType xtp))
--- we entirely leverage the previous case here
-tcInferExpr enms env ctx (L p (S.NotMemberExpr x y)) =
-  tcInferExpr enms env ctx (L p (S.MemberExpr x y)) >>= \case
-    (False, Pair T.BoolRepr (E.MemberExpr x' y')) ->
-      pure (False, Pair T.BoolRepr (E.NotMemberExpr x' y'))
-    _ -> throwError $ InternalError p "NonMemberExpr!"
+  Pair (InfTp xtpc xtp) x' <- tcInferExpr x_enms env ctx x
+  Pair (InfTp ytpc ytp) y' <- tcInferExpr y_enms env ctx y
+  -- ensure that @x@ is an enum and @y@ is a set
+  case (xtpc, xtp, ytpc, ytp) of
+    (ClEnum xIsCl, T.EnumRepr xcs, ClSet yIsCl, T.SetRepr ycs) -> do
+      -- ensure that the types of @x@ and @y@ use the same set of enum names
+      SameEnumType _ x'' y'' <-
+        unifyEnumTypes env ctx (xIsCl, xcs, x', x_enms, x, EnumCon T.EnumRepr)
+                               (yIsCl, ycs, y', y_enms, y, EnumCon T.SetRepr)
+      pure $ Pair ClosedBoolRepr (E.MemberExpr x'' y'')
+    -- error accordingly if either @x@ isn't an enum or @y@ isn't a set
+    (_, T.EnumRepr _, _, _) ->
+      throwError (TypeMismatchError y (TypeString "a set")
+                                      (Just $ SomeType ytp))
+    (_,_,_,_) -> throwError (TypeMismatchError x (TypeString "an enum")
+                                                 (Just $ SomeType xtp))
+-- this is entirely the same as the above
+tcInferExpr enms env ctx (L _ (S.NotMemberExpr x y)) = do
+  x_enms <- HS.union enms <$> addlEnms y
+  y_enms <- HS.union enms <$> addlEnms x
+  Pair (InfTp xtpc xtp) x' <- tcInferExpr x_enms env ctx x
+  Pair (InfTp ytpc ytp) y' <- tcInferExpr y_enms env ctx y
+  -- ensure that @x@ is an enum and @y@ is a set
+  case (xtpc, xtp, ytpc, ytp) of
+    (ClEnum xIsCl, T.EnumRepr xcs, ClSet yIsCl, T.SetRepr ycs) -> do
+      -- ensure that the types of @x@ and @y@ use the same set of enum names
+      SameEnumType _ x'' y'' <-
+        unifyEnumTypes env ctx (xIsCl, xcs, x', x_enms, x, EnumCon T.EnumRepr)
+                               (yIsCl, ycs, y', y_enms, y, EnumCon T.SetRepr)
+      pure $ Pair ClosedBoolRepr (E.NotMemberExpr x'' y'')
+    -- error accordingly if either @x@ isn't an enum or @y@ isn't a set
+    (_, T.EnumRepr _, _, _) ->
+      throwError (TypeMismatchError y (TypeString "a set")
+                                      (Just $ SomeType ytp))
+    (_,_,_,_) -> throwError (TypeMismatchError x (TypeString "an enum")
+                                                 (Just $ SomeType xtp))
 
 tcInferExpr enms env ctx (L _ (S.AndExpr x y)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
   y' <- tcExpr enms env ctx T.BoolRepr y
-  pure (False, Pair T.BoolRepr (E.AndExpr x' y'))
+  pure $ Pair ClosedBoolRepr (E.AndExpr x' y')
 tcInferExpr enms env ctx (L _ (S.OrExpr x y)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
   y' <- tcExpr enms env ctx T.BoolRepr y
-  pure (False, Pair T.BoolRepr (E.OrExpr x' y'))
+  pure $ Pair ClosedBoolRepr (E.OrExpr x' y')
 tcInferExpr enms env ctx (L _ (S.XorExpr x y)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
   y' <- tcExpr enms env ctx T.BoolRepr y
-  pure (False, Pair T.BoolRepr (E.XorExpr x' y'))
+  pure $ Pair ClosedBoolRepr (E.XorExpr x' y')
 tcInferExpr enms env ctx (L _ (S.ImpliesExpr x y)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
   y' <- tcExpr enms env ctx T.BoolRepr y
-  pure (False, Pair T.BoolRepr (E.ImpliesExpr x' y'))
+  pure $ Pair ClosedBoolRepr (E.ImpliesExpr x' y')
 tcInferExpr enms env ctx (L _ (S.IffExpr x y)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
   y' <- tcExpr enms env ctx T.BoolRepr y
-  pure (False, Pair T.BoolRepr (E.IffExpr x' y'))
+  pure $ Pair ClosedBoolRepr (E.IffExpr x' y')
 tcInferExpr enms env ctx (L _ (S.NotExpr x)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
-  pure (False, Pair T.BoolRepr (E.NotExpr x'))
+  pure $ Pair ClosedBoolRepr (E.NotExpr x')
 
 -- in the 'S.IsInstance' case, get the list of derived constraints of the
 -- given type and return the expression which is the conjunction of all of
@@ -498,23 +492,7 @@ tcInferExpr enms env ctx (L _ (S.IsInstanceExpr x tp)) = do
   dcns' <- concat <$> mapM (resolveDerivedConstraint env tp') dcns
   let res = if null dcns' then E.LiteralExpr (E.BoolLit True)
                           else foldr1 E.AndExpr (giveSelf x' <$> dcns')
-  pure (False, Pair T.BoolRepr res)
-  
-data SomeField (ftps :: Ctx (Symbol, T.Type)) (nm :: Symbol) :: * where
-  SomeField :: T.TypeRepr tp -> Index ftps '(nm, tp) -> SomeField ftps nm
-
--- adapted from 'elemIndex'
-fieldIndex :: SymbolRepr nm -> Assignment FieldRepr ftps
-           -> Maybe (SomeField ftps nm)
-fieldIndex nm ftps = case traverseAndCollect (go nm) ftps of
-                       Left x  -> Just x
-                       Right _ -> Nothing
-  where go :: SymbolRepr nm -> Index ftps pr -> FieldRepr pr
-           -> Either (SomeField ftps nm) ()
-        go nm' i (FieldRepr nm'' tp)
-          | Just Refl <- testEquality nm' nm'' = Left (SomeField tp i)
-          | otherwise = Right ()
-
+  pure $ Pair ClosedBoolRepr res
 
 -- | Check that the type of an expression is equal to some known type.
 tcExpr :: EnumNameSet
@@ -549,9 +527,9 @@ tcExpr enms env ctx (T.StructRepr ftps) (L p (S.StructExpr Nothing fvs)) = do
    Just fvs' -> pure $ E.structExpr fvs'
    Nothing -> throwError (StructExprLengthError p (Some ftps) (fst <$> fvs))
 -- in the case of a non-anonymous struct expression, we check that the two
--- given types are equal, then do the same thing as in 'tcInferLit'
+-- given types are equal, then do the same thing as in 'tcInferExpr'
 tcExpr enms env ctx tp@(T.StructRepr _) x@(L _ (S.StructExpr (Just _) _)) = do
-  (_, Pair tp' x') <- tcInferExpr enms env ctx x
+  Pair (InfTp _ tp') x' <- tcInferExpr enms env ctx x
   case testEquality tp tp' of
     Nothing ->
       throwError (TypeMismatchError x (SomeType tp)
@@ -561,14 +539,33 @@ tcExpr _ _ _ tp x@(L _ (S.StructExpr _ _)) =
   throwError (TypeMismatchError x (SomeType tp)
                                   (Just $ TypeString "a struct"))
 
+-- since this only gives us more information about one field of @x@'s type
+-- relative to the corresponding 'tcInferExpr' case, we first infer the type
+-- of @x@ as before, then change the proper field's type to that given and
+-- check that @x@ also has this new type
+tcExpr enms env ctx tp (L _ (S.FieldExpr x (L p f))) = do
+  Pair (InfTp xtpc xtp) _ <- tcInferExpr enms env ctx x
+  Some f' <- pure $ someSymbol f
+  case (xtpc, xtp) of
+    (ClStruct ftpcs, StructRepr ftps) ->
+      case getFieldIndex f' (zipWith InfFTp ftpcs ftps) of
+        Just (FieldIndex nm _ i) -> do
+          Pair ftps' (Flip i') <- pure $ setFieldIndex i (nm, tp) ftps
+          x'' <- tcExpr enms env ctx (StructRepr ftps') x
+          pure $ E.FieldExpr x'' i'
+        Nothing -> throwError (NoSuchFieldError (L p f) x (Some xtp))
+    _ -> throwError (TypeMismatchError x (TypeString "a struct")
+                                         (Just $ SomeType xtp))
+
 tcExpr enms env ctx tp x = do
-  (isGuess, Pair tp' x') <- tcInferExpr enms env ctx x
-  case (isGuess, testEquality tp tp') of
-    -- NOTE: currently the below case never occurs
-    (True, _) -> throwError (TypeInferenceError x)
-    (False, Nothing) -> throwError (TypeMismatchError x (SomeType tp)
-                                                      (Just $ SomeType tp'))
-    (False, Just Refl) -> pure x'
+  Pair (InfTp tpc tp') x' <- tcInferExpr enms env ctx x
+  case (isClosed tpc, testEquality tp tp') of
+    -- the cases of 'tcExpr' above should ensure that this first case below
+    -- never occurs
+    (False, _) -> throwError (TypeInferenceError x)
+    (True, Nothing) -> throwError (TypeMismatchError x (SomeType tp)
+                                                       (Just $ SomeType tp'))
+    (True, Just Refl) -> pure x'
 
 -- | Check that a list of expressions have the respective types of a list of
 -- types. Returns 'Nothing' if the function is given a different number of
@@ -599,21 +596,56 @@ enumElemIndex cs (L p s)
   | Some s' <- someSymbol s, Just i <- elemIndex s' cs = pure (Some i)
   | otherwise = throwError $
       TypeMismatchError (L p (S.EnumLit (L p s)))
-                        (SomeType (T.SetRepr cs)) Nothing
+                        (SomeType (T.EnumRepr cs)) Nothing
+
+data FieldIndex (ftps :: Ctx (Symbol, T.Type)) (nm :: Symbol) where
+  FieldIndex :: SymbolRepr nm -> InferredTypeRepr tp -> Index ftps '(nm, tp)
+             -> FieldIndex ftps nm
+
+-- | Given a field name and an assignment of inferred field types, tries to
+-- find the field with that name and returns its inferred type and index.
+-- Adapted from 'elemIndex'.
+getFieldIndex :: SymbolRepr nm
+              -> Assignment InferredFieldRepr ftps
+              -> Maybe (FieldIndex ftps nm)
+getFieldIndex s iftps
+  | Left fi <- traverseAndCollect (go s) iftps = Just fi
+  | otherwise = Nothing
+  where go :: SymbolRepr nm -> Index ftps pr -> InferredFieldRepr pr
+           -> Either (FieldIndex ftps nm) ()
+        go nm i (InfFTp (ClField tpc) (FieldRepr nm' tp))
+          | Just Refl <- testEquality nm nm'
+          = Left (FieldIndex nm' (InfTp tpc tp) i)
+          | otherwise = Right ()
+
+-- | Given an index into a context of field types, a field, and an assignment
+-- of field types, sets the field in the assignment at that index to the field
+-- given, and returns the new index to that field.
+setFieldIndex :: Index ftps '(nm, tp)
+              -> (SymbolRepr nm, T.TypeRepr tp')
+              -> Assignment FieldRepr ftps
+              -> Pair (Assignment FieldRepr) (Flip Index '(nm, tp'))
+setFieldIndex i (nm, tp') ftps = case (viewIndex (size ftps) i, ftps) of
+  (IndexViewLast sz, ftps' :> _) ->
+    Pair (ftps' :> FieldRepr nm tp') (Flip $ nextIndex sz)
+  (IndexViewInit i', ftps' :> ftp)
+    | Pair ftps'' (Flip i'') <- setFieldIndex i' (nm, tp') ftps'
+    -> Pair (ftps'' :> ftp) (Flip $ skipIndex i'')
 
 
--- Type inference and checking for field instances
+
+-- ** Type inference and checking for field instances
 
 -- | Infer the type of a field expression in a struct expression.
 tcInferField :: EnumNameSet
              -> Assignment T.FunctionTypeRepr env 
              -> Assignment ContextElem ctx
              -> (LText, S.LExpr)
-             -> TCM2 env (Bool, Pair FieldRepr (FieldInst (E.Expr env ctx)))
+             -> TCM2 env (Pair InferredFieldRepr (FieldInst (E.Expr env ctx)))
 tcInferField enms env ctx (L _ s, x) = do
-  (isGuess, Pair tp x') <- tcInferExpr enms env ctx x
+  Pair (InfTp tpc tp) x' <- tcInferExpr enms env ctx x
   Some s' <- pure $ someSymbol s
-  pure $ (isGuess, Pair (FieldRepr s' tp) (E.FieldInst s' tp x'))
+  pure $ Pair (InfFTp (ClField tpc) (FieldRepr s' tp)) (E.FieldInst s' tp x')
 
 -- | Check that a list of fields have the respective types of a list of
 -- types. Returns 'Nothing' if the function is given a different number of
@@ -639,81 +671,276 @@ tcFields enms env ctx (ftps :> FieldRepr s1 tp) ((L p s2, x):fvs) = do
 tcFields _ _ _ _ _ = pure Nothing
 
 
--- Unification of type guesses
 
-data SomeNonAbstractType where
-  SomeNonAbsTp :: NonAbstract tp
-               => TypeRepr tp -> SomeNonAbstractType
+-- * Inferred types
 
--- | Given guesses for the types of two terms, try to produce a single type
--- which is a valid guess for the type of both terms.
+-- | When inferring the type of an enum or set literal, we may not have enough
+-- information to infer its full type, and want some way to express that the
+-- inferred type may be incomplete. We call such types "open", with the
+-- antonym "closed" referring to types which are the result of inference,
+-- but are known to be complete (e.g. the inferred type of a variable). This
+-- datatype captures that distinction - enum and set types may be either open
+-- or closed, struct types remember the open-ness of each of their fields, and
+-- bool, int, and abstract types are always closed.
+data IsClosed tp where
+  ClBool   :: IsClosed BoolType
+  ClInt    :: IsClosed IntType
+  ClEnum   :: Bool -> IsClosed (EnumType cs)
+  ClSet    :: Bool -> IsClosed (SetType cs)
+  ClStruct :: Assignment IsClosedField ftps -> IsClosed (StructType ftps)
+  ClAbs    :: IsClosed (AbsType s)
+deriving instance Show (IsClosed tp)
+instance ShowF IsClosed
+
+data IsClosedField p where
+  ClField  :: IsClosed tp -> IsClosedField '(nm, tp)
+deriving instance Show (IsClosedField p)
+instance ShowF IsClosedField
+
+-- | An 'InferredTypeRepr' is a 'TypeRepr' along with whether the type is open
+-- or closed ('IsClosed').
+data InferredTypeRepr tp where
+  InfTp :: IsClosed tp -> T.TypeRepr tp -> InferredTypeRepr tp
+deriving instance Show (InferredTypeRepr tp)
+instance ShowF InferredTypeRepr
+
+-- Some useful pattern synonyms, which we unfortunately we have to give
+-- type signatures for (otherwise GHC will generate a lot of warnings)
+pattern ClosedBoolRepr :: () => tp ~ BoolType => InferredTypeRepr tp
+pattern ClosedIntRepr  :: () => tp ~ IntType  => InferredTypeRepr tp
+pattern ClosedEnumRepr :: () => (1 <= CtxSize cs, tp ~ EnumType cs)
+                       => Assignment SymbolRepr cs
+                       -> InferredTypeRepr tp
+pattern OpenEnumRepr   :: () => (1 <= CtxSize cs, tp ~ EnumType cs)
+                       => Assignment SymbolRepr cs
+                       -> InferredTypeRepr tp
+pattern ClosedSetRepr  :: () => (1 <= CtxSize cs, tp ~ SetType cs )
+                       => Assignment SymbolRepr cs
+                       -> InferredTypeRepr tp
+pattern OpenSetRepr    :: () => (1 <= CtxSize cs, tp ~ SetType cs )
+                       => Assignment SymbolRepr cs
+                       -> InferredTypeRepr tp
+pattern ClosedAbsRepr  :: () => tp ~ AbsType s 
+                       => SymbolRepr s -> InferredTypeRepr tp
+pattern ClosedBoolRepr    = InfTp ClBool T.BoolRepr
+pattern ClosedIntRepr     = InfTp ClInt  T.IntRepr
+pattern ClosedEnumRepr cs = InfTp (ClEnum True ) (T.EnumRepr cs)
+pattern OpenEnumRepr   cs = InfTp (ClEnum False) (T.EnumRepr cs)
+pattern ClosedSetRepr  cs = InfTp (ClSet  True ) (T.SetRepr  cs)
+pattern OpenSetRepr    cs = InfTp (ClSet  False) (T.SetRepr  cs)
+pattern ClosedAbsRepr  s  = InfTp ClAbs (T.AbsRepr s)
+
+-- | The closed 'InferredTypeRepr' for any type
+closed :: TypeRepr tp -> InferredTypeRepr tp
+closed BoolRepr          = ClosedBoolRepr
+closed IntRepr           = ClosedIntRepr
+closed (EnumRepr cs)     = ClosedEnumRepr cs
+closed (SetRepr  cs)     = ClosedSetRepr  cs
+closed (AbsRepr  s)      = ClosedAbsRepr  s
+closed (StructRepr ftps) = InfTp (ClStruct (fmapFC closedField ftps))
+                                 (StructRepr ftps)
+  where closedField :: FieldRepr p -> IsClosedField p
+        closedField (FieldRepr _ tp) | InfTp tpc _ <- closed tp = ClField tpc
+
+-- | Returns true iff the given type is closed, where struct types are only
+-- considered closed if all of their fields are.
+isClosed :: IsClosed tp -> Bool
+isClosed ClBool          = True
+isClosed ClInt           = True
+isClosed (ClEnum b)      = b
+isClosed (ClSet  b)      = b
+isClosed (ClStruct ftps) = and (toListFC (\(ClField tpc) -> isClosed tpc) ftps)
+isClosed ClAbs           = True
+
+data InferredFieldRepr p where
+  InfFTp :: IsClosedField p -> T.FieldRepr p -> InferredFieldRepr p
+deriving instance Show (InferredFieldRepr p)
+instance ShowF InferredFieldRepr
+
+-- | A nicer way to construct things of type
+-- @'InferredTypeRepr' ('StructType' ftps)@
+infStructRepr :: Assignment InferredFieldRepr ftps
+              -> InferredTypeRepr (StructType ftps)
+infStructRepr iftps
+  | (ftpcs, ftps) <- unzipInfTps iftps
+  = InfTp (ClStruct ftpcs) (StructRepr ftps)
+  where unzipInfTps :: Assignment InferredFieldRepr ftps
+                    -> ( Assignment IsClosedField ftps
+                       , Assignment FieldRepr ftps )
+        unzipInfTps Empty = (Empty, Empty)
+        unzipInfTps (itps :> InfFTp tpc tp)
+          | (tpcs, tps) <- unzipInfTps itps = (tpcs :> tpc, tps :> tp)
+
+-- ** Unification of inferred types
+
+-- | Two expressions of the same inferred type, existentially quantified
+data SameExprType env ctx where
+  SameExprType :: NonAbstract tp => InferredTypeRepr tp
+               -> E.Expr env ctx tp -> E.Expr env ctx tp
+               -> SameExprType env ctx
+
+unifyExprTypes :: (NonAbstract tp1, NonAbstract tp2)
+               => Assignment T.FunctionTypeRepr env
+               -> Assignment ContextElem ctx
+               -> (InferredTypeRepr tp1, E.Expr env ctx tp1, EnumNameSet, S.LExpr)
+               -> (InferredTypeRepr tp2, E.Expr env ctx tp2, EnumNameSet, S.LExpr)
+               -> TCM2 env (SameExprType env ctx)
+unifyExprTypes env ctx (xitp@(InfTp xtpc xtp), x', x_enms, x)
+                       (yitp@(InfTp ytpc ytp), y', y_enms, y) =
+  case (testEquality xtp ytp, isClosed xtpc, isClosed ytpc) of
+    (Just Refl, _, _) -> pure $ SameExprType xitp x' y'
+    (_, True, False) -> do
+      y'' <- tcExpr y_enms env ctx xtp y
+      pure $ SameExprType xitp x' y''
+    (_, False, True) -> do
+      x'' <- tcExpr x_enms env ctx ytp x
+      pure $ SameExprType yitp x'' y'
+    (_, False, False)
+      | Just (Pair uni_itp@(InfTp _ uni_tp) IsNonAbs) <- unifyTypes xitp yitp
+      -> do { x'' <- tcExpr x_enms env ctx uni_tp x
+            ; y'' <- tcExpr y_enms env ctx uni_tp y
+            ; pure $ SameExprType uni_itp x'' y''
+            } `catchError` (const $ throwError uni_error)
+            -- this ^ error case should never occur, but GHC doesn't know that
+    _ -> throwError uni_error
+    where uni_error = TypeUnificationError x (SomeType xtp) y (SomeType ytp)
+
+-- | A 'TypeRepr' constructor which involves enum names, i.e. 'EnumRepr' or
+-- 'SetRepr'
+newtype EnumCon f = EnumCon (forall cs. 1 <= CtxSize cs =>
+                               Assignment SymbolRepr cs -> TypeRepr (f cs))
+
+-- | Two expressions with types involving the same set of enum names,
+-- existentially quantified
+data SameEnumType env ctx f1 f2 where
+  SameEnumType :: 1 <= CtxSize cs => Assignment SymbolRepr cs
+               -> E.Expr env ctx (f1 cs)
+               -> E.Expr env ctx (f2 cs)
+               -> SameEnumType env ctx f1 f2
+
+unifyEnumTypes :: (1 <= CtxSize cs1, 1 <= CtxSize cs2)
+               => Assignment T.FunctionTypeRepr env
+               -> Assignment ContextElem ctx
+               -> ( Bool, Assignment SymbolRepr cs1
+                  , E.Expr env ctx (f1 cs1), EnumNameSet, S.LExpr
+                  , EnumCon f1 )
+               -> ( Bool, Assignment SymbolRepr cs2
+                  , E.Expr env ctx (f2 cs2), EnumNameSet, S.LExpr
+                  , EnumCon f2 )
+               -> TCM2 env (SameEnumType env ctx f1 f2)
+unifyEnumTypes env ctx (xIsCl, xcs, x', x_enms, x, EnumCon xf)
+                       (yIsCl, ycs, y', y_enms, y, EnumCon yf) =
+  case (testEquality xcs ycs, xIsCl, yIsCl) of
+    (Just Refl, _, _) -> pure $ SameEnumType xcs x' y'
+    (_, True, False) -> do
+      y'' <- tcExpr y_enms env ctx (yf xcs) y
+      pure $ SameEnumType xcs x' y''
+    (_, False, True) -> do
+      x'' <- tcExpr x_enms env ctx (xf ycs) x
+      pure $ SameEnumType ycs x'' y'
+    (_, False, False)
+      | Pair uni_cs NonEmpty <- unifyEnumNames xcs ycs
+      -> do { x'' <- tcExpr x_enms env ctx (xf uni_cs) x
+            ; y'' <- tcExpr y_enms env ctx (yf uni_cs) y
+            ; pure $ SameEnumType uni_cs x'' y''
+            } `catchError` (const $ throwError uni_error)
+    _ -> throwError uni_error
+  where uni_error = EnumSetUnificationError x (SomeType (xf xcs))
+                                            y (SomeType (yf xcs))
+
+-- | Given the inferred types of two terms, try to produce a single inferred
+-- type which is a valid for both terms, using whether the given types are
+-- open or closed.
 unifyTypes :: (NonAbstract tp1, NonAbstract tp2)
-           => TypeRepr tp1 -> TypeRepr tp2 -> Maybe SomeNonAbstractType
+           => InferredTypeRepr tp1
+           -> InferredTypeRepr tp2
+           -> Maybe (Pair InferredTypeRepr IsNonAbstract)
 
-unifyTypes T.BoolRepr T.BoolRepr = Just $ SomeNonAbsTp T.BoolRepr
-unifyTypes T.IntRepr  T.IntRepr  = Just $ SomeNonAbsTp T.IntRepr 
+unifyTypes ClosedBoolRepr ClosedBoolRepr = pure $ Pair ClosedBoolRepr IsNonAbs
+unifyTypes ClosedIntRepr  ClosedIntRepr  = pure $ Pair ClosedIntRepr  IsNonAbs
 
-unifyTypes (T.EnumRepr cs1) (T.EnumRepr cs2)
-  | SomeNonEmptySyms uni_cs <- unifyEnumNames cs1 cs2
-  = Just $ SomeNonAbsTp (T.EnumRepr uni_cs)
-unifyTypes (T.SetRepr  cs1) (T.SetRepr  cs2)
-  | SomeNonEmptySyms uni_cs <- unifyEnumNames cs1 cs2
-  = Just $ SomeNonAbsTp (T.SetRepr  uni_cs)
+unifyTypes (ClosedEnumRepr cs1) (ClosedEnumRepr cs2)
+  | Just Refl <- testEquality cs1 cs2
+  = pure $ Pair (ClosedEnumRepr cs1) IsNonAbs
+unifyTypes (ClosedEnumRepr cs1) (OpenEnumRepr cs2)
+  | [] <- (toEnumNameList cs2) \\ (toEnumNameList cs1)
+  = pure $ Pair (ClosedEnumRepr cs1) IsNonAbs
+unifyTypes (OpenEnumRepr cs1) (ClosedEnumRepr cs2)
+  | [] <- (toEnumNameList cs1) \\ (toEnumNameList cs2)
+  = pure $ Pair (ClosedEnumRepr cs2) IsNonAbs
+unifyTypes (OpenEnumRepr cs1) (OpenEnumRepr cs2)
+  | Pair cs NonEmpty <- unifyEnumNames cs1 cs2
+  = pure $ Pair (OpenEnumRepr cs) IsNonAbs
 
-unifyTypes (T.StructRepr ftps1) (T.StructRepr ftps2) = do
-  let uni_ftps_map = H.unionWith (bind2 unifyFields) (toFieldMap ftps1)
-                                                     (toFieldMap ftps2)
-  SomeNonAbsFlds uni_ftps <- toNonAbstractFields <$> sequence (H.elems uni_ftps_map)
-  Just $ SomeNonAbsTp (T.StructRepr uni_ftps)
-  where toFieldMap :: NonAbstract ftps
-                   => Assignment FieldRepr ftps
-                   -> H.HashMap Text (Maybe SomeNonAbstractField)
-        toFieldMap Empty = H.empty
-        toFieldMap (ftps :> ftp@(FieldRepr f _))
-          = H.insert (symbolRepr f) (Just (SomeNonAbsFld ftp)) (toFieldMap ftps)
+unifyTypes (ClosedSetRepr cs1) (ClosedSetRepr cs2)
+  | Just Refl <- testEquality cs1 cs2
+  = pure $ Pair (ClosedSetRepr cs1) IsNonAbs
+unifyTypes (ClosedSetRepr cs1) (OpenSetRepr cs2)
+  | [] <- (toEnumNameList cs2) \\ (toEnumNameList cs1)
+  = pure $ Pair (ClosedSetRepr cs1) IsNonAbs
+unifyTypes (OpenSetRepr cs1) (ClosedSetRepr cs2)
+  | [] <- (toEnumNameList cs1) \\ (toEnumNameList cs2)
+  = pure $ Pair (ClosedSetRepr cs2) IsNonAbs
+unifyTypes (OpenSetRepr cs1) (OpenSetRepr cs2)
+  | Pair cs NonEmpty <- unifyEnumNames cs1 cs2
+  = pure $ Pair (OpenSetRepr cs) IsNonAbs
+
+unifyTypes (InfTp (ClStruct ftpcs1) (T.StructRepr ftps1))
+           (InfTp (ClStruct ftpcs2) (T.StructRepr ftps2)) = do
+  Pair ftps IsNonAbs <- unifyFields (zipWith InfFTp ftpcs1 ftps1)
+                                    (zipWith InfFTp ftpcs2 ftps2)
+  pure $ Pair (infStructRepr ftps) IsNonAbs
 
 unifyTypes _ _ = Nothing
 
+-- | Given the inferred types of two fields, try to produce a single inferred
+-- field type which is a valid for both fields, using the field names and
+-- whether the given types are open or closed.
+unifyFields :: (NonAbstract ftps1, NonAbstract ftps2)
+            => Assignment InferredFieldRepr ftps1
+            -> Assignment InferredFieldRepr ftps2
+            -> Maybe (Pair (Assignment InferredFieldRepr) IsNonAbstract)
+unifyFields Empty Empty = pure $ Pair Empty IsNonAbs
+unifyFields (ftps1 :> InfFTp (ClField tpc1) (FieldRepr nm1 tp1))
+            (ftps2 :> InfFTp (ClField tpc2) (FieldRepr nm2 tp2)) = do
+  Refl                         <- testEquality nm1 nm2
+  Pair (InfTp tpc tp) IsNonAbs <- unifyTypes (InfTp tpc1 tp1) (InfTp tpc2 tp2)
+  Pair ftps IsNonAbs           <- unifyFields ftps1 ftps2
+  pure $ Pair (ftps :> InfFTp (ClField tpc) (FieldRepr nm1 tp)) IsNonAbs
+unifyFields _ _ = Nothing
 
-data SomeNonAbstractField where
-  SomeNonAbsFld :: NonAbstract tp => FieldRepr '(nm, tp)
-                -> SomeNonAbstractField
+-- | A witness that the given context of symbols is nonempty
+data NonEmpty (cs :: Ctx Symbol) where
+  NonEmpty :: 1 <= CtxSize cs => NonEmpty cs
 
--- | Given guesses for the types of two fields with the same name, try to
--- produce a single type which is a valid guess for the type of both fields.
-unifyFields :: SomeNonAbstractField -> SomeNonAbstractField
-            -> Maybe SomeNonAbstractField
-unifyFields (SomeNonAbsFld (FieldRepr f tp1)) (SomeNonAbsFld (FieldRepr _ tp2))
-  = (\(SomeNonAbsTp uni_tp) -> SomeNonAbsFld (FieldRepr f uni_tp)) <$> unifyTypes tp1 tp2
-
-data SomeNonAbstractFields where
-  SomeNonAbsFlds :: NonAbstract ftps
-                 => Assignment FieldRepr ftps
-                 -> SomeNonAbstractFields
-
-toNonAbstractFields :: [SomeNonAbstractField] -> SomeNonAbstractFields
-toNonAbstractFields [] = SomeNonAbsFlds Empty
-toNonAbstractFields (SomeNonAbsFld ftp : ftps)
-  | SomeNonAbsFlds ftps' <- toNonAbstractFields ftps
-  = SomeNonAbsFlds (ftps' :> ftp)
-
-
-data SomeNonEmptySymbols where
-  SomeNonEmptySyms :: 1 <= CtxSize cs
-                   => Assignment SymbolRepr cs -> SomeNonEmptySymbols
-
--- | The union of two nonempty 'Assignment SymbolRepr', ignoring empty
--- symbols (`knownSymbol @""`) unless both given assignments consist only of
--- empty symbols, in which case the resulting assignment consists only of
--- empty symbols.
+-- | The union of two nonempty 'Assignment SymbolRepr', using 'toEnumNameList'
+-- and 'fromEnumNameList'
 unifyEnumNames :: (1 <= CtxSize cs1, 1 <= CtxSize cs2)
                => Assignment SymbolRepr cs1 -> Assignment SymbolRepr cs2
-               -> SomeNonEmptySymbols
-unifyEnumNames cs1 cs2 =
-  let uni_cs_list = filter (\s -> s /= Some (knownSymbol @""))
-                           (union (toListFC Some cs1) (toListFC Some cs2))
-   in case fromList uni_cs_list of
-        Some uni_cs ->
-          case decideLeq (knownNat @1) (ctxSizeNat (size uni_cs)) of
-            Left LeqProof -> SomeNonEmptySyms uni_cs
-            Right _ -> SomeNonEmptySyms (Empty :> knownSymbol @"")
+               -> Pair (Assignment SymbolRepr) NonEmpty
+unifyEnumNames cs1 cs2 = 
+  fromEnumNameList ((toEnumNameList cs1) `union` (toEnumNameList cs2))
+
+-- | Given a list of enum names, return a non-empty assignment of symbols -
+-- where if the given list is empty, return an assignment consisting of
+-- an empty symbol (`knownSymbol @""``).
+-- This is a terrible hack, only necessary because 'SetRepr' demands that the
+-- given list of names is nonempty but we want to be able to infer a type of
+-- the empty set with no other information.
+fromEnumNameList :: [Some SymbolRepr] -> Pair (Assignment SymbolRepr) NonEmpty
+fromEnumNameList cs_list | Some cs <- fromList cs_list =
+  case decideLeq (knownNat @1) (ctxSizeNat (size cs)) of
+    Left LeqProof -> Pair cs NonEmpty
+    Right _ -> Pair (Empty :> knownSymbol @"") NonEmpty
+
+-- | The inverse of 'fromEnumNameList' - thus, in particular, the resulting
+-- list has all empty symbols filtered out
+toEnumNameList :: Assignment SymbolRepr cs -> [Some SymbolRepr]
+toEnumNameList = filter (\s -> s /= Some (knownSymbol @"")) . toListFC Some
+
+-- | Like `toEnumNameList`, but instead returns the index of each symbol in the
+-- given assignment instead of the symbol itself.
+enumSetIndices :: Assignment SymbolRepr cs -> [Some (Index cs)]
+enumSetIndices = catMaybes . toListWithIndex go
+  where go i s | Some s == Some (knownSymbol @"") = Nothing
+               | otherwise = Just (Some i)
