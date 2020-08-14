@@ -104,11 +104,15 @@ tokens :-
     "*"           { tok TIMES }
     "/"           { tok DIV }
     "%"           { tok MOD }
+    abs           { tok ABS }
     "|"           { tok OR }
     "&"           { tok AND }
     "^"           { tok XOR }
     in            { tok IN }
     notin         { tok NOTIN }
+    nonempty      { tok NONEMPTY }
+    size          { tok SIZE }
+    "\"           { tok DIFFERENCE }
     "=>"          { tok IMPLIES }
     "<=>"         { tok IFF }
     "!"           { tok NOT }
@@ -169,11 +173,15 @@ data TokenType = BOOL
                | TIMES
                | MOD
                | DIV
+               | ABS
                | OR
                | AND
                | XOR
                | IN
                | NOTIN
+               | NONEMPTY
+               | SIZE
+               | DIFFERENCE
                | IMPLIES
                | IFF
                | NOT

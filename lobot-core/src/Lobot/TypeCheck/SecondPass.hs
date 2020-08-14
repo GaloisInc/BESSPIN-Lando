@@ -415,6 +415,9 @@ tcInferExpr enms env ctx (L _ (S.DivExpr x y)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   y' <- tcExpr enms env ctx T.IntRepr y
   pure $ Pair ClosedIntRepr (E.DivExpr x' y')
+tcInferExpr enms env ctx (L _ (S.AbsExpr x)) = do
+  x' <- tcExpr enms env ctx T.IntRepr x
+  pure $ Pair ClosedIntRepr (E.AbsExpr x')
 tcInferExpr enms env ctx (L _ (S.NegExpr x)) = do
   x' <- tcExpr enms env ctx T.IntRepr x
   pure $ Pair ClosedIntRepr (E.NegExpr x')
@@ -428,7 +431,7 @@ tcInferExpr enms env ctx (L _ (S.MemberExpr x y)) = do
   case (xtpc, xtp, ytpc, ytp) of
     (ClEnum xIsCl, T.EnumRepr xcs, ClSet yIsCl, T.SetRepr ycs) -> do
       -- ensure that the types of @x@ and @y@ use the same set of enum names
-      SameEnumType _ x'' y'' <-
+      SameEnumType _ _ x'' y'' <-
         unifyEnumTypes env ctx (xIsCl, xcs, x', x_enms, x, EnumCon T.EnumRepr)
                                (yIsCl, ycs, y', y_enms, y, EnumCon T.SetRepr)
       pure $ Pair ClosedBoolRepr (E.MemberExpr x'' y'')
@@ -448,7 +451,7 @@ tcInferExpr enms env ctx (L _ (S.NotMemberExpr x y)) = do
   case (xtpc, xtp, ytpc, ytp) of
     (ClEnum xIsCl, T.EnumRepr xcs, ClSet yIsCl, T.SetRepr ycs) -> do
       -- ensure that the types of @x@ and @y@ use the same set of enum names
-      SameEnumType _ x'' y'' <-
+      SameEnumType _ _ x'' y'' <-
         unifyEnumTypes env ctx (xIsCl, xcs, x', x_enms, x, EnumCon T.EnumRepr)
                                (yIsCl, ycs, y', y_enms, y, EnumCon T.SetRepr)
       pure $ Pair ClosedBoolRepr (E.NotMemberExpr x'' y'')
@@ -458,19 +461,89 @@ tcInferExpr enms env ctx (L _ (S.NotMemberExpr x y)) = do
                                       (Just $ SomeType ytp))
     (_,_,_,_) -> throwError (TypeMismatchError x (TypeString "an enum")
                                                  (Just $ SomeType xtp))
+-- this is mostly the same as both of the above
+tcInferExpr enms env ctx (L _ (S.SubsetExpr x y)) = do
+  x_enms <- HS.union enms <$> addlEnms y
+  y_enms <- HS.union enms <$> addlEnms x
+  Pair (InfTp xtpc xtp) x' <- tcInferExpr x_enms env ctx x
+  Pair (InfTp ytpc ytp) y' <- tcInferExpr y_enms env ctx y
+  -- ensure that @x@ and @y@ are both sets
+  case (xtpc, xtp, ytpc, ytp) of
+    (ClSet xIsCl, T.SetRepr xcs, ClSet yIsCl, T.SetRepr ycs) -> do
+      -- ensure that the types of @x@ and @y@ use the same set of enum names
+      SameEnumType _ _ x'' y'' <-
+        unifyEnumTypes env ctx (xIsCl, xcs, x', x_enms, x, EnumCon T.SetRepr)
+                               (yIsCl, ycs, y', y_enms, y, EnumCon T.SetRepr)
+      pure $ Pair ClosedBoolRepr (E.SubsetExpr x'' y'')
+    -- error accordingly if either @x@ or @y@ isn't a set
+    (_, T.SetRepr _, _, _) ->
+      throwError (TypeMismatchError y (TypeString "a set")
+                                      (Just $ SomeType ytp))
+    (_,_,_,_) -> throwError (TypeMismatchError x (TypeString "a set")
+                                                 (Just $ SomeType xtp))
+-- again, mostly the same as the above
+tcInferExpr enms env ctx (L _ (S.DiffExpr x y)) = do
+  x_enms <- HS.union enms <$> addlEnms y
+  y_enms <- HS.union enms <$> addlEnms x
+  Pair (InfTp xtpc xtp) x' <- tcInferExpr x_enms env ctx x
+  Pair (InfTp ytpc ytp) y' <- tcInferExpr y_enms env ctx y
+  -- ensure that @x@ and @y@ are both sets
+  case (xtpc, xtp, ytpc, ytp) of
+    (ClSet xIsCl, T.SetRepr xcs, ClSet yIsCl, T.SetRepr ycs) -> do
+      -- ensure that the types of @x@ and @y@ use the same set of enum names
+      SameEnumType csc cs x'' y'' <-
+        unifyEnumTypes env ctx (xIsCl, xcs, x', x_enms, x, EnumCon T.SetRepr)
+                               (yIsCl, ycs, y', y_enms, y, EnumCon T.SetRepr)
+      pure $ Pair (InfTp (ClSet csc) (T.SetRepr cs)) (E.DiffExpr x'' y'')
+    -- error accordingly if either @x@ or @y@ isn't a set
+    (_, T.SetRepr _, _, _) ->
+      throwError (TypeMismatchError y (TypeString "a set")
+                                      (Just $ SomeType ytp))
+    (_,_,_,_) -> throwError (TypeMismatchError x (TypeString "a set")
+                                                 (Just $ SomeType xtp))
 
-tcInferExpr enms env ctx (L _ (S.AndExpr x y)) = do
-  x' <- tcExpr enms env ctx T.BoolRepr x
-  y' <- tcExpr enms env ctx T.BoolRepr y
-  pure $ Pair ClosedBoolRepr (E.AndExpr x' y')
-tcInferExpr enms env ctx (L _ (S.OrExpr x y)) = do
-  x' <- tcExpr enms env ctx T.BoolRepr x
-  y' <- tcExpr enms env ctx T.BoolRepr y
-  pure $ Pair ClosedBoolRepr (E.OrExpr x' y')
-tcInferExpr enms env ctx (L _ (S.XorExpr x y)) = do
-  x' <- tcExpr enms env ctx T.BoolRepr x
-  y' <- tcExpr enms env ctx T.BoolRepr y
-  pure $ Pair ClosedBoolRepr (E.XorExpr x' y')
+tcInferExpr enms env ctx (L _ (S.NonEmptyExpr x)) = do
+  Pair (InfTp _ xtp) x' <- tcInferExpr enms env ctx x
+  case xtp of
+    T.SetRepr _ -> pure $ Pair ClosedBoolRepr (E.NonEmptyExpr x')
+    _ -> throwError (TypeMismatchError x (TypeString "a set")
+                                         (Just $ SomeType xtp))
+tcInferExpr enms env ctx (L _ (S.SizeExpr x)) = do
+  Pair (InfTp _ xtp) x' <- tcInferExpr enms env ctx x
+  case xtp of
+    T.SetRepr _ -> pure $ Pair ClosedIntRepr (E.SizeExpr x')
+    _ -> throwError (TypeMismatchError x (TypeString "a set")
+                                         (Just $ SomeType xtp))
+
+tcInferExpr enms env ctx (L _ (S.AndExpr x y)) =
+  tcInferBoolOrSetBinOp enms env ctx x y >>= \case
+    Left (x', y') ->
+      pure $ Pair ClosedBoolRepr (E.AndExpr x' y')
+    Right (SameEnumType csc cs x' y') ->
+      pure $ Pair (InfTp (ClSet csc) (T.SetRepr cs)) (E.IntersectExpr x' y')
+tcInferExpr enms env ctx (L _ (S.OrExpr x y)) = 
+  tcInferBoolOrSetBinOp enms env ctx x y >>= \case
+    Left (x', y') ->
+      pure $ Pair ClosedBoolRepr (E.OrExpr x' y')
+    Right (SameEnumType csc cs x' y') ->
+      pure $ Pair (InfTp (ClSet csc) (T.SetRepr cs)) (E.UnionExpr x' y')
+tcInferExpr enms env ctx (L _ (S.XorExpr x y)) = 
+  tcInferBoolOrSetBinOp enms env ctx x y >>= \case
+    Left (x', y') ->
+      pure $ Pair ClosedBoolRepr (E.XorExpr x' y')
+    Right (SameEnumType csc cs x' y') ->
+      pure $ Pair (InfTp (ClSet csc) (T.SetRepr cs)) (E.SymDiffExpr x' y')
+
+tcInferExpr enms env ctx (L _ (S.NotExpr x)) = do
+  Pair (InfTp xtpc xtp) x' <- tcInferExpr enms env ctx x
+  case (xtpc, xtp) of
+    (ClBool, T.BoolRepr) ->
+      pure $ Pair ClosedBoolRepr (E.NotExpr x')
+    (ClSet xcsc, T.SetRepr xcs) ->
+      pure $ Pair (InfTp (ClSet xcsc) (T.SetRepr xcs)) (E.ComplementExpr x')
+    _ -> throwError (TypeMismatchError x (TypeString "a boolean or set")
+                                         (Just $ SomeType xtp))
+
 tcInferExpr enms env ctx (L _ (S.ImpliesExpr x y)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
   y' <- tcExpr enms env ctx T.BoolRepr y
@@ -479,9 +552,6 @@ tcInferExpr enms env ctx (L _ (S.IffExpr x y)) = do
   x' <- tcExpr enms env ctx T.BoolRepr x
   y' <- tcExpr enms env ctx T.BoolRepr y
   pure $ Pair ClosedBoolRepr (E.IffExpr x' y')
-tcInferExpr enms env ctx (L _ (S.NotExpr x)) = do
-  x' <- tcExpr enms env ctx T.BoolRepr x
-  pure $ Pair ClosedBoolRepr (E.NotExpr x')
 
 -- in the 'S.IsInstance' case, get the list of derived constraints of the
 -- given type and return the expression which is the conjunction of all of
@@ -493,6 +563,41 @@ tcInferExpr enms env ctx (L _ (S.IsInstanceExpr x tp)) = do
   let res = if null dcns' then E.LiteralExpr (E.BoolLit True)
                           else foldr1 E.AndExpr (giveSelf x' <$> dcns')
   pure $ Pair ClosedBoolRepr res
+
+tcInferBoolOrSetBinOp :: EnumNameSet
+                      -> Assignment T.FunctionTypeRepr env
+                      -> Assignment ContextElem ctx
+                      -> S.LExpr -> S.LExpr
+                      -> TCM2 env (Either ( E.Expr env ctx BoolType
+                                          , E.Expr env ctx BoolType )
+                                          (SameEnumType env ctx SetType SetType))
+tcInferBoolOrSetBinOp enms env ctx x y = do
+  x_enms <- HS.union enms <$> addlEnms y
+  y_enms <- HS.union enms <$> addlEnms x
+  Pair (InfTp xtpc xtp) x' <- tcInferExpr x_enms env ctx x
+  Pair (InfTp ytpc ytp) y' <- tcInferExpr y_enms env ctx y
+  -- ensure that @x@ and @y@ are either both booleans, or both sets
+  case (xtpc, xtp, ytpc, ytp) of
+    (ClBool, T.BoolRepr, ClBool, T.BoolRepr) -> pure $ Left (x', y')
+    (ClSet xIsCl, T.SetRepr xcs, ClSet yIsCl, T.SetRepr ycs) -> Right <$>
+      -- ensure that the types of @x@ and @y@ use the same set of enum names
+      unifyEnumTypes env ctx (xIsCl, xcs, x', x_enms, x, EnumCon T.SetRepr)
+                             (yIsCl, ycs, y', y_enms, y, EnumCon T.SetRepr)
+    -- error accordingly if @x@ and @y@ don't have the right types
+    (_, T.BoolRepr, _, _) ->
+      throwError (TypeMismatchError y (SomeType T.BoolRepr)
+                                      (Just $ SomeType ytp))
+    (_, _, _, T.BoolRepr) ->
+      throwError (TypeMismatchError x (SomeType T.BoolRepr)
+                                      (Just $ SomeType xtp))
+    (_, T.SetRepr _, _, _) ->
+      throwError (TypeMismatchError y (TypeString "a set")
+                                      (Just $ SomeType ytp))
+    (_, _, _, T.SetRepr _) ->
+      throwError (TypeMismatchError x (TypeString "a set")
+                                      (Just $ SomeType xtp))
+    (_,_,_,_) -> throwError (TypeMismatchError x (TypeString "a boolean or set")
+                                                 (Just $ SomeType xtp)) 
 
 -- | Check that the type of an expression is equal to some known type.
 tcExpr :: EnumNameSet
@@ -813,7 +918,7 @@ newtype EnumCon f = EnumCon (forall cs. 1 <= CtxSize cs =>
 -- | Two expressions with types involving the same set of enum names,
 -- existentially quantified
 data SameEnumType env ctx f1 f2 where
-  SameEnumType :: 1 <= CtxSize cs => Assignment SymbolRepr cs
+  SameEnumType :: 1 <= CtxSize cs => Bool -> Assignment SymbolRepr cs
                -> E.Expr env ctx (f1 cs)
                -> E.Expr env ctx (f2 cs)
                -> SameEnumType env ctx f1 f2
@@ -831,18 +936,18 @@ unifyEnumTypes :: (1 <= CtxSize cs1, 1 <= CtxSize cs2)
 unifyEnumTypes env ctx (xIsCl, xcs, x', x_enms, x, EnumCon xf)
                        (yIsCl, ycs, y', y_enms, y, EnumCon yf) =
   case (testEquality xcs ycs, xIsCl, yIsCl) of
-    (Just Refl, _, _) -> pure $ SameEnumType xcs x' y'
+    (Just Refl, _, _) -> pure $ SameEnumType (xIsCl || yIsCl) xcs x' y'
     (_, True, False) -> do
       y'' <- tcExpr y_enms env ctx (yf xcs) y
-      pure $ SameEnumType xcs x' y''
+      pure $ SameEnumType True xcs x' y''
     (_, False, True) -> do
       x'' <- tcExpr x_enms env ctx (xf ycs) x
-      pure $ SameEnumType ycs x'' y'
+      pure $ SameEnumType True ycs x'' y'
     (_, False, False)
       | Pair uni_cs NonEmpty <- unifyEnumNames xcs ycs
       -> do { x'' <- tcExpr x_enms env ctx (xf uni_cs) x
             ; y'' <- tcExpr y_enms env ctx (yf uni_cs) y
-            ; pure $ SameEnumType uni_cs x'' y''
+            ; pure $ SameEnumType False uni_cs x'' y''
             } `catchError` (const $ throwError uni_error)
     _ -> throwError uni_error
   where uni_error = EnumSetUnificationError x (SomeType (xf xcs))

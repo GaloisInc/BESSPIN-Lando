@@ -185,12 +185,30 @@ ppExpr' _ env ctx nms (ModExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "%" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (DivExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "/" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (AbsExpr e) =
+  PP.text "abs" PP.<+> ppExpr' False env ctx nms e
 ppExpr' _ env ctx nms (NegExpr e) =
   PP.text "-" PP.<+> ppExpr' False env ctx nms e
 ppExpr' _ env ctx nms (MemberExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "in" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (NotMemberExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "notin" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (SubsetExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "subset" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (NonEmptyExpr e) =
+  PP.text "nonempty" PP.<+> ppExpr' False env ctx nms e
+ppExpr' _ env ctx nms (SizeExpr e) =
+  PP.text "size" PP.<+> ppExpr' False env ctx nms e
+ppExpr' _ env ctx nms (IntersectExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "&" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (UnionExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "|" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (SymDiffExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "^" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (DiffExpr e1 e2) =
+  ppExpr' False env ctx nms e1 PP.<+> PP.text "\\" PP.<+> ppExpr' False env ctx nms e2
+ppExpr' _ env ctx nms (ComplementExpr e) =
+  PP.text "!" PP.<+> ppExpr' False env ctx nms e
 ppExpr' _ env ctx nms (AndExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "&" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (OrExpr e1 e2) =
@@ -201,4 +219,5 @@ ppExpr' _ env ctx nms (ImpliesExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "=>" PP.<+> ppExpr' False env ctx nms e2
 ppExpr' _ env ctx nms (IffExpr e1 e2) =
   ppExpr' False env ctx nms e1 PP.<+> PP.text "<=>" PP.<+> ppExpr' False env ctx nms e2
-ppExpr' _ env ctx nms (NotExpr e) = PP.text "not" PP.<+> ppExpr' False env ctx nms e
+ppExpr' _ env ctx nms (NotExpr e) =
+  PP.text "!" PP.<+> ppExpr' False env ctx nms e

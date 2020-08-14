@@ -349,6 +349,9 @@ symEvalExpr sym symFns symLits e = case e of
     SymLiteral IntRepr sv1 <- symEvalExpr sym symFns symLits e1
     SymLiteral IntRepr sv2 <- symEvalExpr sym symFns symLits e2
     SymLiteral IntRepr <$> WI.intDiv sym sv1 sv2
+  AbsExpr e' -> do
+    SymLiteral IntRepr sv <- symEvalExpr sym symFns symLits e'
+    SymLiteral IntRepr <$> WI.intAbs sym sv
   NegExpr e' -> do
     SymLiteral IntRepr sv <- symEvalExpr sym symFns symLits e'
     SymLiteral IntRepr <$> WI.intNeg sym sv
@@ -364,6 +367,39 @@ symEvalExpr sym symFns symLits e = case e of
     elt_bv_and_set_bv <- WI.bvAndBits sym elt_bv set_bv
     elt_bv_notin_set_bv <- WI.bvNe sym elt_bv elt_bv_and_set_bv
     return $ SymLiteral BoolRepr elt_bv_notin_set_bv
+  SubsetExpr e1 e2 -> do
+    SymLiteral (SetRepr _) bv1 <- symEvalExpr sym symFns symLits e1
+    SymLiteral (SetRepr _) bv2 <- symEvalExpr sym symFns symLits e2
+    bv1_and_bv2 <- WI.bvAndBits sym bv1 bv2
+    bv1_subset_bv2 <- WI.bvEq sym bv1 bv1_and_bv2
+    return $ SymLiteral BoolRepr bv1_subset_bv2
+  NonEmptyExpr e' -> do
+    SymLiteral (SetRepr _) bv <- symEvalExpr sym symFns symLits e'
+    SymLiteral BoolRepr <$> WI.bvIsNonzero sym bv
+  SizeExpr e' -> do
+    SymLiteral (SetRepr _) bv <- symEvalExpr sym symFns symLits e'
+    bv_size <- WI.bvPopcount sym bv
+    SymLiteral IntRepr <$> WI.bvToInteger sym bv_size
+  IntersectExpr e1 e2 -> do
+    SymLiteral (SetRepr cs) bv1 <- symEvalExpr sym symFns symLits e1
+    SymLiteral (SetRepr _) bv2 <- symEvalExpr sym symFns symLits e2
+    SymLiteral (SetRepr cs) <$> WI.bvAndBits sym bv1 bv2
+  UnionExpr e1 e2 -> do
+    SymLiteral (SetRepr cs) bv1 <- symEvalExpr sym symFns symLits e1
+    SymLiteral (SetRepr _) bv2 <- symEvalExpr sym symFns symLits e2
+    SymLiteral (SetRepr cs) <$> WI.bvOrBits sym bv1 bv2
+  SymDiffExpr e1 e2 -> do
+    SymLiteral (SetRepr cs) bv1 <- symEvalExpr sym symFns symLits e1
+    SymLiteral (SetRepr _) bv2 <- symEvalExpr sym symFns symLits e2
+    SymLiteral (SetRepr cs) <$> WI.bvXorBits sym bv1 bv2
+  DiffExpr e1 e2 -> do
+    SymLiteral (SetRepr cs) bv1 <- symEvalExpr sym symFns symLits e1
+    SymLiteral (SetRepr _) bv2 <- symEvalExpr sym symFns symLits e2
+    complement_bv2 <- WI.bvNotBits sym bv2
+    SymLiteral (SetRepr cs) <$> WI.bvAndBits sym bv1 complement_bv2
+  ComplementExpr e' -> do
+    SymLiteral (SetRepr cs) bv <- symEvalExpr sym symFns symLits e'
+    SymLiteral (SetRepr cs) <$> WI.bvNotBits sym bv
   AndExpr e1 e2 -> do
     SymLiteral BoolRepr b1 <- symEvalExpr sym symFns symLits e1
     SymLiteral BoolRepr b2 <- symEvalExpr sym symFns symLits e2

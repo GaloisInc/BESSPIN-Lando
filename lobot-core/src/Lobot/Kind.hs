@@ -160,9 +160,18 @@ giveSelf s e = case e of
   TimesExpr e1 e2 -> TimesExpr (giveSelf s e1) (giveSelf s e2)
   ModExpr e1 e2 -> ModExpr (giveSelf s e1) (giveSelf s e2)
   DivExpr e1 e2 -> DivExpr (giveSelf s e1) (giveSelf s e2)
+  AbsExpr e' -> AbsExpr (giveSelf s e')
   NegExpr e' -> NegExpr (giveSelf s e')
   MemberExpr e1 e2 -> MemberExpr (giveSelf s e1) (giveSelf s e2)
   NotMemberExpr e1 e2 -> NotMemberExpr (giveSelf s e1) (giveSelf s e2)
+  SubsetExpr e1 e2 -> SubsetExpr (giveSelf s e1) (giveSelf s e2)
+  NonEmptyExpr e' -> NonEmptyExpr (giveSelf s e')
+  SizeExpr e' -> SizeExpr (giveSelf s e')
+  IntersectExpr e1 e2 -> IntersectExpr (giveSelf s e1) (giveSelf s e2)
+  UnionExpr e1 e2 -> UnionExpr (giveSelf s e1) (giveSelf s e2)
+  SymDiffExpr e1 e2 -> SymDiffExpr (giveSelf s e1) (giveSelf s e2)
+  DiffExpr e1 e2 -> DiffExpr (giveSelf s e1) (giveSelf s e2)
+  ComplementExpr e' -> ComplementExpr (giveSelf s e')
   AndExpr e1 e2 -> AndExpr (giveSelf s e1) (giveSelf s e2)
   OrExpr e1 e2 -> OrExpr (giveSelf s e1) (giveSelf s e2)
   XorExpr e1 e2 -> XorExpr (giveSelf s e1) (giveSelf s e2)
@@ -185,9 +194,18 @@ giveSelf s e = case e of
   , TimesExpr
   , ModExpr
   , DivExpr
+  , AbsExpr
   , NegExpr
   , MemberExpr
   , NotMemberExpr
+  , SubsetExpr
+  , NonEmptyExpr
+  , SizeExpr
+  , IntersectExpr
+  , UnionExpr
+  , SymDiffExpr
+  , DiffExpr
+  , ComplementExpr
   , AndExpr
   , OrExpr
   , XorExpr

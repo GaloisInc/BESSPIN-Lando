@@ -88,17 +88,23 @@ data Expr = BoolLit Bool
           | TimesExpr LExpr LExpr
           | ModExpr LExpr LExpr
           | DivExpr LExpr LExpr
+          | AbsExpr LExpr
           | NegExpr LExpr
           -- Enum operations
           | MemberExpr LExpr LExpr
           | NotMemberExpr LExpr LExpr
-          -- Boolean operations
+          | SubsetExpr LExpr LExpr
+          | NonEmptyExpr LExpr
+          | SizeExpr LExpr
+          | DiffExpr LExpr LExpr
+          -- Overloaded boolean and enum operations
           | AndExpr LExpr LExpr
           | OrExpr LExpr LExpr
           | XorExpr LExpr LExpr
+          | NotExpr LExpr
+          -- Boolean operations
           | ImpliesExpr LExpr LExpr
           | IffExpr LExpr LExpr
-          | NotExpr LExpr
           deriving (Show, Eq)
 
 type LType       = Loc Type

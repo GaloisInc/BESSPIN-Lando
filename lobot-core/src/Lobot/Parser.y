@@ -64,12 +64,16 @@ import Lobot.Utils
   '-'         { L _ (Token MINUS _) }
   '*'         { L _ (Token TIMES _) }
   '%'         { L _ (Token MOD _) }
+  'abs'       { L _ (Token ABS _) }
   '/'         { L _ (Token DIV _) }
   '&'         { L _ (Token AND _) }
   '|'         { L _ (Token OR _) }
   '^'         { L _ (Token XOR _) }
   'in'        { L _ (Token IN _) }
   'notin'     { L _ (Token NOTIN _) }
+  'nonempty'  { L _ (Token NONEMPTY _) }
+  'size'      { L _ (Token SIZE _) }
+  '\\'        { L _ (Token DIFFERENCE _) }
   '=>'        { L _ (Token IMPLIES _) }
   '<=>'       { L _ (Token IFF _) }
   '!'         { L _ (Token NOT _) }
@@ -96,12 +100,13 @@ import Lobot.Utils
 %left     '^'
 %left     '|'
 %left     '&'
+%nonassoc '\\'
 %nonassoc '=' '!=' '<=' '<' '>=' '>'
 %left     '+' '-'
 %left     '*' '/' '%'
-%nonassoc NEG
+%nonassoc NEG 'abs' 'size' 'nonempty'
 %nonassoc '!'
-%nonassoc 'in' 'notin'
+%nonassoc 'in' 'notin' 'subset'
 %left     '.'
 
 %%
@@ -178,6 +183,7 @@ expr1 :: { LExpr }
 expr1 : expr1 '&' expr1              { loc $1 $ AndExpr $1 $3 }
       | expr1 '|' expr1              { loc $1 $ OrExpr $1 $3 }
       | expr1 '^' expr1              { loc $1 $ XorExpr $1 $3 }
+      | expr1 '\\' expr1             { loc $1 $ DiffExpr $1 $3 }
       | expr1 '=>' expr1             { loc $1 $ ImpliesExpr $1 $3 }
       | ineqSeq                      { snd $1 }
       | expr2                        { $1 }
@@ -201,9 +207,13 @@ expr2 : 'true'                       { loc $1 $ BoolLit True }
       | expr2 '*' expr2              { loc $1 $ TimesExpr $1 $3 }
       | expr2 '%' expr2              { loc $1 $ ModExpr $1 $3 }
       | expr2 '/' expr2              { loc $1 $ ModExpr $1 $3 }
+      | 'abs' expr2                  { loc $1 $ AbsExpr $2 }
       | '-' expr2 %prec NEG          { loc $1 $ negExpr $2 }
       | expr2 'in' expr2             { loc $1 $ MemberExpr $1 $3 }
       | expr2 'notin' expr2          { loc $1 $ NotMemberExpr $1 $3 }
+      | expr2 'subset' expr2         { loc $1 $ SubsetExpr $1 $3 }
+      | 'nonempty' expr2             { loc $1 $ NonEmptyExpr $2 }
+      | 'size' expr2                 { loc $1 $ SizeExpr $2 }
       | '!' expr2                    { loc $1 $ NotExpr $2 }
       | ident '(' ')'                { loc $1 $ ApplyExpr (locText $1) [] }
       | ident '(' args ')'           { loc $1 $ ApplyExpr (locText $1) $3 }

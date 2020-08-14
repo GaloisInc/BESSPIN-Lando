@@ -41,16 +41,17 @@ module Lobot.Expr
   ) where
 
 import Lobot.Types
+import Lobot.Utils
 
 import qualified Control.Monad.State as S
 import qualified Data.ByteString as BS
 
 import Data.Bits (xor)
-import Data.List (find)
+import Data.List (find, intersect, union, (\\))
 import Data.Maybe (isNothing)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Classes
-import Data.Parameterized.Context
+import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
@@ -102,9 +103,11 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   -- | Divide two integer expressions and get the remainder.
   ModExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
   -- | Divide two integer expressions.
-  DivExpr   :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
+  DivExpr     :: Expr env ctx IntType -> Expr env ctx IntType -> Expr env ctx IntType
+  -- | Take the absolute value of an integer.
+  AbsExpr     :: Expr env ctx IntType -> Expr env ctx IntType
   -- | Negate an integer.
-  NegExpr   :: Expr env ctx IntType -> Expr env ctx IntType
+  NegExpr     :: Expr env ctx IntType -> Expr env ctx IntType
   -- | Set membership.
   MemberExpr  :: Expr env ctx (EnumType cs)
               -> Expr env ctx (SetType cs)
@@ -113,6 +116,24 @@ data Expr (env :: Ctx FunctionType) (ctx :: Ctx Type) (tp :: Type) where
   NotMemberExpr  :: Expr env ctx (EnumType cs)
                  -> Expr env ctx (SetType cs)
                  -> Expr env ctx BoolType
+  -- | Subset relation.
+  SubsetExpr  :: Expr env ctx (SetType cs)
+              -> Expr env ctx (SetType cs)
+              -> Expr env ctx BoolType
+  -- | Test whether a set is nonempty.
+  NonEmptyExpr :: Expr env ctx (SetType cs) -> Expr env ctx BoolType
+  -- | Get the cardinality (size) of a set.
+  SizeExpr     :: Expr env ctx (SetType cs) -> Expr env ctx IntType
+  -- | Set intersection.
+  IntersectExpr  :: Expr env ctx (SetType cs) -> Expr env ctx (SetType cs) -> Expr env ctx (SetType cs)
+  -- | Set union.
+  UnionExpr      :: Expr env ctx (SetType cs) -> Expr env ctx (SetType cs) -> Expr env ctx (SetType cs)
+  -- | Set symmetric difference.
+  SymDiffExpr    :: Expr env ctx (SetType cs) -> Expr env ctx (SetType cs) -> Expr env ctx (SetType cs)
+  -- | Set difference.
+  DiffExpr       :: Expr env ctx (SetType cs) -> Expr env ctx (SetType cs) -> Expr env ctx (SetType cs)
+  -- | Set complement.
+  ComplementExpr :: Expr env ctx (SetType cs) -> Expr env ctx (SetType cs)
   -- | Logical and.
   AndExpr     :: Expr env ctx BoolType -> Expr env ctx BoolType -> Expr env ctx BoolType
   -- | Logical or.
@@ -315,6 +336,9 @@ evalExpr fns ls e = case e of
     EvalResult (IntLit x1) _ <- evalExpr fns ls e1
     EvalResult (IntLit x2) _ <- evalExpr fns ls e2
     pure $ litEvalResult (IntLit (x1 `mod` x2))
+  AbsExpr e' -> do
+    EvalResult (IntLit x) _ <- evalExpr fns ls e'
+    pure $ litEvalResult (IntLit (abs x))
   NegExpr e' -> do
     EvalResult (IntLit x) _ <- evalExpr fns ls e'
     pure $ litEvalResult (IntLit (- x))
@@ -326,6 +350,35 @@ evalExpr fns ls e = case e of
     EvalResult (EnumLit _ i) _ <- evalExpr fns ls e1
     EvalResult (SetLit _ s) _ <- evalExpr fns ls e2
     pure $ litEvalResult (BoolLit (isNothing (find (== Some i) s)))
+  SubsetExpr e1 e2 -> do
+    EvalResult (SetLit _ s1) _ <- evalExpr fns ls e1
+    EvalResult (SetLit _ s2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (BoolLit (s1 `intersect` s2 == s1))
+  NonEmptyExpr e' -> do
+    EvalResult (SetLit _ s) _ <- evalExpr fns ls e'
+    pure $ litEvalResult (BoolLit (not (null s)))
+  SizeExpr e' -> do
+    EvalResult (SetLit _ s) _ <- evalExpr fns ls e'
+    pure $ litEvalResult (IntLit (fromIntegral (length s)))
+  IntersectExpr e1 e2 -> do
+    EvalResult (SetLit cs s1) _ <- evalExpr fns ls e1
+    EvalResult (SetLit _ s2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (SetLit cs (s1 `intersect` s2))
+  UnionExpr e1 e2 -> do
+    EvalResult (SetLit cs s1) _ <- evalExpr fns ls e1
+    EvalResult (SetLit _ s2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (SetLit cs (s1 `union` s2))
+  SymDiffExpr e1 e2 -> do
+    EvalResult (SetLit cs s1) _ <- evalExpr fns ls e1
+    EvalResult (SetLit _ s2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (SetLit cs ((s1 \\ s2) `union` (s2 \\ s1)))
+  DiffExpr e1 e2 -> do
+    EvalResult (SetLit cs s1) _ <- evalExpr fns ls e1
+    EvalResult (SetLit _ s2) _ <- evalExpr fns ls e2
+    pure $ litEvalResult (SetLit cs (s1 \\ s2))
+  ComplementExpr e' -> do
+    EvalResult (SetLit cs s) _ <- evalExpr fns ls e'
+    pure $ litEvalResult (SetLit cs (toListWithIndex (\i _ -> Some i) cs \\ s))
   AndExpr e1 e2 -> do
     EvalResult (BoolLit b1) _ <- evalExpr fns ls e1
     EvalResult (BoolLit b2) _ <- evalExpr fns ls e2
