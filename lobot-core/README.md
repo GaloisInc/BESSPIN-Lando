@@ -8,12 +8,7 @@ in-depth introduction to the language and its use, see docs/UserGuide.md.
 This is under active development, and much of this library and its associated
 tooling will change rapidly.
 
-First, clone this repository (which you may have done already). Then, initialize
-its submodules via
-
-```bash
-git submodule update --init
-```
+First, clone this repository (which you may have done already).
 
 In order to build Lobot, you must obtain `ghc` and `cabal`, the compiler and
 build tool for Haskell. GHC must be at least version 8.8, which is the latest
@@ -43,15 +38,12 @@ install it.
 
 # Running
 
-The Lobot user\'s guide doesn\'t exist yet, as various aspects of the language
-have not yet been solidified. See the `examples` directory for various examples
-(some of which will work out of the box, others of which will require a bit of
-system configuration before running).
-
 The basic way you \"run\" Lobot is by invoking `lobot`:
 
 ```bash
 lobot --help
 ```
 
-See the user's guide for more details.
+See the user's guide for more details, or the `examples` and `tests`
+directories for various examples (some of which will work out of the box,
+others of which will require a bit of system configuration before running).
