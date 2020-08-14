@@ -57,6 +57,11 @@ ppDecl (AbsTypeDecl nm) =
 ppDecl (AbsFunctionDecl nm (FunType _ argtps rettp)) =
   PP.text "abstract" PP.<+> ppLText nm PP.<+> PP.text ":"
   PP.<+> ppFunArgTypes argtps PP.<+> PP.text "->" PP.<+> ppLType rettp
+ppDecl (CheckDecl ckd) =
+  ppLText (checkName ckd) PP.<+> PP.colon PP.<+> PP.text "check"
+  PP.$$ PP.nest 2 (ppWClause "on" (fmap ppField (checkFields ckd)))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppLExpr <$> checkConstraints ckd))
+  PP.$$ PP.nest 2 (ppWClause "that" (ppLExpr <$> checkRequirements ckd))
 
 ppFunArgTypes :: [LType] -> PP.Doc
 ppFunArgTypes [] = PP.text "()"

@@ -18,6 +18,8 @@ This module defines pretty printing functions for the core LOBOT types.
 module Lobot.Pretty
   ( ppKind
   , ppFieldRepr
+  , ppCheck
+  , ppNamedType
   , ppTypeRepr
   , ppExpr
   , ppKindExpr
@@ -60,6 +62,15 @@ ppKind kd =
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> ppTypeRepr (kindType kd)
   PP.$$ PP.nest 2 (ppWClause "where" (ppKindExpr (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
 
+ppCheck :: Check env tps -> PP.Doc
+ppCheck ckd
+  | ctx <- fmapFC namedTypeType (checkFields ckd)
+  , nms <- fmapFC (Const . namedTypeName) (checkFields ckd)
+  = PP.text (T.unpack $ checkName ckd) PP.<+> PP.colon PP.<+> PP.text "check"
+    PP.$$ PP.nest 2 (ppWClause "with" (toListFC ppNamedType (checkFields ckd)))
+    PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (checkFunctionEnv ckd) ctx nms <$> checkConstraints ckd))
+    PP.$$ PP.nest 2 (ppWClause "that" (ppExpr (checkFunctionEnv ckd) ctx nms <$> checkRequirements ckd))
+
 ppWClause :: String -> [PP.Doc] -> PP.Doc
 ppWClause _ [] = PP.empty
 ppWClause w xs = PP.text w PP.<+> vcommas xs
@@ -68,6 +79,11 @@ ppFieldRepr :: FieldRepr ftp -> PP.Doc
 ppFieldRepr FieldRepr{..} = symbolDoc fieldName PP.<+>
                             PP.colon PP.<+>
                             ppTypeRepr fieldType
+
+ppNamedType :: NamedType tp -> PP.Doc
+ppNamedType NamedType{..} = PP.text (T.unpack namedTypeName) PP.<+>
+                            PP.colon PP.<+>
+                            ppTypeRepr namedTypeType
 
 ppTypeRepr :: TypeRepr tp -> PP.Doc
 ppTypeRepr tp = case tp of
