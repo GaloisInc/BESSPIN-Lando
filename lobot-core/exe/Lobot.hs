@@ -82,9 +82,8 @@ clearLinesWithCursor = whenANSI . go
 
 
 -- | The available options when lobot is given an input file
-data FileInputOptions = BrowseKindInsts Text Bool
-                      -- ^ The kind name to browse instances of, and a boolean
-                      -- flag indicating verbose mode
+data FileInputOptions = BrowseKindInsts Text
+                      -- ^ The kind name to browse instances of
                       | GenKindInsts Text
                       -- ^ The kind name to count kind instances of
                       | RunCheck Text
@@ -96,13 +95,13 @@ fileInputOptions :: Parser FileInputOptions
 fileInputOptions = (BrowseKindInsts . T.pack
                     <$> strOption (long "enumerate" <> short 'e'
                                    <> metavar "KIND"
-                                   <> help "Browse all instances of a given kind.")
-                    <*> switch (long "verbose" <> short 'v'
-                                <> help "Show additional output while browsing instances."))
+                                   <> help ("Interactively browse all instances of a given kind. "
+                                            ++ "Use with -v to show invalid instances.")))
                <|> (GenKindInsts . T.pack
                     <$> strOption (long "count" <> short 'c'
                                    <> metavar "KIND"
-                                   <> help "Generate and count all instances of a given kind."))
+                                   <> help ("Generate and count all instances of a given kind. "
+                                            ++ "Use with -v to print all valid instances generated.")))
                <|> (RunCheck . T.pack
                     <$> strOption (long "run" <> short 'r'
                                    <> metavar "CHECK"
@@ -114,6 +113,7 @@ fileInputOptions = (BrowseKindInsts . T.pack
 -- | All the command line options to lobot
 data Options = Options { inFileName :: String
                        , inLimit :: Natural
+                       , inVerbose :: Bool
                        , inOptions :: FileInputOptions }
   deriving Show
 
@@ -122,6 +122,8 @@ options = Options <$> argument str (metavar "FILE")
                   <*> option auto (long "limit" <> short 'l' <> value 100
                                    <> metavar "INT"
                                    <> help "Set the maximum number of instances to generate.")
+                  <*> switch (long "verbose" <> short 'v'
+                              <> help "Show additional output when used with some options.")
                   <*> fileInputOptions
 
 -- | Run 'execParser' on 'options', then call 'lobot'
@@ -152,15 +154,15 @@ lobot Options{..} = do
         -- print any type warnings
         forM_ ws $ print . ppTypeWarning inFileName
         case inOptions of
-          BrowseKindInsts k verbose -> do
+          BrowseKindInsts k -> do
             SomeNonAbsKind tp cns <- lookupKind k ks
             putStrLn ""
             runSession z3 env (canonicalEnv env) (Empty :> tp) cns
-                       (browseKindInstances k inLimit verbose)
+                       (browseKindInstances k inLimit inVerbose)
           GenKindInsts k -> do
             SomeNonAbsKind tp cns <- lookupKind k ks
             void $ runSession z3 env (canonicalEnv env) (Empty :> tp) cns
-                             (generateKindInstances k inLimit)
+                             (generateKindInstances k inLimit inVerbose)
           RunCheck ck -> do
             SomeNonAbsCheck _ fldnms tps cns <- lookupCheck ck cks
             void $ runSession z3 env (canonicalEnv env) tps cns
@@ -285,17 +287,22 @@ browseKindInstances k limit verbose s@SessionData{..} =
           whenNoANSI $ putStrLn ""
           pure True
 
--- | Given a kind name, an instance limit, and a solver session, this function
--- counts all instances of the given kind using 'generateInstances'.
-generateKindInstances :: Text -> Natural -> SessionData env (EmptyCtx ::> tp)
+-- | Given a kind name, an instance limit, a boolean indicating verbose mode,
+-- and a solver session, this function counts all instances of the given kind
+-- using 'generateInstances'. If the given boolean is true, also print all
+-- instances as they are generated.
+generateKindInstances :: Text -> Natural -> Bool
+                      -> SessionData env (EmptyCtx ::> tp)
                       -> IO ([Assignment Literal (EmptyCtx ::> tp)], Natural)
-generateKindInstances k limit =
+generateKindInstances k limit verbose =
   generateInstances msg limit onLimit onInst
   where msg = "Generating instances of '" ++ T.unpack k ++ "'..."
         onInst :: InstanceResult env (EmptyCtx ::> tp)
                -> HS.HashSet (FunctionCallResult env ctx)
                -> Natural -> Natural -> IO Bool
-        onInst (HasInstance _ _ _) _ _ _ = pure True
+        onInst (HasInstance (Empty :> l) _ _) _ _ _ = do
+          when verbose (print $ ppLiteralWithKindName k l)
+          pure True
         onInst _ _ 0 ivis = do
           putStrLn $ "Found no valid instances! (Generated "
                      ++ show ivis ++ " invalid instances)"
