@@ -1,0 +1,14 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "test_enum_1"
+        , kindType = EnumRepr [ A , B , C ]
+        , kindFunctionEnv = []
+        , kindConstraints = []
+        }
+  , instances =
+      [ [ EnumLit [ A , B , C ] 0 ]
+      , [ EnumLit [ A , B , C ] 1 ]
+      , [ EnumLit [ A , B , C ] 2 ]
+      ]
+  }

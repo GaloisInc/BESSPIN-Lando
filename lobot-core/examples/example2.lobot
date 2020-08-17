@@ -1,9 +1,0 @@
--- Type synonym: abc is the type subset {A, B, C}
-type abc = subset {A, B, C}
-
-abc_1 : kind of abc where A in self
-
-abc_2 : kind of abc where A in self => C in self
-
--- Multiple "inheritance" -- abc_3 combines the constraints of abc_1 and abc_2
-abc_3 : kind of abc_1 abc_2

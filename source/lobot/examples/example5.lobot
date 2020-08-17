@@ -1,0 +1,21 @@
+-- A Lobot file for determining all 3-colorings of Australia's state map.
+
+type color = {Red, Yellow, Blue}
+
+australia_coloring : kind of struct
+  with wa : color
+       nt : color
+       sa : color
+       q : color
+       nsw : color
+       v : color
+       t : color
+  where wa != nt
+        wa != sa
+        nt != sa
+        nt != q
+        sa != q
+        sa != nsw
+        sa != v
+        q != nsw
+        nsw != v

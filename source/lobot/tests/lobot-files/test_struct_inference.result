@@ -1,0 +1,84 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "struct_expr_inference"
+        , kindType =
+            StructRepr
+              [ FieldRepr { fieldName = x , fieldType = EnumRepr [ A , B ] }
+              , FieldRepr { fieldName = y , fieldType = SetRepr [ C , D ] }
+              ]
+        , kindFunctionEnv = []
+        , kindConstraints =
+            [ EqExpr
+                (FieldExpr
+                   (StructExpr
+                      [ FieldInst
+                          { fieldInstName = f
+                          , fieldInstType = EnumRepr [ A , B ]
+                          , fieldInstValue = FieldExpr (VarExpr 0) 0
+                          }
+                      ])
+                   0)
+                (LiteralExpr (EnumLit [ A , B ] 0))
+            , EqExpr
+                (StructExpr
+                   [ FieldInst
+                       { fieldInstName = f
+                       , fieldInstType = EnumRepr [ A , B ]
+                       , fieldInstValue = FieldExpr (VarExpr 0) 0
+                       }
+                   ])
+                (LiteralExpr
+                   (StructLit
+                      [ FieldInst
+                          { fieldInstName = f
+                          , fieldInstType = EnumRepr [ A , B ]
+                          , fieldInstValue = EnumLit [ A , B ] 0
+                          }
+                      ]))
+            , EqExpr
+                (LiteralExpr
+                   (StructLit
+                      [ FieldInst
+                          { fieldInstName = f
+                          , fieldInstType = SetRepr [ A , B , C , D ]
+                          , fieldInstValue = SetLit [ A , B , C , D ] [ 0 , 1 ]
+                          }
+                      ]))
+                (LiteralExpr
+                   (StructLit
+                      [ FieldInst
+                          { fieldInstName = f
+                          , fieldInstType = SetRepr [ A , B , C , D ]
+                          , fieldInstValue = SetLit [ A , B , C , D ] [ 2 , 3 ]
+                          }
+                      ]))
+            , EqExpr
+                (StructExpr
+                   [ FieldInst
+                       { fieldInstName = f
+                       , fieldInstType = EnumRepr [ A , B ]
+                       , fieldInstValue = FieldExpr (VarExpr 0) 0
+                       }
+                   , FieldInst
+                       { fieldInstName = g
+                       , fieldInstType = SetRepr [ C , D ]
+                       , fieldInstValue = LiteralExpr (SetLit [ C , D ] [])
+                       }
+                   ])
+                (StructExpr
+                   [ FieldInst
+                       { fieldInstName = f
+                       , fieldInstType = EnumRepr [ A , B ]
+                       , fieldInstValue = LiteralExpr (EnumLit [ A , B ] 0)
+                       }
+                   , FieldInst
+                       { fieldInstName = g
+                       , fieldInstType = SetRepr [ C , D ]
+                       , fieldInstValue = FieldExpr (VarExpr 0) 1
+                       }
+                   ])
+            ]
+        }
+  , instances = []
+  }

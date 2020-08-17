@@ -1,0 +1,76 @@
+#!/usr/bin/python3
+
+import json
+import sys
+import os
+import subprocess
+import re
+import glob
+
+def main (argv = None):
+    json_str = ""
+
+    for line in sys.stdin:
+      json_str += line
+
+    json_data = json.loads(json_str)
+
+    # RISC-V configuration
+    riscv = json_data[0]
+    reg_width = riscv["fields"][0]["value"]
+    exts = riscv["fields"][1]["value"]
+    privs = riscv["fields"][2]["value"]
+    vm = riscv["fields"][3]["value"]
+
+    test_families = get_tests(reg_width, exts)
+    test_fullnames = []
+    for f in test_families:
+        test_fullnames += glob.glob("/home/galois/Piccolo/Tests/isa/" + f + "*[!.dump]")
+    test_basenames = []
+    for p in test_fullnames:
+        test_basenames += [os.path.basename(p)]
+
+    json_output = {
+        "variant": "int",
+        "value": len(test_basenames)
+    }
+
+    # sys.stderr.write(str(len(test_basenames)))
+    print(json.dumps(json_output))
+
+def get_tests(reg_width, exts):
+    if reg_width["constructors"][reg_width["value"]] == "RV32":
+        rv = 32
+        families = ["rv32ui-p", "rv32mi-p"]
+    else:
+        rv = 64
+        families = ["rv64ui-p", "rv64mi-p"]
+
+    exts_str = mk_exts_str(exts)
+    def add_family (extension):
+        if (exts_str.find (extension) != -1):
+            if rv == 32:
+                families.append ("rv32u" + str.lower(extension) + "-p")
+                # if s:
+                #     families.append ("rv32u" + extension + "-v")
+            else:
+                families.append ("rv64u" + str.lower(extension) + "-p")
+                # if s:
+                #     families.append ("rv64u" + extension + "-v")
+
+    add_family ("M")
+    add_family ("A")
+    add_family ("F")
+    add_family ("D")
+    add_family ("C")
+
+    return families
+
+def mk_exts_str(exts):
+    str = "I"
+    for i in exts["values"]:
+        str += exts["constructors"][i]
+    return str
+
+if __name__ == '__main__':
+    sys.exit (main (sys.argv))

@@ -1,0 +1,9 @@
+perfect_square : kind of struct
+  with x : int
+       rt_x : int
+  where x = rt_x * rt_x
+
+even_perfect_square : check
+  on s : perfect_square
+  where s.x % 2 = 0
+  that s.x % 4 = 0

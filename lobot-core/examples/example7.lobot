@@ -1,5 +1,0 @@
-ex : kind of struct
-  with chosen_opts : subset { A, B, C, D, E },
-       main_opt    : { A, B, C, D, E }
-  where main_opt in {B, C},
-        main_opt in chosen_opts

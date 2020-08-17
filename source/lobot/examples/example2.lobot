@@ -1,0 +1,14 @@
+-- Type synonym: abc_set is the type subset {A, B, C}
+type abc = {A, B, C}
+type abc_set = subset {A,B,C}
+
+abc_set_1 : kind of abc_set where A in self
+
+abc_set_2 : kind of abc_set where A in self => C in self
+
+-- Multiple "inheritance" -- abc_set_3 combines the constraints of abc_set_1 and abc_set_2
+abc_set_3 : kind of abc_set_1 abc_set_2
+
+abc_set_check : check
+  on abc : abc_set_3
+  that C in abc

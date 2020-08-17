@@ -1,0 +1,25 @@
+-- This is an abstract type, or uninterpreted type. You cannot create literal
+-- values of this type in lobot, and the only way to get your hands on one is by
+-- calling a function that returns it.
+
+abstract type filepath
+
+-- This function (defined in the functions/ directory) takes an integer n,
+-- writes a file with n newlines in it, and returns a path to the file.
+
+abstract write_nlines_file : int -> filepath
+
+-- Options to the 'wc' command
+type wc_config = {C, L, M, W}
+
+-- This function invokes `wc -l` on a file, and returns the result as an integer.
+abstract run_wc : (wc_config, filepath) -> int
+
+-- check_wc_l : kind of struct
+--   with x : int
+--   where 0 <= x <= 10, run_wc(L, write_nlines_file(x)) = x
+
+check_wc_l : check
+  on x : int
+  where 0 <= x <= 10
+  that run_wc(L, write_nlines_file(x)) = x

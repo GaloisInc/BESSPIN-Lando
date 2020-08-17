@@ -1,0 +1,5 @@
+type my_struct = struct with f g : int
+
+struct_exprs : kind of struct
+  with x y : int
+  where (struct with f = x - 7 * y, g = 5 * x + 2 * y) = (struct with f = -11, g = -18)

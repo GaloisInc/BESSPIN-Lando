@@ -1,0 +1,20 @@
+unique_posint_pair : kind of struct
+  with x y : int
+  where 1 <= x <= y
+
+
+ok : kind of struct
+  with p : unique_posint_pair
+  where p = struct with x = 1, y = 2
+
+
+type int_pair = struct with x : int, y : int
+
+still_ok : kind of struct
+  with p : unique_posint_pair
+  where p = int_pair with x = 1, y = 2
+
+
+bad : kind of struct
+  with p : unique_posint_pair
+  where p = unique_posint_pair with x = 1, y = 2

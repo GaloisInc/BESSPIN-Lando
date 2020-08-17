@@ -1,0 +1,12 @@
+abstract type filepath
+
+abstract write_nlines : int -> filepath
+
+type wc_options = {C, L, W}
+
+abstract wc_wrapper : (wc_options, filepath) -> int
+
+write_nlines_check : check
+  on i : int
+  where 0 <= i <= 50
+  that wc_wrapper(L, write_nlines(i)) = i

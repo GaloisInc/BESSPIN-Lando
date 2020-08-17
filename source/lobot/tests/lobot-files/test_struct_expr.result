@@ -1,0 +1,61 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "struct_exprs"
+        , kindType =
+            StructRepr
+              [ FieldRepr { fieldName = x , fieldType = IntRepr }
+              , FieldRepr { fieldName = y , fieldType = IntRepr }
+              ]
+        , kindFunctionEnv = []
+        , kindConstraints =
+            [ EqExpr
+                (StructExpr
+                   [ FieldInst
+                       { fieldInstName = f
+                       , fieldInstType = IntRepr
+                       , fieldInstValue =
+                           MinusExpr
+                             (FieldExpr (VarExpr 0) 0)
+                             (TimesExpr (LiteralExpr (IntLit 7)) (FieldExpr (VarExpr 0) 1))
+                       }
+                   , FieldInst
+                       { fieldInstName = g
+                       , fieldInstType = IntRepr
+                       , fieldInstValue =
+                           PlusExpr
+                             (TimesExpr (LiteralExpr (IntLit 5)) (FieldExpr (VarExpr 0) 0))
+                             (TimesExpr (LiteralExpr (IntLit 2)) (FieldExpr (VarExpr 0) 1))
+                       }
+                   ])
+                (LiteralExpr
+                   (StructLit
+                      [ FieldInst
+                          { fieldInstName = f
+                          , fieldInstType = IntRepr
+                          , fieldInstValue = IntLit (-11)
+                          }
+                      , FieldInst
+                          { fieldInstName = g
+                          , fieldInstType = IntRepr
+                          , fieldInstValue = IntLit (-18)
+                          }
+                      ]))
+            ]
+        }
+  , instances =
+      [ [ StructLit
+            [ FieldInst
+                { fieldInstName = x
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit (-4)
+                }
+            , FieldInst
+                { fieldInstName = y
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 1
+                }
+            ]
+        ]
+      ]
+  }

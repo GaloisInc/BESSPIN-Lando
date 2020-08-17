@@ -1,0 +1,21 @@
+-- This is an "abstract function," which is linked to to the python script
+-- functions/add1. Add the functions/ directory to your path and ensure python3
+-- is installed to run this file.
+
+abstract add1 : int -> int
+
+posint : kind of int where 0 <= self
+small  : kind of int where self <= 5
+
+type pair = struct with x : int, y : int
+
+small_pair : kind of pair where x : small posint, y : small posint
+
+-- Here, lobot is actually calling add1(x) in order to enumerate instances of
+-- add1_pair.
+
+add1_pair : kind of small_pair where y <= add1(x)
+
+add1_pair_check : check
+  on p : add1_pair
+  that p.y <= p.x + 1

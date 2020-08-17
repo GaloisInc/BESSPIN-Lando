@@ -1,8 +1,0 @@
-test_struct : kind of struct
-  with i : int,
-       b : bool,
-       e : {A, B, C},
-       s : subset {A, B, C}
-  where 0 <= i, i <= 10,
-        b => A in s,
-        e in s

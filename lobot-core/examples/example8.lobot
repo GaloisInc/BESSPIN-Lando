@@ -1,8 +1,0 @@
-small_int : kind of int where 0 <= self, self <= 10
-
-abstract add1 : int -> int
-
-pair : kind of struct
-  with i : small_int,
-       j : small_int
-  where add1(i+j) = 15

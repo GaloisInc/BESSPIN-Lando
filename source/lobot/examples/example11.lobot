@@ -1,0 +1,19 @@
+small_int : kind of int where 0 <= self <= 5
+
+abstract double_int : int -> int
+
+pair : kind of struct
+  with x : int,
+       y : int
+  where 0 <= y <= double_int(x)
+
+pair_check : check
+  on p : pair
+  that p.y <= p.x + p.x
+
+double_int_check : check
+  on x : int
+     y : int
+  where 0 <= x <= 99
+        y = double_int(x)
+  that y = x + x

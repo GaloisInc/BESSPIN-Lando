@@ -1,0 +1,6 @@
+sets : kind of struct
+  with a b c : subset { X, Y }
+  where nonempty a & size c = 1
+        -- all the below are identities, so this kind should have all 3*4*2 = 24 instances:
+        ((a | b) & c) subset (a | b)
+        (a ^ b) = ((a \ b) | (b \ a)) = ((a | b) \ (a & b))

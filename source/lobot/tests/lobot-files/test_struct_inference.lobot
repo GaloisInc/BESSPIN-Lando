@@ -1,0 +1,11 @@
+struct_expr_inference : kind of struct
+  with x : { A, B }
+       y : subset { C, D }
+  where -- this errors if `A` is replaced with `C`
+        (struct with f = x).f = A
+        -- this errors if `A` is replaced with `C`
+        (struct with f = x) = (struct with f = A)
+        -- this is ok since the type of `f` can be taken to be `{A,B,C,D}`
+        (struct with f = {A,B}) = (struct with f = {C,D})
+        -- this also works!
+        (struct with f = x, g = {}) = (struct with f = A, g = y)

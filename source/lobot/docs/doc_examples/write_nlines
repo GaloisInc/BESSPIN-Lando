@@ -1,0 +1,24 @@
+#!/usr/bin/python3
+
+import json
+import sys
+
+json_str = ""
+
+for line in sys.stdin:
+  json_str += line
+
+json_data = json.loads(json_str)
+
+num_lines = json_data[0]['value']
+
+f = open("tmp.txt", "w")
+for i in range(0, num_lines):
+  f.write("Line " + str(i) + "\n")
+
+json_output = {
+  "variant": "filepath",
+  "value": "tmp.txt"
+}
+
+print(json.dumps(json_output))

@@ -1,1 +1,0 @@
-test_int_1 : kind of int where 0 <= self, self <= 100
