@@ -1,4 +1,4 @@
-# Revision history for lobot-core
+# Revision history for lobot
 
 ## 0.1.0.0 -- YYYY-mm-dd
 

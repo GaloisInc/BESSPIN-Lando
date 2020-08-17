@@ -1,4 +1,4 @@
-# Contributing to lobot-core
+# Contributing to lobot
 
 The following is a set of guidelines for contributing to Lobot.
 
