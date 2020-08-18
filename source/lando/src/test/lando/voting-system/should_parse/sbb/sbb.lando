@@ -1,0 +1,72 @@
+subsystem Smart Ballot Box (SBB)
+The software, firmware, and hardware that make up the BSV smart ballot
+box.
+
+// @todo kiniry This top-level system specification should either
+// import all of the related specifications in this directory, or
+// explain how they are all inter-dependent.
+
+component Smart Ballot Box API
+  The top-level API that is independent of the hardware and the type of the ballot box.
+  Is this barcode valid?
+  
+component Barcode
+  How long is this barcode?
+  Is this barcode valid?
+  What is the maximum number of bits this barcode can encode?
+
+component Foo
+  A sentence. <- MANDATORY Explanation
+  A sentence two. <- Constraint?
+  A sentence three.
+
+component Ballot Box inherit Smart Ballot Box API
+  A low-level API for a specific ballot box and its hardware.
+  
+  Initialize this ballot box!
+  Deposit this ballot!
+  Reject this ballot!
+  Spoil this ballot!
+  Cast this ballot!
+// @design dmz the following query is really asking whether, if a ballot is
+// in the machine, it has already been spoiled or rejected for being invalid; 
+// we should address this (both here and in the state machine) for the
+// next milestone.
+  Is the ballot spoiled?
+  Go to standby!
+  Reset the ballot detect timeout!
+  Has the ballot detect timeout expired?
+  Reset the cast or spoil timeout!
+  Has the cast or spoil timeout expired?
+  The motor can only rotate forward or backward.
+  
+component Motor
+  Tell the motor to rotate forward!
+  Tell the motor to rotate backward!
+  Stop the motor!
+  
+component Buttons
+  Is the cast button pressed?
+  Is the spoil button pressed?
+  Is the cast button released?
+  Is the spoil button released?
+  
+component Button Lights
+  Turn the spoil button light on!
+  Turn the spoil button light off!
+  Turn the cast button light on!
+  Turn the cast button light off!
+  
+component Paper Sensors
+  Ballot detected?
+  Ballot inserted?
+  Does the current ballot have a barcode?
+  What are the contents of the barcode of the currently held ballot?
+
+component LCD
+  Display this text!
+
+relation Ballot Box client Barcode
+relation Ballot Box client Secure System Log
+relation Ballot Box client Secure Application Log
+relation Ballot Box client Crypto

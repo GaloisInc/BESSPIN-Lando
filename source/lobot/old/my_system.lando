@@ -1,0 +1,23 @@
+system Bens Processor
+=====================
+
+This is a sample LANDO file containing an instance
+of the Piccolo processor.
+
+subsystem Bens Piccolo Core (BPIC)
+----------------------------------
+The core for my processor is an instance of the
+Piccolo design.
+
+component Core : piccolo_build
+  where riscv = bens_riscv
+        debug = true
+        tandem_verif = false
+
+subsystem Bens RISC-V (BRISCV)
+
+component bens_riscv : riscv
+  where reg_width = RV32
+        exts = { M, F, D, C }
+
+BPIC contains BRISCV

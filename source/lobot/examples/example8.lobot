@@ -1,0 +1,8 @@
+abstract add1 : int -> int
+
+add1_check : check
+  on x : int
+     y : int
+  where 0 <= x <= 5
+        0 <= y <= add1(x)
+  that y = 0

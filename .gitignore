@@ -3,3 +3,5 @@
 auto
 *.dvi
 *.pdf
+dist-newstyle/
+*.DS_Store

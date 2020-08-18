@@ -1,0 +1,14 @@
+-- Taken from https://www.youtube.com/watch?v=_e64FiDWvqs
+
+domain : kind of int where 1 <= self <= 3
+
+problem : kind of struct
+  with a : domain
+       b : domain
+       c : domain
+
+problem1 : kind of problem
+  where a > b, b != c, a != c
+
+problem2 : kind of problem
+  where a > b, b = c

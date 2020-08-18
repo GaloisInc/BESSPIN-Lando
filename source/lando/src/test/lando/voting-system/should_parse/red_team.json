@@ -1,0 +1,60 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 1,
+            "name": "Red Team",
+            "abbrevName": null,
+            "explanation": "The group of individuals that have contributed to internal red teaming of the BVS.",
+            "indexing": [
+                {
+                    "key": "owner",
+                    "values": [
+                        "John Sebes <jsebes@osetfoundation.org>"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "contributors",
+                    "values": [
+                        "Joe Kiniry <kiniry@freeandfair.us>",
+                        "Dan Zimmerman <dmz@freeandfair.us>",
+                        "Joey Dodds <jdodds@freeandfair.us>",
+                        "Nes Cohen <ncohen@galois.com>",
+                        "Niki Carroll <ncarroll@galois.com>",
+                        "Annie Cherkaev <anniecherk@galois.com>"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "possible future contributors",
+                    "values": [
+                        "Joe Fitzgerald",
+                        "Joe Grand",
+                        "Bunnie Huang",
+                        "OSU - Prof. Yeongjin Jang - EECS"
+                    ],
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

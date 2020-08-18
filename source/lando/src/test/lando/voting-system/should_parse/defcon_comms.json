@@ -1,0 +1,71 @@
+{
+    "uid": 3,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 1,
+            "name": "DEF CON Communications",
+            "abbrevName": null,
+            "explanation": "Physical and digital communications artifacts produced for DEF CON.",
+            "indexing": [
+                {
+                    "key": "creator",
+                    "values": [
+                        "Jason Graalum <jasongraalum@galois.com>"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "owner",
+                    "values": [
+                        "Reuben Broadfoot <rbroadfoot@galois.com>"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "contributors",
+                    "values": [
+                        "Shpat Morina <smorina@galois.com>",
+                        "Joe Kiniry <kiniry@freeandfair.us>",
+                        "Dan Zimmerman <dmz@freeandfair.us>",
+                        "John Sebes <john@sebes.com>",
+                        "Noah Rich <nrich@freeandfair.us>"
+                    ],
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 2,
+            "name": "Team Summary",
+            "abbrevName": null,
+            "explanation": "What are the slides summarizing this team’s SSITH R&D? component Issues Summary What are the git issues describing successful system attacks? What are the git issues describing failing system attacks? What are the git issues describing known system status, knowledge and/or errors? component SSITH Summary What are the slides summarizing the DARPA SSITH Program? What is the poster that summarizes the SSITH Program?",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+            {
+                "uid": 2,
+                "parentUid": 1
+            }
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

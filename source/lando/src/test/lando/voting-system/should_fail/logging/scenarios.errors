@@ -1,0 +1,10 @@
+Parser Failed due to the following errors:
+Line: 11, Column: 19. token recognition error at: '.\n'
+Line: 12, Column: 0. mismatched input 'Create' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 12, Column: 63. token recognition error at: '.\n'
+Line: 14, Column: 23. extraneous input '.' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 18, Column: 23. token recognition error at: '.\n'
+Line: 19, Column: 0. mismatched input 'Create' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 20, Column: 21. extraneous input '.' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 22, Column: 27. token recognition error at: '.\n'
+Line: 23, Column: 0. mismatched input 'Create' expecting {<EOF>, EMPTYLINE, LINESEP}

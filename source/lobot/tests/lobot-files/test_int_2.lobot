@@ -1,0 +1,2 @@
+test_int_2 : kind of int
+  where 0 <= self, self + self <= 1000

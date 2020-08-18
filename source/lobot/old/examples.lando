@@ -1,0 +1,42 @@
+// Example 1: Simple enumerations
+
+kind abc_kind
+  with abc : subset {A, B, C}
+
+kind abc_kind_1 of abc
+  where A in abc
+
+kind abc_kind_2 of abc
+  where A in abc => B in abc
+
+kind abc_kind_3 of abc_kind_1 abc_kind_2
+
+// Example 1: integers
+
+kind person
+  with age : int,
+       sex : {Male, Female}
+  where 0 <= age
+
+kind teenager of person
+  where 13 <= age,
+        age <= 19
+
+// Example 2: bluespec build
+kind riscv
+  with reg_width : { RV32, RV64 },
+       xlen : integer,
+       extensions : subset { M, A, F, D, C},
+       privilege : subset { PrivM, PrivU, PrivS },
+       vm : { SVNone, SV32, SV39, SV48 }
+  where reg_width = RV32 => xlen = 32,
+        reg_width = RV64 => xlen = 64,
+        D in extensions => F in extensions,
+        PrivM in privilege,
+        PrivS in privilege => PrivU in privilege,
+        PrivS in privilege => not (vm = SVNone),
+        not (PrivS in privilege) => vm = SVNone
+
+kind bluespec_build
+  with riscv
+       

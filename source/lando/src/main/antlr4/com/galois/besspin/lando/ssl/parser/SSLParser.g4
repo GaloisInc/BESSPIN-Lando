@@ -4,6 +4,14 @@ parser grammar SSLParser;
 //    package com.galois.symmetries.compiler.frontend;
 //}
 
+@members {
+    public static final String warningPrefix = "Warning: ";
+
+    public void emitWarning(String msg) {
+        notifyErrorListeners(warningPrefix + msg);
+    }
+}
+
 options { tokenVocab = SSLLexer; }
 
 landoSource    : lineseps? specElement* lineseps? lineComments? lineseps? EOF;
@@ -18,21 +26,21 @@ specElement    : system           #systemElement
 
 system     : lineComments?
              SYSTEM
-             sysname=name (RELKEYWORD relname=name)? comment? lineseps
+             sysname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
              (lineseps indexing)?
              blockend ;
 
 subsystem  : lineComments?
              SUBSYSTEM
-             subsysname=name ABBREV? (RELKEYWORD relname=name)? comment? lineseps
+             subsysname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
              (lineseps indexing)?
              blockend ;
 
 component  : lineComments?
              COMPONENT
-             compname=name ABBREV? (RELKEYWORD relname=name)? comment? lineseps
+             compname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
              (lineseps componentParts)?
              blockend ;
@@ -43,11 +51,11 @@ componentPart  : command          #commandPart
                | constraint       #constraintPart
                | query            #queryPart ;
 
-command         : lineComments? COMMAND comment? ;
+command         : lineComments? sentBody COMMANDTERM    wordSep? comment? ;
 
-query           : lineComments? QUERY comment? ;
+query           : lineComments? sentBody QUERYTERM      wordSep? comment? ;
 
-constraint      : lineComments? CONSTRAINT comment? ;
+constraint      : lineComments? sentBody CONSTRAINTTERM wordSep? comment? ;
 
 
 events          : lineComments?
@@ -58,7 +66,7 @@ events          : lineComments?
 
 eventEntries    : eventEntry (lineseps eventEntry)* ;
 
-eventEntry      : lineComments? name nameComment=comment? lineseps SENTENCE sentenceComment=comment? ;
+eventEntry      : lineComments? name nameComment=comment? lineseps sentence sentenceComment=comment? ;
 
 
 scenarios       : lineComments?
@@ -69,7 +77,7 @@ scenarios       : lineComments?
 
 scenarioEntries : scenarioEntry (lineseps scenarioEntry)* ;
 
-scenarioEntry   : lineComments? name nameComment=comment? lineseps SENTENCE sentenceComment=comment? ;
+scenarioEntry   : lineComments? name nameComment=comment? lineseps sentence sentenceComment=comment? ;
 
 
 requirements       : lineComments?
@@ -80,28 +88,24 @@ requirements       : lineComments?
 
 requirementEntries : requirementEntry (lineseps requirementEntry)* ;
 
-requirementEntry   : lineComments? name nameComment=comment? lineseps SENTENCE sentenceComment=comment? ;
+requirementEntry   : lineComments? name nameComment=comment? lineseps sentence sentenceComment=comment? ;
 
 
 relation          : lineComments? RELATION left=name (RELKEYWORD right=name)? comment? blockend ;
 
 
-indexing          : INDEXING (lineseps indexEntries)? ;
+indexing          : INDEXING spaces? (lineseps indexEntries)? ;
 
 indexEntries      : indexEntry (lineseps indexEntry)* ;
 
-indexEntry        : indexKey INDEXSEP indexValueList ;
+indexEntry        : name INDEXSEP indexValueList ;
 
 indexValueList    : indexValuePart (lineseps indexValuePart)* ;
 
-indexString       :  INDEXCHAR+ ;
-
-indexKey          : indexString ;
-
-indexValuePart    : indexString comment? ;
+indexValuePart    : name lineseps? comment? ;
 
 
-comment      : COMMENT COMMENTCHAR* ;
+comment      : COMMENT ;
 
 comments     : comment (lineseps comment)* ;
 
@@ -109,10 +113,29 @@ lineComments : comments lineseps ;
 
 
 //Helpers
-name       : NAMECHAR+ ;
+spaces     : SPACE+ ;
 
-lineseps   : LINESEP+ ;
+nameTrim   : WORD (spaces WORD)*;
 
-paragraph  : PARAGRAPH ;
+name       : spaces? nameTrim spaces? ;
+
+abbrev     : spaces? ABBREVSTART spaces? WORD spaces? ABBREVEND spaces? ;
+
+wordSep    : spaces                   #wordSepSpaces
+           | spaces? LINESEP spaces?  #wordSepLinesep ;
+
+sentBody   : WORD (wordSep WORD)* wordSep? ;
+
+sentTerm   : COMMANDTERM     #commandTerm
+           | CONSTRAINTTERM  #constraintTerm
+           | QUERYTERM       #queryTerm ;
+
+sentence   : sentBody sentTerm wordSep?
+           | sentBody          wordSep?
+             { emitWarning("forgotten '.', '!', or '?'"); } ;
+
+paragraph  : sentence+ ;
+
+lineseps   : (LINESEP | EMPTYLINE)+ ;
 
 blockend   : lineseps | EOF ;

@@ -1,0 +1,31 @@
+subsystem Ballot Marking Device (BMD)
+The Ballot Marking Deviced used for the BVS.  Our BMD is based upon
+Voting Works's open source BMD.
+
+indexing
+  owner: Haneef Mubarak <haneef@galois.com>
+  contributors: Luke Myers <lmyers@galois.com>
+                Dragan Stosic <dragan.stosic@freeandfair.us>
+  project_url: https://gitlab-ext.galois.com/ssith/bmd-defcon-2019
+         
+component Power Button
+  Turn on the bmd!
+  Turn off the bmd!
+component Initializer
+  Start Ballot Selection Interface!
+  Connect to printer!
+component Ballot Selection Interface
+  Load election configuration!
+  What are the voter's selections?
+component Random Number Generator
+  May I have the most recently generated nonce?
+  Generate a new nonce!
+component Ballot Encryptor
+  What is the encryption of this ballot and nonce?
+component Encoder
+  What is the barcode encoding for this ballot and timestamp?
+component Printer
+  Print this ballot!
+  Print this receipt!
+component Logger
+  Log this ballot encoding!

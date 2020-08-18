@@ -1,0 +1,4 @@
+Parser Failed due to the following errors:
+Line: 13, Column: 9. extraneous input '\n  ' expecting {WORD, SPACE}
+Line: 15, Column: 53. extraneous input '.' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 17, Column: 4. mismatched input '<EOF>' expecting WORD

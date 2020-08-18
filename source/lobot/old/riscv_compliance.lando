@@ -1,0 +1,8 @@
+import riscv
+
+abstract type riscv_simulator // not pre-defined
+abstract type test            // pre-defined
+abstract type memory_trace    // pre-defined 
+
+run_test : (test, riscv_simulator) -> memory_trace // not pre-defined
+check_test : (test, memory_trace) -> bool          // pre-defined

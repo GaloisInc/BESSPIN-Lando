@@ -1,14 +1,9 @@
 package com.galois.besspin.lando.ssl.parser
 
-import com.galois.besspin.lando.ssl.ast.*
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.CommonTokenStream
-import java.io.File
-import java.lang.IllegalStateException
+import com.galois.besspin.lando.ssl.ast.RawSSL
+import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.ParseCancellationException
-import org.antlr.v4.runtime.RecognitionException
-import org.antlr.v4.runtime.Recognizer
-import org.antlr.v4.runtime.BaseErrorListener
+import java.io.File
 
 data class SyntaxError(
     val offendingSymbol: Any?,
@@ -22,7 +17,8 @@ data class SyntaxError(
 
 private class CollectingErrorListener : BaseErrorListener() {
 
-    var errors: MutableList<SyntaxError> = arrayListOf() ;
+    var errors: MutableList<SyntaxError> = arrayListOf()
+    var warnings: MutableList<SyntaxError> = arrayListOf()
 
     @Throws(ParseCancellationException::class)
     override fun syntaxError(
@@ -33,19 +29,32 @@ private class CollectingErrorListener : BaseErrorListener() {
         msg: String?,
         e: RecognitionException?
     ) {
-        errors.add(SyntaxError(offendingSymbol, line, charPositionInLine, msg ?: ""))
+        if (msg?.startsWith(SSLParser.warningPrefix) == true)
+            warnings.add(SyntaxError(offendingSymbol, line, charPositionInLine,
+                         msg.removePrefix(SSLParser.warningPrefix)))
+        else
+            errors.add(SyntaxError(offendingSymbol, line, charPositionInLine, msg ?: ""))
     }
 
     fun formatErrors(): String = errors.map { e -> e.formatError() }.joinToString(separator = "\n")
+
+    fun formatWarnings() : String {
+        if (warnings.size != 0)
+            return "Generated ${warnings.size} warning(s):\n" +
+                    warnings.map { e -> e.formatError() }.joinToString(separator="\n")
+        else
+            return ""
+    }
+
+
 }
 
-fun parseFile(file: File): RawSSL {
+fun parseStream(stream: CharStream, debugLexer: Boolean = false): Pair<RawSSL,String> {
     val errorListener = CollectingErrorListener()
 
-    val stream = CharStreams.fromPath(file.toPath())
-
     val lexer = SSLLexer(stream)
-    lexer.removeErrorListeners();
+    lexer.debug = debugLexer
+    lexer.removeErrorListeners()
     lexer.addErrorListener(errorListener)
 
     val tokenStream = CommonTokenStream(lexer)
@@ -59,30 +68,12 @@ fun parseFile(file: File): RawSSL {
     if(errorListener.errors.size != 0) {
         throw IllegalStateException("Parser Failed due to the following errors:\n${errorListener.formatErrors()}\n")
     } else {
-        return RawAstBuilder(landoSource).build()
+        return Pair(RawAstBuilder(landoSource).build(), errorListener.formatWarnings())
     }
 }
 
-fun parseText(text: String): RawSSL {
-    val errorListener = CollectingErrorListener()
+fun parseFile(file: File, debugLexer: Boolean = false): Pair<RawSSL,String> =
+        parseStream(CharStreams.fromPath(file.toPath()), debugLexer)
 
-    val stream = CharStreams.fromString(text)
-
-    val lexer = SSLLexer(stream)
-    lexer.removeErrorListeners();
-    lexer.addErrorListener(errorListener)
-
-    val tokenStream = CommonTokenStream(lexer)
-
-    val parser = SSLParser(tokenStream)
-    parser.removeErrorListeners()
-    parser.addErrorListener(errorListener)
-
-    val landoSource = parser.landoSource()
-
-    if(errorListener.errors.size != 0) {
-        throw IllegalStateException("Parser Failed due to the following errors:\n${errorListener.formatErrors()}\n")
-    } else {
-        return RawAstBuilder(landoSource).build()
-    }
-}
+fun parseText(text: String, debugLexer: Boolean = false): Pair<RawSSL,String> =
+        parseStream(CharStreams.fromString(text), debugLexer)

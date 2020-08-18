@@ -1,0 +1,15 @@
+Parser Failed due to the following errors:
+Line: 9, Column: 20. mismatched input ':' expecting {<EOF>, LINESEP}
+Line: 14, Column: 18. token recognition error at: '\n  T'
+Line: 15, Column: 19. token recognition error at: '\nc'
+Line: 15, Column: 3. mismatched input 'urn off the bmd!' expecting {<EOF>, LINESEP}
+Line: 17, Column: 35. token recognition error at: '\n  C'
+Line: 18, Column: 21. token recognition error at: '\nc'
+Line: 20, Column: 30. token recognition error at: '\n  W'
+Line: 21, Column: 34. token recognition error at: '\nc'
+Line: 23, Column: 47. token recognition error at: '\n  G'
+Line: 24, Column: 23. token recognition error at: '\nc'
+Line: 26, Column: 50. token recognition error at: '\nc'
+Line: 28, Column: 61. token recognition error at: '\nc'
+Line: 30, Column: 20. token recognition error at: '\n  P'
+Line: 31, Column: 21. token recognition error at: '\nc'

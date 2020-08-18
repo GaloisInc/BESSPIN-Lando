@@ -1,0 +1,22 @@
+// The piccolo build feature model. We have a RISC-V configuration, a simulation
+// backend, a debugging flag, and a tandem verification flag.
+piccolo_build : kind
+  with riscv : riscv,
+       sim : { Bluesim, IVerilog, Verilator },
+       debug : { Debug, NoDebug },
+       tandem_verif : { Tandem, NoTandem }
+
+// Piccolo build specialized to RV32.
+piccolo_build_32 : kind of piccolo_build
+  where riscv.reg_width = RV32
+
+piccolo_build_64_implies_M : kind of piccolo_build
+  where riscv.reg_width = RV64 => M in riscv.exts
+
+piccolo_build_MA_must_have_debug : kind of piccolo_build
+  where {M, A} subset riscv.exts => debug = Debug
+
+piccolo_build_32_release : kind of piccolo_build_32
+  where tandem_verif = Tandem
+        debug = NoDebug
+

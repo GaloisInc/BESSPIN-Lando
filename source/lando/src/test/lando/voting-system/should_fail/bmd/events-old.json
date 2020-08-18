@@ -1,0 +1,86 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawEvents",
+            "uid": 1,
+            "name": "BMD_EVENTS",
+            "events": [
+                {
+                    "id": "Events triggering software behavior on the Ballot Marking Device (BMD)",
+                    "text": "under deployment.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "PowerOn",
+                    "text": "The BMD turns on.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "power_off",
+                    "text": "The BMD turns off.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "load_election_configuration",
+                    "text": "The configuration file containing the parameters of the election is loaded into the memory of the BMD.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "display_wait_for_ballot_style_indicator_screen",
+                    "text": "The BMD display shows a screen to the user to inform them that they need to indicate which style of ballot they will be casting.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "select_candidates",
+                    "text": "The BMD presents the list of candidates to the user and only allows the user to select up to the maximum number of candidates allowed to be voted for in that particualr contest.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "next_race",
+                    "text": "The BMD updates to display the next contest on the ballot.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "review_selections",
+                    "text": "The BMD displays all contests and indicates the user's selections in each contest.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "print_ballot",
+                    "text": "The BMD will print out the paper ballot.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "log_ballot",
+                    "text": "The BMD will write the encrypted format of the ballot to the log.",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

@@ -1,0 +1,2 @@
+-- file: bool.lobot
+type my_bool = bool

@@ -1,0 +1,83 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
+            "uid": 1,
+            "name": "OTA",
+            "requirements": [
+                {
+                    "id": "signature_check",
+                    "text": "OTA requires a crypto library for verification of Ed25519 cryptographic signatures.",
+                    "comments": [
+                        {
+                            "text": "Build Requirements"
+                        }
+                    ]
+                },
+                {
+                    "id": "filesystem",
+                    "text": "OTA requires a persistent filesystem on target where verified payloads will be stored Note: filesystem is shared with HTTP application",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "tftp_service",
+                    "text": "OTA will listen for clients using TFTP server protocol",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "network",
+                    "text": "OTA requires UDP network protocol plus all underlying protocols and drivers",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "crypto_keys",
+                    "text": "A predefined Ed25519 public key must be installed or built in to OTA",
+                    "comments": [
+                        {
+                            "text": "Resources"
+                        }
+                    ]
+                },
+                {
+                    "id": "tftp_config",
+                    "text": "TFTP port number",
+                    "comments": [
+                        {
+                            "text": "Configuration - config items that might need to be configured or changed per instance,"
+                        },
+                        {
+                            "text": "and are shared with the bastion host - i.e. TFTP port number needs to be known by both"
+                        },
+                        {
+                            "text": "the target and the host. Additional items are TBD"
+                        }
+                    ]
+                },
+                {
+                    "id": "filesystem_config",
+                    "text": "Name of root filesystem",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

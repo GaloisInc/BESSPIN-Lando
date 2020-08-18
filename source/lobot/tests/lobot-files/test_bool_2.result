@@ -1,0 +1,10 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "test_bool_2"
+        , kindType = BoolRepr
+        , kindFunctionEnv = []
+        , kindConstraints = []
+        }
+  , instances = [ [ BoolLit False ] , [ BoolLit True ] ]
+  }

@@ -1,0 +1,6 @@
+Parser Failed due to the following errors:
+Line: 12, Column: 50. token recognition error at: '\nc'
+Line: 14, Column: 21. token recognition error at: '\nc'
+Line: 13, Column: 1. mismatched input 'omponent Random Number Generator\n  May I have a nonce?' expecting {<EOF>, LINESEP}
+Line: 16, Column: 47. token recognition error at: '\n  P'
+Line: 17, Column: 20. token recognition error at: '\n  P'

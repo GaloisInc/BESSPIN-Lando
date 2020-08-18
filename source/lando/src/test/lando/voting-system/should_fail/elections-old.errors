@@ -1,0 +1,9 @@
+Parser Failed due to the following errors:
+Line: 25, Column: 6. token recognition error at: '/'
+Line: 25, Column: 7. token recognition error at: '/'
+Line: 25, Column: 9. token recognition error at: '@'
+Line: 25, Column: 93. token recognition error at: '\nc'
+Line: 27, Column: 20. token recognition error at: '\n  B'
+Line: 28, Column: 16. token recognition error at: '\n  I'
+Line: 29, Column: 29. token recognition error at: '\nc'
+Line: 20, Column: 0. no viable alternative at input '// @todo owner Extract all elections concepts concretized in code\n// from the BMD.\n\n// @note kiniry We are reusing the entire NIST VVSG 2.0 draft\n// glossary.  An earlier version of that glossary was encoded in\n// EBON during the U.S. Vote Foundation project and is found in that\n// project’s repository and as an appendix to the report.\n\nindexing'

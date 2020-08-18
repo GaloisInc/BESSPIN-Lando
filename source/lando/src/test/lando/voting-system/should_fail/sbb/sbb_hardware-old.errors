@@ -1,0 +1,12 @@
+Parser Failed due to the following errors:
+Line: 13, Column: 17. token recognition error at: '\nc'
+Line: 15, Column: 22. token recognition error at: '\n  W'
+Line: 14, Column: 1. mismatched input 'omponent Barcode Scanner\n  Has a valid barcode?' expecting {<EOF>, LINESEP}
+Line: 16, Column: 22. token recognition error at: '\nc'
+Line: 18, Column: 10. token recognition error at: '\n  L'
+Line: 19, Column: 11. token recognition error at: '\n  L'
+Line: 20, Column: 12. token recognition error at: '\nc'
+Line: 22, Column: 10. token recognition error at: '\n  B'
+Line: 23, Column: 11. token recognition error at: '\n  S'
+Line: 24, Column: 7. token recognition error at: '\nc'
+Line: 26, Column: 20. token recognition error at: '\nc'

@@ -1,0 +1,26 @@
+\usepackage{amsmath}
+\usepackage{mathpartir}
+
+\let\oldneg\neg
+\renewcommand{\neg}{\oldneg\,}
+
+
+% Grammar definition helpers
+\renewcommand{\|}{~\mid~}
+
+% Keywords
+\newcommand{\kw}[1]{\textsf{#1}}
+\newcommand{\BB}{\kw{bool}}
+\newcommand{\ZZ}{\kw{integer}}
+
+
+\newcommand{\declCtx}{\Delta}
+\newcommand{\declCtxAlt}{\Sigma}
+
+\newcommand{\declType}{\mathcal{A}}
+\newcommand{\declTypeAlt}{\mathcal{B}}
+
+\newcommand{\declFields}{\mathcal{F}}
+\newcommand{\declFieldsAlt}{\mathcal{G}}
+
+\newcommand{\vdashD}{\vdash}%_D}

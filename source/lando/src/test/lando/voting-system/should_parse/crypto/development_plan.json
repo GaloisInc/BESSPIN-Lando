@@ -1,0 +1,96 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 1,
+            "name": "Crypto",
+            "abbrevName": null,
+            "explanation": "The cryptographic algorithms and protocol for the DEF CON 2019 Voting System.",
+            "indexing": [
+                {
+                    "key": "owner",
+                    "values": [
+                        "Rod Chapman <rod.chapman@freeandfair.us>"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "contributors",
+                    "values": [
+                        "Luke Myers <lmyers@galois.com>",
+                        "Daniel Wagner <dmwit@galois.com>",
+                        "Joe Kiniry <kiniry@freeandfair.us>",
+                        "Dragan Stosic <dragan.stosic@freeandfair.us>",
+                        "Joey Dodds <jdodds@galois.com>"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "design_effort_estimate",
+                    "values": [
+                        "1 week"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "implementation_effort_estimate",
+                    "values": [
+                        "1 week"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "assurance_effort_estimate",
+                    "values": [
+                        "1 week"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "complexity",
+                    "values": [
+                        "medium"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "risk level",
+                    "values": [
+                        "medium"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "dependencies",
+                    "values": [
+                        "crypto hardware"
+                    ],
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

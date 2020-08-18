@@ -1,0 +1,7 @@
+Parser Failed due to the following errors:
+Line: 1, Column: 30. token recognition error at: '.\n'
+Line: 2, Column: 0. extraneous input 'An' expecting {EMPTYLINE, SPACE, COMMENT, LINESEP, RELKEYWORD, ABBREVSTART}
+Line: 2, Column: 14. token recognition error at: '.\n'
+Line: 2, Column: 3. missing ABBREVSTART at 'explanation'
+Line: 3, Column: 0. mismatched input '\n' expecting {SPACE, ABBREVEND}
+Line: 6, Column: 0. extraneous input 'A' expecting {<EOF>, EMPTYLINE, COMMENT, LINESEP, SYSTEM, SUBSYSTEM, COMPONENT, EVENTS, SCENARIOS, REQUIREMENTS, RELATION}

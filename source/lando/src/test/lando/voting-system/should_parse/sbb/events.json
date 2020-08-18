@@ -1,0 +1,170 @@
+{
+    "uid": 2,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawEvents",
+            "uid": 1,
+            "name": "SBB",
+            "events": [
+                {
+                    "id": "Standby",
+                    "text": "Initial state wherein the ballot box is ready and waiting for a paper to be inserted.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "Abort",
+                    "text": "State in which the ballot box has detected an error from which it can not recover.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "MotorForward",
+                    "text": "Move motor forward, to feed paper inside the ballot box.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "MotorStop",
+                    "text": "Stop moving the motor.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "MotorBackward",
+                    "text": "Move motor backward, to feed paper out of the ballot box.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "PaperDetected",
+                    "text": "The paper sensor does not detect any paper then a sheet of paper is inserted into the paper feeder and is detected by the paper sensor.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "PaperInserted",
+                    "text": "The paper sensor detects some paper.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "PaperAccepted",
+                    "text": "The paper sensor detects some paper, then does not, and then the paper is deposited inside the ballot box.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "PaperReturned",
+                    "text": "The paper sensor detects some paper, then does not, thus paper has been removed from the feeder tray.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "DisplaySomeText",
+                    "text": "Some text is diplayed on the LCD display.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "CastButtonPressed",
+                    "text": "The cast button is released then the cast button is pressed.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "CastButtonReleased",
+                    "text": "The cast button is pressed then the cast button is released.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "SpoilButtonPressed",
+                    "text": "The spoil button is released then the spoil button is pressed.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "SpoilButtonReleased",
+                    "text": "The spoil button is pressed the the spoil button is released.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "CastLightLit",
+                    "text": "The cast light is turned on.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "CastLightDark",
+                    "text": "The cast light is turned off.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "SpoilLightLit",
+                    "text": "The spoil light is turned on.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "SpoilLightDark",
+                    "text": "The spoil light is turned off.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "BarcodeScanned",
+                    "text": "A barcode is scanned.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "CastSpoilTimerStart",
+                    "text": "A countdown begins after asking the user to make a decision.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "CastSpoilTimeout",
+                    "text": "The timer expires while waiting for a user to make a decision.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "LogSystemEvent",
+                    "text": "The ballot box records a system event.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "LogCastBallot",
+                    "text": "The ballot box records a cast ballot.",
+                    "comments": [
+                    ]
+                },
+                {
+                    "id": "LogSpoiledBallot",
+                    "text": "The ballot box records a spoiled ballot.",
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

@@ -1,0 +1,16 @@
+#!/usr/bin/python3
+
+import json
+import sys
+
+json_str = ""
+
+for line in sys.stdin:
+  json_str += line
+
+json_data = json.loads(json_str)
+
+i = json_data[0]['value']
+json_data[0]['value'] = i + i
+
+print(json.dumps(json_data[0]))

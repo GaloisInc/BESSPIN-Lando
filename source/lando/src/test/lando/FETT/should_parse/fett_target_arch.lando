@@ -1,0 +1,36 @@
+system BESSPIN FETT Target System (BFTS)
+The system responsible for running a BESSPIN demonstrator stack.
+
+indexing
+  owner: Ramy Tadros <rtadros@galois.com>
+  contributors: Galois
+  copyright: (C) 2020 Galois
+  license: TBD
+
+subsystem Target Subsystem
+Realizations of the Target Subsystem are the principal subsystems that
+Researchers use to evaluate the security claims made by processor designers.
+Each subsystem denotes a single processor family -- the definition of the
+subsystem includes the applications that are exposed to security researchers.
+
+subsystem FETT P1 extends Target Subsystem
+The principal subsystem by which researchers evaluate security claims
+made by designers of a P1 processor.
+
+subsystem FETT P2 extends Target Subsystem
+The principal subsystem by which researchers evaluate security claims
+made by designers of a P2 processor.
+
+subsystem FETT Runner
+The software for managing a particular FETT subsystem.
+
+subsystem FPGA
+The FPGA that will be programmed with the processor on which the Target will execute.
+
+subsystem CloudGFE
+The platform on which FETT will run, consisting of TA-1 SSITH processors
+running inside of AWS F1-hosted SoCs, complete with OS and devices
+relevant to FETT.
+
+relation FPGA contains CloudGFE
+relation Target Subsystem client CloudGFE

@@ -1,0 +1,60 @@
+{
+    "uid": 3,
+    "elements": [
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+            "uid": 1,
+            "name": "Ballot Marking Device",
+            "abbrevName": null,
+            "explanation": "A Voting Terminal that permits voters to cast a well-formed paper ballot via a digital interface.",
+            "indexing": [
+                {
+                    "key": "owner",
+                    "values": [
+                        "Haneef Mubarak <haneef@galois.com>"
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "key": "contributors",
+                    "values": [
+                        "Luke Myers <lmyers@galois.com>",
+                        "Dragan Stosic <dragan.stosic@freeandfair.us>"
+                    ],
+                    "comments": [
+                    ]
+                }
+            ],
+            "comments": [
+            ]
+        },
+        {
+            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+            "uid": 2,
+            "name": "Ballot Encryption",
+            "abbrevName": null,
+            "explanation": "What is the encryption of this ballot and nonce? component Random Number Generator May I have a nonce? component Printer What is the barcode encoding for this ballot? Print this ballot! Print this receipt!",
+            "parts": [
+            ],
+            "comments": [
+            ]
+        }
+    ],
+    "relationShips": {
+        "_inheritRelations": [
+        ],
+        "_containsRelations": [
+        ],
+        "_implicitContainsRelations": [
+            {
+                "uid": 2,
+                "parentUid": 1
+            }
+        ],
+        "_clientRelations": [
+        ]
+    },
+    "comments": [
+    ]
+}

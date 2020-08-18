@@ -1,0 +1,85 @@
+#!/usr/bin/python3
+
+import json
+import sys
+import os
+import subprocess
+
+def main (argv = None):
+    json_str = ""
+
+    for line in sys.stdin:
+      json_str += line
+
+    json_data = json.loads(json_str)
+
+    bluespec_build = json_data[0]
+
+    # RISC-V configuration
+    riscv = bluespec_build["fields"][0]["value"]
+    reg_width = riscv["fields"][0]["value"]
+    exts = riscv["fields"][1]["value"]
+    privs = riscv["fields"][2]["value"]
+    vm = riscv["fields"][3]["value"]
+
+    # Backend simulator
+    sim = bluespec_build["fields"][1]["value"]
+
+    # Tandem verification flag
+    tv = bluespec_build["fields"][2]["value"]
+
+    reg_width_str = mk_reg_width_str(reg_width)
+    exts_str = mk_exts_str(exts)
+    privs_str = mk_privs_str(privs)
+    sim_str = mk_sim_str(sim)
+    tv_str = mk_tv_str(tv)
+
+    piccolo_path = "/home/galois/Piccolo"
+    mkBuild_Dir = piccolo_path + "/builds/Resources/mkBuild_Dir.py"
+
+    with open(os.devnull, 'wb') as devnull:
+        result = subprocess.run([mkBuild_Dir,
+                                 piccolo_path,
+                                 reg_width_str + exts_str + privs_str,
+                                 sim_str] + tv_str,
+                                stdout=devnull,
+				stderr=devnull)
+
+    if result.returncode == 0:
+	result_valid = True
+    else:
+        result_valid = False
+
+    json_output = {
+	"variant": "bool",
+	"value": result_valid
+    }
+
+    print(json.dumps(json_output))
+
+def mk_reg_width_str(reg_width):
+    return reg_width["constructors"][reg_width["value"]]
+
+def mk_exts_str(exts):
+    str = "I"
+    for i in exts["values"]:
+        str += exts["constructors"][i]
+    return str
+
+def mk_privs_str(privs):
+    str = ""
+    for i in privs["values"]:
+        str += privs["constructors"][i]
+    return str
+
+def mk_sim_str(sim):
+    return sim["constructors"][sim["value"]].lower()
+
+def mk_tv_str(tv):
+    if tv["value"]:
+        return ["tv"]
+    else:
+        return []
+
+if __name__ == '__main__':
+    sys.exit (main (sys.argv))

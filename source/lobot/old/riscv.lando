@@ -1,0 +1,13 @@
+riscv : kind of struct
+  with { reg_width : {RV32, RV64},
+         xlen : int,
+         exts : subset {M, A, F, D, C},
+         privs : subset {PrivM, PrivS, PrivU},
+         vm : {SVNone, SV32, SV39, SV48} }
+  where (reg_width = RV32) => (xlen = 32),
+        (reg_width = RV64) => (xlen = 64),
+        (D in exts) => (F in exts),
+        PrivM in privs,
+        (PrivS in privs) => (PrivU in privs),
+        (PrivS in privs) => (not (vm = SVNone)),
+        (not (PrivS in privs)) => (vm = SVNone)

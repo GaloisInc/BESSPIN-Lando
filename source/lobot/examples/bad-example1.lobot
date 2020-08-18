@@ -1,0 +1,3 @@
+-- Example of where we want better type inference
+
+abc : kind of subset {A, B, C} where A = B

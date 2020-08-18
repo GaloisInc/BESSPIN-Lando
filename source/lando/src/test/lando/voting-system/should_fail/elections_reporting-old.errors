@@ -1,0 +1,6 @@
+Parser Failed due to the following errors:
+Line: 6, Column: 32. token recognition error at: '\n  W'
+Line: 7, Column: 46. token recognition error at: '\nc'
+Line: 7, Column: 3. mismatched input 'hat is the current outcome of the election?' expecting {<EOF>, LINESEP}
+Line: 9, Column: 52. token recognition error at: '\n  H'
+Line: 10, Column: 55. token recognition error at: '\n  H'

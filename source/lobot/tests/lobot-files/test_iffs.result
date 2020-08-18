@@ -1,0 +1,57 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "test_iffs"
+        , kindType =
+            StructRepr
+              [ FieldRepr { fieldName = p , fieldType = BoolRepr }
+              , FieldRepr { fieldName = q , fieldType = BoolRepr }
+              , FieldRepr { fieldName = r , fieldType = BoolRepr }
+              ]
+        , kindFunctionEnv = []
+        , kindConstraints =
+            [ AndExpr
+                (IffExpr (FieldExpr (VarExpr 0) 0) (FieldExpr (VarExpr 0) 1))
+                (IffExpr
+                   (FieldExpr (VarExpr 0) 1) (NotExpr (FieldExpr (VarExpr 0) 2)))
+            ]
+        }
+  , instances =
+      [ [ StructLit
+            [ FieldInst
+                { fieldInstName = p
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit False
+                }
+            , FieldInst
+                { fieldInstName = q
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit False
+                }
+            , FieldInst
+                { fieldInstName = r
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit True
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = p
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit True
+                }
+            , FieldInst
+                { fieldInstName = q
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit True
+                }
+            , FieldInst
+                { fieldInstName = r
+                , fieldInstType = BoolRepr
+                , fieldInstValue = BoolLit False
+                }
+            ]
+        ]
+      ]
+  }

@@ -1,0 +1,2 @@
+test_enum_2 : kind of {A, B, C}
+  where self != A

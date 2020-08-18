@@ -1,0 +1,27 @@
+subsystem FETT Runner
+The system used to bring up a target software stack (P1 or P2 + App).
+
+component Linux Host
+The host Linux system. This system is connected to the FPGA, which itself
+contains the CloudGFE.
+
+  Linux Host must support CloudGFE and BESSPIN Tool Suite.
+  Where is the CloudGFE?
+  The Linux host is not accessible via a direct channel.
+  The Linux host is used exclusively to manage CloudGFE instances.
+
+component FETT Runner Tool
+The tool used to execute commands on CloudGFE and the Target software stack.
+
+  What is the status of this CloudGFE instance?
+  What is the current Target's forensic data? // The definition of this depends on the platform
+  Start Application in P1 Target Applications!
+  Start Application in P2 Target Applications!
+  Stop target application stack!
+
+  What is the state of the Target?
+
+relation Linux Host client CloudGFE
+relation FETT Runner Tool client CloudGFE
+relation FETT Runner Tool client FETT P1
+relation FETT Runner Tool client FETT P2
