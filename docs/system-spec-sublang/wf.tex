@@ -15,12 +15,10 @@
 
 \begin{document}
 
-\title{Lando SSI Well-formedness}
+\title{Lando SSL Well-formedness}
 \maketitle
 
-\section{Raw AST Grammar}
-
-This is intended to correspond precisely to the {\tt RawAST} structure built by the current parser.
+\section{Notation}
 
 \newcommand{\nt}[1]{\ensuremath{\mathit{#1}}}
 \newcommand{\lab}[1]{\ensuremath{\texttt{#1}}}
@@ -32,6 +30,21 @@ This is intended to correspond precisely to the {\tt RawAST} structure built by 
 \newcommand{\none}[1]{\cdot_{#1}}
 \newcommand{\proj}[2]{\ensuremath{{#1}.{#2}}}
 \newcommand{\emptym}{\emptyset} 
+
+Lists of $t$ are written $\listof{t}$; $\nillist{t}$ is an empty list of $t$'s and $\conslist{x}{xs}$ is the list with head $x$ and tail $xs$.
+An optional $t$ is written $\optof{t}$; a present option value $x$ is written $\some{x}$ and a missing option value of type $t$ is written $\none{t}$.
+We write $\proj{x}{y}$ for the projection of field $y$ from a node $x$ .
+In the pattern $x@\lab{Foo}\{\ldots\}$, $x$ is bound to the entire node labeled $\lab{Foo}$.
+The pattern $\lab{(Foo|Bar)}\{\ldots\}$ matches nodes labeled either $\lab{Foo}$ or $\lab{Bar}$.
+Disjoint union of maps is written $\uplus$, and is undefined if the domains of the maps are not disjoint.  An empty map is written $\emptym$.
+A judgement applies only if all premises are fully defined.
+\section{Raw AST Grammar}
+
+This is intended to correspond precisely to the {\tt RawAST} structure built by the current parser. For the most part, the
+AST corresponds directly to the concrete syntax. The two major deviations are: (i) relation clauses in {\tt system}, {\tt subsystem}, and
+{\tt component} declarations are lifted into top level {\tt Relation} declarations; (ii) implicit containment of {\tt subsystem}s into
+{\tt system}s and {\tt component}s into {\tt subsystem}s is represented by a list of top-level {\tt ImplicitContains} relations.
+Most nodes in the AST are given a unique identifier ({\tt uid}) field, which is used for (ii) above, and can be handy for other things.
 
 \[
 \begin{array}{rcl}
@@ -60,16 +73,6 @@ This is intended to correspond precisely to the {\tt RawAST} structure built by 
 \end{array}
 \]
   
-
-Meta-syntax conventions:
-Lists of $t$ are written $\listof{t}$; $\nillist{t}$ is an empty list of $t$'s and $\conslist{x}{xs}$ is the list with head $x$ and tail $xs$.
-An optional $t$ is written $\optof{t}$; a present option value $x$ is written $\some{x}$ and a missing option value of type $t$ is written $\none{t}$.
-We write $\proj{x}{y}$ for the projection of field $y$ from a node $x$ .
-In the pattern $x@\lab{Foo}\{\ldots\}$, $x$ is bound to the entire node labeled $\lab{Foo}$.
-The pattern $\lab{(Foo|Bar)}\{\ldots\}$ matches nodes labeled either $\lab{Foo}$ or $\lab{Bar}$.
-Disjoint union of maps is written $\uplus$, and is undefined if the domains of the maps are not disjoint.  An empty map is written $\emptym$.
-A judgement applies only if all premises are fully defined.
-
 \vfill\eject
 
 \section{Well-formedness Judgements}
@@ -322,7 +325,7 @@ $\clmap: \nt{uid} \times \nt{uid}$ between clients and providers.
           
 \end{mathparpagebreakable}
 
-\subsection{All Together}
+\subsection{Overall Well-Formedness}
 
 \emph{
   TBD:
