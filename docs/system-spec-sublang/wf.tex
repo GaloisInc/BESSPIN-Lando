@@ -40,8 +40,9 @@ Disjoint union of maps is written $\uplus$, and is undefined if the domains of t
 A judgement applies only if all premises are fully defined.
 \section{Raw AST Grammar}
 
-This is intended to correspond precisely to the {\tt RawAST} structure built by the current parser. For the most part, the
-AST corresponds directly to the concrete syntax. The two major deviations are: (i) relation clauses in {\tt system}, {\tt subsystem}, and
+This is intended to correspond precisely to the {\tt RawAST} structure built by the current parser, except that comments are omitted.
+For the most part, the AST corresponds directly to the concrete syntax.
+The two major deviations are: (i) relation clauses in {\tt system}, {\tt subsystem}, and
 {\tt component} declarations are lifted into top level {\tt Relation} declarations; (ii) implicit containment of {\tt subsystem}s into
 {\tt system}s and of {\tt component}s, {\tt events}, {\tt scenarios}, and {\tt requirements} into {\tt subsystem}s is represented by a list of top-level {\tt ImplicitContains} relations.
 Most nodes in the AST are given a unique identifier ({\tt uid}) field, which is used for (ii) above, and can be handy for other things.
@@ -266,7 +267,7 @@ $\clmap: \nt{uid} \times \nt{uid}$ between clients and providers.
   \item Need to fill in the validity definitions.
   \item Treating $\inhmap$ as a map implies single inheritance.
   \item Treating $\xcmap$ as a map implies a thing is contained in at most one other thing.
-  \item Need to consider interction of implicit and explicit relation maps, in particular to find cycles across the combination of the two.
+  \item Need to consider interaction of implicit and explicit relation maps, in particular to find cycles across the combination of the two.
   \item Calculation of $\clmap$ doesn't check for duplicate declarations of a given relation; should it?
   \end{itemize}
 }
