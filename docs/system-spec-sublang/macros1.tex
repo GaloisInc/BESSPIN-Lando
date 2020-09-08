@@ -1,0 +1,45 @@
+\usepackage[T1]{fontenc}
+\usepackage{longtable}
+\usepackage{textcomp}
+\usepackage{array}
+\usepackage{todonotes}
+\usepackage{mathtools}
+
+
+% Grammar definition helpers
+\newenvironment{grammar}{%
+  \global\def\grammarVertAdjustment{0mm}
+  \newcommand{\gline}{\hline \\[-0.5em]}
+  \newcommand{\gcont}{\\ & &}
+  \newcommand{\gor}{\ensuremath{\mid}}
+  \newcommand{\grule}[4][0mm]{##2 & ::= & ##3 & \mbox{\scriptsize $\textit{##4}$} \\[##1] }
+  \newcommand{\gruleplain}[3][0mm]{##2 & \hphantom{::=} & & \mbox{\scriptsize $\textit{##3}$} \\[##1] }
+  \small
+  \begin{center}
+  \begin{longtable}{>{$}r<{$} >{$}c<{$} >{$}l<{$} >{$}r<{$}}
+}{%
+  \end{longtable}
+  \end{center}
+}
+
+\newcommand{\glist}[1]{\ensuremath{\mathop{\operatorname{\{} #1 \operatorname{\}}}}}
+
+\newcommand{\glistnonempty}[1]{\ensuremath{\mathop{\operatorname{\{} #1 \operatorname{\}}^+}}}
+
+\newcommand{\gopt}[1]{\ensuremath{\mathop{\operatorname{[} \mathop{#1} \operatorname{]}}}}
+
+\newcommand{\gntn}[1]{\ensuremath{\mathop{\textit{#1}}}\,}
+
+\newcommand{\gtkw}[1]{\ensuremath{\mathop{\texttt{#1}}}\,}
+\newcommand{\gtkc}[1]{\ensuremath{\mathop{\texttt{\textquotesingle #1\textquotesingle}}}\,}
+
+\newcommand{\gtregex}[1]{\texttt{/{#1}/}}
+
+\newcommand{\gtesc}[1]{\texttt{\textbackslash {#1}}}
+
+\newcommand{\gtneg}{\ensuremath{^{\wedge}}}
+
+
+%\newcommand{\gtregexfull}[2][]{\ensuremath{\mathop{?\, \textrm{\scriptsize /#2/#1} \,?}}}
+%\newcommand{\gseplist}[2]{#2 \glist{#1 #2}\!\txss{*}}
+

@@ -1,0 +1,275 @@
+\documentclass{article}
+\usepackage{fullpage}
+\input{macros1}
+
+\newcommand{\gnl}{\ensuremath{\mathcal{L}}}
+\newcommand{\gnc}{\ensuremath{\mathcal{C}}}
+\newcommand{\gns}{\ensuremath{\mathcal{S}}}
+
+%\usepackage{cmbright}
+%\usepackage[varg]{txfonts}
+%\usepackage{pxfonts}
+
+\begin{document}
+
+\title{Lando System Specification Language Grammar}
+\maketitle
+
+\section{Notation}
+
+The grammar for the Lando System Specification Sublanguage is written in the EBNF notation. The main elements of the notation that we utilize are:
+\begin{itemize}
+  \item Keyword terminals are represented in $\gtkw{typewriter}$ font. 
+  \item Single-character terminals appear in single quotes, e.g. $\gtkc{!}$.
+  \item More complex terminals are represented using regular expressions of the form $\gtregex{regexp}$, which may include escaped control characters such as $\gtesc{n}$.
+  \item An optional $\gntn{thing}$ is written as $\gopt{\gntn{thing}}$.
+  \item {Zero or more repetitions of $\gntn{thing}$ are written as $\glist{\gntn{thing}}$}.
+  \item One or more repetitions of $\gntn{thing}$ are written as $\glistnonempty{\gntn{thing}}$.
+  \item $\gntn{EOF}$ represents end-of-file; it can be thought of as a special terminal that is not consumed, but rather is replicated as often as necessary to match the grammar when parsing.
+  \item Whitespace and line separators are significant throughout. Note that the line separator terminal $\gnl$ consumes any whitespace immediately following the actual end-of-line character(s).
+\end{itemize}
+
+\subsection{Context-Free Grammar}
+
+\begin{grammar}
+  \grule{\gntn{landoSource}}{
+    \glist{\gnl} 
+    \glist{\gntn{specElement}} \glist{\gnl} 
+    \glist{\gnc\gnl} \glist{\gnl} 
+    \gntn{EOF}
+  }{Lando source}
+
+  \grule{\gntn{specElement}}{
+    \gntn{system} \gor \gntn{subsystem} \gor \gntn{component}   \gcont
+    \gor \gntn{events} \gor \gntn{scenarios} \gor \gntn{requirements} \gor \gntn{relation}
+  }{Specification Elements}
+
+  \gline
+
+  \grule{\gntn{system}}{
+    \glist{\gnc\gnl}
+    \gtkw{system} \gntn{elemName} \gopt{\gntn{abbrev}} \gopt{\gntn{relationClause}} \gopt{\gnc} \glistnonempty{\gnl} \gcont
+    \gntn{explanation}  % assuming ends a genuine blank line \gnl\gnl  ??
+    \gopt{\glistnonempty{\gnl} \gntn{indexing}} 
+    \gntn{blockend}
+  }{System}
+
+  \grule{\gntn{subsystem}}{
+    \glist{\gnc\gnl}
+    \gtkw{subsystem} \gntn{elemName} \gopt{\gntn{abbrev}} \gopt{relationClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
+    \gntn{explanation}  % assuming ends a genuine blank line \gnl\gnl  ??
+    \gopt{\glistnonempty{\gnl} \gntn{indexing}} 
+    \gntn{blockend}
+  }{Subsystem}
+
+
+  \grule{\gntn{explanation}}{
+    \gntn{paragraph}
+  }{Explanation}
+
+  
+  \grule{\gntn{abbrev}}{
+    \glist{\gns} \gtkc{(} \glist{\gns} \gntn{elemNameWord} \glist{\gns} \gtkc{)} \glist{\gns}
+  }{Abbreviation}
+
+  
+  \grule{\gntn{relationClause}}{
+    \gntn{relationKind} \gntn{elemName}
+  }{Relation Clause}
+
+  \grule{\gntn{relationKind}}{
+    \gtkw{inherit} \gor \gtkw{client} \gor \gtkw{contains}
+  }{Relation Kind}
+
+  \grule{\gntn{indexing}}{
+    \gtkw{indexing} \glist{\gns} \glist{\glistnonempty{\gnl} \gntn{indexEntry}}
+  }{Indexing}
+
+  \grule{\gntn{indexEntry}}{
+    \gntn{indexName} \gtkc{:} \gntn{indexValuePart} \glist{\glistnonempty{\gnl} \gntn{indexValuePart}}
+  }{Index Entry}
+
+  \grule{\gntn{indexValuePart}}{
+    \gntn{indexName} \glist{\gnl} \gopt{\gnc}
+  }{Index Value Part}
+
+  \gline
+
+  \grule{\gntn{component}}{
+    \glist{\gnc\gnl}
+    \gtkw{component} \gntn{elemName} \gopt{\gntn{abbrev}} \gopt{relationClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
+    \gntn{explanation}  % assuming ends a genuine blank line \gnl\gnl  ??
+    \glist{\glistnonempty{\gnl} \gntn{componentFeature}}
+    \gntn{blockend}
+  }{Component}
+
+  \grule{\gntn{componentFeature}}{
+    \gntn{constraint} \gor \gntn{command} \gor \gntn{query}
+  }{Component Feature}
+
+  \grule{\gntn{constraint}}{
+    \glist{\gnc\gnl} \gntn{sentBody} \gtkc{.} \gopt{\gntn{wordSep}} \gopt{\gnc}
+  }{Constraint Feature}
+    
+  \grule{\gntn{query}}{
+    \glist{\gnc\gnl} \gntn{sentBody} \gtkc{?} \gopt{\gntn{wordSep}} \gopt{\gnc}
+  }{Query Feature}
+
+  \grule{\gntn{command}}{
+    \glist{\gnc\gnl} \gntn{sentBody} \gtkc{!} \gopt{\gntn{wordSep}} \gopt{\gnc}
+  }{Command Feature}
+
+  \gline
+
+  \grule{\gntn{events}}{
+    \glist{\gnc\gnl}
+    \gtkw{events}
+    \gntn{name} \gopt{\gnc}
+    \glist{\glistnonempty{\gnl} \gntn{eventEntry}}
+    \gntn{blockend}
+  }{Events}
+
+
+  \grule{\gntn{eventEntry}}{
+    \glist{\gnc\gnl}
+    \gntn{name} \gopt{\gnc}
+    \glistnonempty{\gnl}
+    \gntn{sentence} \gopt{\gnc}
+  }{Event Entry}
+
+
+  
+  \grule{\gntn{scenarios}}{
+    \glist{\gnc\gnl}
+    \gtkw{scenarios}
+    \gntn{name} \gopt{\gnc}
+    \glist{\glistnonempty{\gnl} \gntn{scenarioEntry}}
+    \gntn{blockend}
+  }{Scenarios}
+
+
+  \grule{\gntn{scenarioEntry}}{
+    \glist{\gnc\gnl}
+    \gntn{name} \gopt{\gnc}
+    \glistnonempty{\gnl}
+    \gntn{sentence} \gopt{\gnc}
+  }{Scenario Entry}
+
+
+  \grule{\gntn{requirements}}{
+    \glist{\gnc\gnl}
+    \gtkw{requirements}
+    \gntn{name} \gopt{\gnc}
+    \glist{\glistnonempty{\gnl} \gntn{requirementEntry}}
+    \gntn{blockend}
+  }{Requirements}
+
+
+  \grule{\gntn{requirementEntry}}{
+    \glist{\gnc\gnl}
+    \gntn{name} \gopt{\gnc}
+    \glistnonempty{\gnl}
+    \gntn{sentence} \gopt{\gnc}
+  }{Requirement Entry}
+
+  \gline
+
+  \grule{\gntn{relation}}{
+    \glist{\gnc\gnl}
+    \gtkw{relation} \gntn{elemName} \gopt{\gntn{relationClause}} % opt is a bug
+    \gopt{\gnc}
+    \gntn{blockend}
+  }{Relation Declaration}
+
+
+  \gline
+  
+  \grule{\gntn{name}}{
+    \glist{\gns} \gntn{nameWord} \glist{\glistnonempty{\gns} \gntn{nameWord}} \glist{\gns}
+  }{Name}
+
+  \grule{\gntn{nameWord}}{
+    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}()]*[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}().!?]} 
+  }{Name word}
+
+  \grule{\gntn{indexName}}{
+    \glist{\gns} \gntn{indexNameWord} \glist{\glistnonempty{\gns} \gntn{indexNameWord}} \glist{\gns}
+  }{Index name}
+    
+  \grule{\gntn{indexNameWord}}{
+    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}:]+}
+  }{Index name word}
+
+
+  \grule{\gntn{elemName}}{
+    \glist{\gns} \gntn{elemNameWord} \glist{\glistnonempty{\gns} \gntn{elemNameWord}} \glist{\gns}
+  }{Element name}
+
+  \grule{\gntn{elemNameWord}}{
+    \gntn{nameWord} \text{except not \gtkw{inherit}, \gtkw{client}, or \gtkw{contains}}
+  }{Element name word}
+  
+  \gline
+
+  \grule{\gntn{paragraph}}{
+    \glistnonempty{\gntn{sentence}}
+  }{Paragraph}
+
+  \grule{\gntn{sentence}}{
+    \gntn{sentBody} \gntn{sentTerm} \gopt{\gntn{wordSep}} \gcont
+    \gor \gntn{sentBody} \gopt{\gntn{wordSep}} % issues warning
+  }{Sentence}
+    
+  \grule{\gntn{sentBody}}{
+    \gntn{sentWord} \glist{\gntn{wordSep} \gntn{sentWord}} \gopt{\gntn{wordSep}}
+  }{Sentence Body}
+
+  \grule{\gntn{wordSep}}{
+    \glistnonempty{\gns} \gor \glist{\gns} \gnl \glist{\gns}
+  }{Word Separator}
+
+  \grule{\gntn{sentWord}}{
+    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}]*[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}.!?]} 
+  }{Sentence word}
+
+  \grule{\gntn{sentTerm}}{
+    \gtkc{.} \gor \gtkc{!} \gor \gtkc{?}
+  }{Sentence terminator}
+
+  \grule{\gntn{blockend}}{
+    \glistnonempty{\gnl} \gor \gntn{EOF}
+  }{Block End}  % very problematic
+
+  \gline
+
+  \grule{\gns}{
+    \gtregex{[ \gtesc{t}]}
+  }{Whitespace character}
+
+  \grule{\gnl}{
+    \gtregex{(\gtkc{\gtesc{r}}?\gtkc{\gtesc{n}})|\gtkc{\gtesc{r}}} \gopt{\gns} \gor \gntn{EOF}
+  }{Line separator}
+
+  \grule{\gnc}{
+    \gtkc{/}\gtkc{/} \gtregex{[\gtneg\gtesc{r}\gtesc{n}]*}
+  }{Comment}
+
+\end{grammar}
+
+\section{Context-Sensitive Considerations}
+
+The following extra-grammatical rules are applied after parsing the concrete grammar above.
+
+\begin{itemize}
+\item 
+  An implicit containment relationship is recorded from each \gntn{subsystem} into the
+  \gntn{system}, if any, most recently defined above it.
+\item
+  An implicit containment relationship is recorded from each \gntn{component} into the
+  \gntn{subystem}, if any, most recently defined above it.
+\item 
+  Each \gntn{relationClause} is translated into a top-level \gntn{relation} declaration.
+\end{itemize}
+
+\end{document}
+
