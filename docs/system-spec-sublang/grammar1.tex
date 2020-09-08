@@ -216,8 +216,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   }{Paragraph}
 
   \grule{\gntn{sentence}}{
-    \gntn{sentBody} \gntn{sentTerm} \gopt{\gntn{wordSep}} \gcont
-    \gor \gntn{sentBody} \gopt{\gntn{wordSep}} % issues warning
+    \gntn{sentBody} \gopt{\gntn{sentTerm}} \gopt{\gntn{wordSep}} 
   }{Sentence}
     
   \grule{\gntn{sentBody}}{
@@ -258,7 +257,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
 \section{Context-Sensitive Considerations}
 
-The following extra-grammatical rules are applied after parsing the concrete grammar above.
+The following extra-grammatical rules are applied during or after parsing the concrete grammar above.
 
 \begin{itemize}
 \item 
@@ -269,6 +268,9 @@ The following extra-grammatical rules are applied after parsing the concrete gra
   \gntn{subystem}, if any, most recently defined above it.
 \item 
   Each \gntn{relationClause} is translated into a top-level \gntn{relation} declaration.
+\item
+  A \gntn{sentence} that does not end with a \gtkc{.},\gtkc{!}, or \gtkc{?} symbol
+(possibly followed by white space characters or line separators) induces a warning message.
 \end{itemize}
 
 \end{document}
