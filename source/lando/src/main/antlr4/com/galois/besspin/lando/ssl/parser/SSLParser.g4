@@ -91,7 +91,7 @@ requirementEntries : requirementEntry (lineseps requirementEntry)* ;
 requirementEntry   : lineComments? name nameComment=comment? lineseps sentence sentenceComment=comment? ;
 
 
-relation          : lineComments? RELATION left=name (RELKEYWORD right=name)? comment? blockend ;
+relation          : lineComments? RELATION left=name RELKEYWORD right=name comment? blockend ;
 
 
 indexing          : INDEXING spaces? (lineseps indexEntries)? ;
