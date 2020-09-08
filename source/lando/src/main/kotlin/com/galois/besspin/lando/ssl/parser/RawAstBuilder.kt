@@ -34,8 +34,9 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
             }
         }.unzip()
 
+        val comments = toAst(landoSourceContext.lineComments())
         val relationship = RawRelationships.fromRelationList(relationsListOfLists.flatten())
-        return RawSSL(nextUid(), elements.filterNotNull(), relationship, listOf())
+        return RawSSL(nextUid(), elements.filterNotNull(), relationship, comments)
     }
 
 //  system     : lineComments?
