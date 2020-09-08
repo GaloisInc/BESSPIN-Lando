@@ -256,7 +256,7 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         )
 
 
-//  relation          : lineComments? RELATION left=name (RELKEYWORD right=name)? comment? blockend ;
+//  relation          : lineComments? RELATION left=name RELKEYWORD right=name comment? blockend ;
     private fun toAst(relationCxt: SSLParser.RelationContext): List<RawRelation> =
         arrayListOf(
             createRelation(toAst(relationCxt.RELKEYWORD()), toAst(relationCxt.left), toAst(relationCxt.right))
