@@ -1,0 +1,356 @@
+\documentclass{article}
+\usepackage{fullpage}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{longtable}
+\usepackage{textcomp}
+\usepackage{array}
+\usepackage{todonotes}
+\usepackage{mathtools}
+\usepackage{xparse}
+\usepackage{mathpartir}
+\usepackage{amssymb}
+
+%\input{macros2}
+
+\begin{document}
+
+\title{Lando SSL Well-formedness}
+\maketitle
+
+\section{Notation}
+
+\newcommand{\nt}[1]{\ensuremath{\mathit{#1}}}
+\newcommand{\lab}[1]{\ensuremath{\texttt{#1}}}
+\newcommand{\listof}[1]{\ensuremath{[{#1}]}}
+\newcommand{\nillist}[1]{[]_{#1}}
+\newcommand{\conslist}[2]{{#1}::{#2}}
+\newcommand{\optof}[1]{\ensuremath{{#1}?}}
+\newcommand{\some}[1]{\lceil{#1}\rceil}
+\newcommand{\none}[1]{\cdot_{#1}}
+\newcommand{\proj}[2]{\ensuremath{{#1}.{#2}}}
+\newcommand{\emptym}{\emptyset} 
+
+Lists of $t$ are written $\listof{t}$; $\nillist{t}$ is an empty list of $t$'s and $\conslist{x}{xs}$ is the list with head $x$ and tail $xs$.
+An optional $t$ is written $\optof{t}$; a present option value $x$ is written $\some{x}$ and a missing option value of type $t$ is written $\none{t}$.
+We write $\proj{x}{y}$ for the projection of field $y$ from a node $x$ .
+In the pattern $x@\lab{Foo}\{\ldots\}$, $x$ is bound to the entire node labeled $\lab{Foo}$.
+The pattern $\lab{(Foo|Bar)}\{\ldots\}$ matches nodes labeled either $\lab{Foo}$ or $\lab{Bar}$.
+Disjoint union of maps is written $\uplus$, and is undefined if the domains of the maps are not disjoint.  An empty map is written $\emptym$.
+A judgement applies only if all premises are fully defined.
+\section{Raw AST Grammar}
+
+This is intended to correspond precisely to the {\tt RawAST} structure built by the current parser, except that comments are omitted.
+For the most part, the AST corresponds directly to the concrete syntax.
+The two major deviations are: (i) relation clauses in {\tt system}, {\tt subsystem}, and
+{\tt component} declarations are lifted into top level {\tt Relation} declarations; (ii) implicit containment of {\tt subsystem}s into
+{\tt system}s and of {\tt component}s, {\tt events}, {\tt scenarios}, and {\tt requirements} into {\tt subsystem}s is represented by a list of top-level {\tt ImplicitContains} relations.
+Most nodes in the AST are given a unique identifier ({\tt uid}) field, which is used for (ii) above, and can be handy for other things.
+
+\[
+\begin{array}{rcl}
+  s \in \nt{source} & \rightarrow &\lab{Source}\{\lab{uid}:\nt{uid},\lab{elems}:\listof{\nt{elem}}, \lab{relations}:\listof{\nt{relation}}\} \\
+  e \in \nt{elem} & \rightarrow & \lab{System}\{\lab{uid}:\nt{uid},\lab{name}:\nt{name},\lab{abbrev}:\optof{\nt{name}},
+                                                \lab{expanation}:\nt{text},\lab{indexings}:\listof{\nt{indexing}}\} \\
+                  & \rightarrow & \lab{Subsystem}\{\lab{uid}:\nt{uid},\lab{name}:\nt{name},\lab{abbrev}:\optof{\nt{name}},
+                                                \lab{expanation}:\nt{text},\lab{indexings}:\listof{\nt{indexing}}\} \\
+                  & \rightarrow &\lab{Component}\{\lab{uid}:\nt{uid},\lab{name}:\nt{name},\lab{abbrev}:\optof{\nt{name}},
+                                                \lab{expanation}:\nt{text},\lab{parts}:\listof{\nt{part}}\} \\
+                  & \rightarrow & \lab{Events}\{\lab{uid}:\nt{uid},\lab{name}:\nt{name},\lab{contents}:\listof{\nt{item}}\} \\
+                  & \rightarrow & \lab{Scenarios}\{\lab{uid}:\nt{uid},\lab{name}:\nt{name},\lab{contents}:\listof{\nt{item}}\} \\
+                  & \rightarrow & \lab{Requirements}\{\lab{uid}:\nt{uid},\lab{name}:\nt{name},\lab{contents}:\listof{\nt{item}}\} \\
+  x \in \nt{indexing} & \rightarrow & \lab{Indexing}\{\lab{key}:\nt{text},\lab{values}:\listof{\nt{text}}\} \\
+  p \in \nt{part} & \rightarrow & \lab{Constraint}\{\lab{contents}:\nt{text}\} \\
+                  & \rightarrow & \lab{Query}\{\lab{contents}:\nt{text}\} \\
+                  & \rightarrow & \lab{Command}\{\lab{contents}:\nt{text}\} \\
+  i \in \nt{item} & \rightarrow & \lab{Item}\{\lab{id}:\nt{name},\lab{value}:\nt{text}\} \\
+  r \in \nt{relation} & \rightarrow & \lab{Inherit}\{\lab{sub}:\nt{name},\lab{super}:\nt{name}\} \\
+                      & \rightarrow & \lab{Contains}\{\lab{child}:\nt{name},\lab{parent}:\nt{name}\} \\
+                      & \rightarrow & \lab{ImplicitContains}\{\lab{child}:\nt{uid},\lab{parent}:\nt{uid}\} \\
+                      & \rightarrow & \lab{Client}\{\lab{client}:\nt{name},\lab{provider}:\nt{name}\} \\
+  u \in \nt{uid} & & \text{(base type)} \\
+  t \in \nt{text}& & \text{(base type)} \\
+  n \in \nt{name}& & \text{(base type)} \\
+\end{array}
+\]
+  
+\vfill\eject
+
+\section{Well-formedness Judgements}
+
+\subsection{Uniqueness of UIDs}
+
+\newcommand{\uidmap}{\Phi}
+
+These judgements check that each \nt{uid} is indeed unique and
+produces a finite map $\uidmap : \nt{uid} \rightarrow \nt{elem} + \nt{source}$
+from each defined \nt{uid} to its associated element definition (or
+the top level $\nt{source}$).
+
+\newcommand{\blduidmap}[2]{\vdash {#1} \Rightarrow {#2}}
+
+\begin{mathparpagebreakable}
+
+\inferrule{
+  \blduidmap{es}{\uidmap}  \\
+  \uidmap' = \uidmap \uplus \{ u \mapsto s \} \\
+}{
+  \blduidmap{s@\lab{Source}\{\lab{uid}=u,\lab{elems}=es,\ldots\}}{\uidmap'}
+}
+            
+\\
+
+\inferrule{
+}{
+  \blduidmap{\nillist{\nt{elem}}}{\emptym}
+}
+
+\inferrule{
+  \blduidmap{es}{\uidmap} \\
+  \uidmap' = \uidmap \uplus \{ \proj{e}{\lab{uid}} \mapsto e  \} \\
+}
+{  \blduidmap{\conslist{e}{es}}{\uidmap'}
+  }
+
+\end{mathparpagebreakable}
+
+
+\subsection{Implicit Container Relations}
+
+\newcommand{\icmap}{\Sigma}
+
+\newcommand{\bldicmap}[3]{{#1} \vdash {#2} \Rightarrow {#3}}
+
+\newcommand{\reachable}[2]{\texttt{reachable}_{#1}({#2})}
+% Reachability should be reflexive.
+\newcommand{\nocycles}[1]{\texttt{nocycles}({#1})}
+\newcommand{\validic}[2]{\texttt{valid-impl-contains}({#1},{#2})}
+
+These judgments check that the implicit container relations clauses are well formed
+and produce a map $\icmap: \nt{uid} \rightarrow \nt{uid}$ mapping each
+implicitly contained element to its immediately containing element.
+
+\begin{mathparpagebreakable}
+  \inferrule{
+  }{\bldicmap{\uidmap}{\nillist{\nt{relation}}}{\emptym}
+  }
+    
+\inferrule{
+  \bldicmap{\uidmap}{rs}{\icmap} \\
+%  u_c \neq u_p \\  not needed if reachability is reflexive
+  \validic{\uidmap(u_c)}{\uidmap(u_p)} \\
+  u_c \not\in \reachable{\icmap}{u_p} \\
+  \icmap' = \icmap \uplus \{ u_c \mapsto u_p \} \\
+}{
+  \bldicmap{\uidmap}{\conslist{\lab{ImplicitContains}\{\lab{child}=u_c,\lab{parent}=u_p\}}{rs}}{\icmap'}
+}
+
+\inferrule{
+  \bldicmap{\uidmap}{rs}{\icmap} \\
+}{
+  \bldicmap{\uidmap}{\conslist{\lab{Contains}\{\ldots\}}{rs}}{\icmap}
+}
+
+\inferrule{
+  \bldicmap{\uidmap}{rs}{\icmap} \\
+}{
+  \bldicmap{\uidmap}{\conslist{\lab{Inherit}\{\ldots\}}{rs}}{\icmap}
+}
+
+\inferrule{
+  \bldicmap{\uidmap}{rs}{\icmap} \\
+}{
+  \bldicmap{\uidmap}{\conslist{\lab{Client}\{\ldots\}}{rs}}{\icmap}
+}
+
+
+\inferrule{
+}{\validic{\lab{Subsystem}\{\ldots\}}{\lab{System}\{\ldots\}}
+}
+
+\inferrule{
+}{\validic{\lab{(Subsystem|Component|Scenarios|Requirements|Events)}\{\ldots\}}{\lab{Subsystem}\{\ldots\}}
+}
+
+\\
+
+\inferrule{
+}{x \in \reachable{M}{x}}
+
+\inferrule{
+  M(z) = x \\
+  z \in \reachable{M}{y}
+}{x \in \reachable{M}{y}
+}
+
+
+\end{mathparpagebreakable}
+
+\subsection{Binding Contexts}
+
+\newcommand{\con}{\Gamma}
+\newcommand{\iccon}{\Delta}
+
+These judgements check that the set of names 
+defined by each implicit container has no duplicates,
+and so uniquely defines a context $\con: \nt{name} \rightarrow \nt{uid}$.
+The judgements 
+produce a map $\iccon: \nt{uid} \rightarrow \con$
+from each implicit container to the context it defines.
+
+\newcommand{\bldcon}[2]{\vdash {#1} \Rightarrow {#2}}
+\newcommand{\bldiccon}[3]{{#1} \vdash {#2} \Rightarrow {#3}}
+
+\begin{mathparpagebreakable}
+
+\inferrule{
+  n_1 \neq n_2
+}{
+  \bldcon{\lab{(System|Subsystem|Component)}\{\lab{uid}=u,\lab{name}=n_1,\lab{abbrev}=\some{n_2},\ldots\}}{\{ n_1 \mapsto u, n_2 \mapsto u \}}
+}
+
+\inferrule{
+}{
+  \bldcon{\lab{(System|Subsystem|Component)}\{\lab{uid}=u,\lab{name}=n,\lab{abbrev}=\none{\nt{name}},\ldots\}}{\{ n \mapsto u\}}
+}
+
+\inferrule{
+}{
+  \bldcon{\lab{(Events|Scenarios|Requirements)}\{\lab{uid}=u,\lab{name}=n,\ldots\}}{\{ n \mapsto u\}}
+}
+
+
+\inferrule{
+    \bldiccon{\icmap}{es}{\iccon} \\
+    u_p = \icmap(\proj{e}{\lab{uid}}) \\
+    \con_0 = \left\{{\begin{array}{ll}
+                       \iccon(u_p)&\text{if}~u_p \in Dom(\iccon)\\
+                       \emptym & \text{otherwise}
+                   \end{array}}\right. \\\\
+    \vdash e : \con \\
+    \iccon' = \iccon[u_p \mapsto (\con_0 \uplus \con)] \\
+}{\bldiccon{\icmap}{\conslist{e}{es}}{\iccon'}
+}
+
+\inferrule{
+  \bldiccon{\icmap}{es}{\iccon}
+}{
+  \bldiccon{\icmap}{\lab{Source}\{\lab{elems}=es,\ldots\}}{\iccon}
+}
+  
+
+\end{mathparpagebreakable}
+
+\subsection{Explicit Relations}
+
+\newcommand{\inhmap}{I}
+\newcommand{\xcmap}{K}
+\newcommand{\clmap}{\Pi}
+\newcommand{\bldermap}[6]{{#1},{#2} \vdash {#3} \Rightarrow ({#4},{#5},{#6})}
+
+\newcommand{\validinh}[2]{\texttt{valid-inherit}({#1},{#2})}
+\newcommand{\validcontains}[2]{\texttt{valid-contains}({#1},{#2})}
+\newcommand{\validclient}[2]{\texttt{valid-client}({#1},{#2})}
+
+These judgements check that the explicit relations are well-formed,
+and build an inheritance map
+$\inhmap: \nt{uid} \rightarrow \nt{uid}$ from sub-things to super-things,
+an explicit containment map
+$\xcmap: \nt{uid} \rightarrow \nt{uid}$ from children to parents,
+and a client relation
+$\clmap: \nt{uid} \times \nt{uid}$ between clients and providers.
+
+\emph{
+  TBD:
+  \begin{itemize}
+  \item Unclear where we will get the contexts $\con$.
+  \item Need to fill in the validity definitions.
+  \item Treating $\inhmap$ as a map implies single inheritance.
+  \item Treating $\xcmap$ as a map implies a thing is contained in at most one other thing.
+  \item Need to consider interaction of implicit and explicit relation maps, in particular to find cycles across the combination of the two.
+  \item Calculation of $\clmap$ doesn't check for duplicate declarations of a given relation; should it?
+  \end{itemize}
+}
+
+
+\begin{mathparpagebreakable}
+
+\inferrule{
+}{
+  \bldermap{\uidmap}{\con}{\nillist{\nt{relation}}}{\emptym}{\emptym}{\emptym}
+}
+
+\inferrule{
+  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+  u_{sub} = \con(n_{sub}) \\
+  u_{super} = \con(n_{super}) \\
+  u_{sub} \not \in \reachable{\inhmap}{u_{super}} \\
+  \validinh{\uidmap(u_{sub})}{\uidmap(u_{super})} \\
+  \inhmap' = \inhmap \uplus \{ u_{sub} \mapsto u_{super} \}
+}{
+  \bldermap{\uidmap}{\con}{\conslist{\lab{Inherit}\{\lab{sub}=n_{sub},\lab{super}=n_{super}\}}{rs}}{\inhmap'}{\xcmap}{\clmap}
+}
+
+
+\inferrule{
+  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+  u_c = \con(n_c) \\
+  u_p = \con(n_p) \\
+  u_c \not \in \reachable{\xcmap}{u_p} \\
+  \validcontains{\uidmap(u_c)}{\uidmap(u_p)} \\
+  \xcmap' = \xcmap \uplus \{ u_c \mapsto u_p \}
+}{
+  \bldermap{\uidmap}{\con}{\conslist{\lab{Contains}\{\lab{child}=n_c,\lab{parent}=n_p\}}{rs}}{\inhmap}{\xcmap'}{\clmap}
+}
+
+          \\
+          
+\inferrule{
+  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+  u_c = \con(n_c) \\
+  u_p = \con(n_p) \\
+  \validclient{\uidmap(u_c)}{\uidmap(u_p)} \\
+  \clmap' = \clmap \cup \{ (u_c,u_p) \}
+}{
+  \bldermap{\uidmap}{\con}{\conslist{\lab{Client}\{\lab{client}=n_c,\lab{provider}=n_p\}}{rs}}{\inhmap}{\xcmap}{\clmap'}
+}
+
+
+\\
+
+\inferrule{
+  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+}{
+  \bldermap{\uidmap}{\con}{\conslist{\lab{ImplicitContains}\{\ldots\}}{rs}}{\inhmap}{\xcmap}{\clmap}
+}
+          
+\end{mathparpagebreakable}
+
+\subsection{Overall Well-Formedness}
+
+\emph{
+  TBD:
+  \begin{itemize}
+  \item Use of $\con = \iccon(u)$ is bogus; need to fix once we understand desired scoping rules better.
+  \item Need to describe interaction of $\icmap$ and $\xcmap$ and perhaps build their union.
+  \end{itemize}
+}
+            
+\begin{mathparpagebreakable}
+
+\inferrule{
+  \blduidmap{s}{\uidmap} \\
+  \bldicmap{\uidmap}{rs}{\icmap} \\
+  \bldiccon{\icmap}{s}{\iccon} \\
+  \con = \iccon(u) \\
+  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\\\
+  \text{$\exists$ at most one $e \in es$ s.t. $e = \lab{System}\{\ldots\}$} \\
+}{
+  \vdash s@\lab{Source}\{\lab{uid}=u,\lab{elems}=es,\lab{relations}=rs\} \Rightarrow (\uidmap,\icmap,\iccon,\inhmap,\xcmap,\clmap)
+}
+\end{mathparpagebreakable}
+
+
+\end{document}
+
+
