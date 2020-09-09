@@ -28,22 +28,22 @@ system     : lineComments?
              SYSTEM
              sysname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
-             (lineseps indexing)?
-             blockend ;
+             (indexing blockend)?
+	     ; 
 
 subsystem  : lineComments?
              SUBSYSTEM
              subsysname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
-             (lineseps indexing)?
-             blockend ;
+	     (indexing blockend)?
+             ;	
 
 component  : lineComments?
              COMPONENT
              compname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
              paragraph
-             (lineseps componentParts)?
-             blockend ;
+             (componentParts blockend)?
+             ;
 
 componentParts : componentPart (lineseps componentPart)* ;
 
@@ -122,7 +122,7 @@ name       : spaces? nameTrim spaces? ;
 abbrev     : spaces? ABBREVSTART spaces? WORD spaces? ABBREVEND spaces? ;
 
 wordSep    : spaces                   #wordSepSpaces
-           | spaces? LINESEP spaces?  #wordSepLinesep ;
+           | spaces? LINESEP 	      #wordSepLinesep ; 
 
 sentBody   : WORD (wordSep WORD)* wordSep? ;
 
@@ -134,7 +134,9 @@ sentence   : sentBody sentTerm wordSep?
            | sentBody          wordSep?
              { emitWarning("forgotten '.', '!', or '?'"); } ;
 
-paragraph  : sentence+ ;
+paragraph  : sentence+ parend;
+
+parend 	   : EMPTYLINE lineseps? | EOF;
 
 lineseps   : (LINESEP | EMPTYLINE)+ ;
 
