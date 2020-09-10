@@ -1,0 +1,22 @@
+#!/usr/bin/python3
+
+import json
+import sys
+
+json_str = ""
+
+for line in sys.stdin:
+  json_str += line
+
+json_data = json.loads(json_str)
+
+filepath = json_data[0]['value']
+
+x = int(open(filepath).read())
+
+json_output = {
+  "variant": "int",
+  "value": x
+}
+
+print(json.dumps(json_output))

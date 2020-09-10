@@ -27,16 +27,13 @@ module Main
 
 import Lobot.Expr
 import Lobot.Instances
-import Lobot.JSON
 import Lobot.Kind
 import Lobot.Parser
 import Lobot.Pretty
 import Lobot.TypeCheck
 import Lobot.Types
+import Lobot.DefaultPlugin
 
-import qualified Data.Aeson as A
-import qualified Data.ByteString.Lazy.Char8 as BS
-import qualified Data.HashSet as HS
 import qualified Text.PrettyPrint as PP
 import qualified Data.Text as T
 import Data.Text (Text)
@@ -49,7 +46,6 @@ import Data.Functor.Const
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.Some
-import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 import Numeric.Natural
 
@@ -57,7 +53,6 @@ import Options.Applicative
 
 import System.IO (hFlush, stdout)
 import System.Console.ANSI (hSupportsANSI, clearLine, setCursorColumn, cursorUp)
-import System.Process hiding (env)
 import System.Directory
 import System.Exit
 
@@ -151,28 +146,29 @@ lobot Options{..} = do
       Left err -> do print $ ppTypeError inFileName err
                      exitFailure
       Right (TypeCheckResult env ks cks, ws) -> do
+        let plugin = defaultPluginEnvOnPWD env
         -- print any type warnings
         forM_ ws $ print . ppTypeWarning inFileName
         case inOptions of
           BrowseKindInsts k -> do
             SomeNonAbsKind tp cns <- lookupKind k ks
             putStrLn ""
-            runSession z3 env (canonicalEnv env) (Empty :> tp) cns
+            runSession z3 env plugin (Empty :> tp) cns
                        (browseKindInstances k inLimit inVerbose)
           GenKindInsts k -> do
             SomeNonAbsKind tp cns <- lookupKind k ks
-            void $ runSession z3 env (canonicalEnv env) (Empty :> tp) cns
+            void $ runSession z3 env plugin (Empty :> tp) cns
                              (generateKindInstances k inLimit inVerbose)
           RunCheck ck -> do
             SomeNonAbsCheck _ fldnms tps cns <- lookupCheck ck cks
-            void $ runSession z3 env (canonicalEnv env) tps cns
+            void $ runSession z3 env plugin tps cns
                              (runCheck ck fldnms inLimit)
           RunAllChecks -> do
             let go :: Assignment FunctionTypeRepr env -> Some (Check env) -> IO Bool
                 go env' some_ck = do
                   SomeNonAbsCheck nm fldnms tps cns <- toNonAbstractCheck some_ck;
-                  isNothing <$> runSession z3 env' (canonicalEnv env') tps cns
-                                           (runCheck nm fldnms inLimit)
+                  isNothing <$> runSession z3 env' (defaultPluginEnvOnPWD env')
+                                           tps cns (runCheck nm fldnms inLimit)
             bs <- mapM (go env) cks
             if null bs then putStrLn "All checks pass. (File had no checks)"
             else if and bs then putStrLn "All checks pass."
@@ -238,9 +234,8 @@ browseKindInstances k limit verbose s@SessionData{..} =
   void $ generateInstances msg limit onLimit onInst s
   where msg = "Generating instances of '" ++ T.unpack k ++ "'..."
         onInst :: InstanceResult env (EmptyCtx ::> tp)
-               -> HS.HashSet (FunctionCallResult env (EmptyCtx ::> tp))
                -> Natural -> Natural -> IO Bool
-        onInst (HasInstance (Empty :> l) fcns calls) calls' n _
+        onInst (HasInstance (Empty :> l) fcns calls) n _
           | null fcns || verbose = do
             if null fcns then putStrLn $ "Instance " ++ show n ++ ":"
                          else putStrLn $ "Generated an invalid instance:"
@@ -248,9 +243,9 @@ browseKindInstances k limit verbose s@SessionData{..} =
             when (not (null fcns)) $ do
               putStrLn "The constraints that failed were:"
               forM_ fcns (\c -> print . PP.nest 2 $ ppExpr env tps (Empty :> Const "self") c)
-            when (verbose && not (HS.null calls')) $ do
+            when (verbose && not (null calls)) $ do
               putStrLn "Learned the values of the following function calls:"
-              forM_ calls' (\c -> print . PP.nest 2 $ ppFunctionCallResult env tps (Empty :> Const "self") c)
+              forM_ calls (\c -> print . PP.nest 2 $ ppFunctionCallResult env tps (Empty :> Const "self") c)
             let outps = mapMaybe (\(FunctionCallResult fi args _ st) ->
                           if null st then Nothing
                           else Just (ppExpr env tps (Empty :> Const "self")
@@ -265,11 +260,11 @@ browseKindInstances k limit verbose s@SessionData{..} =
             whenNoANSI $ putStrLn ""
             pure True
           | otherwise = pure True
-        onInst _ _ 0 ivis = do
+        onInst _ 0 ivis = do
           putStrLn $ "Found no valid instances! (Generated "
                      ++ show ivis ++ " invalid instances)"
           pure False
-        onInst _ _ vis ivis = do
+        onInst _ vis ivis = do
           putStrLn $ "Enumerated all " ++ show vis ++ " valid instances, "
                      ++ "generated " ++ show ivis ++ " invalid instances"
           pure False
@@ -298,16 +293,15 @@ generateKindInstances k limit verbose =
   generateInstances msg limit onLimit onInst
   where msg = "Generating instances of '" ++ T.unpack k ++ "'..."
         onInst :: InstanceResult env (EmptyCtx ::> tp)
-               -> HS.HashSet (FunctionCallResult env ctx)
                -> Natural -> Natural -> IO Bool
-        onInst (HasInstance (Empty :> l) _ _) _ _ _ = do
+        onInst (HasInstance (Empty :> l) _ _) _ _ = do
           when verbose (print $ ppLiteralWithKindName k l)
           pure True
-        onInst _ _ 0 ivis = do
+        onInst _ 0 ivis = do
           putStrLn $ "Found no valid instances! (Generated "
                      ++ show ivis ++ " invalid instances)"
           pure False
-        onInst _ _ vis ivis = do
+        onInst _ vis ivis = do
           putStrLn $ "Found " ++ show vis
                      ++ " valid instances, generated " ++ show ivis
                      ++ " invalid instances"
@@ -330,15 +324,14 @@ runCheck ck fldnms limit s = do
   pure $ listToMaybe ls
   where msg = "Generating counterexamples of '" ++ T.unpack ck ++ "'..."
         onInst :: InstanceResult env ctx
-               -> HS.HashSet (FunctionCallResult env ctx)
                -> Natural -> Natural -> IO Bool
-        onInst (ValidInstance ls _) _ _ _ = do
+        onInst (ValidInstance ls _) _ _ = do
           putStrLn $ "'" ++ T.unpack ck ++ "' failed with counterexample:"
           forM_ (zip fldnms (toListFC Some ls)) $ \(fldnm, Some l) ->
             putStrLn $ "  " ++ T.unpack fldnm ++ " = " ++ show (ppLiteral l)
           pure False
-        onInst (InvalidInstance _ _ _ _) _ _ _ = pure True
-        onInst _ _ vis ivis = do
+        onInst (InvalidInstance _ _ _ _) _ _ = pure True
+        onInst _ vis ivis = do
           putStrLn $ "'" ++ T.unpack ck ++ "' holds. "
                      ++ "(Discarded " ++ show (vis+ivis)
                      ++ " potential counterexamples)"
@@ -366,31 +359,28 @@ generateInstances :: forall env ctx.
                      -- again) if and only if the returned boolean is true.
                      -- The 'Natural' arguments given are the number of valid
                      -- and invalid instances generated so far, respectively.
-                  -> (InstanceResult env ctx -> HS.HashSet (FunctionCallResult env ctx)
-                                             -> Natural -> Natural -> IO Bool)
+                  -> (InstanceResult env ctx -> Natural -> Natural -> IO Bool)
                      -- ^ The function to call each time the solver generates,
                      -- or fails to generate, an instance. Instance generation
                      -- continues if and only if the returned boolean is true, 
                      -- unless the 'InstanceResult' argument given is
                      -- 'NoInstance' or 'Unknown', in which case it always
-                     -- stops. The list argument given is the list of all new
-                     -- function call results learned, and the @Natural@
-                     -- arguments given are the number of valid and invalid
-                     -- instances generated so far, respectively.
+                     -- stops. The @Natural@ arguments given are the number of
+                     -- valid and invalid instances generated so far,
+                     -- respectively.
                   -> SessionData env ctx
                   -> IO ([Assignment Literal ctx], Natural)
 generateInstances genMsg limit onLimit onInst s = do
   putStrNow genMsg
   whenNoANSI $ putStrLn ""
-  go HS.empty limit 0 0
-  where go :: HS.HashSet (FunctionCallResult env ctx)
-           -> Natural -> Natural -> Natural
+  go limit 0 0
+  where go :: Natural -> Natural -> Natural
            -> IO ([Assignment Literal ctx], Natural)
-        go call_set limit' vis ivis
+        go limit' vis ivis
           | vis + ivis >= limit' = do
           clearLinesWithCursor 1
           cont <- onLimit vis ivis
-          if cont then go call_set (limit' + limit) vis ivis
+          if cont then go (limit' + limit) vis ivis
                   else pure ([], vis+ivis)
           | otherwise = do
           getNextInstance s >>= \case
@@ -398,55 +388,19 @@ generateInstances genMsg limit onLimit onInst s = do
               let (toAdd, vis', ivis') = case null fcns of
                     True  -> ([ls], vis+1, ivis) -- ls is a valid instance
                     False -> ([],   vis, ivis+1) -- ls is an invalid instance
-              -- only pass calls we haven't seen before to onInst
-              let calls' = HS.fromList calls `HS.difference` call_set
               clearLinesWithCursor 1
-              cont <- onInst (HasInstance ls fcns calls) calls' vis' ivis'
+              cont <- onInst (HasInstance ls fcns calls) vis' ivis'
               if cont then do
                 whenANSI $ putStrNow (msg vis' ivis')
-                let call_set' = calls' `HS.union` call_set
-                (lss, tot) <- go call_set' limit' vis' ivis'
+                (lss, tot) <- go limit' vis' ivis'
                 return (toAdd ++ lss, tot)
               else return (toAdd, vis'+ivis')
             ir -> do
               clearLinesWithCursor 1
-              _ <- onInst ir HS.empty vis ivis
+              _ <- onInst ir vis ivis
               return ([], vis+ivis)
         msg :: Natural -> Natural -> String
         msg 0 0      = genMsg
         msg vis ivis = genMsg ++ " | Found " ++ show vis
                        ++ " valid instances, " ++ show ivis
                        ++ " invalid instances"
-
-
--- | The canonical function environment uses 'run' as the implementation for
--- every function in scope
-canonicalEnv :: Assignment FunctionTypeRepr fntps
-             -> Assignment (FunctionImpl IO) fntps
-canonicalEnv Empty = Empty
-canonicalEnv (fntps :> fntp@FunctionTypeRepr{}) =
-  canonicalEnv fntps :> FunctionImpl fntp (run fntp)
-
-run :: FunctionTypeRepr (FunType nm args ret)
-    -> Assignment Literal args
-    -> IO (Literal ret, String)
-run FunctionTypeRepr{..} args = do
-  let json_args = A.toJSONList (toListFC literalToJSON args)
-      std_in = BS.unpack (A.encode json_args)
-      p = shell (T.unpack (symbolRepr functionName))
-  (ec, std_out, std_err) <- readCreateProcessWithExitCode p std_in
-  case ec of
-    ExitSuccess -> case A.eitherDecode (BS.pack std_out) of
-      Right v -> case literalFromJSON v of
-        A.Success (Some l') -> case testEquality functionRetType (literalType l') of
-          Just Refl -> return (l', std_err)
-          Nothing -> do putStrLn $ "expected " ++ show functionRetType ++ ", got " ++ show l'
-                        exitFailure
-        A.Error e -> do putStrLn $ "error: " ++ e
-                        exitFailure
-      Left e -> do putStrLn "Error decoding JSON"
-                   putStrLn std_out
-                   putStrLn e
-                   exitFailure
-    ExitFailure _ -> do putStrLn $ "error: " ++ std_err
-                        exitFailure

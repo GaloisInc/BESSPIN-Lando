@@ -1,0 +1,47 @@
+abstract type filepath
+
+-- If no file exists at the given path, create a new file there, write the
+-- given integer to it, and return its path. If there is already a file at the
+-- given path, error!
+abstract dont_call_me_twice : (int, filepath) -> filepath
+
+-- Read an integer from a file at the given path.
+abstract read_int_from_file : filepath -> int
+
+-- Return true iff the two given integers are equal. Additionally, delete any
+-- file at the given path.
+abstract ensure_equal_and_clean_up : (int, int, filepath) -> bool
+
+abstract tmp_file : () -> filepath
+
+-- What should happen when all instances of this kind are enumerated, assuming
+-- that no file exists at `tmp_file()`:
+-- 1. The first instance of `read_int_from_file(dont_call_me_twice(self, tmp_file()))`
+--    is evaluated by calling all of the three relevant functions. The entire call is
+--    then cached. Note that this results in a file at `tmp_file()` being created.
+-- 2. The second instance of `read_int_from_file(dont_call_me_twice(self, tmp_file()))`
+--    is evaluated using the above cache, so none of the three relevant functions
+--    are called again. If `dont_call_me_twice` was to be called again, it would
+--    error, since there is now a file at `tmp_file()`! Try changing `self` in this
+--    call to `self+1`, for example, to ensure a cache miss and see this behavior.
+-- 3. The call to `ensure_equal_and_clean_up` is evaluated using the results of
+--    the above two evaluations. Additionally, the file at `tmp_file()` is deleted, so
+--    `dont_call_me_twice` will not error when called with the next value of `self`.
+cache_test : kind of int
+  where 1 <= self <= 3
+        ensure_equal_and_clean_up(read_int_from_file(dont_call_me_twice(self, tmp_file())), read_int_from_file(dont_call_me_twice(self, tmp_file())), tmp_file())
+
+-- Why don't we just do the below instead? Well, Lobot assumes that functions with
+-- non-abstract return types always have the same behavior on the same reduced input,
+-- but the behavior of `dont_call_me_twice_bad(int, tmp_file())` depends on the
+-- state of the file system, even though `dont_call_me_twice_bad` has a non-abstract
+-- return type. Thus, although the code below still works, it is very much
+-- non-canonical.
+-- 
+-- -- If no file exists at the given path, return the given integer. If there
+-- -- is already a file at the given path, error!
+-- abstract dont_call_me_twice_bad : (int, filepath) -> int
+-- 
+-- cache_test_bad : kind of int
+--   where 1 <= self <= 3
+--         ensure_equal_and_clean_up(dont_call_me_twice_bad(self, tmp_file()), dont_call_me_twice_bad(self, tmp_file()), tmp_file())

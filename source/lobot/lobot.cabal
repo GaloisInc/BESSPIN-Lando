@@ -34,6 +34,7 @@ library
                        Lobot.TypeCheck.SecondPass
                        Lobot.Types
                        Lobot.Utils
+                       Lobot.DefaultPlugin
 
   -- other-modules:
   -- other-extensions:
@@ -44,9 +45,13 @@ library
                        parameterized-utils >= 2.1.0,
                        array,
                        containers,
+                       filepath,
                        mtl,
                        pretty,
+                       process,
                        text,
+                       transformers,
+                       unliftio,
                        unordered-containers,
                        what4
   hs-source-dirs:      src
@@ -68,7 +73,6 @@ executable lobot
                        optparse-applicative,
                        parameterized-utils,
                        pretty,
-                       process,
                        text,
                        unordered-containers
 
@@ -81,6 +85,7 @@ test-suite lobot-tests
   build-depends:      lobot,
                       base,
                       bytestring,
+                      directory,
                       filepath,
                       parameterized-utils,
                       pretty-show,

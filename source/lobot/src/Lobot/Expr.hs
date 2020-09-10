@@ -12,7 +12,7 @@
 {-|
 Module      : Lobot.Expr
 Description : Expression data type
-Copyright   : (c) Ben Selfridge, 2020
+Copyright   : (c) Matthew Yacavone, Ben Selfridge, 2020
 License     : BSD3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
@@ -32,19 +32,28 @@ module Lobot.Expr
   , litEq
     -- * Function implementation
   , FunctionImpl(..)
+  , fnImplRunLazy
     -- * Evaluation
   , evalExpr
   , runEvalM
   , EvalM
   , EvalResult(..)
+  , FunctionCallCache
+  , lookupCall
   , FunctionCallResult(..)
+  , liftST
   ) where
 
 import Lobot.Types
 import Lobot.Utils
 
-import qualified Control.Monad.State as S
-import qualified Data.ByteString as BS
+import Data.ByteString (ByteString)
+import Control.Monad.Reader
+import Control.Monad.Writer
+import Control.Monad.ST
+import Data.Parameterized.HashTable
+import System.IO.Unsafe (unsafeInterleaveIO)
+import UnliftIO (MonadUnliftIO(..), withRunInIO)
 
 import Data.Bits (xor)
 import Data.List (find, intersect, union, (\\))
@@ -57,6 +66,7 @@ import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 import Data.Parameterized.TH.GADT
 import GHC.TypeLits
+import Prelude hiding (lookup)
 
 -- | A expression involving a particular variable context, given a particular
 -- function environment.
@@ -186,6 +196,23 @@ instance FunctorFC FieldInst where
 fieldInstFieldType :: FieldInst f p -> FieldRepr p
 fieldInstFieldType (FieldInst nm tp _) = FieldRepr nm tp
 
+-- | The signature of a function call to be cached, assuming that the given
+-- expressions are all the result of 'evalExpr'.
+data FunctionCall env ctx ret where
+  FunctionCall :: NonAbstract ret
+               => Index env (FunType nm args ret)
+               -- ^ Index of the called function
+               -> Assignment (Expr env ctx) args
+               -- ^ Argument expressions
+               -> FunctionCall env ctx ret
+
+deriving instance Show (FunctionCall env ctx ret)
+
+-- | An 'STRef' which stores function calls with non-abstract return types
+-- and their literal results.
+type FunctionCallCache env ctx =
+  HashTable RealWorld (FunctionCall env ctx) Literal
+
 -- | The result of a function call on a particular set of argument expressions,
 -- whose return type is not abstract. This is used for refining the solver's
 -- model of the function to improve its search during instance generation.
@@ -203,35 +230,35 @@ data FunctionCallResult env ctx where
 
 deriving instance Show (FunctionCallResult env ctx)
 
--- | Expression evaluation monad. Every time we evaluate a function, we record
--- the call as a 'FunctionCallResult' that can be collected after evaluation.
+-- | Expression evaluation monad - a monad transformer which has a
+-- 'FunctionCallCache' reference and accumulates a list of
+-- 'FunctionCallResult's, the later of which is indended to include all
+-- function calls which were added to the cache during evaluation.
 newtype EvalM env ctx m a =
-  EvalM { unEvalM :: S.StateT [FunctionCallResult env ctx] m a }
+  EvalM { unEvalM :: WriterT [FunctionCallResult env ctx]
+                             (ReaderT (FunctionCallCache env ctx) m) a }
   deriving ( Functor
            , Applicative
            , Monad
-           , S.MonadState [FunctionCallResult env ctx]
+           , MonadReader (FunctionCallCache env ctx)
+           , MonadWriter [FunctionCallResult env ctx]
+           , MonadIO
            , MonadFail
            )
+
+instance MonadTrans (EvalM env ctx) where
+  lift = EvalM . lift . lift
+
+liftST :: MonadIO m => ST RealWorld a -> m a
+liftST = liftIO . stToIO
 
 -- | Unwrap an 'EvalM' computation, collecting both the result of the evaluation
 -- and a list of all of the 'FunctionCallResult's computed as the result of
 -- calling concrete functions.
-runEvalM :: EvalM env ctx m a -> m (a, [FunctionCallResult env ctx])
-runEvalM k = S.runStateT (unEvalM k) []
-
--- | Lift a value from the underlying monad into 'EvalM'.
-lift :: Monad m => m a -> EvalM env ctx m a
-lift = EvalM . S.lift
-
-addCall :: (NonAbstract ret, Monad m)
-        => Index env (FunType nm args ret)
-        -> Assignment (Expr env ctx) args
-        -> Literal ret
-        -> String
-        -> EvalM env ctx m ()
-addCall fi args ret st = S.modify (call:)
-  where call = FunctionCallResult fi args ret st
+runEvalM :: FunctionCallCache env ctx
+         -> EvalM env ctx m a
+         -> m (a, [FunctionCallResult env ctx])
+runEvalM cache k = runReaderT (runWriterT (unEvalM k)) cache
 
 data EvalResult env ctx tp =
   EvalResult { evalResultLit :: Literal tp
@@ -243,6 +270,33 @@ litEvalResult :: NonAbstract tp
               -> EvalResult env ctx tp
 litEvalResult l = EvalResult l (LiteralExpr l)
 
+-- | Within an 'EvalM' computation, try to lookup in the current cache the
+-- function call defined by the given index and arguments, and return the
+-- result if there is a hit. If there is no hit, evaluate the this function
+-- on its arguments using the given environment of function implementations,
+-- add the result to the cache and the current list of function call results,
+-- and return this result.
+lookupCall :: (NonAbstract ret, MonadIO m)
+           => Assignment (FunctionImpl m) env
+           -> Index env (FunType nm args ret)
+           -> Assignment (EvalResult env ctx) args
+           -> EvalM env ctx m (Literal ret)
+lookupCall fns fi evalArgs = do
+  -- We must be careful to keep everything lazy here! In particular, we don't
+  -- want to evaluate `fmapFC evalResultLit evalArgs` if we get a cache hit.
+  let fn = fns ! fi
+      argEs = fmapFC evalResultExpr evalArgs
+  cache <- ask
+  mb_res <- liftST $ lookup cache (FunctionCall fi argEs)
+  case mb_res of
+    Just l -> pure l
+    Nothing -> do
+      let argLits = fmapFC evalResultLit evalArgs
+      (l, outp) <- lift $ fnImplRun fn argLits
+      liftST $ insert cache (FunctionCall fi argEs) l
+      tell [FunctionCallResult fi argEs l outp]
+      pure l
+
 -- | Evaluate an expression.
 --
 -- When we evaluate an expression, there are two things we might want back. The
@@ -253,7 +307,7 @@ litEvalResult l = EvalResult l (LiteralExpr l)
 -- If the expression's type is non-abstract, we simply return the literal as a
 -- 'LiteralExpr'. If it is abstract, we reconstruct the original expression
 -- after all sub-expressions have been simplified in this manner.
-evalExpr :: MonadFail m
+evalExpr :: (MonadUnliftIO m, MonadFail m)
          => Assignment (FunctionImpl m) env
          -> Assignment Literal ctx
          -> Expr env ctx tp
@@ -279,19 +333,22 @@ evalExpr fns ls e = case e of
                Nothing -> FieldExpr se' i
     pure $ EvalResult l e'
   ApplyExpr fi es -> do
+    -- We must be careful to keep everything lazy here! In particular, we only
+    -- want to evaluate `fmapFC evalResultLit evalArgs` if we get a cache miss
+    -- in `lookupCall` (see the comment below).
     let fn = fns ! fi
     evalArgs <- traverseFC (evalExpr fns ls) es
-    let argLits = fmapFC evalResultLit evalArgs
-        argEs = fmapFC evalResultExpr evalArgs
-    (l,st) <- lift $ fnImplRun fn argLits
-    let e' = case isNonAbstract (literalType l) of
-               Just IsNonAbs -> LiteralExpr l
-               Nothing -> ApplyExpr fi argEs
-    -- TODO: Is there a way to clean this up?
-    () <- case isNonAbstract (functionRetType (fnImplType fn)) of
-      Nothing -> return ()
-      Just IsNonAbs -> addCall fi argEs l st
-    return $ EvalResult l e'
+    case isNonAbstract (functionRetType (fnImplType fn)) of
+      Just IsNonAbs -> litEvalResult <$> lookupCall fns fi evalArgs
+      -- We don't cache functions with non-abstract return types, but they may
+      -- still appear in the arguments of some other cached call. To ensure
+      -- a concrete function is not evaluated if it is later found to be part
+      -- of a cached call, we make sure to call 'fnImplRunLazy' instead of
+      -- 'fnImplRun' in the following case.
+      Nothing -> let argLits = fmapFC evalResultLit  evalArgs
+                     argEs   = fmapFC evalResultExpr evalArgs
+                  in do l <- fst <$> lift (fnImplRunLazy fn argLits)
+                        pure $ EvalResult l (ApplyExpr fi argEs)
   EqExpr e1 e2 -> do
     EvalResult l1 _ <- evalExpr fns ls e1
     EvalResult l2 _ <- evalExpr fns ls e2
@@ -408,7 +465,7 @@ data EvalFieldResult env ctx p =
                   , evalResultFieldExpr :: FieldInst (Expr env ctx) p
                   }
 
-evalField :: MonadFail m
+evalField :: (MonadFail m, MonadUnliftIO m)
           => Assignment (FunctionImpl m) env
           -> Assignment Literal ctx
           -> FieldInst (Expr env ctx) p
@@ -427,7 +484,7 @@ data Literal tp where
   SetLit    :: 1 <= CtxSize cs
             => Assignment SymbolRepr cs -> [Some (Index cs)] -> Literal (SetType cs)
   StructLit :: Assignment (FieldInst Literal) ftps -> Literal (StructType ftps)
-  AbsLit    :: SymbolRepr s -> BS.ByteString -> Literal (AbsType s)
+  AbsLit    :: SymbolRepr s -> ByteString -> Literal (AbsType s)
 
 deriving instance Show (Literal tp)
 instance ShowF Literal
@@ -467,6 +524,13 @@ data FunctionImpl m fntp where
   FunctionImpl :: { fnImplType :: FunctionTypeRepr (FunType nm args ret)
                   , fnImplRun :: Assignment Literal args -> m (Literal ret, String)
                   } -> FunctionImpl m (FunType nm args ret)
+
+-- | Using some lazy IO magic, a version of 'fnImplRun' which only performs
+-- any inner IO actions when the its resulting value is demanded.
+fnImplRunLazy :: MonadUnliftIO m => FunctionImpl m (FunType nm args ret)
+              -> Assignment Literal args -> m (Literal ret, String)
+fnImplRunLazy fn args =
+  withRunInIO $ \run -> unsafeInterleaveIO $ run (fnImplRun fn args)
 
 
 -- TestEquality and HashableF instances for the types in this file
@@ -513,6 +577,16 @@ instance TestEquality f => TestEquality (FieldInst f) where
 instance HashableF f => HashableF (FieldInst f) where
   s `hashWithSaltF` (FieldInst nm tp fl) =
     s `hashWithSaltF` nm `hashWithSaltF` tp `hashWithSaltF` fl
+
+instance TestEquality (FunctionCall env ctx) where
+  testEquality (FunctionCall fi args) (FunctionCall fi' args')
+    | Just Refl <- testEquality fi fi'
+    , Just Refl <- testEquality args args' = Just Refl
+    | otherwise = Nothing
+
+instance HashableF (FunctionCall env ctx) where
+  s `hashWithSaltF` (FunctionCall fi args) =
+    s `hashWithSaltF` fi `hashWithSaltF` args
 
 instance Eq (FunctionCallResult env ctx) where
   (FunctionCallResult fi args ret st) == (FunctionCallResult fi' args' ret' st')

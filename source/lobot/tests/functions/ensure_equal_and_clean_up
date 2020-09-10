@@ -1,0 +1,26 @@
+#!/usr/bin/python3
+
+import json
+import sys
+import os
+
+json_str = ""
+
+for line in sys.stdin:
+  json_str += line
+
+json_data = json.loads(json_str)
+
+x1 = json_data[0]['value']
+x2 = json_data[1]['value']
+filepath = json_data[2]['value']
+
+if os.path.exists(filepath):
+  os.remove(filepath)
+
+json_output = {
+  "variant": "bool",
+  "value": x1 == x2
+}
+
+print(json.dumps(json_output))

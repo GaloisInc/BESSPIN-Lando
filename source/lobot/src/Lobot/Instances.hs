@@ -52,6 +52,7 @@ import qualified What4.BaseTypes         as WT
 import Data.Foldable (forM_, traverse_)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Context
+import Data.Parameterized.HashTable
 import Data.Parameterized.NatRepr
 import Data.Parameterized.Nonce
 import Data.Parameterized.Some
@@ -519,6 +520,7 @@ data SessionData env ctx where
                     , session :: WS.Session t solver
                     , env :: Assignment FunctionTypeRepr env
                     , fns :: Assignment (FunctionImpl IO) env
+                    , cache :: FunctionCallCache env ctx
                     , tps :: Assignment TypeRepr ctx
                     , constraints :: [Expr env ctx BoolType]
                     , symFns :: Assignment (SymFunction t) env
@@ -574,7 +576,7 @@ getNextInstance SessionData{..} =
       let negateExpr = foldr OrExpr (LiteralExpr (BoolLit False)) negateExprs
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits negateExpr
       WS.assume (WS.sessionWriter session) symConstraint
-      (fcns, calls) <- getFailingConstraints fns ls constraints
+      (fcns, calls) <- getFailingConstraints fns cache ls constraints
       traverse_ (assumeCall sym session symFns symLits) calls
       return (HasInstance ls fcns calls)
     WS.Unsat _ -> do return NoInstance
@@ -604,7 +606,8 @@ runSession z3_path env fns tps constraints action = do
     forM_ constraints $ \e -> do
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits e
       WS.assume (WS.sessionWriter session) symConstraint
-    action (SessionData sym session env fns tps constraints symFns symLits)
+    cache <- liftST new
+    action (SessionData sym session env fns cache tps constraints symFns symLits)
 
 -- | Collect instances of a context of types satisfying a set of constraints,
 -- only returning those instances that satisfy the given function environment.

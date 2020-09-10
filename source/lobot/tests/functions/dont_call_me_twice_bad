@@ -1,0 +1,28 @@
+#!/usr/bin/python3
+
+import json
+import sys
+import os
+
+json_str = ""
+
+for line in sys.stdin:
+  json_str += line
+
+json_data = json.loads(json_str)
+
+x = json_data[0]['value']
+filepath = json_data[1]['value']
+
+if not os.path.exists(os.path.dirname(filepath)):
+  os.makedirs(os.path.dirname(filepath))
+
+if os.path.exists(filepath):
+  sys.exit("dont_call_me_twice: " + filepath + " already exists!")  
+
+json_output = {
+  "variant": "int",
+  "value": x
+}
+
+print(json.dumps(json_output))

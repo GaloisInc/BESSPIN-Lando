@@ -54,3 +54,27 @@ lobot --help
 See the user's guide for more details, or the `examples` and `tests`
 directories for various examples (some of which will work out of the box,
 others of which will require a bit of system configuration before running).
+
+# Testing
+
+To run the test suite, located in the `tests` directory, use `cabal` as
+follows:
+
+```bash
+cabal v2-test
+```
+
+To add a new test, add the relevant Lobot file to `tests/lobot-files` and
+any functions on which it depends to `tests/functions`, then run the above
+command to accept the output of the `lobot` tool on the last kind declaration
+in this file as the expected output. To update this expected output at a later
+point, run:
+
+```bash
+cabal v2-test --test-options=--accept
+```
+
+To create a more consistent environment for testing, a `tmp/tests` directory
+is removed and re-created at the start of each test. Thus, any file paths used
+in functions in `test/lobot-files` should begin with `tests/tmp/` (see
+`tests/functions/tmp_file`, for example).

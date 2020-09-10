@@ -54,8 +54,9 @@ import Data.Maybe (catMaybes)
 import Data.List.NonEmpty hiding ((!!))
 import Data.Text (Text)
 import Data.Parameterized.Classes
-import Data.Parameterized.Context
+import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.TraversableFC
+import UnliftIO (MonadUnliftIO(..))
 import Prelude hiding ((!!))
 
 type KindExpr env tp = Expr env (EmptyCtx ::> tp)
@@ -108,32 +109,26 @@ liftConstraints :: Index ktps '(nm, tp)
 liftConstraints i k' k = addConstraints k (liftExpr i <$> kindConstraints k')
 
 -- | Determine whether a set of literals satisfies a constraint set.
-instanceOf :: MonadFail m
+instanceOf :: (MonadUnliftIO m, MonadFail m)
            => Assignment (FunctionImpl m) env
+           -> FunctionCallCache env ctx
            -> Assignment Literal ctx
            -> [Expr env ctx BoolType]
-           -> m (Bool, [FunctionCallResult env ctx])
-instanceOf env ls constraints = runEvalM (instanceOf' env ls constraints)
+           -> m Bool
+instanceOf env cache ls constraints =
+  null . fst <$> getFailingConstraints env cache ls constraints
 
-instanceOf' :: MonadFail m
-            => Assignment (FunctionImpl m) env
-            -> Assignment Literal ctx
-            -> [Expr env ctx BoolType]
-            -> EvalM env ctx m Bool
-instanceOf' env ls constraints = and <$> traverse constraintHolds constraints
-  where constraintHolds e = do
-          EvalResult (BoolLit b) _ <- evalExpr env ls e
-          return b
-
--- | Like 'instanceOf', but returns the list of all constraints that failed,
--- instead of just a 'Bool'.
-getFailingConstraints :: forall env ctx m. MonadFail m
+-- | Like 'instanceOf', but returns the list of all constraints that failed
+-- instead of just a 'Bool', as well as the list of all new function calls
+-- added to the cache.
+getFailingConstraints :: forall env ctx m. (MonadUnliftIO m, MonadFail m)
                       => Assignment (FunctionImpl m) env
+                      -> FunctionCallCache env ctx
                       -> Assignment Literal ctx
                       -> [Expr env ctx BoolType]
                       -> m ([Expr env ctx BoolType], [FunctionCallResult env ctx])
-getFailingConstraints env ls constraints =
-  runEvalM (catMaybes <$> traverse failingConstraint constraints)
+getFailingConstraints env cache ls constraints =
+  runEvalM cache (catMaybes <$> traverse failingConstraint constraints)
   where failingConstraint :: Expr env ctx BoolType
                           -> EvalM env ctx m (Maybe (Expr env ctx BoolType))
         failingConstraint e = do

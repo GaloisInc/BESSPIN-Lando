@@ -1,0 +1,41 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "cache_test"
+        , kindType = IntRepr
+        , kindFunctionEnv =
+            [ FunctionTypeRepr
+                { functionName = tmp_file
+                , functionArgTypes = []
+                , functionRetType = AbsRepr filepath
+                }
+            , FunctionTypeRepr
+                { functionName = ensure_equal_and_clean_up
+                , functionArgTypes = [ IntRepr , IntRepr , AbsRepr filepath ]
+                , functionRetType = BoolRepr
+                }
+            , FunctionTypeRepr
+                { functionName = read_int_from_file
+                , functionArgTypes = [ AbsRepr filepath ]
+                , functionRetType = IntRepr
+                }
+            , FunctionTypeRepr
+                { functionName = dont_call_me_twice
+                , functionArgTypes = [ IntRepr , AbsRepr filepath ]
+                , functionRetType = AbsRepr filepath
+                }
+            ]
+        , kindConstraints =
+            [ AndExpr
+                (LteExpr (LiteralExpr (IntLit 1)) (VarExpr 0))
+                (LteExpr (VarExpr 0) (LiteralExpr (IntLit 3)))
+            , ApplyExpr
+                1
+                [ ApplyExpr 2 [ ApplyExpr 3 [ VarExpr 0 , ApplyExpr 0 [] ] ]
+                , ApplyExpr 2 [ ApplyExpr 3 [ VarExpr 0 , ApplyExpr 0 [] ] ]
+                , ApplyExpr 0 []
+                ]
+            ]
+        }
+  , instances = [ [ IntLit 1 ] , [ IntLit 2 ] , [ IntLit 3 ] ]
+  }

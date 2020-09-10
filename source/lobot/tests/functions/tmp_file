@@ -1,0 +1,10 @@
+#!/usr/bin/python3
+
+import json
+
+json_output = {
+  "variant": "filepath",
+  "value": "tests/tmp/tmp.txt"
+}
+
+print(json.dumps(json_output))
