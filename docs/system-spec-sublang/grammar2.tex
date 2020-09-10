@@ -1,0 +1,323 @@
+\documentclass{article}
+\usepackage{fullpage}
+\input{macros1}
+
+\newcommand{\gnn}{\ensuremath{\mathcal{N}}}
+\newcommand{\gnl}{\ensuremath{\mathcal{L}}}
+\newcommand{\gnb}{\ensuremath{\mathcal{B}}}
+\newcommand{\gnc}{\ensuremath{\mathcal{C}}}
+\newcommand{\gns}{\ensuremath{\mathcal{S}}}
+
+%\usepackage{cmbright}
+%\usepackage[varg]{txfonts}
+%\usepackage{pxfonts}
+
+\begin{document}
+
+\title{Lando System Specification Language v2 Grammar}
+\maketitle
+
+\section{Notation}
+
+The grammar for the Lando System Specification Sublanguage is written in the EBNF notation. The main elements of the notation that we utilize are:
+\begin{itemize}
+  \item Keyword terminals are represented in $\gtkw{typewriter}$ font. 
+  \item Single-character terminals appear in single quotes, e.g. $\gtkc{!}$ or $\gtkc{\gtesc{n}}$.
+  \item More complex terminals are represented using standard regular expressions written as $\gtregex{regexp}$, which may include escaped control characters such as $\gtesc{n}$. Regular expressions may use character classes (with negation). Note that the pattern $\gtregex{/}$ matches the literal character forward slash.
+  \item An optional $\gntn{thing}$ is written as $\gopt{\gntn{thing}}$.
+  \item {Zero or more repetitions of $\gntn{thing}$ are written as $\glist{\gntn{thing}}$}.
+  \item One or more repetitions of $\gntn{thing}$ are written as $\glistnonempty{\gntn{thing}}$.
+  \item If $S$ and $T$ are non-terminals or regular expressions, $S - T$ denotes the set of strings matching S but not T.
+  \item $\gntn{EOF}$ represents end-of-file; it can be thought of as a special terminal that is not consumed, but rather is replicated as often as necessary to match the grammar when parsing.
+  \item Whitespace and line separators are significant throughout. Note that the line separator terminal $\gnn$ consumes any whitespace immediately following the actual end-of-line character(s). Two consecutive line separators (i.e. matching $\gnn\gnn$) are always lexed instead as a single blank line terminal $\gnb$;
+    this distinction is necessary to resolve certain ambiguities in the grammar for paragraphs.
+    The general line separator $\gnl$ is the union of $\gnn$ and $\gnb$.
+\end{itemize}
+
+\vfill\eject
+
+\subsection{Context-Free Grammar}
+
+\begin{grammar}
+  \grule{\gntn{landoSource}}{
+    \glist{\gnl} 
+    \glist{\gntn{specElement}} \glist{\gnl} 
+    \glist{\gnc\gnl} \glist{\gnl} 
+    \gntn{EOF}
+  }{Lando source}
+
+  \grule{\gntn{specElement}}{
+    \gntn{system} \gor \gntn{subsystem} \gor \gntn{component}   \gcont
+    \gor \gntn{events} \gor \gntn{scenarios} \gor \gntn{requirements} \gor \gntn{relation}
+  }{Top-level element}
+
+  \gline
+
+  \grule{\gntn{system}}{
+    \glist{\gnc\gnl}
+    \gtkw{system} \gntn{name} \gopt{\gntn{abbrev}} \gopt{\gnc} \glistnonempty{\gnl} \gcont
+    \gntn{explanation}  \gopt{\gnc}
+    \gopt{\gntn{indexing} \gntn{blockend}} \gcont
+    \gopt{\gtkw{contains} \gntn{sysBody} \gtkw{end} \gntn{blockend}}
+  }{System}
+
+  \grule{\gntn{sysBody}}{
+    \glist{\gntn{sysElement}}
+  }{System body}
+
+  \grule{\gntn{sysElement}}{
+    \gntn{subsystem} \gor \gntn{events} \gor \gntn{scenarios} \gor \gntn{requirements} \gor \gntn{relation}
+  }{System element}
+  
+  \grule{\gntn{subsystem}}{
+    \glist{\gnc\gnl}
+    \gtkw{subsystem} \gntn{name} \gopt{\gntn{abbrev}} (\gntn{subsysDef} \gor \gntn{subsysImport})
+  }{Subsystem}
+  
+  \grule{\gntn{subsysDef}}{
+    \glist{inheritClause \gor clientClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
+    \gntn{explanation}  \gopt{\gnc}
+    \gopt{\gntn{indexing} \gntn{blockend}} \gcont
+    \gopt{\gtkw{contains} \gntn{subsysBody} \gtkw{end} \gntn{blockend}}
+  }{Subsystem definition}
+
+  \grule{\gntn{subsysBody}}{
+    \glist{\gntn{subsysElement}}
+  }{Subsystem body}
+
+  \grule{\gntn{subsysElement}}{
+    \gntn{subsystem} \gor \gntn{component} \gor \gntn{events} \gor \gntn{scenarios} \gor \gntn{requirements} \gor \gntn{relation}
+  }{Subsystem element}
+
+  \grule{\gntn{subsysImport}}{
+    \glist{clientClause} \gopt{\gnc}
+    \glist{\gnl} \gtkw{import} \gopt{\gtkw{from} \gntn{name}} blockend
+  }{Subsystem import}
+  
+  \grule{\gntn{explanation}}{
+    \gntn{paragraph}
+  }{Explanation}
+
+  \grule{\gntn{abbrev}}{
+    \glist{\gns} \gtkc{(} \glist{\gns} \gntn{nameWord} \glist{\gns} \gtkc{)} \glist{\gns}
+  }{Abbreviation}
+
+  \grule{\gntn{inheritClause}}{
+    \gtkw{inherit} \gntn{name} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{name} \glist{\gnl}}
+  }{Inherit clause}
+
+  \grule{\gntn{clientClause}}{
+    \gtkw{client} \gntn{name} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{name} \glist{\gnl}}
+  }{Client clause}
+    
+  \grule{\gntn{indexing}}{
+    \gtkw{indexing} \glist{\gns} \glist{\glistnonempty{\gnl} \gntn{indexEntry}}
+  }{Indexing}
+
+  \grule{\gntn{indexEntry}}{
+    \gntn{name} \gtkc{:} \gntn{indexValuePart} \glist{\glistnonempty{\gnl} \gntn{indexValuePart}}
+  }{Index Entry}
+
+  \grule{\gntn{indexValuePart}}{
+    \gntn{indexValue} \glist{\gnl} \gopt{\gnc}
+  }{Index Value Part}
+
+  \gline
+
+  \grule{\gntn{component}}{
+    \glist{\gnc\gnl}
+    \gtkw{component} \gntn{name} \gopt{\gntn{abbrev}} (\gntn{compDef} \gor \gntn{compImport})
+  }{Component}
+
+  \grule{\gntn{compDef}}{
+    \glist{inheritClause \gor clientClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
+    \gntn{explanation}  
+    \glist{\gntn{componentFeature} \gntn{blockend}}
+  }{Component definition}
+
+  \grule{\gntn{compImport}}{
+    \glist{clientClause} \gopt{\gnc}
+    \glist{\gnl} \gtkw{import} \gopt{\gtkw{from} \gntn{name}} blockend
+  }{Component import}
+
+  \grule{\gntn{componentFeature}}{
+    \gntn{constraint} \gor \gntn{command} \gor \gntn{query}
+  }{Component Feature}
+
+  \grule{\gntn{constraint}}{
+    \glist{\gnc\gnl} \gntn{sentBody} \gtkc{.} \gopt{\gntn{wordSep}} \gopt{\gnc}
+  }{Constraint Feature}
+    
+  \grule{\gntn{query}}{
+    \glist{\gnc\gnl} \gntn{sentBody} \gtkc{?} \gopt{\gntn{wordSep}} \gopt{\gnc}
+  }{Query Feature}
+
+  \grule{\gntn{command}}{
+    \glist{\gnc\gnl} \gntn{sentBody} \gtkc{!} \gopt{\gntn{wordSep}} \gopt{\gnc}
+  }{Command Feature}
+
+  \gline
+
+  \grule{\gntn{events}}{
+    \glist{\gnc\gnl}
+    \gtkw{events}
+    \gntn{name} \gopt{\gnc}
+    \glist{\glistnonempty{\gnl} \gntn{eventEntry}}
+    \gntn{blockend}
+  }{Events}
+
+
+  \grule{\gntn{eventEntry}}{
+    \glist{\gnc\gnl}
+    \gntn{name} \gopt{\gnc}
+    \glistnonempty{\gnl}
+    \gntn{paragraph} \gopt{\gnc}
+  }{Event Entry}
+
+
+  
+  \grule{\gntn{scenarios}}{
+    \glist{\gnc\gnl}
+    \gtkw{scenarios}
+    \gntn{name} \gopt{\gnc}
+    \glist{\glistnonempty{\gnl} \gntn{scenarioEntry}}
+    \gntn{blockend}
+  }{Scenarios}
+
+
+  \grule{\gntn{scenarioEntry}}{
+    \glist{\gnc\gnl}
+    \gntn{name} \gopt{\gnc}
+    \glistnonempty{\gnl}
+    \gntn{paragraph} \gopt{\gnc}
+  }{Scenario Entry}
+
+
+  \grule{\gntn{requirements}}{
+    \glist{\gnc\gnl}
+    \gtkw{requirements}
+    \gntn{name} \gopt{\gnc}
+    \glist{\glistnonempty{\gnl} \gntn{requirementEntry}}
+    \gntn{blockend}
+  }{Requirements}
+
+
+  \grule{\gntn{requirementEntry}}{
+    \glist{\gnc\gnl}
+    \gntn{name} \gopt{\gnc}
+    \glistnonempty{\gnl}
+    \gntn{paragraph} \gopt{\gnc}
+  }{Requirement Entry}
+
+  \gline
+
+  \grule{\gntn{relation}}{
+    \glist{\gnc\gnl}
+    \gtkw{relation} \gntn{name} \glistnonempty{\gntn{inheritClause} \gor \gntn{clientClause}}
+    \gopt{\gnc}
+    \gntn{blockend}
+  }{Relation Declaration}
+
+
+  \gline
+  
+  \grule{\gntn{name}}{
+    \gntn{nameFacet} \glist{\gtkc{:} \gntn{nameFacet}}
+  }{Name}
+
+  \grule{\gntn{nameFacet}}{
+    \glist{\gns} \gntn{nameWord} \glist{\glistnonempty{\gns} \gntn{nameWord}} \glist{\gns}
+  }{Name facet}
+
+  \grule{\gntn{nameWord}}{
+    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}():]*[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}():,.!?]} - \gtregex{//.*} - \gntn{nonName}
+  }{Name word}
+
+  \grule{\gntn{nonName}}{
+    \gtkw{client} \gor \gtkw{inherit} \gor \gtkw{import} \gor \ldots
+  }{Keywords}
+
+  \gline
+
+  \grule{\gntn{indexValue}}{
+    \glist{\gns} \gntn{indexValueWord} \glist{\glistnonempty{\gns} \gntn{indexValueWord}} \glist{\gns}
+  }{Index value}
+
+  \grule{\gntn{indexValueWord}}{
+    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}]+} - \gtregex{//.*} 
+  }{Index value word}
+
+  \gline
+
+  \grule{\gntn{paragraph}}{
+    \glistnonempty{\gntn{sentence}} \gntn{parend}
+  }{Paragraph}
+
+  \grule{\gntn{parend}}{
+    \gnb \glist{\gnl} \gor \gntn{EOF}
+  }{Paragraph end}
+
+  \grule{\gntn{sentence}}{
+    \gntn{sentBody} \gopt{\gntn{sentTerm}} \gopt{\gntn{wordSep}} 
+  }{Sentence}
+    
+  \grule{\gntn{sentBody}}{
+    \gntn{sentWord} \glist{\gntn{wordSep} \gntn{sentWord}} \gopt{\gntn{wordSep}}
+  }{Sentence Body}
+
+  \grule{\gntn{wordSep}}{
+    \glistnonempty{\gns} \gor \glist{\gns} \gnl 
+  }{Word Separator}
+
+  \grule{\gntn{sentWord}}{
+    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}]*[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}.!?]} - \gtregex{//.*} 
+  }{Sentence word}
+
+  \grule{\gntn{sentTerm}}{
+    \gtkc{.} \gor \gtkc{!} \gor \gtkc{?}
+  }{Sentence terminator}
+
+  \grule{\gntn{blockend}}{
+    \glistnonempty{\gnl} \gor \gntn{EOF}
+  }{Block end}  
+
+  \gline
+
+  \grule{\gns}{
+    \gtregex{[ \gtesc{t}]}
+  }{Whitespace character}
+
+  \grule{\gnn}{
+    \gopt{\gtkc{\gtesc{r}}} \gtkc{\gtesc{n}} \gopt{\gns} \gor \gtkc{\gtesc{r}} \gopt{\gns} \gor \gntn{EOF}
+  }{Single line separator}
+
+  \grule{\gnb}{
+    \gnn\gnn
+  }{Blank line}  
+
+  \grule{\gnl}{
+    \gnn \gor \gnb
+  }{General line seperator}
+
+  \grule{\gnc}{
+    \gtregex{//[\gtneg\gtesc{r}\gtesc{n}]*}
+  }{Comment}
+
+\end{grammar}
+
+\section{Context-Sensitive Considerations}
+
+The following extra-grammatical rules are applied during or after parsing the concrete grammar above.
+
+\begin{itemize}
+\item 
+  If a \gntn{system} or \gntn{subsystem} element does not have an explicit body, then it has
+  an implicit body that begins immediately after the element and extends until just
+  before the next \gtkw{system}, \gtkw{subsystem} or unmatched \gtkw{end}.
+\item
+  A \gntn{sentence} that does not end with a \gtkc{.},\gtkc{!}, or \gtkc{?} symbol
+  (possibly followed by white space characters or line separators) induces a warning message.
+\end{itemize}
+
+\end{document}
+
