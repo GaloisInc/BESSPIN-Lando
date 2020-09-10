@@ -48,7 +48,7 @@ import qualified Data.HashSet as HS
 import Data.Text (Text, append)
 import Data.List (union, (\\))
 import Data.Maybe (catMaybes)
-import Data.Either (partitionEithers)
+import Data.Functor.Const
 import Control.Monad (unless, forM_)
 import Control.Monad.State (get, modify)
 import Control.Monad.Except (throwError, catchError)
@@ -81,7 +81,9 @@ import Lobot.TypeCheck.FirstPass (tcType)
 secondPass :: Assignment FunctionTypeRepr env
            -> [I.Decl]
            -> WithWarnings (Either TypeError)
-                           ([Some (K.Kind env)], [Some (K.Check env)])
+                           ( [Some (K.Kind env)]
+                           , [Some (K.Check env)]
+                           , [Some (K.ConstrainedFunction env)] )
 secondPass env ds = evalTCM $ tcDecls env ds
 
 
@@ -100,13 +102,15 @@ addKind nm (K.Kind _ tp _ cns) enms =
   -- the first pass
   modify (H.insert nm (NamedKind tp (P2Cns cns) (not (null cns)) enms))
 
-addFunction :: Text -> I.FunctionType -> TCM2 env ()
-addFunction nm (I.FunType arg_tps ret_tp _ _ arg_enms ret_enms) = do
+addFunction :: Text -> ConstrainedFunction env tp
+            -> [EnumNameSet] -> EnumNameSet -> TCM2 env ()
+addFunction nm (K.CFun (T.FunctionTypeRepr _ arg_tps ret_tp)
+                       arg_nms arg_cns ret_cns) arg_enms ret_enms = do
   -- We don't bother to check if the given function name is already in scope,
   -- as all 'FunctionNameAlreadyDefined' errors should have already been
   -- caught in the first pass
-  modify (H.insert nm (NamedFunction arg_tps ret_tp (P2Cns []) (P2Cns [])
-                                                    arg_enms ret_enms))
+  modify (H.insert nm (NamedFunction arg_tps ret_tp (P2Cns arg_cns) (P2Cns ret_cns)
+                                                    arg_enms ret_enms arg_nms))
 
 -- | Unlike 'lookupKindType', in this pass we can now return a fully type
 -- checked kind given an in-scope kind name
@@ -118,39 +122,60 @@ lookupKind env (L p k) = do
     Just (NamedKind tp (P2Cns cns) _ _) -> pure (Some (K.Kind k tp env cns))
     _ -> throwError (KindNameNotInScope (L p k))
 
+data FunctionLookup env where
+  FunLookup :: Index env ftp -> K.ConstrainedFunction env ftp
+            -> [EnumNameSet] -> EnumNameSet -> FunctionLookup env
+
 -- | Given an in-scope function name, return its index into the given function
--- environment, as well as the list of enum names which each argument type
--- should bring into scope.
+-- environment, its associated constrained function declaration, and the list
+-- of enum names which each argument type should bring into scope.
 lookupFunction :: Assignment T.FunctionTypeRepr env
-               -> LText -> TCM2 env (Some (Index env), [EnumNameSet])
+               -> LText -> TCM2 env (FunctionLookup env)
 lookupFunction env (L p fn) = do
   mb_fn' <- H.lookup fn <$> get
-  let mb_idx = findIndex (\FunctionTypeRepr{..} -> fn == symbolRepr functionName) env
-  case (mb_fn', mb_idx) of
-    (Just (NamedFunction _ _ _ _ arg_enms _), Just idx) -> pure (idx, arg_enms)
+  case mb_fn' of
+    Just (NamedFunction arg_tps ret_tp (P2Cns arg_cns) (P2Cns ret_cns)
+                        arg_enms ret_enms arg_nms)
+      | Some fn' <- someSymbol fn
+      , ftp <- T.FunctionTypeRepr fn' arg_tps ret_tp
+      , cfn <- K.CFun ftp arg_nms arg_cns ret_cns 
+      , Just fi <- elemIndex ftp env
+      -> pure $ FunLookup fi cfn arg_enms ret_enms
     _ -> throwError (FunctionNameNotInScope (L p fn))
 
 
 -- | Fully type check a list of intermediate declarations
 tcDecls :: Assignment FunctionTypeRepr env
         -> [I.Decl]
-        -> TCM2 env ([Some (K.Kind env)], [Some (K.Check env)])
-tcDecls env ds = partitionEithers . catMaybes <$> mapM (tcDecl env) ds
+        -> TCM2 env ( [Some (K.Kind env)]
+                    , [Some (K.Check env)]
+                    , [Some (K.ConstrainedFunction env)] )
+tcDecls _ [] = pure ([],[],[])
+tcDecls env (d:ds) = do
+  mb_d' <- tcDecl env d
+  (ks, cks, cfns) <- tcDecls env ds
+  case mb_d' of
+    Nothing -> pure (ks, cks, cfns)
+    Just (CheckedKind k)   -> pure (k:ks, cks, cfns)
+    Just (CheckedCheck ck) -> pure (ks, ck:cks, cfns)
+    Just (CheckedFun cfn)  -> pure (ks, cks, cfn:cfns)
+
+data CheckedDecl env = CheckedKind (Some (K.Kind env))
+                     | CheckedCheck (Some (K.Check env))
+                     | CheckedFun (Some (K.ConstrainedFunction env))
 
 -- | Fully type check an intermediate declaration
 tcDecl :: Assignment FunctionTypeRepr env
        -> I.Decl
-       -> TCM2 env (Maybe (Either (Some (K.Kind env))
-                                  (Some (K.Check env))))
+       -> TCM2 env (Maybe (CheckedDecl env))
 tcDecl env (I.KindDecl ik) =
-  Just . Left <$> tcKind env ik
+  Just . CheckedKind <$> tcKind env ik
 tcDecl env (I.CheckDecl ick) =
-  Just . Right <$> tcCheck env ick
+  Just . CheckedCheck <$> tcCheck env ick
 tcDecl env (I.TypeSynDecl nm (Some tp) enms) = do
   tcDecl env (I.KindDecl (I.Kind nm tp [] [] enms))
-tcDecl _env (I.FunctionDecl (L _ nm) ftp) = do
-  addFunction nm ftp
-  pure Nothing
+tcDecl env (I.FunctionDecl ifn) = do
+  Just . CheckedFun <$> tcConstrainedFunction env ifn 
 
 -- | Fully type check an intermediate kind declaration
 tcKind :: Assignment FunctionTypeRepr env
@@ -181,6 +206,28 @@ tcCheck env (I.Check (L _ nm) flds cns reqs enms) = do
   let namedTypes = fmapFC (\(CheckField (S.L _ fnm) tp _) -> NamedType fnm tp) flds
   let ck' = K.Check nm namedTypes env (cns' ++ dcns') reqs'
   pure $ Some ck'
+
+-- | Fully type check a function declaration.
+tcConstrainedFunction :: forall env.
+                         Assignment FunctionTypeRepr env
+                      -> I.FunctionType
+                      -> TCM2 env (Some (ConstrainedFunction env))
+tcConstrainedFunction env (I.FunType (L _ nm) arg_tps ret_tp arg_dcns
+                                     ret_dcns arg_enms ret_enms) = do
+  Some nm' <- pure $ someSymbol nm
+  let collectDCs :: Assignment TypeRepr args
+                 -> Index args tp -> Const [DerivedConstraint] tp
+                 -> TCM2 env [E.Expr env args 'T.BoolType]
+      collectDCs arg_tps' i (Const dcns) = do
+        let tp = arg_tps' ! i
+        kes <- concat <$> mapM (resolveDerivedConstraint env tp) dcns
+        return $ giveSelf (E.VarExpr i) <$> kes
+  arg_dcns' <- traverseAndCollect (collectDCs arg_tps) arg_dcns
+  ret_dcns' <- concat <$> mapM (resolveDerivedConstraint env ret_tp) ret_dcns
+  let cfn = K.CFun (T.FunctionTypeRepr nm' arg_tps ret_tp)
+                   (fmapFC (\_ -> Const "_") arg_tps) arg_dcns' ret_dcns'
+  addFunction nm cfn arg_enms ret_enms
+  pure $ Some cfn
 
 -- | Using the given context of fully checked kinds, turn a
 -- 'DerivedConstraint' into a list of type checked expressions in the
@@ -240,16 +287,15 @@ ifVarElem _ _ = False
 -- 
 -- ... f(n) = B ...
 -- @
-addlEnms :: S.LExpr -> TCM2 env EnumNameSet
-addlEnms (L _ (S.ApplyExpr (L p fn) _)) = do
-  mb_fn' <- H.lookup fn <$> get
-  case mb_fn' of
-    Just (NamedFunction _ _ _ _ _ ret_enms) -> pure ret_enms
-    _ -> throwError (FunctionNameNotInScope (L p fn))
-addlEnms (L _ (S.StructExpr (Just tp) _)) =
+addlEnms :: Assignment T.FunctionTypeRepr env
+         -> S.LExpr -> TCM2 env EnumNameSet
+addlEnms env (L _ (S.ApplyExpr fn _)) = do
+  FunLookup _ _ _ ret_enms <- lookupFunction env fn
+  pure ret_enms
+addlEnms _ (L _ (S.StructExpr (Just tp) _)) =
   (\(_,_,enms) -> enms) <$> tcType tp
-addlEnms (L _ (S.FieldExpr x _)) = addlEnms x
-addlEnms _ = pure HS.empty
+addlEnms env (L _ (S.FieldExpr x _)) = addlEnms env x
+addlEnms _ _ = pure HS.empty
 
 -- | Infer the type of an expression without any knowledge of what its type
 -- should be. In cases where the inferred type is open (see
@@ -341,7 +387,7 @@ tcInferExpr enms env ctx (L _ (S.FieldExpr x (L p f))) = do
                                          (Just $ SomeType xtp))
 
 tcInferExpr enms env ctx (L _ (S.ApplyExpr fn args)) = do
-  (Some fi, arg_enms) <- lookupFunction env fn
+  FunLookup fi _ arg_enms _ <- lookupFunction env fn
   fntp@FunctionTypeRepr{..} <- pure $ env ! fi
   mb_args' <-
     tcExprs enms env ctx functionArgTypes (reverse (zip args arg_enms))
@@ -350,8 +396,8 @@ tcInferExpr enms env ctx (L _ (S.ApplyExpr fn args)) = do
     Nothing -> throwError (FunctionArgLengthError fn (Some fntp) args)
 
 tcInferExpr enms env ctx (L _ (S.EqExpr x y)) = do
-  x_enms <- HS.union enms <$> addlEnms y
-  y_enms <- HS.union enms <$> addlEnms x
+  x_enms <- HS.union enms <$> addlEnms env y
+  y_enms <- HS.union enms <$> addlEnms env x
   Pair xitp@(InfTp _ xtp) x' <- tcInferExpr x_enms env ctx x
   Pair yitp@(InfTp _ ytp) y' <- tcInferExpr y_enms env ctx y
   -- ensure that @x@ and @y@ both have non-abstract types
@@ -365,8 +411,8 @@ tcInferExpr enms env ctx (L _ (S.EqExpr x y)) = do
     (_, Nothing) -> throwError (AbstractEqualityError y (SomeType ytp))
 -- this is entirely the same as the above
 tcInferExpr enms env ctx (L _ (S.NeqExpr x y)) = do
-  x_enms <- HS.union enms <$> addlEnms y
-  y_enms <- HS.union enms <$> addlEnms x
+  x_enms <- HS.union enms <$> addlEnms env y
+  y_enms <- HS.union enms <$> addlEnms env x
   Pair xitp@(InfTp _ xtp) x' <- tcInferExpr x_enms env ctx x
   Pair yitp@(InfTp _ ytp) y' <- tcInferExpr y_enms env ctx y
   -- ensure that @x@ and @y@ both have non-abstract types
@@ -423,8 +469,8 @@ tcInferExpr enms env ctx (L _ (S.NegExpr x)) = do
   pure $ Pair ClosedIntRepr (E.NegExpr x')
 
 tcInferExpr enms env ctx (L _ (S.MemberExpr x y)) = do
-  x_enms <- HS.union enms <$> addlEnms y
-  y_enms <- HS.union enms <$> addlEnms x
+  x_enms <- HS.union enms <$> addlEnms env y
+  y_enms <- HS.union enms <$> addlEnms env x
   Pair (InfTp xtpc xtp) x' <- tcInferExpr x_enms env ctx x
   Pair (InfTp ytpc ytp) y' <- tcInferExpr y_enms env ctx y
   -- ensure that @x@ is an enum and @y@ is a set
@@ -443,8 +489,8 @@ tcInferExpr enms env ctx (L _ (S.MemberExpr x y)) = do
                                                  (Just $ SomeType xtp))
 -- this is entirely the same as the above
 tcInferExpr enms env ctx (L _ (S.NotMemberExpr x y)) = do
-  x_enms <- HS.union enms <$> addlEnms y
-  y_enms <- HS.union enms <$> addlEnms x
+  x_enms <- HS.union enms <$> addlEnms env y
+  y_enms <- HS.union enms <$> addlEnms env x
   Pair (InfTp xtpc xtp) x' <- tcInferExpr x_enms env ctx x
   Pair (InfTp ytpc ytp) y' <- tcInferExpr y_enms env ctx y
   -- ensure that @x@ is an enum and @y@ is a set
@@ -463,8 +509,8 @@ tcInferExpr enms env ctx (L _ (S.NotMemberExpr x y)) = do
                                                  (Just $ SomeType xtp))
 -- this is mostly the same as both of the above
 tcInferExpr enms env ctx (L _ (S.SubsetExpr x y)) = do
-  x_enms <- HS.union enms <$> addlEnms y
-  y_enms <- HS.union enms <$> addlEnms x
+  x_enms <- HS.union enms <$> addlEnms env y
+  y_enms <- HS.union enms <$> addlEnms env x
   Pair (InfTp xtpc xtp) x' <- tcInferExpr x_enms env ctx x
   Pair (InfTp ytpc ytp) y' <- tcInferExpr y_enms env ctx y
   -- ensure that @x@ and @y@ are both sets
@@ -483,8 +529,8 @@ tcInferExpr enms env ctx (L _ (S.SubsetExpr x y)) = do
                                                  (Just $ SomeType xtp))
 -- again, mostly the same as the above
 tcInferExpr enms env ctx (L _ (S.DiffExpr x y)) = do
-  x_enms <- HS.union enms <$> addlEnms y
-  y_enms <- HS.union enms <$> addlEnms x
+  x_enms <- HS.union enms <$> addlEnms env y
+  y_enms <- HS.union enms <$> addlEnms env x
   Pair (InfTp xtpc xtp) x' <- tcInferExpr x_enms env ctx x
   Pair (InfTp ytpc ytp) y' <- tcInferExpr y_enms env ctx y
   -- ensure that @x@ and @y@ are both sets
@@ -572,8 +618,8 @@ tcInferBoolOrSetBinOp :: EnumNameSet
                                           , E.Expr env ctx BoolType )
                                           (SameEnumType env ctx SetType SetType))
 tcInferBoolOrSetBinOp enms env ctx x y = do
-  x_enms <- HS.union enms <$> addlEnms y
-  y_enms <- HS.union enms <$> addlEnms x
+  x_enms <- HS.union enms <$> addlEnms env y
+  y_enms <- HS.union enms <$> addlEnms env x
   Pair (InfTp xtpc xtp) x' <- tcInferExpr x_enms env ctx x
   Pair (InfTp ytpc ytp) y' <- tcInferExpr y_enms env ctx y
   -- ensure that @x@ and @y@ are either both booleans, or both sets

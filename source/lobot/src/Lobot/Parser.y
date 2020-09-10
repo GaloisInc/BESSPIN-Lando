@@ -120,7 +120,7 @@ decl : ident ':' kindDeclType         { KindDecl $ Kind (locText $1) (fst $3) (s
      | ident ':' checkDeclType        { CheckDecl $ Check (locText $1) (fst3 $3) (snd3 $3) (thd3 $3) }
      | 'type' ident '=' type          { TypeSynDecl (locText $2) $4 }
      | 'abstract' 'type' ident        { AbsTypeDecl (locText $3) }
-     | 'abstract' ident ':' funType   { AbsFunctionDecl (locText $2) ($4 (locText $2)) }
+     | 'abstract' ident ':' funType   { AbsFunctionDecl ($4 (locText $2)) }
 
 
 kindDeclType :: { (LType,[LExpr]) }

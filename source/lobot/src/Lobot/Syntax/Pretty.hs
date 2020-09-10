@@ -54,7 +54,7 @@ ppDecl (TypeSynDecl nm tp) =
   PP.text "type" PP.<+> ppLText nm PP.<+> PP.text "=" PP.<+> ppLType tp
 ppDecl (AbsTypeDecl nm) =
   PP.text "abstract" PP.<+> PP.text "type" PP.<+> ppLText nm
-ppDecl (AbsFunctionDecl nm (FunType _ argtps rettp)) =
+ppDecl (AbsFunctionDecl (FunType nm argtps rettp)) =
   PP.text "abstract" PP.<+> ppLText nm PP.<+> PP.text ":"
   PP.<+> ppFunArgTypes argtps PP.<+> PP.text "->" PP.<+> ppLType rettp
 ppDecl (CheckDecl ckd) =

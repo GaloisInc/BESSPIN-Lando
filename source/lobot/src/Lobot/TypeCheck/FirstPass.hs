@@ -49,6 +49,7 @@ import Data.Parameterized.Pair
 import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
+import Data.Parameterized.TraversableFC
 
 import Lobot.Utils hiding (unzip)
 import qualified Lobot.Utils as U
@@ -72,8 +73,8 @@ firstPass ds = evalTCM $ firstPassDecls ds
 -- untyped constraints from "Lobot.Syntax", but with an additional list of
 -- 'DerivedConstraint's. The 'Assignment' ensures there is one set of derived
 -- constraints for each type variable in scope. For kinds, there is only ever
--- one type variable in scope, but for checks this ensures we keep track of
--- the derived constraints for each field.
+-- one type variable in scope, but for functions this ensures we keep track of
+-- the derived constraints for each argument.
 data P1Cns (ctx :: Ctx T.Type) =
   P1Cns [S.LExpr] (Assignment (Const [DerivedConstraint]) ctx)
 
@@ -92,16 +93,18 @@ addKind (I.Kind (L p nm) tp cns dcns enms) = do
 addAbsType :: LText -> Some TypeRepr -> TCM1 ()
 addAbsType nm (Some tp) = addKind (I.Kind nm tp [] [] HS.empty)
 
-addFunction :: LText -> I.FunctionType -> TCM1 ()
-addFunction (L p nm) (I.FunType arg_tps ret_tp arg_dcns
+addFunction :: I.FunctionType -> TCM1 ()
+addFunction (I.FunType (L p nm) arg_tps ret_tp arg_dcns
                                 ret_dcns arg_enms ret_enms) = do
   is_in <- H.member nm <$> get
   if is_in then throwError (FunctionNameAlreadyDefined (L p nm))
            else let arg_dcns' = P1Cns [] arg_dcns
                     ret_dcns' = P1Cns [] (Empty :> Const ret_dcns)
+                    arg_nms   = fmapFC (\_ -> Const "_") arg_tps
                  in modify (H.insert nm (NamedFunction arg_tps ret_tp
                                                        arg_dcns' ret_dcns'
-                                                       arg_enms ret_enms))
+                                                       arg_enms ret_enms
+                                                       arg_nms))
 
 
 -- | Look up the given kind name in the current context and return its type,
@@ -165,11 +168,11 @@ firstPassDecl (S.AbsTypeDecl nm) | Some nmSymb <- someSymbol (unLoc nm) = do
   addAbsType nm (Some tp)
   pure (I.TypeSynDecl nm (Some tp) HS.empty, Nothing)
 
-firstPassDecl (S.AbsFunctionDecl nm ftp) = do
-  f'@(I.FunType arg_tps ret_tp _ _ _ _) <- tcFunctionType ftp
+firstPassDecl (S.AbsFunctionDecl ftp) = do
+  f'@(I.FunType nm arg_tps ret_tp _ _ _ _) <- tcFunctionType ftp
   Some nm' <- pure $ someSymbol (unLoc nm)
-  addFunction nm f'
-  pure (I.FunctionDecl nm f', Just $ Some (FunctionTypeRepr nm' arg_tps ret_tp))
+  addFunction f'
+  pure (I.FunctionDecl f', Just $ Some (FunctionTypeRepr nm' arg_tps ret_tp))
 
 
 -- | Translate a 'Type' from "Lobot.Syntax" to a 'TypeRepr' from "Lobot.Types",
@@ -245,10 +248,10 @@ tcFieldType (f, tp) = do
 -- as the set of enum names each argument type and return type should bring
 -- into scope.
 tcFunctionType :: S.FunctionType -> TCM1 I.FunctionType
-tcFunctionType (S.FunType _ arg_tps ret_tp) = do
+tcFunctionType (S.FunType nm arg_tps ret_tp) = do
   (Pair arg_tps' arg_dcns, arg_enms) <- unzipHelper <$> mapM tcType arg_tps
   (Some ret_tp', ret_dcns, ret_enms) <- tcType ret_tp
-  pure (I.FunType arg_tps' ret_tp' arg_dcns ret_dcns arg_enms ret_enms)
+  pure (I.FunType nm arg_tps' ret_tp' arg_dcns ret_dcns arg_enms ret_enms)
   where unzipHelper :: [(Some TypeRepr, [I.DerivedConstraint], EnumNameSet)]
                     -> ( Pair (Assignment TypeRepr)
                               (Assignment (Const [I.DerivedConstraint]))

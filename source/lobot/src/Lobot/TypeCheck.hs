@@ -89,5 +89,5 @@ data TypeCheckResult where
 typeCheck :: [S.Decl] -> Either TypeError (TypeCheckResult, [TypeWarning])
 typeCheck decls = fmap (mapSnd Set.toAscList) . runWriterT $ do
   (Some env, idecls) <- firstPass decls
-  (ks, cks) <- secondPass env idecls
+  (ks, cks, _) <- secondPass env idecls
   pure (TypeCheckResult env ks cks)

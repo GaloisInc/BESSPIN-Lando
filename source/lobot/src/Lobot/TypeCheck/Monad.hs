@@ -44,6 +44,7 @@ import Data.Set (Set)
 
 import Data.Text (Text)
 import Data.List.NonEmpty (NonEmpty(..))
+import Data.Functor.Const
 import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.Except
@@ -79,6 +80,7 @@ data NamedThing cns where
   NamedFunction :: Assignment T.TypeRepr args -> T.TypeRepr ret
                 -> cns args                   -> cns (EmptyCtx ::> ret)
                 -> [EnumNameSet]              -> EnumNameSet
+                -> Assignment (Const Text) args
                 -> NamedThing cns
 
 

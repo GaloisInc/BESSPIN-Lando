@@ -38,7 +38,7 @@ import Lobot.Lexer
 data Decl = KindDecl Kind
           | TypeSynDecl LText LType
           | AbsTypeDecl LText
-          | AbsFunctionDecl LText FunctionType
+          | AbsFunctionDecl FunctionType
           -- | A check is just a kind, with additional requirements that must
           -- hold for any instance.
           | CheckDecl Check

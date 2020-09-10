@@ -52,7 +52,7 @@ import qualified Lobot.Types as T
 data Decl = KindDecl Kind
           | CheckDecl Check
           | TypeSynDecl LText (Some T.TypeRepr) EnumNameSet
-          | FunctionDecl LText FunctionType
+          | FunctionDecl FunctionType
 
 data Kind where
   Kind :: { kindName :: LText
@@ -89,10 +89,11 @@ deriving instance Show Check
 -- function's argument and return types, though they are currently not
 -- used for anything.
 data FunctionType where 
-  FunType :: { funArgTypes :: Assignment T.TypeRepr args
+  FunType :: { funName :: LText
+             , funArgTypes :: Assignment T.TypeRepr args
              , funRetType  :: T.TypeRepr ret
-             , funArgConstraints :: Assignment (Const [DerivedConstraint]) args
-             , funRetConstraints :: [DerivedConstraint]
+             , funArgDerivedConstraints :: Assignment (Const [DerivedConstraint]) args
+             , funRetDerivedConstraints :: [DerivedConstraint]
              , funArgInScopeEnums :: [EnumNameSet]
              , funRetInScopeEnums :: EnumNameSet
              } -> FunctionType

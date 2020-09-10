@@ -45,11 +45,15 @@ module Lobot.Kind
     -- * Checks
   , Check(..)
   , NamedType(..)
+    -- * Constrained functions
+  , ConstrainedFunction(..)
+  , cFunType'
   ) where
 
 import Lobot.Expr
 import Lobot.Types
 
+import Data.Functor.Const
 import Data.Maybe (catMaybes)
 import Data.List.NonEmpty hiding ((!!))
 import Data.Text (Text)
@@ -60,6 +64,24 @@ import UnliftIO (MonadUnliftIO(..))
 import Prelude hiding ((!!))
 
 type KindExpr env tp = Expr env (EmptyCtx ::> tp)
+
+-- | Representation of a constrained Lobot function, which consists of a
+-- function name, argument types, a return type, argument names, constraints
+-- on those arguments which must be satisfied every time the function is
+-- called, and constraints on the return type which are assumed to be
+-- satisfied for every call of the function.
+data ConstrainedFunction (env :: Ctx FunctionType) (fntp :: FunctionType) where
+  CFun :: { cfunType :: FunctionTypeRepr (FunType nm args ret)
+          , cfunArgNames :: Assignment (Const Text) args
+          , cfunArgConstraints :: [Expr     env args BoolType]
+          , cfunRetConstraints :: [KindExpr env ret  BoolType]
+          } -> ConstrainedFunction env (FunType nm args ret)
+
+cFunType' :: ConstrainedFunction env fntp -> FunctionTypeRepr fntp
+cFunType' (CFun ftp _ _ _) = ftp
+
+deriving instance Show (ConstrainedFunction env fntp)
+instance ShowF (ConstrainedFunction env)
 
 -- | Representation of a Lobot feature model, which we term a 'Kind' for
 -- brevity. A kind consists of a name, a type, a function environment, and a

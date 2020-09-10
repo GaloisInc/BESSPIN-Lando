@@ -20,6 +20,7 @@ module Lobot.Pretty
   , ppFieldRepr
   , ppCheck
   , ppNamedType
+  , ppConstrainedFunction
   , ppTypeRepr
   , ppExpr
   , ppKindExpr
@@ -51,16 +52,28 @@ commas = PP.cat . PP.punctuate (PP.text ", ")
 vcommas :: [PP.Doc] -> PP.Doc
 vcommas = PP.vcat . PP.punctuate (PP.text ", ")
 
+ppConstrainedFunction :: Assignment FunctionTypeRepr env
+                      -> ConstrainedFunction env fntp -> PP.Doc
+ppConstrainedFunction env cfn@CFun{ cfunType = ftp } =
+  PP.text "abstract"
+  PP.<+> PP.text (T.unpack . symbolRepr $ functionName ftp)
+  PP.<+> PP.colon PP.<+> PP.parens (commas (toListFC ppTypeRepr (functionArgTypes ftp)))
+  PP.<+> PP.text "->" PP.<+> ppTypeRepr (functionRetType ftp)
+  PP.$$ PP.nest 2 (ppWClause "where" (ppKindExpr "return" env (functionRetType ftp) <$> cfunRetConstraints cfn))
+  PP.$$ PP.nest 2 (ppWClause "assuming" (ppExpr env ctx nms <$> cfunArgConstraints cfn))
+  where ctx = functionArgTypes ftp
+        nms = cfunArgNames cfn
+
 ppKind :: Kind env tp -> PP.Doc
 ppKind kd@Kind{ kindType = StructRepr flds } =
   PP.text (T.unpack $ kindName kd) PP.<+> PP.colon
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> PP.text "struct"
   PP.$$ PP.nest 2 (ppWClause "with" (toListFC ppFieldRepr flds))
-  PP.$$ PP.nest 2 (ppWClause "where" (ppKindExpr (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppKindExpr "self" (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
 ppKind kd =
   PP.text (T.unpack $ kindName kd) PP.<+> PP.colon
   PP.<+> PP.text "kind" PP.<+> PP.text "of" PP.<+> ppTypeRepr (kindType kd)
-  PP.$$ PP.nest 2 (ppWClause "where" (ppKindExpr (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppKindExpr "self" (kindFunctionEnv kd) (kindType kd) <$> kindConstraints kd))
 
 ppCheck :: Check env tps -> PP.Doc
 ppCheck ckd
@@ -137,11 +150,12 @@ exprStructFields env _ (ApplyExpr fi _) =
   let FunctionTypeRepr _ _ (StructRepr fls) = env ! fi
   in fls
 
-ppKindExpr :: Assignment FunctionTypeRepr env
+ppKindExpr :: T.Text
+           -> Assignment FunctionTypeRepr env
            -> TypeRepr ktp
            -> KindExpr env ktp tp
            -> PP.Doc
-ppKindExpr env ktp = ppExpr env (Empty :> ktp) (Empty :> Const "self")
+ppKindExpr selfStr env ktp = ppExpr env (Empty :> ktp) (Empty :> Const selfStr)
 
 ppFunctionCallResult :: Assignment FunctionTypeRepr env
                      -> Assignment TypeRepr ctx
