@@ -14,11 +14,13 @@ parser grammar SSLParser;
 
 options { tokenVocab = SSLLexer; }
 
-landoSource    : lineseps? specElement* lineseps? lineComments? lineseps? EOF;
+landoSource    : lineseps? body lineseps? lineComments? lineseps? EOF;
 
 specElement    : system           #systemElement
                | subsystem        #subsystemElement
+	           | subsystemImport  #subsystemImportElement
                | component        #componentElement
+   	           | componentImport  #componentImportElement
                | events           #eventsElement
                | scenarios        #scenariosElement
                | requirements     #requirementsElement
@@ -26,24 +28,31 @@ specElement    : system           #systemElement
 
 system     : lineComments?
              SYSTEM
-             sysname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
-             paragraph
+             sysname=name abbrev? comment? lineseps
+             paragraph lineComments?
              (indexing blockend)?
-	     ; 
+	         (CONTAINS lineseps? body END comment? blockend)? ;
+
+body    :  specElement* ;
 
 subsystem  : lineComments?
              SUBSYSTEM
-             subsysname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
-             paragraph
+             subsysname=name abbrev?
+	     (inheritClause | clientClause)* comment? lineseps
+	     paragraph lineComments?
 	     (indexing blockend)?
-             ;	
+	     (CONTAINS lineseps? body END comment? blockend)? ;
+
+subsystemImport  : lineComments? IMPORT_SUBSYSTEM
+   	           subsysname=qname abbrev?
+                   clientClause* comment? blockend ;
 
 component  : lineComments?
              COMPONENT
-             compname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
-             paragraph
-             (componentParts blockend)?
-             ;
+             compname=name abbrev?
+             (inheritClause | clientClause)* comment? lineseps
+	         paragraph
+     	     (componentParts blockend)? ;
 
 componentParts : componentPart (lineseps componentPart)* ;
 
@@ -57,52 +66,47 @@ query           : lineComments? sentBody QUERYTERM      wordSep? comment? ;
 
 constraint      : lineComments? sentBody CONSTRAINTTERM wordSep? comment? ;
 
+componentImport	: lineComments? IMPORT_COMPONENT
+		  componentname=qname abbrev?
+		  clientClause* comment? blockend ;
+
+clientClause : CLIENT qname lineseps? (RELSEP lineseps? qname lineseps?)* ;
+
+inheritClause : INHERIT qname lineseps? (RELSEP lineseps? qname lineseps?)* ;
 
 events          : lineComments?
                   EVENTS
                   name comment?
-                  (lineseps eventEntries)?
-                  blockend ;
+                  lineseps eventEntry* ;
 
-eventEntries    : eventEntry (lineseps eventEntry)* ;
-
-eventEntry      : lineComments? name nameComment=comment? lineseps sentence sentenceComment=comment? ;
-
+eventEntry      : lineComments? name nameComment=comment? lineseps paragraph ;
 
 scenarios       : lineComments?
                   SCENARIOS
                   name comment?
-                  (lineseps scenarioEntries)?
-                  blockend ;
+                  lineseps scenarioEntry* ;
 
-scenarioEntries : scenarioEntry (lineseps scenarioEntry)* ;
-
-scenarioEntry   : lineComments? name nameComment=comment? lineseps sentence sentenceComment=comment? ;
+scenarioEntry   : lineComments? name nameComment=comment? lineseps paragraph ;
 
 
 requirements       : lineComments?
                      REQUIREMENTS
                      name comment?
-                     (lineseps requirementEntries)?
-                     blockend ;
+                     lineseps requirementEntry* ;
 
-requirementEntries : requirementEntry (lineseps requirementEntry)* ;
+requirementEntry   : lineComments? name nameComment=comment? lineseps paragraph ;
 
-requirementEntry   : lineComments? name nameComment=comment? lineseps sentence sentenceComment=comment? ;
-
-
-relation          : lineComments? RELATION left=name RELKEYWORD right=name comment? blockend ;
-
+relation          : lineComments? RELATION left=qname (inheritClause | clientClause)+ comment? blockend ;
 
 indexing          : INDEXING spaces? (lineseps indexEntries)? ;
 
 indexEntries      : indexEntry (lineseps indexEntry)* ;
 
-indexEntry        : name INDEXSEP indexValueList ;
+indexEntry        : indexValue INDEXSEP indexValueList ;
 
 indexValueList    : indexValuePart (lineseps indexValuePart)* ;
 
-indexValuePart    : name lineseps? comment? ;
+indexValuePart    : indexValue lineseps? comment? ;
 
 
 comment      : COMMENT ;
@@ -115,16 +119,22 @@ lineComments : comments lineseps ;
 //Helpers
 spaces     : SPACE+ ;
 
-nameTrim   : WORD (spaces WORD)*;
+nameTrim   : NMWORD (spaces NMWORD)*;
 
 name       : spaces? nameTrim spaces? ;
 
-abbrev     : spaces? ABBREVSTART spaces? WORD spaces? ABBREVEND spaces? ;
+qname	   : name (QNAMESEP name)* ; // morally should be left recursive
+
+abbrev     : spaces? ABBREVSTART spaces? NMWORD spaces? ABBREVEND spaces? ;
+
+ivTrim     : IWORD (spaces IWORD)* ;
+
+indexValue : spaces? ivTrim spaces? ;
 
 wordSep    : spaces                   #wordSepSpaces
-           | spaces? LINESEP 	      #wordSepLinesep ; 
+           | spaces? comment? LINESEP 	      #wordSepLinesep ;
 
-sentBody   : WORD (wordSep WORD)* wordSep? ;
+sentBody   : SWORD (wordSep SWORD)* wordSep? ;
 
 sentTerm   : COMMANDTERM     #commandTerm
            | CONSTRAINTTERM  #constraintTerm
@@ -136,7 +146,7 @@ sentence   : sentBody sentTerm wordSep?
 
 paragraph  : sentence+ parend;
 
-parend 	   : EMPTYLINE lineseps? | EOF;
+parend 	   : comment? (EMPTYLINE lineseps? | EOF);
 
 lineseps   : (LINESEP | EMPTYLINE)+ ;
 

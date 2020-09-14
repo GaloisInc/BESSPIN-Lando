@@ -41,13 +41,13 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 \begin{grammar}
   \grule{\gntn{landoSource}}{
     \glist{\gnl} 
-    \glist{\gntn{specElement}} \glist{\gnl} 
+    \glist{\gntn{body}} \glist{\gnl} 
     \glist{\gnc\gnl} \glist{\gnl} 
     \gntn{EOF}
   }{Lando source}
 
   \grule{\gntn{specElement}}{
-    \gntn{system} \gor \gntn{subsystem} \gor \gntn{component}   \gcont
+    \gntn{system} \gor \gntn{subsystem} \gor \gntn{subsystemImport} \gor \gntn{component}  \gor \gntn{componentImport} \gcont
     \gor \gntn{events} \gor \gntn{scenarios} \gor \gntn{requirements} \gor \gntn{relation}
   }{Top-level element}
 
@@ -56,42 +56,28 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gntn{system}}{
     \glist{\gnc\gnl}
     \gtkw{system} \gntn{name} \gopt{\gntn{abbrev}} \gopt{\gnc} \glistnonempty{\gnl} \gcont
-    \gntn{explanation}  \gopt{\gnc}
+    \gntn{explanation}  \glist{\gnc \gnl}
     \gopt{\gntn{indexing} \gntn{blockend}} \gcont
-    \gopt{\gtkw{contains} \gntn{sysBody} \gtkw{end} \gntn{blockend}}
+    \gopt{\gtkw{contains} \glist{\gnl} \gntn{body} \gtkw{end} \gopt{\gnc} \gntn{blockend}}
   }{System}
 
-  \grule{\gntn{sysBody}}{
-    \glist{\gntn{sysElement}}
-  }{System body}
+  \grule{\gntn{body}}{
+    \glist{\gntn{specElement}} 
+  }{Source/(Sub)system body}
 
-  \grule{\gntn{sysElement}}{
-    \gntn{subsystem} \gor \gntn{events} \gor \gntn{scenarios} \gor \gntn{requirements} \gor \gntn{relation}
-  }{System element}
-  
   \grule{\gntn{subsystem}}{
     \glist{\gnc\gnl}
-    \gtkw{subsystem} \gntn{name} \gopt{\gntn{abbrev}} (\gntn{subsysDef} \gor \gntn{subsysImport})
+    \gtkw{subsystem} \gntn{name} \gopt{\gntn{abbrev}} 
+    \glist{inheritClause \gor clientClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
+    \gntn{explanation}  \glist{\gnc \gnl}
+    \gopt{\gntn{indexing} \gntn{blockend}} \gcont
+    \gopt{\gtkw{contains} \glist{\gnl} \gntn{body} \gtkw{end} \gopt{\gnc} \gntn{blockend}}
   }{Subsystem}
   
-  \grule{\gntn{subsysDef}}{
-    \glist{inheritClause \gor clientClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
-    \gntn{explanation}  \gopt{\gnc}
-    \gopt{\gntn{indexing} \gntn{blockend}} \gcont
-    \gopt{\gtkw{contains} \gntn{subsysBody} \gtkw{end} \gntn{blockend}}
-  }{Subsystem definition}
-
-  \grule{\gntn{subsysBody}}{
-    \glist{\gntn{subsysElement}}
-  }{Subsystem body}
-
-  \grule{\gntn{subsysElement}}{
-    \gntn{subsystem} \gor \gntn{component} \gor \gntn{events} \gor \gntn{scenarios} \gor \gntn{requirements} \gor \gntn{relation}
-  }{Subsystem element}
-
-  \grule{\gntn{subsysImport}}{
-    \glist{clientClause} \gopt{\gnc}
-    \glist{\gnl} \gtkw{import} \gopt{\gtkw{from} \gntn{name}} blockend
+  \grule{\gntn{subystemImport}}{
+    \glist{\gnc\gnl}
+    \gtkw{import} \glistnonempty{\gns} \gtkw{subsystem} \gntn{name} \gopt{\gntn{abbrev}}
+    \glist{clientClause} \gopt{\gnc} \gntn{blockend}
   }{Subsystem import}
   
   \grule{\gntn{explanation}}{
@@ -103,11 +89,11 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   }{Abbreviation}
 
   \grule{\gntn{inheritClause}}{
-    \gtkw{inherit} \gntn{name} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{name} \glist{\gnl}}
+    \gtkw{inherit} \gntn{qname} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{qname} \glist{\gnl}}
   }{Inherit clause}
 
   \grule{\gntn{clientClause}}{
-    \gtkw{client} \gntn{name} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{name} \glist{\gnl}}
+    \gtkw{client} \gntn{qname} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{qname} \glist{\gnl}}
   }{Client clause}
     
   \grule{\gntn{indexing}}{
@@ -115,7 +101,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   }{Indexing}
 
   \grule{\gntn{indexEntry}}{
-    \gntn{name} \gtkc{:} \gntn{indexValuePart} \glist{\glistnonempty{\gnl} \gntn{indexValuePart}}
+    \gntn{indexValue} \gtkc{:} \gntn{indexValuePart} \glist{\glistnonempty{\gnl} \gntn{indexValuePart}}
   }{Index Entry}
 
   \grule{\gntn{indexValuePart}}{
@@ -126,20 +112,19 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
   \grule{\gntn{component}}{
     \glist{\gnc\gnl}
-    \gtkw{component} \gntn{name} \gopt{\gntn{abbrev}} (\gntn{compDef} \gor \gntn{compImport})
-  }{Component}
-
-  \grule{\gntn{compDef}}{
+    \gtkw{component} \gntn{name} \gopt{\gntn{abbrev}} 
     \glist{inheritClause \gor clientClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
     \gntn{explanation}  
     \glist{\gntn{componentFeature} \gntn{blockend}}
   }{Component definition}
 
-  \grule{\gntn{compImport}}{
+  \grule{\gntn{componentImport}}{
+    \glist{\gnc\gnl}
+    \gtkw{import} \glistnonempty{\gns} \gtkw{component} \gntn{name} \gopt{\gntn{abbrev}}
     \glist{clientClause} \gopt{\gnc}
-    \glist{\gnl} \gtkw{import} \gopt{\gtkw{from} \gntn{name}} blockend
+    \gntn{blockend}
   }{Component import}
-
+    
   \grule{\gntn{componentFeature}}{
     \gntn{constraint} \gor \gntn{command} \gor \gntn{query}
   }{Component Feature}
@@ -162,8 +147,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gtkw{events}
     \gntn{name} \gopt{\gnc}
-    \glist{\glistnonempty{\gnl} \gntn{eventEntry}}
-    \gntn{blockend}
+    \glistnonempty{\gnl} \glist{\gntn{eventEntry}}
   }{Events}
 
 
@@ -171,7 +155,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gntn{name} \gopt{\gnc}
     \glistnonempty{\gnl}
-    \gntn{paragraph} \gopt{\gnc}
+    \gntn{paragraph} 
   }{Event Entry}
 
 
@@ -180,8 +164,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gtkw{scenarios}
     \gntn{name} \gopt{\gnc}
-    \glist{\glistnonempty{\gnl} \gntn{scenarioEntry}}
-    \gntn{blockend}
+    \glistnonempty{\gnl} \glist{\gntn{scenarioEntry}}
   }{Scenarios}
 
 
@@ -189,7 +172,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gntn{name} \gopt{\gnc}
     \glistnonempty{\gnl}
-    \gntn{paragraph} \gopt{\gnc}
+    \gntn{paragraph} 
   }{Scenario Entry}
 
 
@@ -197,8 +180,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gtkw{requirements}
     \gntn{name} \gopt{\gnc}
-    \glist{\glistnonempty{\gnl} \gntn{requirementEntry}}
-    \gntn{blockend}
+    \glistnonempty{\gnl} \glist{\gntn{requirementEntry}}
   }{Requirements}
 
 
@@ -206,14 +188,14 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gntn{name} \gopt{\gnc}
     \glistnonempty{\gnl}
-    \gntn{paragraph} \gopt{\gnc}
+    \gntn{paragraph}
   }{Requirement Entry}
 
   \gline
 
   \grule{\gntn{relation}}{
     \glist{\gnc\gnl}
-    \gtkw{relation} \gntn{name} \glistnonempty{\gntn{inheritClause} \gor \gntn{clientClause}}
+    \gtkw{relation} \gntn{qname} \glistnonempty{\gntn{inheritClause} \gor \gntn{clientClause}}
     \gopt{\gnc}
     \gntn{blockend}
   }{Relation Declaration}
@@ -221,11 +203,11 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
   \gline
   
-  \grule{\gntn{name}}{
-    \gntn{nameFacet} \glist{\gtkc{:} \gntn{nameFacet}}
+  \grule{\gntn{qname}}{
+    \gntn{name} \gor \gntn{qname} \gtkc{:} \gntn{name}
   }{Name}
 
-  \grule{\gntn{nameFacet}}{
+  \grule{\gntn{name}}{
     \glist{\gns} \gntn{nameWord} \glist{\glistnonempty{\gns} \gntn{nameWord}} \glist{\gns}
   }{Name facet}
 
@@ -234,7 +216,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   }{Name word}
 
   \grule{\gntn{nonName}}{
-    \gtkw{client} \gor \gtkw{inherit} \gor \gtkw{import} \gor \ldots
+    \gtkw{client} \gor \gtkw{inherit} \gor \ldots
   }{Keywords}
 
   \gline
@@ -244,7 +226,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   }{Index value}
 
   \grule{\gntn{indexValueWord}}{
-    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}]+} - \gtregex{//.*} 
+    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}]*[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}:]} - \gtregex{//.*} 
   }{Index value word}
 
   \gline
@@ -254,7 +236,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   }{Paragraph}
 
   \grule{\gntn{parend}}{
-    \gnb \glist{\gnl} \gor \gntn{EOF}
+    \gopt{\gnc} (\gnb \glist{\gnl} \gor \gntn{EOF})
   }{Paragraph end}
 
   \grule{\gntn{sentence}}{
@@ -266,7 +248,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   }{Sentence Body}
 
   \grule{\gntn{wordSep}}{
-    \glistnonempty{\gns} \gor \glist{\gns} \gnl 
+    \glistnonempty{\gns} \gor \glist{\gns} \gopt{\gnc} \gnl 
   }{Word Separator}
 
   \grule{\gntn{sentWord}}{
@@ -314,6 +296,10 @@ The following extra-grammatical rules are applied during or after parsing the co
   If a \gntn{system} or \gntn{subsystem} element does not have an explicit body, then it has
   an implicit body that begins immediately after the element and extends until just
   before the next \gtkw{system}, \gtkw{subsystem} or unmatched \gtkw{end}.
+\item
+  \gntn{subystemImport} an only appear in an (explicit or implicit) \gntn{system} or \gntn{subsystem}
+  body.  \gntn{component} and \gntn{componentImport} can only appear in an (explicit or implicit)
+  \gntn{subsystem} body.
 \item
   A \gntn{sentence} that does not end with a \gtkc{.},\gtkc{!}, or \gtkc{?} symbol
   (possibly followed by white space characters or line separators) induces a warning message.

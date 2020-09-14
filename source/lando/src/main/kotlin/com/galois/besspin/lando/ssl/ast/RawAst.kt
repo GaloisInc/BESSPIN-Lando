@@ -4,43 +4,63 @@ import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 import kotlinx.serialization.modules.*
 
+typealias Name = String
+typealias QName = List<Name>
+typealias Body = List<RawElement>
+
+@Serializable
+data class RawPos(
+    var line: Int,
+    var col: Int
+)
+
 @Serializable
 data class RawComment(
+    var pos : RawPos,
     var text: String
 )
 
 interface RawElement {
-    val uid: Int
-    var name: String
+    // val uid: Int
+    // var name: String
+    var pos : RawPos
 }
 
+
 interface RawComponentPart {
+    var pos : RawPos
     var text: String
 }
 
 @Serializable
 data class RawQuery(
+    override var pos: RawPos,
     override var text: String,
     var comments: List<RawComment>
 ) : RawComponentPart
 
 @Serializable
 data class RawConstraint(
+    override var pos: RawPos,
     override var text: String,
     var comments: List<RawComment>
 ) : RawComponentPart
 
 @Serializable
 data class RawCommand(
+    override var pos: RawPos,
     override var text: String,
     var comments: List<RawComment>
 ) : RawComponentPart
 
 @Serializable
 data class RawComponent(
-    override val uid: Int,
-    override var name: String,
-    var abbrevName: String?,
+    // override val uid: Int,
+    override var pos: RawPos,
+    var name: Name,
+    var abbrevName: Name?,
+    var inherits: List<QName>,
+    var clientof: List<QName>,
     var explanation: String,
     var parts: List<RawComponentPart> = arrayListOf(),
     var comments: List<RawComment>
@@ -48,156 +68,135 @@ data class RawComponent(
 
 @Serializable
 data class RawEvents(
-    override val uid: Int,
-    override var name: String,
+    // override val uid: Int,
+    override var pos: RawPos,
+    var name: Name,
     var events: List<RawEvent> = arrayListOf(),
     var comments: List<RawComment>
 ) : RawElement
 
 @Serializable
 data class RawEvent(
-    var id: String,
+    var pos: RawPos,
+    var id: Name,
     var text: String,
     var comments: List<RawComment>
 )
 
 @Serializable
 data class RawScenarios(
-    override val uid: Int,
-    override var name: String,
+    // override val uid: Int,
+    override var pos: RawPos,
+    var name: Name,
     var scenarios: List<RawScenario> = arrayListOf(),
     var comments: List<RawComment>
 ) : RawElement
 
 @Serializable
 data class RawScenario(
-    var id: String,
+    var pos: RawPos,
+    var id: Name,
     var text: String,
     var comments: List<RawComment>
 )
 
 @Serializable
 data class RawRequirements(
-    override val uid: Int,
-    override var name: String,
+    // override val uid: Int,
+    override var pos: RawPos,
+    var name: Name,
     var requirements: List<RawRequirement>,
     var comments: List<RawComment>
 ) : RawElement
 
 @Serializable
 data class RawRequirement(
-    var id: String,
+    var pos: RawPos,
+    var id: Name,
     var text: String,
     var comments: List<RawComment>
 )
 
 @Serializable
 data class RawIndexEntry(
-    var key: String,
+    var pos: RawPos,
+    var key: Name,
     var values: List<String>,
     var comments: List<RawComment>
 )
 
 @Serializable
+data class RawComponentImport(
+    override var pos: RawPos,
+    var name: QName,
+    var abbrevName: Name?,
+    var clientOf: List<QName>,
+    var comments: List<RawComment>
+) : RawElement
+
+@Serializable
 data class RawSubsystem(
-    override val uid: Int,
-    override var name: String,
-    var abbrevName: String?,
+    // override val uid: Int,
+    override var pos: RawPos,
+    var name: Name,
+    var abbrevName: Name?,
+    var inherits: List<QName>,
+    var clientof: List<QName>,
     var explanation: String,
     var indexing: List<RawIndexEntry>,
+    var body: Body?,
+    var comments: List<RawComment>
+) : RawElement
+
+@Serializable
+data class RawSubsystemImport(
+    override var pos: RawPos,
+    var name: QName,
+    var abbrevName: Name?,
+    var clientOf: List<QName>,
     var comments: List<RawComment>
 ) : RawElement
 
 @Serializable
 data class RawSystem(
-    override val uid: Int,
-    override var name: String,
+    // override val uid: Int,
+    override var pos: RawPos,
+    var name: String,
     var abbrevName: String?,
     var explanation: String,
     var indexing: List<RawIndexEntry>,
+    var body: Body?,
     var comments: List<RawComment>
 ) : RawElement
 
 @Serializable
 data class RawSSL(
-    var uid: Int,
-    var elements: List<RawElement>,
-    var relationShips: RawRelationships,
+    // var uid: Int,
+    var body : Body,
     var comments: List<RawComment>
 )
 
 @Serializable
-sealed class RawRelation
-
-@Serializable
-data class RawInheritRelation(
-    var name: String,
-    var base: String
-): RawRelation()
-
-@Serializable
-data class RawContainsRelation(
-    var name: String,
-    var parent: String
-): RawRelation()
-
-@Serializable
-data class RawImplicitContainsRelation(
-    var uid: Int,
-    var parentUid: Int
-): RawRelation()
-
-@Serializable
-data class RawClientRelation(
-    var client: String,
-    var provider: String
-): RawRelation()
-
-
-@Serializable
-data class RawRelationships(
-    private var _inheritRelations: MutableList<RawInheritRelation> = mutableListOf(),
-    private var _containsRelations: MutableList<RawContainsRelation> = mutableListOf(),
-    private var _implicitContainsRelations: MutableList<RawImplicitContainsRelation> = mutableListOf(),
-    private var _clientRelations: MutableList<RawClientRelation> = mutableListOf()
-) {
-    val inheritRelations: List<RawInheritRelation>
-        get() = _inheritRelations
-
-    val containsRelations: List<RawContainsRelation>
-        get() = _containsRelations
-
-    val clientRelations: List<RawClientRelation>
-        get() = _clientRelations
-
-    val implicitContainsRelation: List<RawImplicitContainsRelation>
-        get() = _implicitContainsRelations
-
-    companion object {
-        fun fromRelationList(relations: List<RawRelation>): RawRelationships {
-            val result = RawRelationships()
-            for (relation in relations) {
-                when(relation) {
-                    is RawInheritRelation -> result._inheritRelations.add(relation)
-                    is RawContainsRelation -> result._containsRelations.add(relation)
-                    is RawImplicitContainsRelation -> result._implicitContainsRelations.add(relation)
-                    is RawClientRelation -> result._clientRelations.add(relation)
-                }
-            }
-            return result
-        }
-    }
-}
+data class RawRelation(
+    override var pos: RawPos,
+    var name: QName,
+    var inherits: List<QName>,
+    var clientOf: List<QName>,
+    var comments: List<RawComment>
+): RawElement
 
 
 private val sslModule = SerializersModule {
     polymorphic(RawElement::class) {
         subclass(RawSystem::class)
         subclass(RawSubsystem::class)
+        subclass(RawSubsystemImport::class)
         subclass(RawComponent::class)
+        subclass(RawComponentImport::class)
         subclass(RawEvents::class)
         subclass(RawScenarios::class)
         subclass(RawRequirements::class)
+        subclass(RawRelation::class)
     }
 
     polymorphic(RawComponentPart::class) {

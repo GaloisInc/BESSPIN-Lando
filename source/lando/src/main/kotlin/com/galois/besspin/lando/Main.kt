@@ -22,51 +22,50 @@ class CommandLine : NoRunCliktCommand(printHelpOnEmptyArgs = true, name = "lando
 class Convert : CliktCommand(
     printHelpOnEmptyArgs = true,
     help = "Read a lando SOURCE, convert it to the specified format and write to DEST"
-) {
-    val format by option("-t", "--to").choice("json").required()
-    val source by argument("SOURCE").file(exists = true)
-    val dest   by argument("DEST").file()
-    val silent by option("-s", "--silent").flag()
-    val debug  by option("-d", "--debug").flag()
+ ) {
+     val format by option("-t", "--to").choice("json").required()
+     val source by argument("SOURCE").file(exists = true)
+     val dest   by argument("DEST").file()
+     val silent by option("-s", "--silent").flag()
+     val debug  by option("-d", "--debug").flag()
 
-    override fun run() {
-        when (format) {
-            "json" -> toJSON(source, dest, debug)
-            else -> println("Unable to convert to format: $format")
-        }
-    }
+     override fun run() {
+         when (format) {
+             "json" -> toJSON(source, dest, debug)
+             else -> println("Unable to convert to format: $format")
+         }
+     }
 
     fun toJSON(source: File, dest: File, debug: Boolean) {
-        try {
-            val (ssl, warnings) = parseFile(source, debug)
-            val str = ssl.toJSON()
+         try {
+             val (ssl, warnings) = parseFile(source, debug)
+             val str = ssl.toJSON()
+             printToFile(dest, str)
 
-            printToFile(dest, str)
+             if (warnings.isNotEmpty()) {
+                 if (!silent) {
+                     println(warnings)
+                 } else {
+                     val destWarns = File(dest.parent, "${dest.nameWithoutExtension}.warnings")
+                     printToFile(destWarns, warnings)
+                 }
+             }
+         } catch (ex: Exception) {
+             if (!silent) {
+                 println("Unable to convert  file to JSON. " + ex.message)
+             } else {
+                 val destErrors = File(dest.parent, "${dest.nameWithoutExtension}.errors")
+                 printToFile(destErrors, ex.message)
+             }
+             System.exit(1)
+         }
+     }
 
-            if (warnings.isNotEmpty()) {
-                if (!silent) {
-                    println(warnings)
-                } else {
-                    val destWarns = File(dest.parent, "${dest.nameWithoutExtension}.warnings")
-                    printToFile(destWarns, warnings)
-                }
-            }
-        } catch (ex: Exception) {
-            if (!silent) {
-                println("Unable to convert  file to JSON. " + ex.message)
-            } else {
-                val destErrors = File(dest.parent, "${dest.nameWithoutExtension}.errors")
-                printToFile(destErrors, ex.message)
-            }
-            System.exit(1)
-        }
-    }
-
-    fun printToFile(dest: File, str: String?) {
-        if (str != null)
-            dest.writeText(str)
-    }
-}
+     fun printToFile(dest: File, str: String?) {
+         if (str != null)
+             dest.writeText(str)
+     }
+ }
 
 class Validate : CliktCommand(
     printHelpOnEmptyArgs = true,
@@ -95,5 +94,7 @@ class Validate : CliktCommand(
 
 fun main(args: Array<String>) {
     CommandLine().subcommands(Convert(), Validate()).main(args)
+//  CommandLine().subcommands(Validate()).main(args)
+
 }
 
