@@ -1,0 +1,609 @@
+\documentclass{article}
+\usepackage{fullpage}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{longtable}
+\usepackage{textcomp}
+\usepackage{array}
+\usepackage{todonotes}
+\usepackage{mathtools}
+\usepackage{xparse}
+\usepackage{mathpartir}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+%\input{macros2}
+
+\begin{document}
+
+\title{Lando SSL Version 2 Well-formedness}
+\maketitle
+
+\section{Notation}
+
+\newcommand{\nt}[1]{\ensuremath{\mathit{#1}}}
+\newcommand{\lab}[1]{\ensuremath{\texttt{#1}}}
+\newcommand{\listof}[1]{\ensuremath{[{#1}]}}
+\newcommand{\nillist}[1]{[]_{#1}}
+\newcommand{\conslist}[2]{{#1}::{#2}}
+\newcommand{\singlelist}[1]{[{#1}]}
+\newcommand{\listlast}[1]{\mathit{last}({#1})}
+\newcommand{\optof}[1]{\ensuremath{{#1}?}}
+\newcommand{\some}[1]{\lceil{#1}\rceil}
+\newcommand{\none}[1]{\cdot_{#1}}
+\newcommand{\proj}[2]{\ensuremath{{#1}.{#2}}}
+\newcommand{\emptym}{\emptyset} 
+
+Lists of $t$ are written $\listof{t}$; $\nillist{t}$ is an empty list of $t$'s, $\conslist{x}{xs}$ is the list with head $x$ and tail $xs$,
+and $\singlelist{x}$ is the singleton list containing $x$.
+$\listlast{l}$ returns the last element of (necessarily non-empty) list $l$.
+An optional $t$ is written $\optof{t}$; a present option value $x$ is written $\some{x}$ and a missing option value of type $t$ is written $\none{t}$.
+We write $\proj{x}{y}$ for the projection of field $y$ from a node $x$ .
+In the pattern $x@\lab{Foo}\{\ldots\}$, $x$ is bound to the entire node labeled $\lab{Foo}$.
+The pattern $\lab{(Foo|Bar)}\{\ldots\}$ matches nodes labeled either $\lab{Foo}$ or $\lab{Bar}$.
+Disjoint union of maps is written $\uplus$, and is undefined if the domains of the maps are not disjoint.  An empty map is written $\emptym$.
+A judgement applies only if all premises are fully defined.
+\section{Raw AST Grammar}
+
+This is intended to correspond precisely to the {\tt RawAST} structure built by the current parser, omitting source position tags
+and comments. The AST corresponds directly to the concrete syntax, with one exception: implicit bodies of {\tt system}s and {\tt subsystem}s are
+converted into explicit ones. 
+
+\[
+\begin{array}{rcll}
+  s \in \nt{source} & \rightarrow &\lab{Source}\{\lab{elems}:\listof{\nt{elem}}\} \\
+  e \in \nt{elem} & \rightarrow & \lab{System}\{\lab{name}:\nt{name},\lab{abbrev}:\optof{\nt{name}},
+                                                \lab{explanation}:\nt{text},\lab{indexings}:\listof{\nt{indexing}},
+                                                \lab{body}:\listof{\nt{elem}}\} \\
+                  & \rightarrow & \lab{Subsystem}\{\lab{name}:\nt{name},\lab{abbrev}:\optof{\nt{name}},
+                                                \lab{inherits}:\listof{\nt{qname}},\lab{clientOf}:\listof{\nt{qname}}, \\
+                  &             & \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \                                                 
+                                                \lab{explanation}:\nt{text},\lab{indexings}:\listof{\nt{indexing}},
+                                                \lab{body}:\listof{\nt{elem}}\} \\
+                  & \rightarrow & \lab{SubystemImport}\{\lab{name}:\nt{qname},\lab{abbrev}:\optof{\nt{name}},
+                                                        \lab{clientOf}:\listof{\nt{qname}}\} \\
+                  & \rightarrow &\lab{Component}\{\lab{name}:\nt{name},\lab{abbrev}:\optof{\nt{name}},
+                                                \lab{inherits}:\listof{\nt{qname}},\lab{clientOf}:\listof{\nt{qname}},\\
+                  &             & \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \                                                 
+                                                \lab{explanation}:\nt{text},\lab{parts}:\listof{\nt{part}}\} \\
+                  & \rightarrow & \lab{ComponentImport}\{\lab{name}:\nt{qname},\lab{abbrev}:\optof{\nt{name}},
+                                                         \lab{clientOf}:\listof{\nt{qname}}\} \\
+                  & \rightarrow & \lab{Events}\{\lab{name}:\nt{name},\lab{contents}:\listof{\nt{item}}\} \\
+                  & \rightarrow & \lab{Scenarios}\{\lab{name}:\nt{name},\lab{contents}:\listof{\nt{item}}\} \\
+                  & \rightarrow & \lab{Requirements}\{\lab{name}:\nt{name},\lab{contents}:\listof{\nt{item}}\} \\
+                  & \rightarrow & \lab{Relation}\{\lab{name}:\nt{qname},\lab{inherits}:\listof{\nt{qname}},
+                                                  \lab{clientOf}:\listof{\nt{qname}}\} \\
+  x \in \nt{indexing} & \rightarrow & \lab{Indexing}\{\lab{key}:\nt{text},\lab{values}:\listof{\nt{text}}\} \\
+  p \in \nt{part} & \rightarrow & \lab{Constraint}\{\lab{contents}:\nt{text} \} \\
+  & \rightarrow & \lab{Query}\{\lab{contents}:\nt{text}\} \\
+                  & \rightarrow & \lab{Command}\{\lab{contents}:\nt{text}\} \\
+  i \in \nt{item} & \rightarrow & \lab{Item}\{\lab{id}:\nt{name},\lab{value}:\nt{text} \} \\
+  u \in \nt{uid} & & \text{(base type)} \\
+  t \in \nt{text}& & \text{(base type)} \\
+  n \in \nt{name}& & \text{(base type)} \\
+  q \in \nt{qname}& = & \listof{\nt{name}} \\
+  c \in \nt{comment}&  & \text{(base type)} \\
+\end{array}
+\]
+  
+\vfill\eject
+
+\section{Well-formedness Judgements}
+
+\newcommand{\senv}{\Phi}
+\newcommand{\env}{\Gamma}
+\newcommand{\qlookup}[2]{\mathit{qlook}_{#1}({#2})}
+\newcommand{\qnames}[1]{\mathit{qnames}({#1})}
+\newcommand{\nocycles}[1]{\mathit{nocycles}({#1})}
+
+Although the AST does not explicitly include element labels, we assume that each node (in particular each \nt{elem}) 
+has a unique identity with a well-defined notion of equality.
+
+$\env : \nt{name} \rightarrow \nt{elem}$ is an environment (finite map) from names
+to their corresponding elements.
+
+$\senv : \nt{elem} \rightarrow \env$ is a finite map from (sub)systems
+to the environments they generate. 
+
+The function $\qlookup{\env}{q}$ resolved a qualified name $q$ starting in environment $\env$; it is defined thus:
+\[
+\begin{array}{rcl}
+\qlookup{\env}{\singlelist{n}} &= &\env(n) \\
+\qlookup{\env}{\conslist{n}{ns}} & =& \qlookup{\senv(\env(n))}{ns}
+\end{array}
+\]
+
+$I : \nt{elem} \times \nt{elem}$ is an inheritance relation between elements, where $(e_1,e_2) \in I$ means
+$e_1$ inherits from $e_2$. The predicate $\nocycles{I}$ holds when $I$ has no cycles. 
+
+We assume the existence of a function $\qnames{t}$ that returns the list of \nt{qname}s mentioned in \nt{text} $t$.
+
+
+\newcommand{\validinh}[2]{\texttt{valid-inherit}({#1},{#2})}
+\newcommand{\validclient}[2]{\texttt{valid-client}({#1},{#2})}
+\newcommand{\validcontains}[2]{\texttt{valid-contains}({#1},{#2})}
+
+\newcommand{\wb}[3]{{#1} \vdash {#2} \Rightarrow {#3}}
+\newcommand{\wbx}[2]{{#1} \vdash {#2}}
+
+A specification $s$ is well-formed if it is possible to find a top-level environment $\env_0$, a global $\senv_0$,
+and a global inheritance relation $I_0$ (all implicitly threaded everywhere) such that $\wbx{}{s}$.
+
+\begin{mathparpagebreakable}
+
+
+\inferrule{
+  \wb{\env_0}{es}{\env_0} \\
+  \nocycles{I} \\
+  \forall e_1,e_2 \in es, e_1 = \lab{System}\{\ldots\} \land e_2 = \lab{System}\{\ldots\} \implies e_1 = e_2
+}{
+  \wbx{}{\lab{Source}\{\lab{elems}=es\}}
+}
+            
+\inferrule{
+  \wb{\env}{e}{\env'} \\
+  \wb{\env}{es}{\env''} 
+}{
+  \wb{\env}{\conslist{e}{es}}{\env' \uplus \env''}
+}
+
+\inferrule{
+}{
+  \wb{\env}{\nillist{\nt{elem}}}{\{\}}
+}
+
+
+\inferrule{
+  \wbx{\env}{t} \\
+  % \forall x \in xs, \wb{\env}{x} \\
+  \forall e \in es_b, \validcontains{e_s}{e} \\
+  \senv_0(e_s) = \env' \\
+  \wb{\env \uplus \env'}{es_b}{\env'} \\
+}{
+  \wb{\env}{e_s@\lab{System}\{\lab{name}=n,\lab{abbrev}=\some{n_a},\lab{explanation}=t,\lab{body}=es_b,\ldots\}}{\{n \mapsto e_s,n_a \mapsto e_s\}}
+}
+
+\inferrule{
+  \wbx{\env}{t} \\
+  % \forall x \in xs, \wb{\env}{x} \\
+  \forall e \in es_b, \validcontains{e_s}{e} \\
+  \senv_0(e_s) = \env' \\
+  \wb{\env \uplus \env'}{es_b}{\env'} \\
+}{
+  \wb{\env}{e_s@\lab{System}\{\lab{name}=n,\lab{abbrev}=\none{\nt{name}},\lab{explanation}=t,\lab{body}=es_b,\ldots\}}{\{n \mapsto e_s\}}
+}
+
+\inferrule{
+  \forall q \in qs_i, \validinh{e_s}{\qlookup{\env}{q}} \\
+  \forall q \in qs_c, \validclient{e_s}{\qlookup{\env}{q}} \\
+  \wbx{\env}{t} \\
+  \forall e \in es_b, \validcontains{e_s}{e} \\
+  % \forall x \in xs, \wb{\env}{x} \\
+  \senv_0(e_s) = \env' \\
+  \wb{\env \uplus \env'}{es_b}{\env'} \\
+}
+{
+  \wb{\env}{e_s@\lab{Subsystem}\left\{\begin{array}{ll}
+      \lab{name}=n,\lab{abbrev}=\some{n_a},\lab{inherits}=qs_i, \\
+      \lab{clientOf}= qs_c,\lab{explanation}=t,\lab{body}=es_b,\ldots
+      \end{array}\right\}}
+     {\{n \mapsto e_s,n_a \mapsto e_s\}}
+}
+
+\inferrule{
+  \forall q \in qs_i, \validinh{e_s}{\qlookup{\env}{q}} \\
+  \forall q \in qs_c, \validclient{e_s}{\qlookup{\env}{q}} \\
+  \wbx{\env}{t} \\
+  \forall e \in es_b, \validcontains{e_s}{e} \\
+  % \forall x \in xs, \wb{\env}{x} \\
+  \senv_0(e_s) = \env' \\
+  \wb{\env \uplus \env'}{es_b}{\env'} \\
+}
+{
+  \wb{\env}{e_s@\lab{Subsystem}\left\{\begin{array}{ll}
+    \lab{name}=n,\lab{abbrev}=\none{\nt{name}}, \lab{inherits}=qs_i, \\
+    \lab{clientOf}= qs_c,\lab{explanation}=t,\lab{body}=es_b,\ldots
+    \end{array}\right\}}
+    {\{n \mapsto e_s\}}
+}
+            
+\inferrule{
+  \qlookup{\env_0}{q} = e \\
+  \forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}} \\
+}
+{
+  \wb{\env}{e_s@\lab{SubsystemImport}\{\lab{name}=q,\lab{abbrev}=\some{n_a},\lab{clientOf}= qs_c\}}{\{n_a \mapsto e_s\}}
+}
+
+\inferrule{
+  \qlookup{\env_0}{q} = e \\
+  \forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}} \\
+}
+{
+  \wb{\env}{e_s@\lab{SubsystemImport}\{\lab{name}=q,\lab{abbrev}=\none{\nt{name}},\lab{clientOf}= qs_c\}}{\{\listlast{q}\mapsto e_s\}}
+}
+
+
+\inferrule{
+  \forall q \in qs_i, \validinh{e_c}{\qlookup{\env}{q}} \\
+  \forall q \in qs_c, \validclient{e_c}{\qlookup{\env}{q}} \\
+  \wbx{\env}{t} \\
+  \forall p \in ps, \wbx{\env}{p}  \\
+}
+{
+  \wb{\env}{e_c@\lab{Component}\left\{\begin{array}{ll}
+    \lab{name}=n,\lab{abbrev}=\some{n_a},\lab{inherits}=qs_i,\\
+    \lab{clientOf}= qs_c,\lab{explanation}=t,\lab{parts}=ps
+    \end{array}\right\}}{\{n \mapsto e_c,n_a \mapsto e_c\}}
+}            
+
+\inferrule{
+  \forall q \in qs_i, \validinh{e_c}{\qlookup{\env}{q}} \\
+  \forall q \in qs_c, \validclient{e_c}{\qlookup{\env}{q}} \\
+  \wbx{\env}{t} \\
+  \forall p \in ps, \wbx{\env}{p}  \\
+}
+{
+  \wb{\env}{e_c@\lab{Component}\left\{\begin{array}{ll}
+    \lab{name}=n,\lab{abbrev}=\none{\nt{name}},\lab{inherits}=qs_i,\\
+    \lab{clientOf}= qs_c,\lab{explanation}=t,\lab{parts}=ps
+    \end{array}\right\}}{\{n \mapsto e_c\}}
+}            
+
+\inferrule{
+  \wbx{\env}{t}
+}{
+  \wbx{\env}{\lab{Constraint}\{\lab{contents}=t\}}
+}
+
+\inferrule{
+  \wbx{\env}{t}
+}{
+  \wbx{\env}{\lab{Query}\{\lab{contents}=t\}}
+}
+
+\inferrule{
+  \wbx{\env}{t}
+}{
+  \wbx{\env}{\lab{Command}\{\lab{contents}=t\}}
+}
+
+
+\inferrule{
+  \qlookup{\env_0}{q} = e \\
+  \forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}} \\
+}
+{
+  \wb{\env}{e_c@\lab{ComponentImport}\{\lab{name}=q,\lab{abbrev}=\some{n_a},\lab{clientOf}= qs_c\}\}}{\{n_a \mapsto e_c\}}
+}
+
+\inferrule{
+  \qlookup{\env_0}{q} = e \\
+  \forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}} \\
+}
+{
+  \wb{\env}{e_c@\lab{ComponentImport}\{\lab{name}=q,\lab{abbrev}=\none{\nt{name}},\lab{clientOf}= qs_c\}\}}{\{\listlast{q} \mapsto e_c\}}
+}
+
+
+\inferrule{
+  \wb{\env}{is}{\env'}
+}
+{
+  \wb{\env}{e@\lab{Events}\{\lab{name}=n,\lab{contents}=is\}}{\{n\mapsto e\}\uplus \env'}
+}
+
+
+\inferrule{
+  \wb{\env}{is}{\env'}
+}
+{
+  \wb{\env}{e@\lab{Scenarios}\{\lab{name}=n,\lab{contents}=is\}}{\{n\mapsto e\} \uplus \env'}
+}
+
+\inferrule{
+  \wb{\env}{is}{\env'}
+}
+{
+  \wb{\env}{e@\lab{Requirements}\{\lab{name}=n,\lab{contents}=is\}}{\{n\mapsto e\} \uplus \env'}
+}
+
+\inferrule{
+}{  \wb{\env}{\nillist{\nt{item}}}{\{\}}
+}
+
+\inferrule{
+  \wb{\env}{i}{\env''} \\
+  \wb{\env}{is}{\env'''}
+}{
+  \wb{\env}{\conslist{i}{is}}{\env'' \uplus \env'''}
+}
+
+\inferrule{
+  \wbx{\env}{t}
+}{
+  \wb{\env}{i@\lab{Item}\{\lab{id}=n,\lab{value}=t\}}{\{n\mapsto i\}}
+}
+  
+\inferrule{
+  \qlookup{\env}{q} = e \\
+  \forall q \in qs_i, \validinh{e}{\qlookup{\env}{q}} \\
+  \forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}}
+}{
+  \wb{\env}{\lab{Relation}\{\lab{name}=q,\lab{inherits}=qs_i,\lab{clientOf}=qs_c\}}{\{\}}
+}
+
+\inferrule{
+  \forall n_t \in \qnames{t}, \exists e, \env(n_t) = e
+}{
+  \wbx{\env}{t}
+}
+
+\inferrule{
+}{\validcontains{\lab{System}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Relation)}\{\ldots\}}
+}
+
+\inferrule{
+}{\validcontains{\lab{Subsystem}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Component|ComponentImport)}\{\ldots\}}
+}
+
+\inferrule{
+}{\validcontains{\lab{Subsystem}\{\ldots\}}{\lab{(Scenarios|Requirements|Events|Relation)}\{\ldots\}}
+}
+
+
+\inferrule{
+  (e_1,e_2) \in I_0
+}{\validinh{e_1@\lab{Component}\{\ldots\}}{e_2@\lab{Component}\{\ldots\}}
+}
+
+\inferrule{
+}{\validclient{\lab{(Subsystem|SubsystemImport)}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Component|ComponentImport)}\{\ldots\}}
+}
+
+\inferrule{
+}{\validclient{\lab{(Component|ComponentImport)}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Component|ComponentImport)}\{\ldots\}}
+}
+
+\end{mathparpagebreakable}
+
+\end{document}
+
+\subsection{Implicit Container Relations}
+
+\newcommand{\icmap}{\Sigma}
+
+\newcommand{\bldicmap}[3]{{#1} \vdash {#2} \Rightarrow {#3}}
+
+\newcommand{\reachable}[2]{\texttt{reachable}_{#1}({#2})}
+% Reachability should be reflexive.
+\newcommand{\nocycles}[1]{\texttt{nocycles}({#1})}
+\newcommand{\validic}[2]{\texttt{valid-impl-contains}({#1},{#2})}
+
+These judgments check that the implicit container relations clauses are well formed
+and produce a map $\icmap: \nt{uid} \rightarrow \nt{uid}$ mapping each
+implicitly contained element to its immediately containing element.
+
+\begin{mathparpagebreakable}
+  \inferrule{
+  }{\bldicmap{\uidmap}{\nillist{\nt{relation}}}{\emptym}
+  }
+    
+\inferrule{
+  \bldicmap{\uidmap}{rs}{\icmap} \\
+%  u_c \neq u_p \\  not needed if reachability is reflexive
+  \validic{\uidmap(u_c)}{\uidmap(u_p)} \\
+  u_c \not\in \reachable{\icmap}{u_p} \\
+  \icmap' = \icmap \uplus \{ u_c \mapsto u_p \} \\
+}{
+  \bldicmap{\uidmap}{\conslist{\lab{ImplicitContains}\{\lab{child}=u_c,\lab{parent}=u_p\}}{rs}}{\icmap'}
+}
+
+\inferrule{
+  \bldicmap{\uidmap}{rs}{\icmap} \\
+}{
+  \bldicmap{\uidmap}{\conslist{\lab{Contains}\{\ldots\}}{rs}}{\icmap}
+}
+
+\inferrule{
+  \bldicmap{\uidmap}{rs}{\icmap} \\
+}{
+  \bldicmap{\uidmap}{\conslist{\lab{Inherit}\{\ldots\}}{rs}}{\icmap}
+}
+
+\inferrule{
+  \bldicmap{\uidmap}{rs}{\icmap} \\
+}{
+  \bldicmap{\uidmap}{\conslist{\lab{Client}\{\ldots\}}{rs}}{\icmap}
+}
+
+
+\inferrule{
+}{\validic{\lab{Subsystem}\{\ldots\}}{\lab{System}\{\ldots\}}
+}
+
+\inferrule{
+}{\validic{\lab{(Subsystem|Component|Scenarios|Requirements|Events)}\{\ldots\}}{\lab{Subsystem}\{\ldots\}}
+}
+
+\\
+
+\inferrule{
+}{x \in \reachable{M}{x}}
+
+\inferrule{
+  M(z) = x \\
+  z \in \reachable{M}{y}
+}{x \in \reachable{M}{y}
+}
+
+
+\end{mathparpagebreakable}
+
+\subsection{Binding Contexts}
+
+\newcommand{\con}{\Gamma}
+\newcommand{\iccon}{\Delta}
+
+These judgements check that the set of names 
+defined by each implicit container has no duplicates,
+and so uniquely defines a context $\con: \nt{name} \rightarrow \nt{uid}$.
+The judgements 
+produce a map $\iccon: \nt{uid} \rightarrow \con$
+from each implicit container to the context it defines.
+
+\newcommand{\bldcon}[2]{\vdash {#1} \Rightarrow {#2}}
+\newcommand{\bldiccon}[3]{{#1} \vdash {#2} \Rightarrow {#3}}
+
+\begin{mathparpagebreakable}
+
+\inferrule{
+  n_1 \neq n_2
+}{
+  \bldcon{\lab{(System|Subsystem|Component)}\{\lab{uid}=u,\lab{name}=n_1,\lab{abbrev}=\some{n_2},\ldots\}}{\{ n_1 \mapsto u, n_2 \mapsto u \}}
+}
+
+\inferrule{
+}{
+  \bldcon{\lab{(System|Subsystem|Component)}\{\lab{uid}=u,\lab{name}=n,\lab{abbrev}=\none{\nt{name}},\ldots\}}{\{ n \mapsto u\}}
+}
+
+\inferrule{
+}{
+  \bldcon{\lab{(Events|Scenarios|Requirements)}\{\lab{uid}=u,\lab{name}=n,\ldots\}}{\{ n \mapsto u\}}
+}
+
+
+\inferrule{
+    \bldiccon{\icmap}{es}{\iccon} \\
+    u_p = \icmap(\proj{e}{\lab{uid}}) \\
+    \con_0 = \left\{{\begin{array}{ll}
+                       \iccon(u_p)&\text{if}~u_p \in Dom(\iccon)\\
+                       \emptym & \text{otherwise}
+                   \end{array}}\right. \\\\
+    \vdash e : \con \\
+    \iccon' = \iccon[u_p \mapsto (\con_0 \uplus \con)] \\
+}{\bldiccon{\icmap}{\conslist{e}{es}}{\iccon'}
+}
+
+\inferrule{
+  \bldiccon{\icmap}{es}{\iccon}
+}{
+  \bldiccon{\icmap}{\lab{Source}\{\lab{elems}=es,\ldots\}}{\iccon}
+}
+  
+
+\end{mathparpagebreakable}
+
+\subsection{Explicit Relations}
+
+\newcommand{\inhmap}{I}
+\newcommand{\xcmap}{K}
+\newcommand{\clmap}{\Pi}
+\newcommand{\bldermap}[6]{{#1},{#2} \vdash {#3} \Rightarrow ({#4},{#5},{#6})}
+
+\newcommand{\validinh}[2]{\texttt{valid-inherit}({#1},{#2})}
+\newcommand{\validcontains}[2]{\texttt{valid-contains}({#1},{#2})}
+\newcommand{\validclient}[2]{\texttt{valid-client}({#1},{#2})}
+
+These judgements check that the explicit relations are well-formed,
+and build an inheritance map
+$\inhmap: \nt{uid} \rightarrow \nt{uid}$ from sub-things to super-things,
+an explicit containment map
+$\xcmap: \nt{uid} \rightarrow \nt{uid}$ from children to parents,
+and a client relation
+$\clmap: \nt{uid} \times \nt{uid}$ between clients and providers.
+
+\emph{
+  TBD:
+  \begin{itemize}
+  \item Unclear where we will get the contexts $\con$.
+  \item Need to fill in the validity definitions.
+  \item Treating $\inhmap$ as a map implies single inheritance.
+  \item Treating $\xcmap$ as a map implies a thing is contained in at most one other thing.
+  \item Need to consider interaction of implicit and explicit relation maps, in particular to find cycles across the combination of the two.
+  \item Calculation of $\clmap$ doesn't check for duplicate declarations of a given relation; should it?
+  \end{itemize}
+}
+
+
+\begin{mathparpagebreakable}
+
+\inferrule{
+}{
+  \bldermap{\uidmap}{\con}{\nillist{\nt{relation}}}{\emptym}{\emptym}{\emptym}
+}
+
+\inferrule{
+  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+  u_{sub} = \con(n_{sub}) \\
+  u_{super} = \con(n_{super}) \\
+  u_{sub} \not \in \reachable{\inhmap}{u_{super}} \\
+  \validinh{\uidmap(u_{sub})}{\uidmap(u_{super})} \\
+  \inhmap' = \inhmap \uplus \{ u_{sub} \mapsto u_{super} \}
+}{
+  \bldermap{\uidmap}{\con}{\conslist{\lab{Inherit}\{\lab{sub}=n_{sub},\lab{super}=n_{super}\}}{rs}}{\inhmap'}{\xcmap}{\clmap}
+}
+
+
+\inferrule{
+  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+  u_c = \con(n_c) \\
+  u_p = \con(n_p) \\
+  u_c \not \in \reachable{\xcmap}{u_p} \\
+  \validcontains{\uidmap(u_c)}{\uidmap(u_p)} \\
+  \xcmap' = \xcmap \uplus \{ u_c \mapsto u_p \}
+}{
+  \bldermap{\uidmap}{\con}{\conslist{\lab{Contains}\{\lab{child}=n_c,\lab{parent}=n_p\}}{rs}}{\inhmap}{\xcmap'}{\clmap}
+}
+
+          \\
+          
+\inferrule{
+  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+  u_c = \con(n_c) \\
+  u_p = \con(n_p) \\
+  \validclient{\uidmap(u_c)}{\uidmap(u_p)} \\
+  \clmap' = \clmap \cup \{ (u_c,u_p) \}
+}{
+  \bldermap{\uidmap}{\con}{\conslist{\lab{Client}\{\lab{client}=n_c,\lab{provider}=n_p\}}{rs}}{\inhmap}{\xcmap}{\clmap'}
+}
+
+
+\\
+
+\inferrule{
+  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+}{
+  \bldermap{\uidmap}{\con}{\conslist{\lab{ImplicitContains}\{\ldots\}}{rs}}{\inhmap}{\xcmap}{\clmap}
+}
+          
+\end{mathparpagebreakable}
+
+\subsection{Overall Well-Formedness}
+
+\emph{
+  TBD:
+  \begin{itemize}
+  \item Use of $\con = \iccon(u)$ is bogus; need to fix once we understand desired scoping rules better.
+  \item Need to describe interaction of $\icmap$ and $\xcmap$ and perhaps build their union.
+  \end{itemize}
+}
+            
+\begin{mathparpagebreakable}
+
+\inferrule{
+  \blduidmap{s}{\uidmap} \\
+  \bldicmap{\uidmap}{rs}{\icmap} \\
+  \bldiccon{\icmap}{s}{\iccon} \\
+  \con = \iccon(u) \\
+  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\\\
+  \text{$\exists$ at most one $e \in es$ s.t. $e = \lab{System}\{\ldots\}$} \\
+}{
+  \vdash s@\lab{Source}\{\lab{uid}=u,\lab{elems}=es,\lab{relations}=rs\} \Rightarrow (\uidmap,\icmap,\iccon,\inhmap,\xcmap,\clmap)
+}
+\end{mathparpagebreakable}
+
+
+
+

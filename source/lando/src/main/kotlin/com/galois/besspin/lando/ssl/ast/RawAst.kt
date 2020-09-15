@@ -60,7 +60,7 @@ data class RawComponent(
     var name: Name,
     var abbrevName: Name?,
     var inherits: List<QName>,
-    var clientof: List<QName>,
+    var clientOf: List<QName>,
     var explanation: String,
     var parts: List<RawComponentPart> = arrayListOf(),
     var comments: List<RawComment>
@@ -141,7 +141,7 @@ data class RawSubsystem(
     var name: Name,
     var abbrevName: Name?,
     var inherits: List<QName>,
-    var clientof: List<QName>,
+    var clientOf: List<QName>,
     var explanation: String,
     var indexing: List<RawIndexEntry>,
     var body: Body?,
@@ -170,13 +170,6 @@ data class RawSystem(
 ) : RawElement
 
 @Serializable
-data class RawSSL(
-    // var uid: Int,
-    var body : Body,
-    var comments: List<RawComment>
-)
-
-@Serializable
 data class RawRelation(
     override var pos: RawPos,
     var name: QName,
@@ -185,6 +178,12 @@ data class RawRelation(
     var comments: List<RawComment>
 ): RawElement
 
+@Serializable
+data class RawSSL(
+    // var uid: Int,
+    var body : Body,
+    var comments: List<RawComment>
+)
 
 private val sslModule = SerializersModule {
     polymorphic(RawElement::class) {
