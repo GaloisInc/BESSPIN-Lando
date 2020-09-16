@@ -22,85 +22,22 @@
   \end{center}
 }
 
-\newcommand{\txss}[1]{\textsuperscript{#1}}
-
 \newcommand{\glist}[1]{\ensuremath{\mathop{\operatorname{\{} #1 \operatorname{\}}}}}
 
 \newcommand{\glistnonempty}[1]{\ensuremath{\mathop{\operatorname{\{} #1 \operatorname{\}}^+}}}
 
 \newcommand{\gopt}[1]{\ensuremath{\mathop{\operatorname{[} \mathop{#1} \operatorname{]}}}}
 
-\newcommand{\gntn}[1]{\ensuremath{\mathop{\textrm{#1}}}\,}
+\newcommand{\gntn}[1]{\ensuremath{\mathop{\textit{#1}}}\,}
 
-\newcommand{\gtkw}[1]{\ensuremath{\mathop{\texttt{"#1"}}}\,}
+\newcommand{\gtkw}[1]{\ensuremath{\mathop{\texttt{#1}}}\,}
 \newcommand{\gtkc}[1]{\ensuremath{\mathop{\texttt{\textquotesingle #1\textquotesingle}}}\,}
 
-\newcommand{\gtregexfull}[2][]{\ensuremath{\mathop{?\, \textrm{\scriptsize /#2/#1} \,?}}}
-\newcommand{\gtregex}[2][]{\ensuremath{\textrm{\scriptsize /#2/#1}}}
+\newcommand{\gtregex}[1]{\ensuremath{\textrm{\guillemotleft\texttt{#1}\guillemotright}}}
 
-\newcommand{\gseplist}[2]{#2 \glist{#1 #2}\!\txss{*}}
+\newcommand{\gtesc}[1]{\texttt{\textbackslash {#1}}}
 
-% Terminals and non-terminals
-\newcommand{\gnnl}{\gntn{new-line}}
-\newcommand{\gneof}{\gntn{eof}}
-\newcommand{\gnkeyword}{\gntn{keyword}}
-\newcommand{\gnnlkeyword}{\gntn{nl-keyword}}
-\newcommand{\gnnlsystemkeyword}{\gntn{nl-sys-keyword}}
-\newcommand{\gnnlsubsystemkeyword}{\gntn{nl-subsys-keyword}}
-\newcommand{\gnblockend}{\gntn{block-end}}
-\newcommand{\gnident}{\gntn{identifier}}
-\newcommand{\gnsentence}{\gntn{sentence}}
-\newcommand{\gnsentencelist}{\gntn{sentence-list}}
-\newcommand{\gnparagraph}{\gntn{paragraph}}
-\newcommand{\gnstring}{\gntn{string}}
-\newcommand{\gnstringlist}{\gntn{string-list}}
-
-\newcommand{\gncommentchar}{\gtkw{//}}
-\newcommand{\gncomment}{\gntn{\ensuremath{\mathcal{C}}}}
-\newcommand{\gnlinecomments}{\gntn{\ensuremath{\mathcal{LC}}}}
-
-\newcommand{\gnlando}{\gntn{lando-source}}
-\newcommand{\gnspecelem}{\gntn{spec-element}}
-\newcommand{\gnclassdict}{\gntn{class-dictionary}}
-
-\newcommand{\gnsystem}{\gntn{system}}
-\newcommand{\gnsubsystem}{\gntn{subsystem}}
-
-\newcommand{\gncomponent}{\gntn{component}}
-\newcommand{\gncomponentpart}{\gntn{component-part}}
-\newcommand{\gnconstraint}{\gntn{constraint}}
-\newcommand{\gnquery}{\gntn{query}}
-\newcommand{\gncommand}{\gntn{command}}
-
-\newcommand{\gnevent}{\gntn{event}}
-\newcommand{\gnscenario}{\gntn{scenario}}
-\newcommand{\gnrequirements}{\gntn{requirement}}
-
-\newcommand{\gnname}{\gntn{name}}
-\newcommand{\gnnamephrase}{\gntn{name-phrase}}
-\newcommand{\gnnameabbrev}{\gntn{name-abbreviation}}
-\newcommand{\gnnamephraserel}{\gntn{name-phrase-rel}}
-\newcommand{\gnnamelist}{\gntn{name-list}}
-\newcommand{\gnexplanation}{\gntn{explanation}}
-\newcommand{\gnnamephraselist}{\gntn{name-phrase-list}}
-\newcommand{\gnclassdictentry}{\gntn{dictionary-entry}}
+\newcommand{\gtneg}{\ensuremath{^{\wedge}}}
 
 
-\newcommand{\gnevententry}{\gntn{event-entry}}
-\newcommand{\gneventdirection}{\gntn{event-direction}}
 
-\newcommand{\gnscenarioentry}{\gntn{scenario-entry}}
-
-\newcommand{\gncreationentry}{\gntn{creation-entry}}
-
-\newcommand{\gnrequirementsentry}{\gntn{req-entry}}
-
-\newcommand{\gnindexing}{\gntn{indexing}}
-\newcommand{\gnindexentry}{\gntn{index-entry}}
-\newcommand{\gnindexkey}{\gntn{index-key}}
-\newcommand{\gnindexvallist}{\gntn{index-val-list}}
-\newcommand{\gnindexval}{\gntn{index-val}}
-
-\newcommand{\gnrelkeyword}{\gntn{rel-keyword}}
-
-\newcommand{\gnrelation}{\gntn{relation}}

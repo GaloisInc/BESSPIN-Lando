@@ -1,6 +1,6 @@
 \documentclass{article}
 \usepackage{fullpage}
-\input{macros1}
+\input{macros}
 
 \newcommand{\gnn}{\ensuremath{\mathcal{N}}}
 \newcommand{\gnl}{\ensuremath{\mathcal{L}}}
@@ -216,7 +216,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   }{Name word}
 
   \grule{\gntn{nonName}}{
-    \gtkw{client} \gor \gtkw{inherit} \gor \ldots
+    \gtkw{client} \gor \gtkw{inherit} % \gor \ldots ??
   }{Keywords}
 
   \gline
