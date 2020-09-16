@@ -63,7 +63,7 @@ class Convert : CliktCommand(
 
           } catch (ex: Exception) {
              if (!silent) {
-                 println("Unable to convert  file to JSON. " + ex.message)
+                 println("Unable to convert file to JSON. " + ex.message)
              } else {
                  val destErrors = File(dest.parent, "${dest.nameWithoutExtension}.errors")
                  printToFile(destErrors, ex.message)

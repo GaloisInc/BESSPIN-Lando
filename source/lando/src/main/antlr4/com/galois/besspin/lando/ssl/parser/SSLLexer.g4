@@ -58,11 +58,13 @@ lexer grammar SSLLexer;
     //        }
     //    }
 
-    public void less() {
-      _input.seek(this._tokenStartCharIndex);
-      _type = MORE;
+    public void revert() {
+      if  (! _modeStack.isEmpty()) {
+        _input.seek(this._tokenStartCharIndex);
+        _type = MORE;
+      }
+      popMode();
     }
-
 }
 
 tokens {
@@ -144,7 +146,7 @@ RELATION     : F_RELATION     -> pushMode(MODE_NAME) ;
 
 INDEXING     : F_INDEXING     -> pushMode(MODE_INDEXING) ;
 
-NON_KEYWORD  : F_GEN_WORD      { less(); popMode(); };
+NON_KEYWORD  : F_GEN_WORD      { revert(); };
 //[Note 1] If hit, switches to the mode stored at the top of the stack, if there is one,
 //         and relexes in that mode.
 //         This is used for continuing MODE_PARAGRAPH after an empty line ([Note 2]),
