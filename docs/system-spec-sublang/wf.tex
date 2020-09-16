@@ -68,16 +68,16 @@ converted into explicit ones.
                                                 \lab{explanation}:\nt{text},\lab{parts}:\listof{\nt{part}}\} \\
                   & \rightarrow & \lab{ComponentImport}\{\lab{name}:\nt{qname},\lab{abbrev}:\optof{\nt{name}},
                                                          \lab{clientOf}:\listof{\nt{qname}}\} \\
-                  & \rightarrow & \lab{Events}\{\lab{name}:\nt{name},\lab{contents}:\listof{\nt{item}}\} \\
-                  & \rightarrow & \lab{Scenarios}\{\lab{name}:\nt{name},\lab{contents}:\listof{\nt{item}}\} \\
-                  & \rightarrow & \lab{Requirements}\{\lab{name}:\nt{name},\lab{contents}:\listof{\nt{item}}\} \\
+                  & \rightarrow & \lab{Events}\{\lab{name}:\nt{name},\lab{events}:\listof{\nt{item}}\} \\
+                  & \rightarrow & \lab{Scenarios}\{\lab{name}:\nt{name},\lab{scenarios}:\listof{\nt{item}}\} \\
+                  & \rightarrow & \lab{Requirements}\{\lab{name}:\nt{name},\lab{requirements}:\listof{\nt{item}}\} \\
                   & \rightarrow & \lab{Relation}\{\lab{name}:\nt{qname},\lab{inherits}:\listof{\nt{qname}},
                                                   \lab{clientOf}:\listof{\nt{qname}}\} \\
   x \in \nt{indexing} & \rightarrow & \lab{Indexing}\{\lab{key}:\nt{text},\lab{values}:\listof{\nt{text}}\} \\
-  p \in \nt{part} & \rightarrow & \lab{Constraint}\{\lab{contents}:\nt{text} \} \\
-  & \rightarrow & \lab{Query}\{\lab{contents}:\nt{text}\} \\
-                  & \rightarrow & \lab{Command}\{\lab{contents}:\nt{text}\} \\
-  i \in \nt{item} & \rightarrow & \lab{Item}\{\lab{id}:\nt{name},\lab{value}:\nt{text} \} \\
+  p \in \nt{part} & \rightarrow & \lab{Constraint}\{\lab{text}:\nt{text} \} \\
+                  & \rightarrow & \lab{Query}\{\lab{text}:\nt{text}\} \\
+                  & \rightarrow & \lab{Command}\{\lab{text}:\nt{text}\} \\
+  i \in \nt{item} & \rightarrow & \lab{Item}\{\lab{id}:\nt{name},\lab{text}:\nt{text} \} \\
   u \in \nt{uid} & & \text{(base type)} \\
   t \in \nt{text}& & \text{(base type)} \\
   n \in \nt{name}& & \text{(base type)} \\
@@ -154,6 +154,7 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
 
 
 \inferrule{
+  n \neq n_a \\
   \wbx{\env}{t} \\
   % \forall x \in xs, \wb{\env}{x} \\
   \forall e \in es_b, \validcontains{e_s}{e} \\
@@ -174,6 +175,7 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
 }
 
 \inferrule{
+  n \neq n_a \\
   \forall q \in qs_i, \validinh{e_s}{\qlookup{\env}{q}} \\
   \forall q \in qs_c, \validclient{e_s}{\qlookup{\env}{q}} \\
   \wbx{\env}{t} \\
@@ -225,6 +227,7 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
 
 
 \inferrule{
+  n \neq n_a \\
   \forall q \in qs_i, \validinh{e_c}{\qlookup{\env}{q}} \\
   \forall q \in qs_c, \validclient{e_c}{\qlookup{\env}{q}} \\
   \wbx{\env}{t} \\
@@ -253,19 +256,19 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
 \inferrule{
   \wbx{\env}{t}
 }{
-  \wbx{\env}{\lab{Constraint}\{\lab{contents}=t\}}
+  \wbx{\env}{\lab{Constraint}\{\lab{text}=t\}}
 }
 
 \inferrule{
   \wbx{\env}{t}
 }{
-  \wbx{\env}{\lab{Query}\{\lab{contents}=t\}}
+  \wbx{\env}{\lab{Query}\{\lab{text}=t\}}
 }
 
 \inferrule{
   \wbx{\env}{t}
 }{
-  \wbx{\env}{\lab{Command}\{\lab{contents}=t\}}
+  \wbx{\env}{\lab{Command}\{\lab{text}=t\}}
 }
 
 
@@ -290,7 +293,7 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
   \wb{\env}{is}{\env'}
 }
 {
-  \wb{\env}{e@\lab{Events}\{\lab{name}=n,\lab{contents}=is\}}{\{n\mapsto e\}\uplus \env'}
+  \wb{\env}{e@\lab{Events}\{\lab{name}=n,\lab{events}=is\}}{\{n\mapsto e\}\uplus \env'}
 }
 
 
@@ -298,14 +301,14 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
   \wb{\env}{is}{\env'}
 }
 {
-  \wb{\env}{e@\lab{Scenarios}\{\lab{name}=n,\lab{contents}=is\}}{\{n\mapsto e\} \uplus \env'}
+  \wb{\env}{e@\lab{Scenarios}\{\lab{name}=n,\lab{scenarios}=is\}}{\{n\mapsto e\} \uplus \env'}
 }
 
 \inferrule{
   \wb{\env}{is}{\env'}
 }
 {
-  \wb{\env}{e@\lab{Requirements}\{\lab{name}=n,\lab{contents}=is\}}{\{n\mapsto e\} \uplus \env'}
+  \wb{\env}{e@\lab{Requirements}\{\lab{name}=n,\lab{requirements}=is\}}{\{n\mapsto e\} \uplus \env'}
 }
 
 \inferrule{
@@ -322,7 +325,7 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
 \inferrule{
   \wbx{\env}{t}
 }{
-  \wb{\env}{i@\lab{Item}\{\lab{id}=n,\lab{value}=t\}}{\{n\mapsto i\}}
+  \wb{\env}{i@\lab{Item}\{\lab{id}=n,\lab{text}=t\}}{\{n\mapsto i\}}
 }
   
 \inferrule{

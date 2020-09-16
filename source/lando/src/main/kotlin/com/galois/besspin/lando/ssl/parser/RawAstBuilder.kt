@@ -7,7 +7,7 @@ import org.antlr.v4.runtime.ParserRuleContext
 
 class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
 
-    // private var lastUid = 1
+    private var nextUid = 1
 
     // private var lastSystem: RawSystem? = null
     // private var lastSubsystem: RawSubsystem? = null
@@ -46,7 +46,7 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
 
         // lastSystem = system
 
-        return RawSystem(toPos(cxt),name, abbrevName, description, index, body, comments)
+        return RawSystem(nextUid++,toPos(cxt),name, abbrevName, description, index, body, comments)
     }
 
     // body: specElement* ;
@@ -125,7 +125,7 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
 
         // lastSubsystem = subsystem
 
-        return RawSubsystem(toPos(cxt),name, abbrevName, inherits, clients, description, index, body, comments)
+        return RawSubsystem(nextUid++,toPos(cxt),name, abbrevName, inherits, clients, description, index, body, comments)
     }
 
     // subsystemImport  : lineComments? IMPORT spaces SUBSYSTEM
@@ -136,7 +136,7 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
         val abbrevName = cxt.abbrev()?.let { toAst(it) }
         val clients = cxt.clientClause().map { toAst(it) }.flatten()
         val comments = collectComments(cxt.lineComments(), cxt.comment())
-        return RawSubsystemImport(toPos(cxt),name, abbrevName, clients, comments)
+        return RawSubsystemImport(nextUid++,toPos(cxt),name, abbrevName, clients, comments)
     }
 
     // component  : lineComments?
@@ -154,7 +154,7 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
         val parts = if (cxt.componentParts() != null) toAst(cxt.componentParts()) else arrayListOf()
         val comments = collectComments(cxt.lineComments(), cxt.comment())
 
-        return RawComponent(toPos(cxt),name, abbrevName, inherits, clients, description, parts, comments)
+        return RawComponent(nextUid++,toPos(cxt),name, abbrevName, inherits, clients, description, parts, comments)
     }
 
     // componentImport	: lineComments? IMPORT spaces COMPONENT
@@ -165,7 +165,7 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
         val abbrevName = cxt.abbrev()?.let { toAst(it) }
         val clients = cxt.clientClause().map { toAst(it) }.flatten()
         val comments = collectComments(cxt.lineComments(), cxt.comment())
-        return RawComponentImport(toPos(cxt),name, abbrevName, clients, comments)
+        return RawComponentImport(nextUid++,toPos(cxt),name, abbrevName, clients, comments)
     }
 
     //  componentParts : componentPart (lineseps componentPart)* ;
@@ -221,12 +221,12 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
         val events = cxt.eventEntry().map { toAst(it) }
         val comments = collectComments(cxt.lineComments(), cxt.comment())
 
-        return RawEvents(toPos(cxt),name, events, comments)
+        return RawEvents(nextUid++,toPos(cxt),name, events, comments)
     }
 
     //  eventEntry      : lineComments? name nameComment=comment? lineseps paragraph ;
-    private fun toAst(cxt: SSLParser.EventEntryContext): RawEvent =
-        RawEvent(
+    private fun toAst(cxt: SSLParser.EventEntryContext): RawItem =
+        RawItem(
             pos = toPos(cxt),
             id = toAst(cxt.name()),
             text = toAst(cxt.paragraph()),
@@ -243,12 +243,12 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
         val scenarios = cxt.scenarioEntry().map { toAst(it) }
         val comments = collectComments(cxt.lineComments(), cxt.comment())
 
-        return RawScenarios(toPos(cxt),name, scenarios, comments)
+        return RawScenarios(nextUid++,toPos(cxt),name, scenarios, comments)
     }
 
     //  scenarioEntry   : lineComments? name nameComment=comment? lineseps paragraph ;
-    private fun toAst(cxt: SSLParser.ScenarioEntryContext): RawScenario =
-        RawScenario(
+    private fun toAst(cxt: SSLParser.ScenarioEntryContext): RawItem =
+        RawItem(
             pos = toPos(cxt),
             id = toAst(cxt.name()),
             text = toAst(cxt.paragraph()),
@@ -265,12 +265,12 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
         val requirements = cxt.requirementEntry().map { toAst(it) }
         val comments = collectComments(cxt.lineComments(), cxt.comment())
 
-        return RawRequirements(toPos(cxt),name, requirements, comments)
+        return RawRequirements(nextUid++,toPos(cxt),name, requirements, comments)
     }
 
     //  requirementEntry   : lineComments? name nameComment=comment? lineseps paragraph ;
-    private fun toAst(cxt: SSLParser.RequirementEntryContext): RawRequirement =
-        RawRequirement(
+    private fun toAst(cxt: SSLParser.RequirementEntryContext): RawItem =
+        RawItem(
             pos = toPos(cxt),
             id = toAst(cxt.name()),
             text = toAst(cxt.paragraph()),
@@ -285,7 +285,7 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
         val clients = cxt.clientClause().map { toAst(it) }.flatten()
         val comments = collectComments(cxt.lineComments(), cxt.comment())
 
-        return RawRelation(toPos(cxt),name, inherits, clients, comments)
+        return RawRelation(nextUid++,toPos(cxt),name, inherits, clients, comments)
     }
 
     // clientClause : CLIENT qname lineseps? (RELSEP lineseps? qname lineseps?)* ;

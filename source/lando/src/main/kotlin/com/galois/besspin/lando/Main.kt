@@ -2,6 +2,7 @@ package com.galois.besspin.lando
 
 import com.galois.besspin.lando.ssl.ast.toJSON
 import com.galois.besspin.lando.ssl.parser.parseFile
+import com.galois.besspin.lando.ssl.checker.RawAstChecker
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.NoRunCliktCommand
 import com.github.ajalt.clikt.core.subcommands
@@ -12,6 +13,7 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
 import java.io.File
+import kotlin.system.exitProcess
 
 
 class CommandLine : NoRunCliktCommand(printHelpOnEmptyArgs = true, name = "lando") {
@@ -39,6 +41,10 @@ class Convert : CliktCommand(
     fun toJSON(source: File, dest: File, debug: Boolean) {
          try {
              val (ssl, warnings) = parseFile(source, debug)
+             val errors = RawAstChecker().check(ssl)
+             if (errors.isNotEmpty() && !silent)
+                 println(errors)
+
              val str = ssl.toJSON()
              printToFile(dest, str)
 
@@ -57,7 +63,7 @@ class Convert : CliktCommand(
                  val destErrors = File(dest.parent, "${dest.nameWithoutExtension}.errors")
                  printToFile(destErrors, ex.message)
              }
-             System.exit(1)
+             exitProcess(1)
          }
      }
 
@@ -69,7 +75,7 @@ class Convert : CliktCommand(
 
 class Validate : CliktCommand(
     printHelpOnEmptyArgs = true,
-    help = "Read a lando SOURCE and check whether it is syntactically valid"
+    help = "Read a lando SOURCE and check whether it is syntactically valid and well formed"
 ) {
     val source by argument("SOURCE").file(exists = true)
     val silent by option("-s", "--silent").flag()
@@ -77,15 +83,17 @@ class Validate : CliktCommand(
 
     override fun run() {
         try {
-            val (_, warnings) = parseFile(source, debug)
-            if (warnings.isNotEmpty() && !silent) {
+            val (ssl, warnings) = parseFile(source, debug)
+            if (warnings.isNotEmpty() && !silent)
                 println(warnings)
-            }
+            val errors = RawAstChecker().check(ssl)
+            if (errors.isNotEmpty() && !silent)
+                println(errors)
         } catch (ex: Exception) {
             if (!silent) {
                 println("$source appears to have syntax errors. " + ex.message)
             }
-            System.exit(1)
+            exitProcess(1)
         }
 
         println("$source appears to be valid")
