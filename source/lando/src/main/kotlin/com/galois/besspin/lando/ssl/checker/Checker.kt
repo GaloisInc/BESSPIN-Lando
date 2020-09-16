@@ -19,7 +19,7 @@ class RawAstChecker {
 
     private fun formatErrors() : String =
         if (errors.size != 0)
-            "Generated ${errors.size} error(s):\n" +
+            "Checking generated ${errors.size} error(s):\n" +
                     errors.joinToString(separator = "\n") { e -> e.formatError() }
         else
             ""
@@ -29,7 +29,15 @@ class RawAstChecker {
     private val globalSEnv: MutableMap<Uid, Env> = mutableMapOf()
     private val globalIRel: MutableMap<Uid, MutableSet<Uid>> = mutableMapOf()
 
-    private fun qnames(text: String): List<QName> = listOf()  // just for now
+    // for now, assume that anything within double quotes is intended as a qname.
+    private fun qnames(text: String): List<QName> {
+        val qs = mutableListOf<QName>()
+        val re = Regex("\"[^\"]*\"")
+        val mr = re.findAll(text)
+        for (q in mr)
+            qs += q.value.trim('"').split(':')
+        return qs
+    }
 
     fun check(ast: RawSSL) : String {
         globalEnv = build(ast.body) // also builds globalSEnv
@@ -42,6 +50,8 @@ class RawAstChecker {
                     errors += CheckingError(elem.pos, "Multiple System elements in specification")
                 systemFound = true
             }
+        for (elem in ast.body)
+            validToplevel(elem)
         return formatErrors()
     }
 
@@ -107,37 +117,37 @@ class RawAstChecker {
                     check(env, elem.explanation, elem.pos)
                     for (e in elem.body!!)
                         validContains(elem,e)
-                    val benv = envUnion(env, globalSEnv[elem.uid]!!, elem.pos)
+                    val benv = envShadows(globalSEnv[elem.uid]!!, env)
                     check(benv, elem.body!!)
                 }
                 is RawSubsystem -> {
                     check(env, elem.explanation, elem.pos)
                     for (q in elem.inherits)
-                        validInherits(env,elem,q)
+                        validInherits(env,elem,q,elem.pos)
                     for (q in elem.clientOf)
-                        validClient(env,elem,q)
+                        validClient(env,elem,q,elem.pos)
                     for (e in elem.body!!)
                        validContains(elem,e)
-                    val benv = envUnion(env, globalSEnv[elem.uid]!!, elem.pos)
+                    val benv = envShadows(globalSEnv[elem.uid]!!, env)
                     check(benv, elem.body!!)
                 }
                 is RawSubsystemImport -> {
-                    qlook(env,elem.name,elem.pos)
+                    qlook(globalEnv,elem.name,elem.pos)
                     for (q in elem.clientOf)
-                        validClient(env,elem,q)
+                        validClient(env,elem,q,elem.pos)
                 }
                 is RawComponent -> {
                     check(env, elem.explanation, elem.pos)
                     for (q in elem.inherits)
-                        validInherits(env,elem,q)
+                        validInherits(env,elem,q,elem.pos)
                     for (q in elem.clientOf)
-                        validClient(env,elem,q)
+                        validClient(env,elem,q,elem.pos)
                     checkParts(env, elem.parts)
                 }
                 is RawComponentImport -> {
-                    qlook(env,elem.name,elem.pos)
+                    qlook(globalEnv,elem.name,elem.pos)
                     for (q in elem.clientOf)
-                        validClient(env,elem,q)
+                        validClient(env,elem,q,elem.pos)
                 }
                 is RawEvents -> {
                     checkItems(env, elem.events)
@@ -152,13 +162,20 @@ class RawAstChecker {
                     val e = qlook(env,elem.name,elem.pos)
                     if (e != null) {
                         for (q in elem.inherits)
-                            validInherits(env, e, q)
+                            validInherits(env, e, q, elem.pos)
                         for (q in elem.clientOf)
-                            validClient(env, e, q)
+                            validClient(env, e, q, elem.pos)
                     }
                 }
             }
         }
+    }
+
+    private fun validToplevel(elem:RawElement) {
+        if (elem !is RawSubsystemImport && elem !is RawComponentImport) {
+            // ok
+        } else
+            errors += CheckingError(elem.pos, "imports not permitted at top level")
     }
 
     private fun validContains(container: RawElement, contained:RawElement)  {
@@ -170,22 +187,22 @@ class RawAstChecker {
             errors += CheckingError(contained.pos, "${kind(container)} cannot contain ${kind(contained)}")
     }
 
-    private fun validInherits(env: Env, sub: RawNamed, q: QName) {
-        val sup = qlook(env,q,sub.pos)
+    private fun validInherits(env: Env, sub: RawNamed, q: QName, pos: RawPos) {
+        val sup = qlook(env,q,pos)
         if (sup != null) {
             if (sub is RawComponent && sup is RawComponent) {
                 // ok; add to global inheritance relation
                 registerInherit(sub,sup)
             } else
                 errors += CheckingError(
-                    sub.pos,
+                    pos,
                     "${kind(sub)} cannot inherit from ${kind(sup)}"
                 )
         }
     }
 
-    private fun validClient(env: Env, client:RawNamed, q:QName) {
-        val supplier = qlook(env, q, client.pos)
+    private fun validClient(env: Env, client:RawNamed, q:QName,pos: RawPos) {
+        val supplier = qlook(env, q, pos)
         if (supplier != null) {
             if ((client is RawSubsystem || client is RawSubsystemImport || client is RawComponent || client is RawComponentImport)
                 && (supplier is RawSubsystem || supplier is RawSubsystemImport || supplier is RawComponent || supplier is RawComponentImport)
@@ -193,7 +210,7 @@ class RawAstChecker {
                 // ok
             } else
                 errors += CheckingError(
-                    client.pos,
+                     pos,
                     "${kind(client)} cannot be a client of ${kind(supplier)}"
                 )
         }
@@ -217,7 +234,7 @@ class RawAstChecker {
 
     private fun envAdd(env: Env, k: String, v: RawNamed, pos: RawPos) {
         if (k in env)
-            errors += CheckingError(pos, "Duplicate binding for \"$k\"")
+            errors += CheckingError(pos, "duplicate binding for \"$k\"")
         else
             env[k] = v
     }
@@ -229,10 +246,14 @@ class RawAstChecker {
         return env
     }
 
+    // env1 shadows env2
+    private fun envShadows(env1:Env, env2:Env) : Env =
+        (env2 + env1).toMutableMap()
+
     private fun look(env: Env, n: Name, pos: RawPos): RawNamed? {
         val v = env[n]
         if (v == null)
-            errors += CheckingError(pos, "Undefined name \"$n\"")
+            errors += CheckingError(pos, "undefined name \"$n\"")
         return v
     }
 
@@ -240,7 +261,7 @@ class RawAstChecker {
         val n = q.first()     // q should never be empty
         val e = look(env, n, pos)
         val r = q.drop(1)
-        if (r.isEmpty())
+        if (e == null || r.isEmpty())
             return e
         when (e) {
             is RawSystem ->
@@ -248,7 +269,7 @@ class RawAstChecker {
             is RawSubsystem ->
                 return qlook(globalSEnv[e.uid]!!, r, pos)
             else -> {
-                errors += CheckingError(pos, "Qualified name component \"n\" is not a system or subsystem")
+                errors += CheckingError(pos, "qualified name component \"$n\" is not a system or subsystem")
                 return null
             }
         }
@@ -275,9 +296,7 @@ class RawAstChecker {
             is RawElement ->
                 "element " + e.toString().takeWhile{ c -> c != '(' }
                     .drop(3) // hacky way to get a decent-looking element name
-            is RawItem ->
-                "item " + e.toString().takeWhile{ c -> c != '(' }
-                    .drop(3) // hacky way to get a decent-looking item name
+            is RawItem -> "item"
             else -> "" // impossible
         }
 

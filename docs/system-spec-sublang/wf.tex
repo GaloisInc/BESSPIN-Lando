@@ -33,6 +33,7 @@
 \newcommand{\none}[1]{\cdot_{#1}}
 \newcommand{\proj}[2]{\ensuremath{{#1}.{#2}}}
 \newcommand{\emptym}{\emptyset} 
+\newcommand{\shadow}{\vartriangleleft}
 
 Lists of $t$ are written $\listof{t}$; $\nillist{t}$ is an empty list of $t$'s, $\conslist{x}{xs}$ is the list with head $x$ and tail $xs$,
 and $\singlelist{x}$ is the singleton list containing $x$.
@@ -41,7 +42,10 @@ An optional $t$ is written $\optof{t}$; a present option value $x$ is written $\
 We write $\proj{x}{y}$ for the projection of field $y$ from a node $x$ .
 In the pattern $x@\lab{Foo}\{\ldots\}$, $x$ is bound to the entire node labeled $\lab{Foo}$.
 The pattern $\lab{(Foo|Bar)}\{\ldots\}$ matches nodes labeled either $\lab{Foo}$ or $\lab{Bar}$.
-Disjoint union of maps is written $\uplus$, and is undefined if the domains of the maps are not disjoint.  An empty map is written $\emptym$.
+Disjoint union of maps is written $\uplus$, and is undefined if the domains of the maps are not disjoint.
+If $m_1$ and $m_2$ are maps then $m_1 \shadow m_2$ (pronounced ``$m_1$ shadows $m_2$'' ) is
+$m_1 \cup \{(k,m_2(k)) | k \in Dom(m_2) - Dom(m_1)\}$. 
+An empty map is written $\emptym$.
 A judgement applies only if all premises are fully defined.
 \section{Raw AST Grammar}
 
@@ -122,6 +126,7 @@ We assume the existence of a function $\qnames{t}$ that returns the list of \nt{
 \newcommand{\validinh}[2]{\texttt{valid-inherit}({#1},{#2})}
 \newcommand{\validclient}[2]{\texttt{valid-client}({#1},{#2})}
 \newcommand{\validcontains}[2]{\texttt{valid-contains}({#1},{#2})}
+\newcommand{\validtop}[1]{\texttt{valid-toplevel}({#1})}
 
 \newcommand{\wb}[3]{{#1} \vdash {#2} \Rightarrow {#3}}
 \newcommand{\wbx}[2]{{#1} \vdash {#2}}
@@ -135,7 +140,8 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
 \inferrule{
   \wb{\env_0}{es}{\env_0} \\
   \nocycles{I} \\
-  \forall e_1,e_2 \in es, e_1 = \lab{System}\{\ldots\} \land e_2 = \lab{System}\{\ldots\} \implies e_1 = e_2
+  \forall e_1,e_2 \in es, e_1 = \lab{System}\{\ldots\} \land e_2 = \lab{System}\{\ldots\} \implies e_1 = e_2 \\
+  \forall e \in es, \validtop{e}
 }{
   \wbx{}{\lab{Source}\{\lab{elems}=es\}}
 }
@@ -159,7 +165,7 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
   % \forall x \in xs, \wb{\env}{x} \\
   \forall e \in es_b, \validcontains{e_s}{e} \\
   \senv_0(e_s) = \env' \\
-  \wb{\env \uplus \env'}{es_b}{\env'} \\
+  \wb{\env' \shadow \env}{es_b}{\env'} \\
 }{
   \wb{\env}{e_s@\lab{System}\{\lab{name}=n,\lab{abbrev}=\some{n_a},\lab{explanation}=t,\lab{body}=es_b,\ldots\}}{\{n \mapsto e_s,n_a \mapsto e_s\}}
 }
@@ -169,7 +175,7 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
   % \forall x \in xs, \wb{\env}{x} \\
   \forall e \in es_b, \validcontains{e_s}{e} \\
   \senv_0(e_s) = \env' \\
-  \wb{\env \uplus \env'}{es_b}{\env'} \\
+  \wb{\env' \shadow \env}{es_b}{\env'} \\
 }{
   \wb{\env}{e_s@\lab{System}\{\lab{name}=n,\lab{abbrev}=\none{\nt{name}},\lab{explanation}=t,\lab{body}=es_b,\ldots\}}{\{n \mapsto e_s\}}
 }
@@ -182,7 +188,7 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
   \forall e \in es_b, \validcontains{e_s}{e} \\
   % \forall x \in xs, \wb{\env}{x} \\
   \senv_0(e_s) = \env' \\
-  \wb{\env \uplus \env'}{es_b}{\env'} \\
+  \wb{\env' \shadow \env}{es_b}{\env'} \\
 }
 {
   \wb{\env}{e_s@\lab{Subsystem}\left\{\begin{array}{ll}
@@ -199,7 +205,7 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
   \forall e \in es_b, \validcontains{e_s}{e} \\
   % \forall x \in xs, \wb{\env}{x} \\
   \senv_0(e_s) = \env' \\
-  \wb{\env \uplus \env'}{es_b}{\env'} \\
+  \wb{\env' \shadow \env}{es_b}{\env'} \\
 }
 {
   \wb{\env}{e_s@\lab{Subsystem}\left\{\begin{array}{ll}
@@ -340,6 +346,10 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
   \forall n_t \in \qnames{t}, \exists e, \env(n_t) = e
 }{
   \wbx{\env}{t}
+}
+
+\inferrule{
+}{\validtop{\lab{(System|Subsystem|Component|Events|Scenarios|Requirements|Relation)}\{\ldots\}}
 }
 
 \inferrule{

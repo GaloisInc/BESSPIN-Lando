@@ -40,23 +40,28 @@ class Convert : CliktCommand(
 
     fun toJSON(source: File, dest: File, debug: Boolean) {
          try {
-             val (ssl, warnings) = parseFile(source, debug)
-             val errors = RawAstChecker().check(ssl)
-             if (errors.isNotEmpty() && !silent)
-                 println(errors)
-
+             val (ssl, parseWarnings) = parseFile(source, debug)
+             if (parseWarnings.isNotEmpty()) {
+                 if (!silent) {
+                     println(parseWarnings)
+                 } else {
+                     val destWarns = File(dest.parent, "${dest.nameWithoutExtension}.warnings")
+                     printToFile(destWarns, parseWarnings)
+                 }
+             }
+             val checkingErrors = RawAstChecker().check(ssl)
+             if (checkingErrors.isNotEmpty()) {
+                 if (!silent) {
+                     println(checkingErrors)
+                 } else {
+                     val destChErrs = File(dest.parent, "${dest.nameWithoutExtension}.cherrors")
+                     printToFile(destChErrs, checkingErrors)
+                 }
+             }
              val str = ssl.toJSON()
              printToFile(dest, str)
 
-             if (warnings.isNotEmpty()) {
-                 if (!silent) {
-                     println(warnings)
-                 } else {
-                     val destWarns = File(dest.parent, "${dest.nameWithoutExtension}.warnings")
-                     printToFile(destWarns, warnings)
-                 }
-             }
-         } catch (ex: Exception) {
+          } catch (ex: Exception) {
              if (!silent) {
                  println("Unable to convert  file to JSON. " + ex.message)
              } else {
@@ -86,9 +91,9 @@ class Validate : CliktCommand(
             val (ssl, warnings) = parseFile(source, debug)
             if (warnings.isNotEmpty() && !silent)
                 println(warnings)
-            val errors = RawAstChecker().check(ssl)
-            if (errors.isNotEmpty() && !silent)
-                println(errors)
+            val cherrors = RawAstChecker().check(ssl)
+            if (cherrors.isNotEmpty() && !silent)
+                println(cherrors)
         } catch (ex: Exception) {
             if (!silent) {
                 println("$source appears to have syntax errors. " + ex.message)
