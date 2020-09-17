@@ -32,6 +32,9 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \item Whitespace and line separators are significant throughout. Note that the line separator terminal $\gnn$ consumes any whitespace immediately following the actual end-of-line character(s). Two consecutive line separators (i.e. matching $\gnn\gnn$) are always lexed instead as a single blank line terminal $\gnb$;
     this distinction is necessary to resolve certain ambiguities in the grammar for paragraphs.
     The general line separator $\gnl$ is the union of $\gnn$ and $\gnb$.
+ \item In cases of ambiguity, productions involving repetition behave ``greedily,'' i.e. they match as much of the input as possible.
+    For example, because the Sentence Body production uses $\glist{}$,  the string ``\gtkw{abc def ghi}'' parses as a single sentence
+    containing three words, rather than as three sentences of one word each.
 \end{itemize}
 
 \vfill\eject
@@ -68,7 +71,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gntn{subsystem}}{
     \glist{\gnc\gnl}
     \gtkw{subsystem} \gntn{name} \gopt{\gntn{abbrev}} 
-    \glist{inheritClause \gor clientClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
+    \glist{clientClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
     \gntn{explanation}  \glist{\gnc \gnl}
     \gopt{\gntn{indexing} \gntn{blockend}} \gcont
     \gopt{\gtkw{contains} \glist{\gnl} \gntn{body} \gtkw{end} \gopt{\gnc} \gntn{blockend}}
@@ -303,6 +306,8 @@ The following extra-grammatical rules are applied during or after parsing the co
 \item
   A \gntn{sentence} that does not end with a \gtkc{.},\gtkc{!}, or \gtkc{?} symbol
   (possibly followed by white space characters or line separators) induces a warning message.
+\item
+  Note that because of the ``greedy'' resolution of ambiguity, this warning can only occur at the end of a paragraph.
 \end{itemize}
 
 \end{document}

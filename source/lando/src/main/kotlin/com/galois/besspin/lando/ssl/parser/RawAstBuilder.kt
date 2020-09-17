@@ -109,7 +109,7 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
     //  subsystem  : lineComments?
     //               SUBSYSTEM
     //               subsysname=name abbrev?
-    //               (inheritClause | clientClause)* comment? lineseps
+    //               clientClause* comment? lineseps
     //               paragraph comment?
     //               (indexing blockend)?
     //               (CONTAINS lineseps? body END comment? blockend)? ;
@@ -118,14 +118,13 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
         val abbrevName = cxt.abbrev()?.let { toAst(it) }
         val description = toAst(cxt.paragraph())
         val index = toAst(cxt.indexing())
-        val inherits = cxt.inheritClause().map { toAst(it) }.flatten()
         val clients = cxt.clientClause().map { toAst(it) }.flatten()
         val comments = collectComments(cxt.lineComments(), cxt.comment())
         val body = cxt.body()?.let { toAst(it) }
 
         // lastSubsystem = subsystem
 
-        return RawSubsystem(nextUid++,toPos(cxt),name, abbrevName, inherits, clients, description, index, body, comments)
+        return RawSubsystem(nextUid++,toPos(cxt),name, abbrevName, clients, description, index, body, comments)
     }
 
     // subsystemImport  : lineComments? IMPORT spaces SUBSYSTEM

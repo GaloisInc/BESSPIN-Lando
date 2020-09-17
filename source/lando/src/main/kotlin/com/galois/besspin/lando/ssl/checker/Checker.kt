@@ -35,7 +35,7 @@ class RawAstChecker {
         val re = Regex("\"[^\"]*\"")
         val mr = re.findAll(text)
         for (q in mr)
-            qs += q.value.trim('"').split(':')
+            qs += q.value.trim('"').split(':').map {it.trim()}
         return qs
     }
 
@@ -122,8 +122,6 @@ class RawAstChecker {
                 }
                 is RawSubsystem -> {
                     check(env, elem.explanation, elem.pos)
-                    for (q in elem.inherits)
-                        validInherits(env,elem,q,elem.pos)
                     for (q in elem.clientOf)
                         validClient(env,elem,q,elem.pos)
                     for (e in elem.body!!)
@@ -132,7 +130,9 @@ class RawAstChecker {
                     check(benv, elem.body!!)
                 }
                 is RawSubsystemImport -> {
-                    qlook(globalEnv,elem.name,elem.pos)
+                    val ss = qlook(globalEnv,elem.name,elem.pos)
+                    if (ss !=null && ss !is RawSubsystem)
+                        errors += CheckingError(elem.pos, "target of import is not a subsystem")
                     for (q in elem.clientOf)
                         validClient(env,elem,q,elem.pos)
                 }
@@ -145,7 +145,9 @@ class RawAstChecker {
                     checkParts(env, elem.parts)
                 }
                 is RawComponentImport -> {
-                    qlook(globalEnv,elem.name,elem.pos)
+                    val c = qlook(globalEnv,elem.name,elem.pos)
+                    if (c !=null && c !is RawComponent)
+                        errors += CheckingError(elem.pos, "target of import is not a component")
                     for (q in elem.clientOf)
                         validClient(env,elem,q,elem.pos)
                 }
@@ -264,12 +266,10 @@ class RawAstChecker {
         if (e == null || r.isEmpty())
             return e
         when (e) {
-            is RawSystem ->
-                return qlook(globalSEnv[e.uid]!!, r, pos) //  lookups should never fail
             is RawSubsystem ->
                 return qlook(globalSEnv[e.uid]!!, r, pos)
             else -> {
-                errors += CheckingError(pos, "qualified name component \"$n\" is not a system or subsystem")
+                errors += CheckingError(pos, "qualified name component \"$n\" is not a subsystem")
                 return null
             }
         }

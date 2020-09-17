@@ -1,0 +1,121 @@
+// This file attempts to illustrate features of LSSL v2 by example.
+
+// There are four kinds of "free text" in specs:
+// - NAMES consist of one or more words separated by white space (but no newlines)
+//   These words must not contain the characters '(', ')' or ':' and also must not 
+//   end with ',', '.', '!', or '?'. Finally, the two keywords 'client' and 'inherit'
+//   are not allowed as words in names. [This is unpleasantly ad hoc and could be
+//   fixed...]
+// - SENTENCES consist of one or more words separated by white space and/or newlines,
+//   and terminated by a '.', '!', or '?' character. Words in sentences can contain
+//   any printing character.
+// - PARAGRAPHS consist of one or more sentences, separated by white space and/or
+//   newlines, and terminated by a blank line.  The terminating '.', '!', or '?'
+//   character at the end of the last sentence in the paragraph may be omitted,
+//   but a warning is given.
+// - INDEX keys and values consist of one or more words separated by white space
+//   that must not end with the character ':' 
+// 
+
+system The foo system (FOO) // "FOO" is an abbreviated name for "The foo system"
+This is a mandatory description. It is a PARAGRAPH, and so
+it can consist of several sentences and be spread over
+several lines. It must be terminated by blank line.
+
+// the following section is optional
+indexing
+   key:  an item for this key
+         another item for this key (separated by the blank line)
+   url :  http://notice.the.internal.colon.html
+   misc : but words here must not end with a colon
+   and this:might not parse as you might expect
+
+contains 
+  // The body of the system follows.
+  // If the contains...end keywords are missing,
+  // the body implicitly runs from here until the end of file
+
+  // The indentation is not significant to the parser
+  subsystem The Bar subsystem (BAR) client Buf  // all on one line; Buf is undefined
+  Again, a mandatory description PARAGRAPH.
+
+  contains
+     // The body of the subystem follows.
+     // If the contains...keywords are missing,
+     // the body implicitly runs from here until the next subsystem/system
+     // declaration or unmatched 'end' or end of file.
+
+     component AAAA (A4) inherit BB client DD, FF
+     And yet another mandatory description PARAGRAPH.
+
+     component B2 (BB) inherit A4 // error: cyclic inheritance graph
+     Description here.
+
+     constraint.   // only a single newline is needed between these
+     query?
+     command!      // but then we need a blank line before anything else
+
+     component DD inherit SS:Baz  // colon is used to construct qualified names (instead of .)
+     Description.
+
+     relation DD client B2 
+     relation DD inherit B2
+
+     import component FF client DD
+     import component FF             // illegal: duplicate name 
+     import component FF (myFF)      // abbreviation given: imported as "myFF"
+     import component SS:Baz         // imported as "Baz" (last facet of qualified name)
+     import component SS:Baz (myBaz) // abbreviation given: imported as "myBaz"
+
+  end // The Bar subsystem
+
+end // The foo system
+
+component FF  
+This is a top-level component, which can be referenced from anywhere, including from imports.
+
+subsystem SS
+This is a top-level subsystem, which can be referenced from anywhere, including from imports.
+
+  // implicit body follows
+
+  component Baz
+  Description of Baz.
+
+  // end of implicit body
+
+
+
+subsystem UU
+Description.
+
+// It is common for NAMES to appear in SENTENCES, and it is desirable to check
+// that such names are in fact bound.  Ultimately, extracting the names from
+// sentences may be done by natural language parsing, but as a temporary measure
+// any sequence of words enclosed in double quotes (e.g. "foo bar") will be
+// interpreted as a (qualified) name for the purposes of well-boundedness checking.
+
+contains
+  
+  component A
+  Inside this description, I will talk about "FF" and "SS:Baz" (or "SS : Baz") and "The foo system" but also "utter nonsense".
+
+  events myevents
+
+  one
+  the first event.
+
+  two
+  the second event.
+
+  scenarios myscenarios
+
+  a
+  "one" comes before "two".
+
+  b
+  "two" comes before "three".
+
+end
+
+

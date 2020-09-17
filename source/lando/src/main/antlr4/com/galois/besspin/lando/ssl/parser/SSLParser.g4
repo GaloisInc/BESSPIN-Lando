@@ -38,7 +38,7 @@ body    :  specElement* ;
 subsystem  : lineComments?
              SUBSYSTEM
              subsysname=name abbrev?
-	     (inheritClause | clientClause)* comment? lineseps
+	     clientClause* comment? lineseps
 	     paragraph lineComments?
 	     (indexing blockend)?
 	     (CONTAINS lineseps? body END comment? blockend)? ;

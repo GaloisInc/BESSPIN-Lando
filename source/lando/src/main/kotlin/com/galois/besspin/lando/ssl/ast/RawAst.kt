@@ -131,7 +131,6 @@ data class RawSubsystem(
     override val pos: RawPos,
     val name: Name,
     val abbrevName: Name?,
-    val inherits: List<QName>,
     val clientOf: List<QName>,
     val explanation: String,
     val indexing: List<RawIndexEntry>,
