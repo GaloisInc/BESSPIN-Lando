@@ -26,6 +26,7 @@ module Main
   ) where
 
 import Lobot.Expr
+import Lobot.Eval
 import Lobot.Instances
 import Lobot.Kind
 import Lobot.Parser
@@ -164,7 +165,8 @@ lobot Options{..} = do
             void $ runSession z3 env plugin tps cns
                              (runCheck ck fldnms inLimit)
           RunAllChecks -> do
-            let go :: Assignment FunctionTypeRepr env -> Some (Check env) -> IO Bool
+            let go :: Assignment (ConstrainedFunction env) env
+                   -> Some (Check env) -> IO Bool
                 go env' some_ck = do
                   SomeNonAbsCheck nm fldnms tps cns <- toNonAbstractCheck some_ck;
                   isNothing <$> runSession z3 env' (defaultPluginEnvOnPWD env')
@@ -242,13 +244,17 @@ browseKindInstances k limit verbose s@SessionData{..} =
             print . PP.nest 2 $ ppLiteralWithKindName k l
             when (not (null fcns)) $ do
               putStrLn "The constraints that failed were:"
-              forM_ fcns (\c -> print . PP.nest 2 $ ppExpr env tps (Empty :> Const "self") c)
+              forM_ fcns (\c -> print . PP.nest 2 $
+                ppExpr (envTypes env) tps (Empty :> Const "self") c)
             when (verbose && not (null calls)) $ do
               putStrLn "Learned the values of the following function calls:"
-              forM_ calls (\c -> print . PP.nest 2 $ ppFunctionCallResult env tps (Empty :> Const "self") c)
+              let ppCalls = fmap (\(FunctionCallResult fi args ret _) ->
+                              ppExpr (envTypes env) tps (Empty :> Const "self")
+                                     (EqExpr (ApplyExpr fi args) (LiteralExpr ret))) calls
+              forM_ ppCalls (print . PP.nest 2)
             let outps = mapMaybe (\(FunctionCallResult fi args _ st) ->
                           if null st then Nothing
-                          else Just (ppExpr env tps (Empty :> Const "self")
+                          else Just (ppExpr (envTypes env) tps (Empty :> Const "self")
                                             (ApplyExpr fi args), st)) calls
             when (verbose && not (null outps)) $ do
               putStrLn "The following function calls generated output:"

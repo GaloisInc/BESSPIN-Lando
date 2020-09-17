@@ -1,0 +1,11 @@
+posint : kind of int where 1 <= self
+
+-- This is a bad spec for add1, for negative input its return constraint will
+-- not hold.
+abstract add1 : int -> posint
+
+-- This should make Lobot very upset
+bad : check
+  on x : int
+  where x < 0
+  that add1(x) = x + 1

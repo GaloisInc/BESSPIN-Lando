@@ -1,0 +1,64 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "abs_struct_test"
+        , kindType =
+            StructRepr [ FieldRepr { fieldName = x , fieldType = IntRepr } ]
+        , kindFunctionEnv =
+            [ FunctionTypeRepr
+                { functionName = write_int_to_file
+                , functionArgTypes = [ IntRepr , AbsRepr filepath ]
+                , functionRetType =
+                    StructRepr
+                      [ FieldRepr { fieldName = f , fieldType = AbsRepr filepath }
+                      , FieldRepr { fieldName = x , fieldType = IntRepr }
+                      ]
+                }
+            , FunctionTypeRepr
+                { functionName = read_int_from_file
+                , functionArgTypes = [ AbsRepr filepath ]
+                , functionRetType = IntRepr
+                }
+            , FunctionTypeRepr
+                { functionName = tmp_file
+                , functionArgTypes = []
+                , functionRetType = AbsRepr filepath
+                }
+            ]
+        , kindConstraints =
+            [ AndExpr
+                (LteExpr (LiteralExpr (IntLit 1)) (FieldExpr (VarExpr 0) 0))
+                (LteExpr (FieldExpr (VarExpr 0) 0) (LiteralExpr (IntLit 3)))
+            , EqExpr
+                (FieldExpr
+                   (ApplyExpr 0 [ FieldExpr (VarExpr 0) 0 , ApplyExpr 2 [] ]) 1)
+                (FieldExpr (VarExpr 0) 0)
+            ]
+        }
+  , instances =
+      [ [ StructLit
+            [ FieldInst
+                { fieldInstName = x
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 1
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = x
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 2
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = x
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 3
+                }
+            ]
+        ]
+      ]
+  }

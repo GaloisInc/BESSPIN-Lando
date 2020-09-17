@@ -1,0 +1,9 @@
+posint : kind of int where 1 <= self
+
+abstract always_error : int -> posint
+
+-- Because Lobot assumes the return type of `always_error` is always positive,
+-- it should never actually get called when generating instances of this kind!
+should_not_error : kind of struct
+  with x : int
+  where always_error(x) < 0

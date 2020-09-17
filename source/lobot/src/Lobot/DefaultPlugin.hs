@@ -20,7 +20,10 @@ module Lobot.DefaultPlugin
   ) where
 
 import Lobot.Expr
+import Lobot.Eval
+import Lobot.Kind
 import Lobot.JSON
+import Lobot.Pretty
 import Lobot.Types
 
 import qualified Data.Aeson as A
@@ -40,16 +43,15 @@ import System.Exit
 -- | The environment of function implementations for the default Lobot plugin,
 -- parameterized by a directory in which to look for executables.
 defaultPluginEnv :: FilePath
-                 -> Assignment FunctionTypeRepr fntps
-                 -> Assignment (FunctionImpl IO) fntps
-defaultPluginEnv _ Empty = Empty
-defaultPluginEnv prefix (fntps :> fntp@FunctionTypeRepr{}) =
-  defaultPluginEnv prefix fntps :> FunctionImpl fntp (defaultPluginRun prefix fntp)
+                 -> Assignment (ConstrainedFunction env) env
+                 -> Assignment (FunctionImpl IO env) env
+defaultPluginEnv prefix = fmapFC $ \cfn@CFun{..} ->
+  FunctionImpl cfn (defaultPluginRun prefix cfn)
 
 -- | The environment of function implementations for the default Lobot plugin,
 -- using the current working directory.
-defaultPluginEnvOnPWD :: Assignment FunctionTypeRepr fntps
-                      -> Assignment (FunctionImpl IO) fntps
+defaultPluginEnvOnPWD :: Assignment (ConstrainedFunction env) env
+                      -> Assignment (FunctionImpl IO env) env
 defaultPluginEnvOnPWD = defaultPluginEnv []
 
 -- | The function used for 'fnImplRun' in the default Lobot plugin. This
@@ -57,10 +59,11 @@ defaultPluginEnvOnPWD = defaultPluginEnv []
 -- given path, passes it JSON via stdin, reads JSON from stdout, and returns
 -- the parsed JSON and the contents of stderr.
 defaultPluginRun :: FilePath
-                 -> FunctionTypeRepr (FunType nm args ret)
+                 -> ConstrainedFunction env (FunType nm args ret)
                  -> Assignment Literal args -> IO (Literal ret, String)
-defaultPluginRun prefix FunctionTypeRepr{..} args = do
-  let json_args = A.toJSONList (toListFC literalToJSON args)
+defaultPluginRun prefix (CFun FunctionTypeRepr{..} _ _ _) args = do
+  let fnm = T.unpack $ symbolRepr functionName
+      json_args = A.toJSONList (toListFC literalToJSON args)
       std_in = BS.unpack (A.encode json_args)
       p = shell (prefix </> T.unpack (symbolRepr functionName))
   (ec, std_out, std_err) <- readCreateProcessWithExitCode p std_in
@@ -69,14 +72,21 @@ defaultPluginRun prefix FunctionTypeRepr{..} args = do
       Right v -> case literalFromJSON v of
         A.Success (Some l') -> case testEquality functionRetType (literalType l') of
           Just Refl -> return (l', std_err)
-          Nothing -> do putStrLn $ "expected " ++ show functionRetType
-                                   ++ ", got " ++ show l'
+          Nothing -> do putStrLn $ "\n[Plugin error] " ++ fnm
+                                   ++ " returned '" ++ show (ppLiteral l')
+                                   ++ "', expected something of type '"
+                                   ++ show (ppTypeRepr functionRetType) ++ "'"
                         exitFailure
-        A.Error e -> do putStrLn $ "error: " ++ e
+        A.Error e -> do putStrLn $ "\n[Plugin error] Error parsing JSON output of "
+                                   ++ fnm ++ ":"
+                        putStrLn std_out
+                        putStrLn e
                         exitFailure
-      Left e -> do putStrLn "Error decoding JSON"
+      Left e -> do putStrLn $ "\n[Plugin error] Could not decode JSON output of "
+                              ++ fnm ++ ":"
                    putStrLn std_out
                    putStrLn e
                    exitFailure
-    ExitFailure _ -> do putStrLn $ "error: " ++ std_err
+    ExitFailure _ -> do putStrLn $ "\n[Plugin error] " ++ fnm
+                                   ++ ": " ++ std_err
                         exitFailure

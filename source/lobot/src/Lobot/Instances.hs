@@ -34,12 +34,14 @@ module Lobot.Instances
   ) where
 
 import Lobot.Expr
+import Lobot.Eval
 import Lobot.Kind
 import Lobot.Types
 import Lobot.Utils
 
 import qualified Data.BitVector.Sized    as BV
 import qualified Data.Text               as T
+import qualified Data.HashSet            as HS
 import qualified What4.Expr.Builder      as WB
 import qualified What4.Config            as WC
 import qualified What4.Expr.GroundEval   as WG
@@ -125,9 +127,9 @@ symFieldLiteralExpr (FieldInst _ _ sl) = symLiteralExpr sl
 
 -- | Declare a fresh uninterpreted 'SymFunction'.
 freshUninterpSymFunction :: WB.ExprBuilder t st fs
-                         -> FunctionTypeRepr fntp
+                         -> ConstrainedFunction env fntp
                          -> IO (SymFunction t fntp)
-freshUninterpSymFunction sym fntp@FunctionTypeRepr{..} = do
+freshUninterpSymFunction sym (CFun fntp@FunctionTypeRepr{..} _ _ _) = do
   let cSymbol = WI.safeSymbol (T.unpack (symbolRepr functionName))
       baseArgTypes = typesBaseTypes functionArgTypes
       baseRetType = typeBaseType functionRetType
@@ -518,8 +520,8 @@ data SessionData env ctx where
   SessionData :: (NonAbstract ctx, WS.SMTLib2Tweaks solver)
                  => { sym :: WB.ExprBuilder t st fs
                     , session :: WS.Session t solver
-                    , env :: Assignment FunctionTypeRepr env
-                    , fns :: Assignment (FunctionImpl IO) env
+                    , env :: Assignment (ConstrainedFunction env) env
+                    , fns :: Assignment (FunctionImpl IO env) env
                     , cache :: FunctionCallCache env ctx
                     , tps :: Assignment TypeRepr ctx
                     , constraints :: [Expr env ctx BoolType]
@@ -576,7 +578,7 @@ getNextInstance SessionData{..} =
       let negateExpr = foldr OrExpr (LiteralExpr (BoolLit False)) negateExprs
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits negateExpr
       WS.assume (WS.sessionWriter session) symConstraint
-      (fcns, calls) <- getFailingConstraints fns cache ls constraints
+      (fcns, calls) <- runEvalM fns ls cache $ getFailingConstraints constraints
       traverse_ (assumeCall sym session symFns symLits) calls
       return (HasInstance ls fcns calls)
     WS.Unsat _ -> do return NoInstance
@@ -585,9 +587,9 @@ getNextInstance SessionData{..} =
 runSession :: NonAbstract ctx
            => FilePath
            -- ^ Path to z3 executable
-           -> Assignment FunctionTypeRepr env
-           -- ^ Type of function environment
-           -> Assignment (FunctionImpl IO) env
+           -> Assignment (ConstrainedFunction env) env
+           -- ^ Environment of constrained functions
+           -> Assignment (FunctionImpl IO env) env
            -- ^ Concrete functions
            -> Assignment TypeRepr ctx
            -- ^ Types we are generating instances of
@@ -600,10 +602,13 @@ runSession z3_path env fns tps constraints action = do
   Some nonceGen <- newIONonceGenerator
   sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
   WC.extendConfig WS.z3Options (WI.getConfiguration sym)
+  let calls = HS.toList . HS.unions $ fmap getCalls constraints
+      fn_ret_constraints = calls >>= \(Some (FunctionCall fi es)) ->
+        fmap (giveSelf (ApplyExpr fi es)) (cfunRetConstraints (env ! fi))
   WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
     symLits <- freshSymLiteralConstants sym session tps
     symFns <- traverseFC (freshUninterpSymFunction sym) env
-    forM_ constraints $ \e -> do
+    forM_ (constraints ++ fn_ret_constraints) $ \e -> do
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits e
       WS.assume (WS.sessionWriter session) symConstraint
     cache <- liftST new

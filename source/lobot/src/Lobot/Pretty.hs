@@ -24,7 +24,6 @@ module Lobot.Pretty
   , ppTypeRepr
   , ppExpr
   , ppKindExpr
-  , ppFunctionCallResult
   , ppLiteral
   , ppLiteralWithKindName
   ) where
@@ -156,14 +155,6 @@ ppKindExpr :: T.Text
            -> KindExpr env ktp tp
            -> PP.Doc
 ppKindExpr selfStr env ktp = ppExpr env (Empty :> ktp) (Empty :> Const selfStr)
-
-ppFunctionCallResult :: Assignment FunctionTypeRepr env
-                     -> Assignment TypeRepr ctx
-                     -> Assignment (Const T.Text) ctx
-                     -> FunctionCallResult env ctx
-                     -> PP.Doc
-ppFunctionCallResult env ctx nms (FunctionCallResult fi args ret _) =
-  ppExpr env ctx nms (EqExpr (ApplyExpr fi args) (LiteralExpr ret)) 
 
 ppExpr :: Assignment FunctionTypeRepr env
        -> Assignment TypeRepr ctx

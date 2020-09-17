@@ -35,8 +35,6 @@ module Lobot.Kind
     Kind(..)
   , KindExpr
   , pattern SelfExpr
-  , instanceOf
-  , getFailingConstraints
   , addConstraints
   , derivedKind
   , liftConstraints
@@ -47,20 +45,19 @@ module Lobot.Kind
   , NamedType(..)
     -- * Constrained functions
   , ConstrainedFunction(..)
-  , cFunType'
+  , cfunType'
+  , envTypes
   ) where
 
 import Lobot.Expr
 import Lobot.Types
 
 import Data.Functor.Const
-import Data.Maybe (catMaybes)
 import Data.List.NonEmpty hiding ((!!))
 import Data.Text (Text)
 import Data.Parameterized.Classes
 import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.TraversableFC
-import UnliftIO (MonadUnliftIO(..))
 import Prelude hiding ((!!))
 
 type KindExpr env tp = Expr env (EmptyCtx ::> tp)
@@ -77,8 +74,14 @@ data ConstrainedFunction (env :: Ctx FunctionType) (fntp :: FunctionType) where
           , cfunRetConstraints :: [KindExpr env ret  BoolType]
           } -> ConstrainedFunction env (FunType nm args ret)
 
-cFunType' :: ConstrainedFunction env fntp -> FunctionTypeRepr fntp
-cFunType' (CFun ftp _ _ _) = ftp
+cfunType' :: ConstrainedFunction env fntp -> FunctionTypeRepr fntp
+cfunType' (CFun ftp _ _ _) = ftp
+
+-- | Given a function environment of 'ConstrainedFunction's, return the
+-- associated function environment of 'FunctionTypeRepr's.
+envTypes :: Assignment (ConstrainedFunction env') env
+         -> Assignment FunctionTypeRepr env
+envTypes = fmapFC cfunType'
 
 deriving instance Show (ConstrainedFunction env fntp)
 instance ShowF (ConstrainedFunction env)
@@ -130,71 +133,19 @@ liftConstraints :: Index ktps '(nm, tp)
                 -> Kind env (StructType ktps)
 liftConstraints i k' k = addConstraints k (liftExpr i <$> kindConstraints k')
 
--- | Determine whether a set of literals satisfies a constraint set.
-instanceOf :: (MonadUnliftIO m, MonadFail m)
-           => Assignment (FunctionImpl m) env
-           -> FunctionCallCache env ctx
-           -> Assignment Literal ctx
-           -> [Expr env ctx BoolType]
-           -> m Bool
-instanceOf env cache ls constraints =
-  null . fst <$> getFailingConstraints env cache ls constraints
-
--- | Like 'instanceOf', but returns the list of all constraints that failed
--- instead of just a 'Bool', as well as the list of all new function calls
--- added to the cache.
-getFailingConstraints :: forall env ctx m. (MonadUnliftIO m, MonadFail m)
-                      => Assignment (FunctionImpl m) env
-                      -> FunctionCallCache env ctx
-                      -> Assignment Literal ctx
-                      -> [Expr env ctx BoolType]
-                      -> m ([Expr env ctx BoolType], [FunctionCallResult env ctx])
-getFailingConstraints env cache ls constraints =
-  runEvalM cache (catMaybes <$> traverse failingConstraint constraints)
-  where failingConstraint :: Expr env ctx BoolType
-                          -> EvalM env ctx m (Maybe (Expr env ctx BoolType))
-        failingConstraint e = do
-          EvalResult (BoolLit b) _ <- evalExpr env ls e
-          pure (if b then Nothing else Just e)
-
 -- | Substitute a value for 'self' in a kind expression.
--- giveSelf :: Expr env ctx a -> KindExpr env a b -> Expr env ctx b
-giveSelf :: Expr env ctx a -> Expr env (EmptyCtx ::> a) b -> Expr env ctx b
-giveSelf s e = case e of
-  LiteralExpr l -> LiteralExpr l
-  StructExpr fvs -> structExpr (fmapFC (fmapFC (giveSelf s)) fvs)
-  SelfExpr -> s
-  FieldExpr kd i' -> FieldExpr (giveSelf s kd) i'
-  ApplyExpr fi es -> ApplyExpr fi (fmapFC (giveSelf s) es)
-  EqExpr e1 e2 -> EqExpr (giveSelf s e1) (giveSelf s e2)
-  NeqExpr e1 e2 -> NeqExpr (giveSelf s e1) (giveSelf s e2)
-  LteExpr e1 e2 -> LteExpr (giveSelf s e1) (giveSelf s e2)
-  LtExpr e1 e2 -> LtExpr (giveSelf s e1) (giveSelf s e2)
-  GteExpr e1 e2 -> GteExpr (giveSelf s e1) (giveSelf s e2)
-  GtExpr e1 e2 -> GtExpr (giveSelf s e1) (giveSelf s e2)
-  PlusExpr e1 e2 -> PlusExpr (giveSelf s e1) (giveSelf s e2)
-  MinusExpr e1 e2 -> MinusExpr (giveSelf s e1) (giveSelf s e2)
-  TimesExpr e1 e2 -> TimesExpr (giveSelf s e1) (giveSelf s e2)
-  ModExpr e1 e2 -> ModExpr (giveSelf s e1) (giveSelf s e2)
-  DivExpr e1 e2 -> DivExpr (giveSelf s e1) (giveSelf s e2)
-  AbsExpr e' -> AbsExpr (giveSelf s e')
-  NegExpr e' -> NegExpr (giveSelf s e')
-  MemberExpr e1 e2 -> MemberExpr (giveSelf s e1) (giveSelf s e2)
-  NotMemberExpr e1 e2 -> NotMemberExpr (giveSelf s e1) (giveSelf s e2)
-  SubsetExpr e1 e2 -> SubsetExpr (giveSelf s e1) (giveSelf s e2)
-  NonEmptyExpr e' -> NonEmptyExpr (giveSelf s e')
-  SizeExpr e' -> SizeExpr (giveSelf s e')
-  IntersectExpr e1 e2 -> IntersectExpr (giveSelf s e1) (giveSelf s e2)
-  UnionExpr e1 e2 -> UnionExpr (giveSelf s e1) (giveSelf s e2)
-  SymDiffExpr e1 e2 -> SymDiffExpr (giveSelf s e1) (giveSelf s e2)
-  DiffExpr e1 e2 -> DiffExpr (giveSelf s e1) (giveSelf s e2)
-  ComplementExpr e' -> ComplementExpr (giveSelf s e')
-  AndExpr e1 e2 -> AndExpr (giveSelf s e1) (giveSelf s e2)
-  OrExpr e1 e2 -> OrExpr (giveSelf s e1) (giveSelf s e2)
-  XorExpr e1 e2 -> XorExpr (giveSelf s e1) (giveSelf s e2)
-  ImpliesExpr e1 e2 -> ImpliesExpr (giveSelf s e1) (giveSelf s e2)
-  IffExpr e1 e2 -> IffExpr (giveSelf s e1) (giveSelf s e2)
-  NotExpr e' -> NotExpr (giveSelf s e')
+giveSelf :: Expr env ctx a -> KindExpr env a b -> Expr env ctx b
+giveSelf s = subst (Empty :> s)
+
+singletonIndexRefl :: forall tp tp' . Index (EmptyCtx ::> tp') tp -> tp :~: tp'
+singletonIndexRefl i = case viewIndex knownSize i of
+  IndexViewLast _ -> Refl
+  IndexViewInit i' -> case viewIndex knownSize i' of { }
+
+-- | Convenient pattern for matching on 'KindExpr' variables.
+pattern SelfExpr :: () => (tp' ~ tp) => KindExpr env tp' tp
+pattern SelfExpr <- VarExpr (singletonIndexRefl -> Refl)
+  where SelfExpr = VarExpr baseIndex
 {-# COMPLETE
     LiteralExpr
   , StructExpr
@@ -230,15 +181,6 @@ giveSelf s e = case e of
   , IffExpr
   , NotExpr #-}
 
-singletonIndexRefl :: forall tp tp' . Index (EmptyCtx ::> tp') tp -> tp :~: tp'
-singletonIndexRefl i = case viewIndex knownSize i of
-  IndexViewLast _ -> Refl
-  IndexViewInit i' -> case viewIndex knownSize i' of { }
-
--- | Convenient pattern for matching on 'KindExpr' variables.
-pattern SelfExpr :: () => (tp' ~ tp) => KindExpr env tp' tp
-pattern SelfExpr <- VarExpr (singletonIndexRefl -> Refl)
-  where SelfExpr = VarExpr baseIndex
 -- | Lift an expression about a kind @K'@ into an expression about a kind @K@ which
 -- contains @K'@.
 liftExpr :: Index ftps '(nm, tp)

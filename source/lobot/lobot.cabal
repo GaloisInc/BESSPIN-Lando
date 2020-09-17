@@ -20,6 +20,7 @@ extra-source-files:  CHANGELOG.md
 library
   exposed-modules:     Lobot.Kind
                        Lobot.Expr
+                       Lobot.Eval
                        Lobot.JSON
                        Lobot.Instances
                        Lobot.Syntax

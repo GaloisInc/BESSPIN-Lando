@@ -1,0 +1,20 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "should_not_error"
+        , kindType =
+            StructRepr [ FieldRepr { fieldName = x , fieldType = IntRepr } ]
+        , kindFunctionEnv =
+            [ FunctionTypeRepr
+                { functionName = always_error
+                , functionArgTypes = [ IntRepr ]
+                , functionRetType = IntRepr
+                }
+            ]
+        , kindConstraints =
+            [ LtExpr
+                (ApplyExpr 0 [ FieldExpr (VarExpr 0) 0 ]) (LiteralExpr (IntLit 0))
+            ]
+        }
+  , instances = []
+  }

@@ -81,10 +81,16 @@ import Lobot.TypeCheck.FirstPass (tcType)
 secondPass :: Assignment FunctionTypeRepr env
            -> [I.Decl]
            -> WithWarnings (Either TypeError)
-                           ( [Some (K.Kind env)]
-                           , [Some (K.Check env)]
-                           , [Some (K.ConstrainedFunction env)] )
-secondPass env ds = evalTCM $ tcDecls env ds
+                           ( [Some (K.Kind env)], [Some (K.Check env)]
+                           , Assignment (K.ConstrainedFunction env) env )
+secondPass env ds = do
+  (ks, cks, Some cfns) <- evalTCM $ tcDecls env ds
+  -- TODO? Right now there's not an easy way to get out of doing this check,
+  -- but we should probably get rid of it eventually.
+  case testEquality env (envTypes cfns) of
+    Just Refl -> pure (ks, cks, cfns)
+    Nothing -> error $ "secondPass: bad function environment! Was secondPass "
+                       ++ " not called directly after firstPass?"
 
 
 -- | For this pass, the type of kind/check constraints is simply a list of
@@ -149,16 +155,16 @@ tcDecls :: Assignment FunctionTypeRepr env
         -> [I.Decl]
         -> TCM2 env ( [Some (K.Kind env)]
                     , [Some (K.Check env)]
-                    , [Some (K.ConstrainedFunction env)] )
-tcDecls _ [] = pure ([],[],[])
+                    , Some (Assignment (K.ConstrainedFunction env)) )
+tcDecls _ [] = pure ([], [], Some Empty)
 tcDecls env (d:ds) = do
   mb_d' <- tcDecl env d
-  (ks, cks, cfns) <- tcDecls env ds
+  (ks, cks, Some cfns) <- tcDecls env ds
   case mb_d' of
-    Nothing -> pure (ks, cks, cfns)
-    Just (CheckedKind k)   -> pure (k:ks, cks, cfns)
-    Just (CheckedCheck ck) -> pure (ks, ck:cks, cfns)
-    Just (CheckedFun cfn)  -> pure (ks, cks, cfn:cfns)
+    Nothing -> pure (ks, cks, Some cfns)
+    Just (CheckedKind k) -> pure (k:ks, cks, Some cfns)
+    Just (CheckedCheck ck) -> pure (ks, ck:cks, Some cfns)
+    Just (CheckedFun (Some cfn)) -> pure (ks, cks, Some (cfns :> cfn))
 
 data CheckedDecl env = CheckedKind (Some (K.Kind env))
                      | CheckedCheck (Some (K.Check env))

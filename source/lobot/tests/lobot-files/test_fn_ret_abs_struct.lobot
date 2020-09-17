@@ -1,0 +1,25 @@
+abstract type filepath
+
+abstract tmp_file : () -> filepath
+
+-- Read an integer from a file at the given path.
+abstract read_int_from_file : filepath -> int
+
+-- An abstract kind which stores a `filepath` and the integer that file
+-- contains (according to `read_int_from_file`). Note that is is possible to
+-- create bad instances of this kind, since `read_int_from_file` can error.
+int_file : kind of struct
+  with f : filepath
+       x : int
+  where read_int_from_file(f) = x
+
+-- Writes the given integer to a file at the given path, and returns a
+-- `file_with_contents` kind ensuring that this was indeed done correctly.
+abstract write_int_to_file : (int, filepath) -> int_file
+
+-- Run `-e abs_struct_test -v` to see that Lobot is really calling and
+-- caching `read_int_from_file` because of its call to `write_int_to_file`
+abs_struct_test : kind of struct
+  with x : int
+  where 1 <= x <= 3
+        write_int_to_file(x, tmp_file()).x = x

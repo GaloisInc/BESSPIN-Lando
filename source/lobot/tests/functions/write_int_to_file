@@ -1,0 +1,28 @@
+#!/usr/bin/python3
+
+import json
+import sys
+
+json_str = ""
+
+for line in sys.stdin:
+  json_str += line
+
+json_data = json.loads(json_str)
+
+x = json_data[0]['value']
+filepath = json_data[1]['value']
+
+open(filepath, "w").write(str(x))
+
+json_output = {
+  "variant": "struct",
+  "fields": [ { "name": "f",
+                "value": { "variant": "filepath",
+                           "value": filepath } },
+              { "name": "x",
+                "value": { "variant": "int",
+                           "value": x } } ]
+}
+
+print(json.dumps(json_output))
