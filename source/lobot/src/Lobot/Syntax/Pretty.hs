@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-|
 Module      : Lobot.Syntax.Pretty
@@ -54,19 +55,26 @@ ppDecl (TypeSynDecl nm tp) =
   PP.text "type" PP.<+> ppLText nm PP.<+> PP.text "=" PP.<+> ppLType tp
 ppDecl (AbsTypeDecl nm) =
   PP.text "abstract" PP.<+> PP.text "type" PP.<+> ppLText nm
-ppDecl (AbsFunctionDecl (FunType nm argtps rettp)) =
+ppDecl (AbsFunctionDecl (FunType nm arg_tps ret_tp arg_cns ret_cns)) =
   PP.text "abstract" PP.<+> ppLText nm PP.<+> PP.text ":"
-  PP.<+> ppFunArgTypes argtps PP.<+> PP.text "->" PP.<+> ppLType rettp
+  PP.<+> ppFunArgTypes arg_tps PP.<+> PP.text "->" PP.<+> ppLType ret_tp
+  PP.$$ PP.nest 2 (ppWClause "assuming" (ppLExpr <$> arg_cns))
+  PP.$$ PP.nest 2 (ppWClause "where" (ppLExpr <$> ret_cns))
 ppDecl (CheckDecl ckd) =
   ppLText (checkName ckd) PP.<+> PP.colon PP.<+> PP.text "check"
   PP.$$ PP.nest 2 (ppWClause "on" (fmap ppField (checkFields ckd)))
   PP.$$ PP.nest 2 (ppWClause "where" (ppLExpr <$> checkConstraints ckd))
   PP.$$ PP.nest 2 (ppWClause "that" (ppLExpr <$> checkRequirements ckd))
 
-ppFunArgTypes :: [LType] -> PP.Doc
+ppFunArgTypes :: [(LText, LType)] -> PP.Doc
 ppFunArgTypes [] = PP.text "()"
-ppFunArgTypes [tp] = ppLType tp
-ppFunArgTypes args = PP.parens $ commas (ppLType <$> args)
+ppFunArgTypes [(L _ nm, tp)] | nm == "_" = ppLType tp
+ppFunArgTypes args = PP.parens $ commas (ppFunArgType <$> args)
+
+ppFunArgType :: (LText, LType) -> PP.Doc
+ppFunArgType (L _ nm, tp)
+  | nm == "_" = ppLType tp
+  | otherwise = ppText nm PP.<+> PP.colon PP.<+> ppLType tp
 
 
 ppWClause :: String -> [PP.Doc] -> PP.Doc
@@ -112,6 +120,7 @@ ppExpr' _ (EnumLit e) = ppLText e
 ppExpr' _ (SetLit es) =
   PP.braces (commas (ppLText <$> es))
 ppExpr' _ SelfExpr = PP.text "self"
+ppExpr' _ ReturnExpr = PP.text "return"
 ppExpr' _ (VarExpr f) = ppLText f
 ppExpr' top (FieldExpr ctxExpr f) =
   ppLExpr' top ctxExpr PP.<> PP.text "." PP.<> ppLText f

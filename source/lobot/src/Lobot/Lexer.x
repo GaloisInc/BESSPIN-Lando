@@ -91,7 +91,9 @@ tokens :-
     type          { tok TYPE }
     abstract      { tok ABSTRACT }
     "->"          { tok ARROW }
+    assuming      { begin_popWhile popWhile_assmg }
     self          { tok SELF }
+    return        { tok RETURN }
     "."           { tok DOT }
     "="           { tok EQUALS }
     "!="          { tok NOTEQUALS }
@@ -136,6 +138,9 @@ tokens :-
   <popWhile_that>   () { do_popWhile (\top -> layCtxType top /= TopLevelCtx)
                                      (tokAnd pushLinesLayout THAT) THAT }
 
+  <popWhile_assmg>  () { do_popWhile (\top -> layCtxType top /= TopLevelCtx)
+                                     (tokAnd pushLinesLayout ASSUMING) ASSUMING }
+
   <popWhile_RBRACE> () { do_popWhile (\top -> layCtxToken top /= LBRACE)
                                      (tokAnd popLayout RBRACE) RBRACE }
 
@@ -160,7 +165,9 @@ data TokenType = BOOL
                | TYPE
                | ABSTRACT
                | ARROW
+               | ASSUMING
                | SELF
+               | RETURN
                | DOT
                | EQUALS
                | NOTEQUALS

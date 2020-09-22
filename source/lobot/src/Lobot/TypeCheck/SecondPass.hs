@@ -188,7 +188,7 @@ tcKind :: Assignment FunctionTypeRepr env
        -> I.Kind
        -> TCM2 env (Some (K.Kind env))
 tcKind env (I.Kind (L _ nm) tp cns dcns enms) = do
-  cns'  <- mapM (tcExpr enms env (singleton $ SelfElem tp) T.BoolRepr) cns
+  cns'  <- mapM (tcExpr enms env (SelfCtx tp) T.BoolRepr) cns
   dcns' <- concat <$> mapM (resolveDerivedConstraint env tp) dcns
   let k' = K.Kind nm tp env (cns' ++ dcns')
   addKind nm k' enms
@@ -200,16 +200,11 @@ tcCheck :: forall env .
         -> I.Check
         -> TCM2 env (Some (K.Check env))
 tcCheck env (I.Check (L _ nm) flds cns reqs enms) = do
-  let tps = fmapFC (\(I.CheckField (S.L _ nm') tp _) -> VarElem nm' tp) flds
-  cns'  <- mapM (tcExpr enms env tps T.BoolRepr) cns
-  let collectDCs :: Index tps tp -> CheckField tp
-                 -> TCM2 env [E.Expr env tps 'T.BoolType]
-      collectDCs i (CheckField _ tp dcns) = do
-        kes <- concat <$> mapM (resolveDerivedConstraint env tp) dcns
-        return $ giveSelf (E.VarExpr i) <$> kes
-  dcns' <- traverseAndCollect collectDCs flds
-  reqs' <- mapM (tcExpr enms env tps T.BoolRepr) reqs
-  let namedTypes = fmapFC (\(CheckField (S.L _ fnm) tp _) -> NamedType fnm tp) flds
+  let ctx = fmapFC (\(I.NamedType (S.L _ nm') tp _) -> K.NamedType nm' tp) flds
+  cns'  <- mapM (tcExpr enms env (VarsCtx ctx) T.BoolRepr) cns
+  dcns' <- traverseAndCollect (collectDerivedConstraints env) flds
+  reqs' <- mapM (tcExpr enms env (VarsCtx ctx) T.BoolRepr) reqs
+  let namedTypes = fmapFC (\(I.NamedType (S.L _ fnm) tp _) -> K.NamedType fnm tp) flds
   let ck' = K.Check nm namedTypes env (cns' ++ dcns') reqs'
   pure $ Some ck'
 
@@ -218,20 +213,17 @@ tcConstrainedFunction :: forall env.
                          Assignment FunctionTypeRepr env
                       -> I.FunctionType
                       -> TCM2 env (Some (ConstrainedFunction env))
-tcConstrainedFunction env (I.FunType (L _ nm) arg_tps ret_tp arg_dcns
-                                     ret_dcns arg_enms ret_enms) = do
+tcConstrainedFunction env (I.FunType (L _ nm) arg_ntps ret_tp ret_dcns
+                                     arg_cns ret_cns arg_enms ret_enms) = do
   Some nm' <- pure $ someSymbol nm
-  let collectDCs :: Assignment TypeRepr args
-                 -> Index args tp -> Const [DerivedConstraint] tp
-                 -> TCM2 env [E.Expr env args 'T.BoolType]
-      collectDCs arg_tps' i (Const dcns) = do
-        let tp = arg_tps' ! i
-        kes <- concat <$> mapM (resolveDerivedConstraint env tp) dcns
-        return $ giveSelf (E.VarExpr i) <$> kes
-  arg_dcns' <- traverseAndCollect (collectDCs arg_tps) arg_dcns
+  arg_dcns' <- traverseAndCollect (collectDerivedConstraints env) arg_ntps
   ret_dcns' <- concat <$> mapM (resolveDerivedConstraint env ret_tp) ret_dcns
-  let cfn = K.CFun (T.FunctionTypeRepr nm' arg_tps ret_tp)
-                   (fmapFC (\_ -> Const "_") arg_tps) arg_dcns' ret_dcns'
+  let arg_ctx = fmapFC (\(I.NamedType (S.L _ nm'') tp _) -> K.NamedType nm'' tp) arg_ntps
+  arg_cns' <- mapM (tcExpr (HS.unions arg_enms) env (VarsCtx arg_ctx) T.BoolRepr) arg_cns
+  ret_cns' <- mapM (tcExpr ret_enms env (ReturnCtx ret_tp) T.BoolRepr) ret_cns
+  let cfn = K.CFun (T.FunctionTypeRepr nm' (fmapFC I.namedTypeType arg_ntps) ret_tp)
+                   (fmapFC (Const . unLoc . I.namedTypeName) arg_ntps)
+                   (arg_cns' ++ arg_dcns') (ret_cns' ++ ret_dcns')
   addFunction nm cfn arg_enms ret_enms
   pure $ Some cfn
 
@@ -261,25 +253,29 @@ resolveDerivedConstraint env tp (FromField (L p f) ds)
     = throwError . InternalError p $
         "Malformed derived constraint: FromField " `append` f
 
+-- | Apply 'resolveDerivedConstraint' to each derived constraint in a
+-- 'I.NamedType', concatenate the results, and substitute @'E.VarExpr' i@
+-- for @self@ in each.
+collectDerivedConstraints :: Assignment FunctionTypeRepr env
+                          -> Index args tp
+                          -> I.NamedType tp
+                          -> TCM2 env [E.Expr env args T.BoolType]
+collectDerivedConstraints env i (I.NamedType _ tp dcns) = do
+  kes <- concat <$> mapM (resolveDerivedConstraint env tp) dcns
+  return $ giveSelf (E.VarExpr i) <$> kes
 
 
 -- * Type inference and checking for expressions
 
 -- | Instead of just providing an 'Assignment' of 'TypeRepr's to 'tcInferExpr'
--- to represent the in-scope type context, we also indicate whether each
--- represents @self@ or not, and in the latter case, provide the variable's
--- name. When calling this function from a kind, the single in-scope variable
--- should be marked with 'SelfElem', and otherwise 'VarElem' should always be
--- used.
-data ContextElem (tp :: T.Type) where
-  SelfElem :: T.TypeRepr tp -> ContextElem tp
-  VarElem  :: Text -> T.TypeRepr tp -> ContextElem tp
-
--- | Return the result of calling the given predicate if the given
--- 'ContextElem' is a 'VarElem', otherwise return false.
-ifVarElem :: (Text -> T.TypeRepr tp -> Bool) -> ContextElem tp -> Bool
-ifVarElem f (VarElem nm tp) = f nm tp
-ifVarElem _ _ = False
+-- to represent the in-scope type context, we indicate whether we are in a
+-- kind context (i.e. have a single @self@ variable in scope), in a function
+-- return constraint context (i.e. have a single @return@ variable in scope),
+-- or more generally in a context of @n@ named variables.
+data ExprContext (ctx :: Ctx T.Type) where
+  SelfCtx   :: T.TypeRepr tp -> ExprContext (EmptyCtx ::> tp)
+  ReturnCtx :: T.TypeRepr tp -> ExprContext (EmptyCtx ::> tp)
+  VarsCtx   :: Assignment K.NamedType ctx -> ExprContext ctx
 
 -- | Return the set of additional enums which should be brought into scope
 -- when the given expression is part of a binary operation, e.g. @=@ or @in@.
@@ -308,7 +304,7 @@ addlEnms _ _ = pure HS.empty
 -- 'InferredTypeRepr'), there should be a corresponding case in 'tcExpr'.
 tcInferExpr :: EnumNameSet
             -> Assignment T.FunctionTypeRepr env
-            -> Assignment ContextElem ctx
+            -> ExprContext ctx
             -> S.LExpr
             -> TCM2 env (Pair InferredTypeRepr (E.Expr env ctx))
 
@@ -362,13 +358,14 @@ tcInferExpr enms env ctx (L p (S.VarExpr t))
   | unLoc t `HS.member` enms
     = tcInferExpr enms env ctx (L p (S.EnumLit t))
   -- if we're in a `kind of struct` context and t is a field name:
-  | (Empty :> SelfElem (T.StructRepr ftps)) <- ctx
+  | SelfCtx (T.StructRepr ftps) <- ctx
   , Just (Some i) <- findIndex (\(FieldRepr f _) -> unLoc t == symbolRepr f) ftps
   , FieldRepr _ tp <- ftps ! i
     = pure $ Pair (closed tp) (E.FieldExpr (E.VarExpr baseIndex) i)
   -- if t is a variable name from the current context:
-  | Just (Some i) <- findIndex (ifVarElem (\nm _ -> unLoc t == nm)) ctx
-  , VarElem _ tp <- ctx ! i
+  | VarsCtx ctx' <- ctx 
+  , Just (Some i) <- findIndex ((== unLoc t) . K.namedTypeName) ctx'
+  , K.NamedType _ tp <- ctx' ! i
     = pure $ Pair (closed tp) (E.VarExpr i)
   -- otherwise, we error
   | otherwise
@@ -376,8 +373,14 @@ tcInferExpr enms env ctx (L p (S.VarExpr t))
 
 -- @self@ is only permitted in a kind context (one consisting only of @self@)
 tcInferExpr _ _ ctx (L p S.SelfExpr)
-  | (Empty :> SelfElem tp) <- ctx = pure $ Pair (closed tp) K.SelfExpr
-  | otherwise                     = throwError (UnexpectedSelfError p)
+  | SelfCtx tp <- ctx = pure $ Pair (closed tp) K.SelfExpr
+  | otherwise         = throwError (UnexpectedSelfError p)
+
+-- @self@ is only permitted in a function return context (one consisting only
+-- of @return@)
+tcInferExpr _ _ ctx (L p S.ReturnExpr)
+  | ReturnCtx tp <- ctx = pure $ Pair (closed tp) K.SelfExpr
+  | otherwise           = throwError (UnexpectedReturnError p)
 
 -- the type of @x.f@ is left open if the inferred type corresponding to @f@ in
 -- the type of @x@ is open, thus this has a corresponding case in 'tcExpr'
@@ -618,7 +621,7 @@ tcInferExpr enms env ctx (L _ (S.IsInstanceExpr x tp)) = do
 
 tcInferBoolOrSetBinOp :: EnumNameSet
                       -> Assignment T.FunctionTypeRepr env
-                      -> Assignment ContextElem ctx
+                      -> ExprContext ctx
                       -> S.LExpr -> S.LExpr
                       -> TCM2 env (Either ( E.Expr env ctx BoolType
                                           , E.Expr env ctx BoolType )
@@ -654,7 +657,7 @@ tcInferBoolOrSetBinOp enms env ctx x y = do
 -- | Check that the type of an expression is equal to some known type.
 tcExpr :: EnumNameSet
        -> Assignment T.FunctionTypeRepr env
-       -> Assignment ContextElem ctx
+       -> ExprContext ctx
        -> T.TypeRepr tp
        -> S.LExpr
        -> TCM2 env (E.Expr env ctx tp)
@@ -732,7 +735,7 @@ tcExpr enms env ctx tp x = do
 -- way to do this...
 tcExprs :: EnumNameSet
         -> Assignment T.FunctionTypeRepr env
-        -> Assignment ContextElem ctx
+        -> ExprContext ctx
         -> Assignment T.TypeRepr tps
         -> [(S.LExpr, EnumNameSet)]
         -> TCM2 env (Maybe (Assignment (E.Expr env ctx) tps))
@@ -796,7 +799,7 @@ setFieldIndex i (nm, tp') ftps = case (viewIndex (size ftps) i, ftps) of
 -- | Infer the type of a field expression in a struct expression.
 tcInferField :: EnumNameSet
              -> Assignment T.FunctionTypeRepr env 
-             -> Assignment ContextElem ctx
+             -> ExprContext ctx
              -> (LText, S.LExpr)
              -> TCM2 env (Pair InferredFieldRepr (FieldInst (E.Expr env ctx)))
 tcInferField enms env ctx (L _ s, x) = do
@@ -812,7 +815,7 @@ tcInferField enms env ctx (L _ s, x) = do
 -- way to do this...
 tcFields :: EnumNameSet
          -> Assignment T.FunctionTypeRepr env
-         -> Assignment ContextElem ctx
+         -> ExprContext ctx
          -> Assignment T.FieldRepr ftps
          -> [(LText, S.LExpr)]
          -> TCM2 env (Maybe (Assignment (FieldInst (E.Expr env ctx)) ftps))
@@ -938,7 +941,7 @@ data SameExprType env ctx where
 
 unifyExprTypes :: (NonAbstract tp1, NonAbstract tp2)
                => Assignment T.FunctionTypeRepr env
-               -> Assignment ContextElem ctx
+               -> ExprContext ctx
                -> (InferredTypeRepr tp1, E.Expr env ctx tp1, EnumNameSet, S.LExpr)
                -> (InferredTypeRepr tp2, E.Expr env ctx tp2, EnumNameSet, S.LExpr)
                -> TCM2 env (SameExprType env ctx)
@@ -977,7 +980,7 @@ data SameEnumType env ctx f1 f2 where
 
 unifyEnumTypes :: (1 <= CtxSize cs1, 1 <= CtxSize cs2)
                => Assignment T.FunctionTypeRepr env
-               -> Assignment ContextElem ctx
+               -> ExprContext ctx
                -> ( Bool, Assignment SymbolRepr cs1
                   , E.Expr env ctx (f1 cs1), EnumNameSet, S.LExpr
                   , EnumCon f1 )

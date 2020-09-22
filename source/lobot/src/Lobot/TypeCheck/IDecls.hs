@@ -30,7 +30,7 @@ module Lobot.TypeCheck.IDecls
   , Kind(..)
   , EnumNameSet
   , Check(..)
-  , CheckField(..)
+  , NamedType(..)
   , FunctionType(..)
     -- ** Derived Constraints
   , DerivedConstraint(..)
@@ -40,7 +40,6 @@ module Lobot.TypeCheck.IDecls
 import Data.Text (Text)
 import qualified Data.HashSet as HS
 import Data.List.NonEmpty
-import Data.Functor.Const
 import Data.Parameterized.Classes
 import Data.Parameterized.Some
 import Data.Parameterized.Context
@@ -66,18 +65,18 @@ deriving instance Show Kind
 
 type EnumNameSet = HS.HashSet Text
 
-data CheckField tp =
-  CheckField { checkFieldName :: LText
-             , checkFieldType :: T.TypeRepr tp
-             , checkFieldDerivedConstraints :: [DerivedConstraint]
-             }
+data NamedType tp =
+  NamedType { namedTypeName :: LText
+            , namedTypeType :: T.TypeRepr tp
+            , namedTypeDerivedConstraints :: [DerivedConstraint]
+            }
   deriving (Show)
 
-instance ShowF CheckField
+instance ShowF NamedType
 
 data Check where
   Check :: { checkName :: LText
-           , checkFields :: Assignment CheckField tps
+           , namedTypes :: Assignment NamedType tps
            , checkConstraints :: [S.LExpr]
            , checkRequirements :: [S.LExpr]
            , checkInScopeEnums :: EnumNameSet
@@ -85,15 +84,13 @@ data Check where
 
 deriving instance Show Check
 
--- | Unlike 'S.FunctionType', this saves the 'DerivedConstraint's on the
--- function's argument and return types, though they are currently not
--- used for anything.
 data FunctionType where 
   FunType :: { funName :: LText
-             , funArgTypes :: Assignment T.TypeRepr args
+             , funArgTypes :: Assignment NamedType args
              , funRetType  :: T.TypeRepr ret
-             , funArgDerivedConstraints :: Assignment (Const [DerivedConstraint]) args
              , funRetDerivedConstraints :: [DerivedConstraint]
+             , funArgConstraints :: [S.LExpr]
+             , funRetConstraints :: [S.LExpr]
              , funArgInScopeEnums :: [EnumNameSet]
              , funRetInScopeEnums :: EnumNameSet
              } -> FunctionType

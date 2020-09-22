@@ -145,6 +145,7 @@ data TypeError = TypeMismatchError S.LExpr SomeTypeOrString (Maybe SomeTypeOrStr
                | FieldNameAlreadyDefined LText
                | FunctionArgLengthError LText (Some FunctionTypeRepr) [S.LExpr]
                | UnexpectedSelfError AlexPosn
+               | UnexpectedReturnError AlexPosn
                | InternalError AlexPosn Text
                deriving Show
 
@@ -254,6 +255,8 @@ ppTypeError fp (FunctionArgLengthError (L p fn) (Some (FunctionTypeRepr{..})) ar
   PP.<+> PP.text "arguments, but was given" PP.<+> PP.int (length args)
 ppTypeError fp (UnexpectedSelfError p) =
   PP.text (errorPrefix fp p) PP.<+> PP.text "Unexpected 'self'."
+ppTypeError fp (UnexpectedReturnError p) =
+  PP.text (errorPrefix fp p) PP.<+> PP.text "Unexpected 'return'."
 ppTypeError fp (InternalError p str) =
   PP.text (errorPrefix fp p)
   PP.<+> PP.text "Internal error!" PP.$$ PP.nest 2 (S.ppText str)

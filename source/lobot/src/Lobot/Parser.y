@@ -52,7 +52,9 @@ import Lobot.Utils
   'type'      { L _ (Token TYPE _) }
   'abstract'  { L _ (Token ABSTRACT _) }
   '->'        { L _ (Token ARROW _) }
+  'assuming'  { L _ (Token ASSUMING _) }
   'self'      { L _ (Token SELF _) }
+  'return'    { L _ (Token RETURN _) }
   '.'         { L _ (Token DOT _) }
   '='         { L _ (Token EQUALS _) }
   '!='        { L _ (Token NOTEQUALS _) }
@@ -89,6 +91,7 @@ import Lobot.Utils
   -- layout tokens are handled differently
   LAYEND_WHERE  { L _ (Token (LAYEND (FromOther WHERE)) _) }
   LAYEND_THAT   { L _ (Token (LAYEND (FromOther THAT)) _) }
+  LAYEND_ASSMG  { L _ (Token (LAYEND (FromOther ASSUMING)) _) }
   LAYEND_RBRACE { L _ (Token (LAYEND (FromOther RBRACE)) _) }
   LAYEND_OTHER  { L _ (Token (LAYEND (FromOther _)) _) }
   LAYEND_NL     { L _ (Token (LAYEND _) _) }
@@ -134,8 +137,8 @@ kindType : type                                          { $1 }
          --   handled by the LAYENDs in 'kindDeclType'.
 
 checkDeclType :: { ([(LText,LType)],[LExpr],[LExpr]) }
-checkDeclType : 'check' nlLAYEND 'on' optLAYSEP fieldTps thatLAYEND 'that' optLAYSEP cns nlLAYEND { ($5, [], $9) }
-              | 'check' nlLAYEND 'on' optLAYSEP fieldTps whereLAYEND 'where' optLAYSEP cns thatLAYEND 'that' optLAYSEP cns nlLAYEND { ($5, $9, $13) }
+checkDeclType : 'check' optNlLAYEND 'on' optLAYSEP fieldTps thatLAYEND 'that' optLAYSEP cns nlLAYEND { ($5, [], $9) }
+              | 'check' optNlLAYEND 'on' optLAYSEP fieldTps whereLAYEND 'where' optLAYSEP cns thatLAYEND 'that' optLAYSEP cns nlLAYEND { ($5, $9, $13) }
 
 cns : expr              { [$1] }
     | expr anySep       { [$1] }
@@ -143,12 +146,21 @@ cns : expr              { [$1] }
 
 
 funType :: { LText -> FunctionType }
-funType : type '->' type nlLAYEND               { \nm -> FunType nm [$1] $3 }
-        | '(' ')' '->' type nlLAYEND            { \nm -> FunType nm [] $4 }
-        | '(' argTypes ')' '->' type nlLAYEND   { \nm -> FunType nm $2 $5 }
+funType : funArgs '->' type nlLAYEND { \nm -> FunType nm $1 $3 [] [] }
+        | funArgs '->' type assmgLAYEND 'assuming' optLAYSEP cns nlLAYEND { \nm -> FunType nm $1 $3 $7 [] }
+        | funArgs '->' type whereLAYEND 'where'    optLAYSEP cns nlLAYEND { \nm -> FunType nm $1 $3 [] $7 }
+        | funArgs '->' type assmgLAYEND 'assuming' optLAYSEP cns whereLAYEND 'where'    optLAYSEP cns nlLAYEND { \nm -> FunType nm $1 $3 $7 $11 }
+        | funArgs '->' type whereLAYEND 'where'    optLAYSEP cns assmgLAYEND 'assuming' optLAYSEP cns nlLAYEND { \nm -> FunType nm $1 $3 $11 $7 }
 
-argTypes : type                     { [$1] }
-         | type commaSep argTypes   { $1 : $3 }
+funArgs : type                            { [(loc $1 (pack "_"), $1)] }
+        | '(' ')'                         { [] }
+        | '(' funArgList ')'              { $2 }
+
+funArgList : funArg                       { [$1] }
+           | funArg commaSep funArgList   { $1 : $3 }
+
+funArg : type                             { (loc $1 (pack "_"), $1) }
+       | ident ':' type anyLAYEND         { (locText $1, $3) }
 
 
 type    : 'bool'                      { loc $1 $ BoolType }
@@ -200,6 +212,7 @@ expr2 : 'true'                       { loc $1 $ BoolLit True }
       | 'struct' withClause(field)   { loc $1 $ StructExpr Nothing $2 }
       | kindNames withClause(field)  { loc $1 $ StructExpr (Just $1) $2 }
       | 'self'                       { loc $1 $ SelfExpr }
+      | 'return'                     { loc $1 $ ReturnExpr }
       | ident                        { loc $1 $ VarExpr (locText $1) }
       | expr2 '.' ident              { loc $1 $ FieldExpr $1 (locText $3) }
       | expr2 '+' expr2              { loc $1 $ PlusExpr $1 $3 }
@@ -244,9 +257,11 @@ idents : ident          { locText $1 : [] }
        | ident idents   { locText $1 : $2 }
 
 
+optNlLAYEND : LAYEND_NL {} | {- empty -} {}
 nlLAYEND    : LAYEND_NL {}
 whereLAYEND : LAYEND_NL {} | LAYEND_WHERE {}
 thatLAYEND  : LAYEND_NL {} | LAYEND_THAT {}
+assmgLAYEND : LAYEND_NL {} | LAYEND_ASSMG {}
 anyLAYEND   : LAYEND_NL {} | LAYEND_WHERE {} | LAYEND_THAT {} | LAYEND_RBRACE {} | LAYEND_OTHER {}
 
 optLAYSEP : {- empty -} {} | LAYSEP {}

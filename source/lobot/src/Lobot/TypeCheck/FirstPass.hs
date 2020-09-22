@@ -45,14 +45,12 @@ import Control.Monad.Except (throwError)
 import Data.Functor.Const
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Some
-import Data.Parameterized.Pair
 import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 
 import Lobot.Utils hiding (unzip)
-import qualified Lobot.Utils as U
 import Lobot.Syntax as S
 import Lobot.Types as T
 
@@ -94,17 +92,20 @@ addAbsType :: LText -> Some TypeRepr -> TCM1 ()
 addAbsType nm (Some tp) = addKind (I.Kind nm tp [] [] HS.empty)
 
 addFunction :: I.FunctionType -> TCM1 ()
-addFunction (I.FunType (L p nm) arg_tps ret_tp arg_dcns
-                                ret_dcns arg_enms ret_enms) = do
+addFunction (I.FunType (L p nm) arg_ntps ret_tp ret_dcns
+                                arg_cns ret_cns arg_enms ret_enms) = do
   is_in <- H.member nm <$> get
   if is_in then throwError (FunctionNameAlreadyDefined (L p nm))
-           else let arg_dcns' = P1Cns [] arg_dcns
-                    ret_dcns' = P1Cns [] (Empty :> Const ret_dcns)
-                    arg_nms   = fmapFC (\_ -> Const "_") arg_tps
+           else let arg_tps = fmapFC I.namedTypeType arg_ntps
+                    arg_nms = fmapFC (Const . unLoc . I.namedTypeName) arg_ntps
+                    arg_cns' = P1Cns arg_cns (fmapFC constDCns arg_ntps)
+                    ret_cns' = P1Cns ret_cns (Empty :> Const ret_dcns)
                  in modify (H.insert nm (NamedFunction arg_tps ret_tp
-                                                       arg_dcns' ret_dcns'
+                                                       arg_cns' ret_cns'
                                                        arg_enms ret_enms
                                                        arg_nms))
+  where constDCns :: I.NamedType tp -> Const [DerivedConstraint] tp
+        constDCns (I.NamedType _ _ dcns) = Const dcns
 
 
 -- | Look up the given kind name in the current context and return its type,
@@ -146,7 +147,7 @@ firstPassDecl (S.CheckDecl ck) = do
   -- First, compute the types
   tcTypeResults <- traverse tcType (snd <$> S.checkFields ck)
   namedTypes' <- forM (zip (S.checkFields ck) tcTypeResults) $
-    \((nm, _), (Some tp, dcns, _)) -> pure $ Some $ I.CheckField nm tp dcns
+    \((nm, _), (Some tp, dcns, _)) -> pure $ Some $ I.NamedType nm tp dcns
   Some namedTypes <- return $ fromList namedTypes'
   -- let tps = fmapFC namedTypeType cftps
   -- Next, compute the constraints
@@ -169,9 +170,10 @@ firstPassDecl (S.AbsTypeDecl nm) | Some nmSymb <- someSymbol (unLoc nm) = do
   pure (I.TypeSynDecl nm (Some tp) HS.empty, Nothing)
 
 firstPassDecl (S.AbsFunctionDecl ftp) = do
-  f'@(I.FunType nm arg_tps ret_tp _ _ _ _) <- tcFunctionType ftp
+  f'@(I.FunType nm arg_ntps ret_tp _ _ _ _ _) <- tcFunctionType ftp
   Some nm' <- pure $ someSymbol (unLoc nm)
   addFunction f'
+  let arg_tps = fmapFC I.namedTypeType arg_ntps
   pure (I.FunctionDecl f', Just $ Some (FunctionTypeRepr nm' arg_tps ret_tp))
 
 
@@ -248,13 +250,12 @@ tcFieldType (f, tp) = do
 -- as the set of enum names each argument type and return type should bring
 -- into scope.
 tcFunctionType :: S.FunctionType -> TCM1 I.FunctionType
-tcFunctionType (S.FunType nm arg_tps ret_tp) = do
-  (Pair arg_tps' arg_dcns, arg_enms) <- unzipHelper <$> mapM tcType arg_tps
+tcFunctionType (S.FunType nm arg_ntps ret_tp arg_cns ret_cns) = do
+  (Some arg_ntps', arg_enms) <-
+    mapFst fromList . unzip . fmap permTpl <$> mapM (mapM tcType) arg_ntps
   (Some ret_tp', ret_dcns, ret_enms) <- tcType ret_tp
-  pure (I.FunType nm arg_tps' ret_tp' arg_dcns ret_dcns arg_enms ret_enms)
-  where unzipHelper :: [(Some TypeRepr, [I.DerivedConstraint], EnumNameSet)]
-                    -> ( Pair (Assignment TypeRepr)
-                              (Assignment (Const [I.DerivedConstraint]))
-                       , [EnumNameSet] ) 
-        unzipHelper ts = mapFst U.unzip . unzip $
-          (\(Some tp, ds, es) -> (Pair tp (Const ds), es)) <$> ts
+  pure (I.FunType nm arg_ntps' ret_tp' ret_dcns
+                  arg_cns ret_cns arg_enms ret_enms)
+  where permTpl :: ( S.LText, (Some TypeRepr, [I.DerivedConstraint], t) )
+                -> ( Some I.NamedType , t )
+        permTpl (nm', (Some tp, ds, es)) = (Some (I.NamedType nm' tp ds), es)

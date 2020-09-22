@@ -55,7 +55,7 @@ data Check = Check { checkName :: LText
                    , checkRequirements :: [LExpr]
                    } deriving (Show, Eq)
 
-data FunctionType = FunType LText [LType] LType
+data FunctionType = FunType LText [(LText, LType)] LType [LExpr] [LExpr]
                   deriving (Show, Eq)
 
 data Type = BoolType
@@ -72,6 +72,7 @@ data Expr = BoolLit Bool
           | SetLit [LText]
           | StructExpr (Maybe LType) [(LText, LExpr)]
           | SelfExpr
+          | ReturnExpr
           | VarExpr LText
           | FieldExpr LExpr LText -- ^ struct.field
           | ApplyExpr LText [LExpr]

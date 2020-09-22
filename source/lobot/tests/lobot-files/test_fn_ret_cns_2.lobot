@@ -1,0 +1,9 @@
+
+abstract always_error : (x : int, int) -> int
+  where return >= 1
+
+-- Because Lobot assumes the return type of `always_error` is always positive,
+-- it should never actually get called when generating instances of this kind!
+should_not_error : kind of struct
+  with x : int
+  where always_error(x,x) < 0
