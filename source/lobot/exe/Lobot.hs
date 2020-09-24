@@ -42,6 +42,7 @@ import Data.Text (Text)
 import Data.List (find)
 import Control.Monad (void, when, unless)
 import Data.Maybe
+import Data.Either (partitionEithers)
 import Data.Foldable (forM_)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Context hiding (null)
@@ -83,7 +84,7 @@ data FileInputOptions = BrowseKindInsts Text
                       -- ^ The kind name to count kind instances of
                       | RunCheck Text
                       -- ^ The check name to run
-                      | RunAllChecks
+                      | CheckAll
                       deriving Show
 
 fileInputOptions :: Parser FileInputOptions
@@ -101,9 +102,9 @@ fileInputOptions = (BrowseKindInsts . T.pack
                     <$> strOption (long "run" <> short 'r'
                                    <> metavar "CHECK"
                                    <> help "Run a given check."))
-               <|> (const RunAllChecks
-                    <$> switch (long "run-all" <> short 'a'
-                                <> help "Run all checks in the given file."))
+               <|> (const CheckAll
+                    <$> switch (long "check-all" <> short 'a'
+                                <> help "Run all checks in the given file and check all function calls."))
 
 -- | All the command line options to lobot
 data Options = Options { inFileName :: String
@@ -125,7 +126,9 @@ options = Options <$> argument str (metavar "FILE")
 main :: IO ()
 main = lobot =<< execParser i
   where i = info (options <**> helper)
-          ( fullDesc <> progDesc "If no options are given, run all checks in the given file."
+          ( fullDesc <> progDesc ("If no options are given, runs all checks in"
+                                  ++ " the given file and checks all function"
+                                  ++ " calls (same as --check-all).")
           )
 
 -- | Run the lobot CLI on the given options
@@ -145,19 +148,21 @@ lobot Options{..} = do
       -- print any type errors
       Left err -> do print $ ppTypeError inFileName err
                      exitFailure
-      Right (TypeCheckResult env ks cks, ws) -> do
-        let plugin = defaultPluginEnvOnPWD env
+      Right (TypeCheckResult (env :: Assignment (ConstrainedFunction env) env)
+                             ds, ws) -> do
+        let (ks, cks) = partitionEithers ds
+            plugin = defaultPluginEnvOnPWD env
         -- print any type warnings
         forM_ ws $ print . ppTypeWarning inFileName
         case inOptions of
           BrowseKindInsts k -> do
-            SomeNonAbsKind tp cns <- lookupKind k ks
+            SomeNonAbsKind _ tp cns <- lookupKind k ks
             putStrLn ""
             runSession z3 env plugin (Empty :> NamedType "self" tp) cns
                        (\s -> ensureNoBadCalls inFileName k s
                               >> browseKindInstances k inLimit inVerbose s)
           GenKindInsts k -> do
-            SomeNonAbsKind tp cns <- lookupKind k ks
+            SomeNonAbsKind _ tp cns <- lookupKind k ks
             void $ runSession z3 env plugin (Empty :> NamedType "self" tp) cns
                              (\s -> ensureNoBadCalls inFileName k s
                                     >> generateKindInstances k inLimit inVerbose s)
@@ -166,15 +171,20 @@ lobot Options{..} = do
             void $ runSession z3 env plugin ntps cns
                              (\s -> ensureNoBadCalls inFileName ck s
                                     >> runCheck ck inLimit s)
-          RunAllChecks -> do
-            let go :: Assignment (ConstrainedFunction env) env
-                   -> Some (Check env) -> IO Bool
-                go env' some_ck = do
-                  SomeNonAbsCheck ck ntps cns <- toNonAbstractCheck some_ck;
-                  isNothing <$> runSession z3 env' (defaultPluginEnvOnPWD env') ntps cns
+          CheckAll -> do
+            let go :: Either (Some (Kind env)) (Some (Check env)) -> IO Bool
+                go (Left some_k) = do 
+                  SomeNonAbsKind k tp cns <- toNonAbstractKind some_k
+                  runSession z3 env (defaultPluginEnvOnPWD env)
+                             (Empty :> NamedType "self" tp) cns
+                             (ensureNoBadCalls inFileName k)
+                  pure True
+                go (Right some_ck) = do
+                  SomeNonAbsCheck ck ntps cns <- toNonAbstractCheck some_ck
+                  isNothing <$> runSession z3 env (defaultPluginEnvOnPWD env) ntps cns
                                            (\s -> ensureNoBadCalls inFileName ck s
                                                   >> runCheck ck inLimit s)
-            bs <- mapM (go env) cks
+            bs <- mapM go ds
             if null bs then putStrLn "All checks pass. (File had no checks)"
             else if and bs then putStrLn "All checks pass."
             else return ()
@@ -182,7 +192,8 @@ lobot Options{..} = do
 -- | TODO Move to Kind.hs?
 data SomeNonAbstractKind env where
   SomeNonAbsKind :: NonAbstract tp
-                 => TypeRepr tp
+                 => Text
+                 -> TypeRepr tp
                  -> [KindExpr env tp BoolType]
                  -> SomeNonAbstractKind env
 
@@ -192,10 +203,16 @@ lookupKind :: Text -> [Some (Kind env)] -> IO (SomeNonAbstractKind env)
 lookupKind nm ks = case find (\(Some k) -> kindName k == nm) ks of
   Nothing -> do putStrLn $ "Kind '" ++ T.unpack nm ++ "' not found."
                 exitFailure
-  Just (Some k) -> case isNonAbstract (kindType k) of
+  Just some_k -> toNonAbstractKind some_k
+
+-- | Ensures the given kind is non-abstract
+toNonAbstractKind :: Some (Kind env) -> IO (SomeNonAbstractKind env)
+toNonAbstractKind (Some k) =
+  case isNonAbstract (kindType k) of
     Nothing -> do putStrLn $ "Cannot generate instances of abstract type."
                   exitFailure
-    Just IsNonAbs -> pure $ SomeNonAbsKind (kindType k) (kindConstraints k)
+    Just IsNonAbs -> pure $ SomeNonAbsKind (kindName k) (kindType k)
+                                           (kindConstraints k)
 
 -- | TODO Move to Kind.hs?
 data SomeNonAbstractCheck env where

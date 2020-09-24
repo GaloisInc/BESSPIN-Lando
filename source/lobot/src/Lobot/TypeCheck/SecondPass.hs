@@ -81,14 +81,14 @@ import Lobot.TypeCheck.FirstPass (tcType)
 secondPass :: Assignment FunctionTypeRepr env
            -> [I.Decl]
            -> WithWarnings (Either TypeError)
-                           ( [Some (K.Kind env)], [Some (K.Check env)]
+                           ( [Either (Some (K.Kind env)) (Some (K.Check env))]
                            , Assignment (K.ConstrainedFunction env) env )
 secondPass env ds = do
-  (ks, cks, Some cfns) <- evalTCM $ tcDecls env ds
+  (ds', Some cfns) <- evalTCM $ tcDecls env ds
   -- TODO? Right now there's not an easy way to get out of doing this check,
   -- but we should probably get rid of it eventually.
   case testEquality env (envTypes cfns) of
-    Just Refl -> pure (ks, cks, cfns)
+    Just Refl -> pure (ds', cfns)
     Nothing -> error $ "secondPass: bad function environment! Was secondPass "
                        ++ " not called directly after firstPass?"
 
@@ -153,18 +153,17 @@ lookupFunction env (L p fn) = do
 -- | Fully type check a list of intermediate declarations
 tcDecls :: Assignment FunctionTypeRepr env
         -> [I.Decl]
-        -> TCM2 env ( [Some (K.Kind env)]
-                    , [Some (K.Check env)]
+        -> TCM2 env ( [Either (Some (K.Kind env)) (Some (K.Check env))]
                     , Some (Assignment (K.ConstrainedFunction env)) )
-tcDecls _ [] = pure ([], [], Some Empty)
+tcDecls _ [] = pure ([], Some Empty)
 tcDecls env (d:ds) = do
   mb_d' <- tcDecl env d
-  (ks, cks, Some cfns) <- tcDecls env ds
+  (ds', Some cfns) <- tcDecls env ds
   case mb_d' of
-    Nothing -> pure (ks, cks, Some cfns)
-    Just (CheckedKind k) -> pure (k:ks, cks, Some cfns)
-    Just (CheckedCheck ck) -> pure (ks, ck:cks, Some cfns)
-    Just (CheckedFun (Some cfn)) -> pure (ks, cks, Some (cfns :> cfn))
+    Nothing -> pure (ds', Some cfns)
+    Just (CheckedKind k) -> pure ((Left k):ds', Some cfns)
+    Just (CheckedCheck ck) -> pure ((Right ck):ds', Some cfns)
+    Just (CheckedFun (Some cfn)) -> pure (ds', Some (cfns :> cfn))
 
 data CheckedDecl env = CheckedKind (Some (K.Kind env))
                      | CheckedCheck (Some (K.Check env))

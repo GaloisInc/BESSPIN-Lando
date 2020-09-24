@@ -80,13 +80,12 @@ import Lobot.TypeCheck.SecondPass
 -- that environment.
 data TypeCheckResult where
   TypeCheckResult :: Assignment (ConstrainedFunction env) env
-                  -> [Some (K.Kind env)]
-                  -> [Some (K.Check env)]
+                  -> [Either (Some (K.Kind env)) (Some (K.Check env))]
                   -> TypeCheckResult
 
 -- | Given a list of declarations, produce a 'TypeCheckResult'.
 typeCheck :: [S.Decl] -> Either TypeError (TypeCheckResult, [TypeWarning])
 typeCheck decls = fmap (mapSnd Set.toAscList) . runWriterT $ do
   (Some env, idecls) <- firstPass decls
-  (ks, cks, cfnEnv) <- secondPass env idecls
-  pure (TypeCheckResult cfnEnv ks cks)
+  (ds, cfnEnv) <- secondPass env idecls
+  pure (TypeCheckResult cfnEnv ds)

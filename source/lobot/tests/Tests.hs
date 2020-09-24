@@ -20,6 +20,7 @@ import Data.Parameterized.Some
 import Data.Traversable (forM)
 import Numeric.Natural
 import Control.Monad (when)
+import Data.Either (partitionEithers)
 import System.Directory
 import System.Exit (exitFailure)
 import System.FilePath (takeBaseName, replaceExtension)
@@ -63,21 +64,24 @@ testLobotFile fileName = do
     Right decls -> case typeCheck decls of
       Left err -> do print err
                      exitFailure
-      Right (TypeCheckResult _ [] _, []) -> do
-        putStrLn "No kinds in file"
-        exitFailure
-      Right (TypeCheckResult env ks _, []) -> case last ks of
-        Some k -> case isNonAbstract (kindType k) of
-          Just IsNonAbs -> do
-            (insts, _) <- runSession z3 env (defaultPluginEnv "./tests/functions" env)
-                                     (Empty :> NamedType "self" (kindType k))
-                                     (kindConstraints k)
-                                     (\s -> ensureNoBadCalls fileName (kindName k) s
-                                            >> collectAndFilterInstances countLimit s)
-            return $ TestResult (Some k) (Some <$> insts)
-          Nothing -> do
-            putStrLn $ "Bad test " ++ fileName ++ ", last kind is abstract"
-            exitFailure
+      Right (TypeCheckResult env ds, []) -> do
+        let (ks, _) = partitionEithers ds
+        case ks of
+          [] -> do putStrLn "No kinds in file"
+                   exitFailure
+          _ | Some k <- last ks ->
+            case isNonAbstract (kindType k) of
+              Just IsNonAbs -> do
+                (insts, _) <-
+                  runSession z3 env (defaultPluginEnv "./tests/functions" env)
+                                    (Empty :> NamedType "self" (kindType k))
+                                    (kindConstraints k)
+                                    (\s -> ensureNoBadCalls fileName (kindName k) s
+                                           >> collectAndFilterInstances countLimit s)
+                return $ TestResult (Some k) (Some <$> insts)
+              Nothing -> do
+                putStrLn $ "Bad test " ++ fileName ++ ", last kind is abstract"
+                exitFailure
       Right (_, ws) -> do
         putStrLn $ "Bad test " ++ fileName ++ ", generated warnings:"
         _ <- forM ws $ \w -> print $ ppTypeWarning fileName w
