@@ -19,7 +19,6 @@ abstract write_int_to_file : (int, filepath) -> int_file
 
 -- Run `-e abs_struct_test -v` to see that Lobot is really calling and
 -- caching `read_int_from_file` because of its call to `write_int_to_file`
-abs_struct_test : kind of struct
-  with x : int
-  where 1 <= x <= 3
-        write_int_to_file(x, tmp_file()).x = x
+abs_struct_test : kind of int
+  where 1 <= self <= 3
+        write_int_to_file(self, tmp_file()).x = self

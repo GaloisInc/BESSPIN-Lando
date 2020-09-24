@@ -26,6 +26,7 @@ module Lobot.Pretty
   , ppKindExpr
   , ppLiteral
   , ppLiteralWithKindName
+  , commas
   ) where
 
 import Lobot.Expr
@@ -76,8 +77,8 @@ ppKind kd =
 
 ppCheck :: Check env tps -> PP.Doc
 ppCheck ckd
-  | ctx <- fmapFC namedTypeType (checkFields ckd)
-  , nms <- fmapFC (Const . namedTypeName) (checkFields ckd)
+  | ctx <- namedTypeTypes (checkFields ckd)
+  , nms <- namedTypeNames (checkFields ckd)
   = PP.text (T.unpack $ checkName ckd) PP.<+> PP.colon PP.<+> PP.text "check"
     PP.$$ PP.nest 2 (ppWClause "with" (toListFC ppNamedType (checkFields ckd)))
     PP.$$ PP.nest 2 (ppWClause "where" (ppExpr (checkFunctionEnv ckd) ctx nms <$> checkConstraints ckd))

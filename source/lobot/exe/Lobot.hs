@@ -43,7 +43,6 @@ import Data.List (find)
 import Control.Monad (void, when, unless)
 import Data.Maybe
 import Data.Foldable (forM_)
-import Data.Functor.Const
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Context hiding (null)
 import Data.Parameterized.Some
@@ -154,23 +153,27 @@ lobot Options{..} = do
           BrowseKindInsts k -> do
             SomeNonAbsKind tp cns <- lookupKind k ks
             putStrLn ""
-            runSession z3 env plugin (Empty :> tp) cns
-                       (browseKindInstances k inLimit inVerbose)
+            runSession z3 env plugin (Empty :> NamedType "self" tp) cns
+                       (\s -> ensureNoBadCalls inFileName k s
+                              >> browseKindInstances k inLimit inVerbose s)
           GenKindInsts k -> do
             SomeNonAbsKind tp cns <- lookupKind k ks
-            void $ runSession z3 env plugin (Empty :> tp) cns
-                             (generateKindInstances k inLimit inVerbose)
+            void $ runSession z3 env plugin (Empty :> NamedType "self" tp) cns
+                             (\s -> ensureNoBadCalls inFileName k s
+                                    >> generateKindInstances k inLimit inVerbose s)
           RunCheck ck -> do
-            SomeNonAbsCheck _ fldnms tps cns <- lookupCheck ck cks
-            void $ runSession z3 env plugin tps cns
-                             (runCheck ck fldnms inLimit)
+            SomeNonAbsCheck _ ntps cns <- lookupCheck ck cks
+            void $ runSession z3 env plugin ntps cns
+                             (\s -> ensureNoBadCalls inFileName ck s
+                                    >> runCheck ck inLimit s)
           RunAllChecks -> do
             let go :: Assignment (ConstrainedFunction env) env
                    -> Some (Check env) -> IO Bool
                 go env' some_ck = do
-                  SomeNonAbsCheck nm fldnms tps cns <- toNonAbstractCheck some_ck;
-                  isNothing <$> runSession z3 env' (defaultPluginEnvOnPWD env')
-                                           tps cns (runCheck nm fldnms inLimit)
+                  SomeNonAbsCheck ck ntps cns <- toNonAbstractCheck some_ck;
+                  isNothing <$> runSession z3 env' (defaultPluginEnvOnPWD env') ntps cns
+                                           (\s -> ensureNoBadCalls inFileName ck s
+                                                  >> runCheck ck inLimit s)
             bs <- mapM (go env) cks
             if null bs then putStrLn "All checks pass. (File had no checks)"
             else if and bs then putStrLn "All checks pass."
@@ -197,8 +200,8 @@ lookupKind nm ks = case find (\(Some k) -> kindName k == nm) ks of
 -- | TODO Move to Kind.hs?
 data SomeNonAbstractCheck env where
   SomeNonAbsCheck :: NonAbstract tps
-                  => Text -> [Text]
-                  -> Assignment TypeRepr tps
+                  => Text
+                  -> Assignment NamedType tps
                   -> [Expr env tps BoolType]
                   -> SomeNonAbstractCheck env
 
@@ -213,16 +216,14 @@ lookupCheck nm cks = case find (\(Some ck) -> checkName ck == nm) cks of
 -- | Ensures the given check is non-abstract
 toNonAbstractCheck :: Some (Check env) -> IO (SomeNonAbstractCheck env)
 toNonAbstractCheck (Some ck) =
-  let fldnms = toListFC namedTypeName (checkFields ck)
-      tps    = fmapFC   namedTypeType (checkFields ck)
-  in case isNonAbstract tps of
+  case isNonAbstract (checkFields ck) of
     Nothing -> do putStrLn $ "Cannot generate instances of abstract type."
                   exitFailure
     Just IsNonAbs -> do
       let cns = checkConstraints ck ++ [negReqs]
           negReqs = NotExpr (foldr AndExpr (LiteralExpr (BoolLit True))
                                    (checkRequirements ck))
-      pure $ SomeNonAbsCheck (checkName ck) fldnms tps cns
+      pure $ SomeNonAbsCheck (checkName ck) (checkFields ck) cns
 
 
 -- | Given a kind name, an instance limit, a boolean indicating verbose mode,
@@ -237,7 +238,7 @@ browseKindInstances k limit verbose s@SessionData{..} =
   where msg = "Generating instances of '" ++ T.unpack k ++ "'..."
         onInst :: InstanceResult env (EmptyCtx ::> tp)
                -> Natural -> Natural -> IO Bool
-        onInst (HasInstance (Empty :> l) fcns calls) n _
+        onInst (HasInstance (Empty :> l) fcns new_calls) n _
           | null fcns || verbose = do
             if null fcns then putStrLn $ "Instance " ++ show n ++ ":"
                          else putStrLn $ "Generated an invalid instance:"
@@ -245,17 +246,17 @@ browseKindInstances k limit verbose s@SessionData{..} =
             when (not (null fcns)) $ do
               putStrLn "The constraints that failed were:"
               forM_ fcns (\c -> print . PP.nest 2 $
-                ppExpr (envTypes env) tps (Empty :> Const "self") c)
-            when (verbose && not (null calls)) $ do
+                ppExpr (envTypes env) (namedTypeTypes ntps) (namedTypeNames ntps) c)
+            when (verbose && not (null new_calls)) $ do
               putStrLn "Learned the values of the following function calls:"
               let ppCalls = fmap (\(FunctionCallResult fi args ret _) ->
-                              ppExpr (envTypes env) tps (Empty :> Const "self")
-                                     (EqExpr (ApplyExpr fi args) (LiteralExpr ret))) calls
+                              ppExpr (envTypes env) (namedTypeTypes ntps) (namedTypeNames ntps)
+                                     (EqExpr (ApplyExpr fi args) (LiteralExpr ret))) new_calls
               forM_ ppCalls (print . PP.nest 2)
             let outps = mapMaybe (\(FunctionCallResult fi args _ st) ->
                           if null st then Nothing
-                          else Just (ppExpr (envTypes env) tps (Empty :> Const "self")
-                                            (ApplyExpr fi args), st)) calls
+                          else Just (ppExpr (envTypes env) (namedTypeTypes ntps) (namedTypeNames ntps)
+                                            (ApplyExpr fi args), st)) new_calls
             when (verbose && not (null outps)) $ do
               putStrLn "The following function calls generated output:"
               forM_ outps (\(d,st) -> print . PP.nest 2 $ d PP.<> PP.colon PP.<+> PP.text st)
@@ -323,9 +324,9 @@ generateKindInstances k limit verbose =
 -- | Given a check name, a list of names for the fields of the check, an
 -- instance limit, and a solver session, this function tries to find a
 -- instance of the check (i.e. a counterexample) using 'generateInstances'.
-runCheck :: Text -> [Text] -> Natural -> SessionData env ctx
+runCheck :: forall env ctx. Text -> Natural -> SessionData env ctx
          -> IO (Maybe (Assignment Literal ctx))
-runCheck ck fldnms limit s = do
+runCheck ck limit s = do
   (ls,_) <- generateInstances msg limit onLimit onInst s
   pure $ listToMaybe ls
   where msg = "Generating counterexamples of '" ++ T.unpack ck ++ "'..."
@@ -333,8 +334,9 @@ runCheck ck fldnms limit s = do
                -> Natural -> Natural -> IO Bool
         onInst (ValidInstance ls _) _ _ = do
           putStrLn $ "'" ++ T.unpack ck ++ "' failed with counterexample:"
-          forM_ (zip fldnms (toListFC Some ls)) $ \(fldnm, Some l) ->
-            putStrLn $ "  " ++ T.unpack fldnm ++ " = " ++ show (ppLiteral l)
+          forM_ (zip (toListFC namedTypeName $ ntps s)
+                     (toListFC Some ls)) $ \(nm, Some l) ->
+            putStrLn $ "  " ++ T.unpack nm ++ " = " ++ show (ppLiteral l)
           pure False
         onInst (InvalidInstance _ _ _ _) _ _ = pure True
         onInst _ vis ivis = do
@@ -390,12 +392,12 @@ generateInstances genMsg limit onLimit onInst s = do
                   else pure ([], vis+ivis)
           | otherwise = do
           getNextInstance s >>= \case
-            HasInstance ls fcns calls -> do
+            HasInstance ls fcns new_calls -> do
               let (toAdd, vis', ivis') = case null fcns of
                     True  -> ([ls], vis+1, ivis) -- ls is a valid instance
                     False -> ([],   vis, ivis+1) -- ls is an invalid instance
               clearLinesWithCursor 1
-              cont <- onInst (HasInstance ls fcns calls) vis' ivis'
+              cont <- onInst (HasInstance ls fcns new_calls) vis' ivis'
               if cont then do
                 whenANSI $ putStrNow (msg vis' ivis')
                 (lss, tot) <- go limit' vis' ivis'

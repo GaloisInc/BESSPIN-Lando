@@ -1,0 +1,8 @@
+posint : kind of int where 1 <= self
+
+abstract add1 : (x : posint) -> int
+  assuming x < 10
+
+bad_arg_cns_check : check
+  on x : int
+  that add1(x) = x + 1

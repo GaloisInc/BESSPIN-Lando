@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
@@ -30,6 +31,8 @@ module Lobot.Instances
   , pattern ValidInstance
   , pattern InvalidInstance
   , getNextInstance
+  , getBadCalls
+  , ensureNoBadCalls
   , collectAndFilterInstances
   ) where
 
@@ -37,6 +40,7 @@ import Lobot.Expr
 import Lobot.Eval
 import Lobot.Kind
 import Lobot.Types
+import Lobot.Pretty
 import Lobot.Utils
 
 import qualified Data.BitVector.Sized    as BV
@@ -50,7 +54,12 @@ import qualified What4.Protocol.SMTLib2  as WS
 import qualified What4.SatResult         as WS
 import qualified What4.Solver            as WS
 import qualified What4.BaseTypes         as WT
+import qualified What4.Protocol.SMTWriter as WW
+import qualified What4.Protocol.SMTLib2.Syntax as SMT2
+import qualified Text.PrettyPrint as PP
 
+import Data.Maybe (catMaybes)
+import Control.Monad (forM)
 import Data.Foldable (forM_, traverse_)
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Context
@@ -61,6 +70,7 @@ import Data.Parameterized.Some
 import Data.Parameterized.SymbolRepr
 import Data.Parameterized.TraversableFC
 import Numeric.Natural
+import System.Exit
 import Prelude hiding ((!!))
 import Unsafe.Coerce (unsafeCoerce) -- I know, I know.
 
@@ -523,11 +533,56 @@ data SessionData env ctx where
                     , env :: Assignment (ConstrainedFunction env) env
                     , fns :: Assignment (FunctionImpl IO env) env
                     , cache :: FunctionCallCache env ctx
-                    , tps :: Assignment TypeRepr ctx
+                    , ntps :: Assignment NamedType ctx
                     , constraints :: [Expr env ctx BoolType]
+                    , calls :: [Some (FunctionCall env ctx)]
                     , symFns :: Assignment (SymFunction t) env
                     , symLits :: Assignment (SymLiteral t) ctx
                     } -> SessionData env ctx
+
+-- | Returns the list of all function 'calls' the in current session which do
+-- not satisfy their preconditions (i.e. argument constraints) as given by
+-- the 'env' of the current session. This is done for each call by pushing a
+-- new solver scope, assuming the negation of the argument constraints,
+-- checking sat, including the call if an instance is found, and finally
+-- popping this scope.
+getBadCalls :: SessionData env ctx -> IO [Some (FunctionCall env ctx)]
+getBadCalls SessionData{..} =
+  fmap catMaybes . forM calls $ \c@(Some (FunctionCall i args)) -> do
+    CFun _ _ cns _ <- pure $ env ! i
+    let e = subst args $ NotExpr (foldr AndExpr (LiteralExpr (BoolLit True)) cns)
+    WW.addCommand (WS.sessionWriter session) (SMT2.push 1)
+    SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits e
+    WS.assume (WS.sessionWriter session) symConstraint
+    mb <- WS.runCheckSat session $ \result -> pure $
+      case result of
+        WS.Sat _   -> Just c
+        WS.Unsat _ -> Nothing
+        WS.Unknown -> Just c
+    WW.addCommand (WS.sessionWriter session) (SMT2.pop 1)
+    pure mb
+
+-- | Given the current filename and kind/check name, if 'getBadCalls' returns
+-- a nonempty list, print an appropriate error message and 'exitFailure'.
+ensureNoBadCalls :: forall env ctx. FilePath -> T.Text
+                 -> SessionData env ctx -> IO ()
+ensureNoBadCalls fp nm s = do
+  getBadCalls s >>= \case
+    [] -> pure ()
+    bad_calls -> do
+      putStrLn $ fp ++ ":" ++ T.unpack nm ++ ":"
+                 ++ " Unable to prove that the preconditions of the"
+                 ++ " following function call(s) are satisfied:\n"
+      forM_ bad_calls $ \(Some (FunctionCall fi args)) -> do
+        putStrLn $ "-" ++ show (PP.nest 1 (ppTopExpr (ApplyExpr fi args)))
+                       ++ ", which assumes: "
+        print $ PP.nest 2 $ commas (fmap (\e -> ppTopExpr (subst args e))
+                                         (cfunArgConstraints $ env s ! fi))
+        putStrLn []
+      exitFailure
+  where ppTopExpr :: Expr env ctx tp -> PP.Doc
+        ppTopExpr = ppExpr (envTypes $ env s) (namedTypeTypes $ ntps s)
+                                              (namedTypeNames $ ntps s)
 
 -- | The result of one round of instance generation. In the 'HasInstance' case,
 -- we also include the list of constraints, if any, which are false after
@@ -572,15 +627,15 @@ getNextInstance SessionData{..} =
       let negateLiteral :: NonAbstract ctx
                         => Index ctx tp -> Literal tp -> IO [Expr env ctx BoolType]
           negateLiteral i l = do
-            IsNonAbs <- return $ nonAbstractIndex tps i
+            IsNonAbs <- return $ nonAbstractIndex ntps i
             return $ [NotExpr (EqExpr (VarExpr i) (LiteralExpr l))]
       negateExprs <- traverseAndCollect negateLiteral ls
       let negateExpr = foldr OrExpr (LiteralExpr (BoolLit False)) negateExprs
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits negateExpr
       WS.assume (WS.sessionWriter session) symConstraint
-      (fcns, calls) <- runEvalM fns ls cache $ getFailingConstraints constraints
-      traverse_ (assumeCall sym session symFns symLits) calls
-      return (HasInstance ls fcns calls)
+      (fcns, new_calls) <- runEvalM fns ls cache $ getFailingConstraints constraints
+      traverse_ (assumeCall sym session symFns symLits) new_calls
+      return (HasInstance ls fcns new_calls)
     WS.Unsat _ -> do return NoInstance
     WS.Unknown -> do return Unknown
 
@@ -591,14 +646,14 @@ runSession :: NonAbstract ctx
            -- ^ Environment of constrained functions
            -> Assignment (FunctionImpl IO env) env
            -- ^ Concrete functions
-           -> Assignment TypeRepr ctx
+           -> Assignment NamedType ctx
            -- ^ Types we are generating instances of
            -> [Expr env ctx BoolType]
            -- ^ Constraints
            -> (SessionData env ctx -> IO a)
            -- ^ Action to run
            -> IO a
-runSession z3_path env fns tps constraints action = do
+runSession z3_path env fns ntps constraints action = do
   Some nonceGen <- newIONonceGenerator
   sym <- WB.newExprBuilder WB.FloatIEEERepr EmptyBuilderState nonceGen
   WC.extendConfig WS.z3Options (WI.getConfiguration sym)
@@ -606,13 +661,14 @@ runSession z3_path env fns tps constraints action = do
       fn_ret_constraints = calls >>= \(Some (FunctionCall fi es)) ->
         fmap (giveSelf (ApplyExpr fi es)) (cfunRetConstraints (env ! fi))
   WS.withZ3 sym z3_path WS.defaultLogData $ \session -> do
-    symLits <- freshSymLiteralConstants sym session tps
+    symLits <- freshSymLiteralConstants sym session (namedTypeTypes ntps)
     symFns <- traverseFC (freshUninterpSymFunction sym) env
     forM_ (constraints ++ fn_ret_constraints) $ \e -> do
       SymLiteral BoolRepr symConstraint <- symEvalExpr sym symFns symLits e
       WS.assume (WS.sessionWriter session) symConstraint
     cache <- liftST new
-    action (SessionData sym session env fns cache tps constraints symFns symLits)
+    action (SessionData sym session env fns cache ntps
+                        constraints calls symFns symLits)
 
 -- | Collect instances of a context of types satisfying a set of constraints,
 -- only returning those instances that satisfy the given function environment.

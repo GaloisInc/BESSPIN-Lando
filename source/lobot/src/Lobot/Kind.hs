@@ -43,6 +43,8 @@ module Lobot.Kind
     -- * Checks
   , Check(..)
   , NamedType(..)
+  , namedTypeNames
+  , namedTypeTypes
     -- * Constrained functions
   , ConstrainedFunction(..)
   , cfunType'
@@ -101,6 +103,15 @@ instance ShowF (Kind env)
 data NamedType tp = NamedType { namedTypeName :: Text
                               , namedTypeType :: TypeRepr tp
                               }
+
+namedTypeNames :: Assignment NamedType tps -> Assignment (Const Text) tps
+namedTypeNames = fmapFC (Const . namedTypeName)
+
+namedTypeTypes :: Assignment NamedType tps -> Assignment TypeRepr tps
+namedTypeTypes = fmapFC namedTypeType
+
+instance DecideNonAbstract NamedType where
+  isNonAbstract (NamedType _ tp) = isNonAbstract tp
 
 data Check (env :: Ctx FunctionType) (tps :: Ctx Type) = Check
   { checkName :: Text

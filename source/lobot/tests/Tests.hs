@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
 module Main where
@@ -69,8 +70,10 @@ testLobotFile fileName = do
         Some k -> case isNonAbstract (kindType k) of
           Just IsNonAbs -> do
             (insts, _) <- runSession z3 env (defaultPluginEnv "./tests/functions" env)
-                                     (Empty :> kindType k) (kindConstraints k)
-                                     (collectAndFilterInstances countLimit)
+                                     (Empty :> NamedType "self" (kindType k))
+                                     (kindConstraints k)
+                                     (\s -> ensureNoBadCalls fileName (kindName k) s
+                                            >> collectAndFilterInstances countLimit s)
             return $ TestResult (Some k) (Some <$> insts)
           Nothing -> do
             putStrLn $ "Bad test " ++ fileName ++ ", last kind is abstract"

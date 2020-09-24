@@ -1,0 +1,11 @@
+posint : kind of int where 1 <= self
+
+-- `add1` specified to only work for digits (i.e. 1-9)
+abstract add1 : (x : posint) -> int
+  assuming x < 10
+
+-- This should generate all 3 instances, but if the `1 <= self <= 3` line is
+-- removed, Lobot should error
+good_arg_cns_test : kind of int
+  where 1 <= self <= 3
+        add1(self) = self + 1

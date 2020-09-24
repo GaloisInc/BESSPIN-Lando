@@ -40,7 +40,8 @@ abstract run_isa_test : (simulator, riscv_program) -> bool
 -- Each RISC-V configuration might have a different number of compliance tests.
 abstract num_isa_tests : riscv -> int
 -- Returns a particular ISA test.
-abstract get_isa_test : (riscv, int) -> riscv_program
+abstract get_isa_test : (riscv : riscv, test_id : int) -> riscv_program
+  assuming 1 <= test_id <= num_isa_tests(riscv)
 
 
 piccolo_build_check : check

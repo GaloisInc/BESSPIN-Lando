@@ -187,6 +187,7 @@ data FunctionCall env ctx ret where
                   } -> FunctionCall env ctx ret
 
 deriving instance Show (FunctionCall env ctx ret)
+instance ShowF (FunctionCall env ctx)
 
 -- | Return the set of all function calls which occur within the given
 -- expression.

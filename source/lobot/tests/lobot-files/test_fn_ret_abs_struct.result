@@ -2,8 +2,7 @@ TestResult
   { lastKind =
       Kind
         { kindName = "abs_struct_test"
-        , kindType =
-            StructRepr [ FieldRepr { fieldName = x , fieldType = IntRepr } ]
+        , kindType = IntRepr
         , kindFunctionEnv =
             [ FunctionTypeRepr
                 { functionName = write_int_to_file
@@ -27,38 +26,12 @@ TestResult
             ]
         , kindConstraints =
             [ AndExpr
-                (LteExpr (LiteralExpr (IntLit 1)) (FieldExpr (VarExpr 0) 0))
-                (LteExpr (FieldExpr (VarExpr 0) 0) (LiteralExpr (IntLit 3)))
+                (LteExpr (LiteralExpr (IntLit 1)) (VarExpr 0))
+                (LteExpr (VarExpr 0) (LiteralExpr (IntLit 3)))
             , EqExpr
-                (FieldExpr
-                   (ApplyExpr 0 [ FieldExpr (VarExpr 0) 0 , ApplyExpr 2 [] ]) 1)
-                (FieldExpr (VarExpr 0) 0)
+                (FieldExpr (ApplyExpr 0 [ VarExpr 0 , ApplyExpr 2 [] ]) 1)
+                (VarExpr 0)
             ]
         }
-  , instances =
-      [ [ StructLit
-            [ FieldInst
-                { fieldInstName = x
-                , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 1
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = x
-                , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 2
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = x
-                , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 3
-                }
-            ]
-        ]
-      ]
+  , instances = [ [ IntLit 1 ] , [ IntLit 2 ] , [ IntLit 3 ] ]
   }

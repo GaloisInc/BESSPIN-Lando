@@ -1,0 +1,23 @@
+TestResult
+  { lastKind =
+      Kind
+        { kindName = "good_arg_cns_test"
+        , kindType = IntRepr
+        , kindFunctionEnv =
+            [ FunctionTypeRepr
+                { functionName = add1
+                , functionArgTypes = [ IntRepr ]
+                , functionRetType = IntRepr
+                }
+            ]
+        , kindConstraints =
+            [ AndExpr
+                (LteExpr (LiteralExpr (IntLit 1)) (VarExpr 0))
+                (LteExpr (VarExpr 0) (LiteralExpr (IntLit 3)))
+            , EqExpr
+                (ApplyExpr 0 [ VarExpr 0 ])
+                (PlusExpr (VarExpr 0) (LiteralExpr (IntLit 1)))
+            ]
+        }
+  , instances = [ [ IntLit 1 ] , [ IntLit 2 ] , [ IntLit 3 ] ]
+  }
