@@ -11,7 +11,6 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
-import kotlinx.io.PrintWriter
 import java.io.File
 
 
@@ -64,9 +63,8 @@ class Convert : CliktCommand(
     }
 
     fun printToFile(dest: File, str: String?) {
-        val writer = PrintWriter(dest)
-        writer.print(str)
-        writer.close()
+        if (str != null)
+            dest.writeText(str)
     }
 }
 

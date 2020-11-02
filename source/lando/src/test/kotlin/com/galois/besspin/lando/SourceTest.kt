@@ -3,11 +3,7 @@ package com.galois.besspin.lando
 import com.galois.besspin.lando.ssl.ast.RawSSL
 import com.galois.besspin.lando.ssl.ast.rawSSLFromJSON
 import com.galois.besspin.lando.ssl.parser.parseFile
-import kotlinx.serialization.ImplicitReflectionSerializer
-import org.junit.ComparisonFailure
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.ExpectedException
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import java.io.File
@@ -59,7 +55,6 @@ class SourceTest(
     }
 
     @Test
-    @ImplicitReflectionSerializer
     fun testFile() {
         assertEquals("lando", source.extension, "is not a lando file")
 
