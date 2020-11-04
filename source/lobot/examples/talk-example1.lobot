@@ -1,0 +1,5 @@
+-- lobot -e even_digit examples/talk-example1.lobot
+
+even_digit : kind of int
+  where 0 <= self <= 9
+        self % 2 = 0

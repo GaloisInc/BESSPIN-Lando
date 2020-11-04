@@ -1,0 +1,18 @@
+-- lobot examples/talk-example2.lobot
+
+transaction : kind of struct
+  with dollars : int
+       cents   : int
+       method  : { Credit, Debit, Cash }
+  where 0 <= cents <= 99
+        0 <= dollars
+        cents > 0 | dollars > 0
+        (method = Credit) => (100*dollars + cents > 1000)
+
+limit_check_1 : check
+  on tns : transaction
+  that (tns.dollars = 5) => (tns.method in { Debit, Cash })
+
+limit_check_2 : check
+  on tns : transaction
+  that (tns.dollars = 10) => (tns.method in { Debit, Cash })
