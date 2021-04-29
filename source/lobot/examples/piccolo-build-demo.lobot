@@ -42,16 +42,17 @@ abstract num_isa_tests : riscv -> int
 -- Returns a particular ISA test.
 abstract get_isa_test : (riscv, int) -> riscv_program
 
+check_config : kind of bluespec_config
+  where riscv.reg_width = RV32
+        riscv.exts = {M}
+        riscv.privs = {M, U}
+        sim = IVerilog
+        debug = false
+        tv = false
 
 piccolo_build_check : check
-  on cfg : bluespec_config
+  on cfg : check_config
      test_id : int
-  where 1 <= test_id
-        test_id <= num_isa_tests(cfg.riscv)
-        cfg.riscv.reg_width = RV32
-        cfg.riscv.exts = {M}
-        cfg.riscv.privs = {M, U}
-        cfg.sim = IVerilog
-        cfg.debug = false
-        cfg.tv = false
+  where 1 <= test_id <= num_isa_tests(cfg.riscv)
+        1 <= test_id <= 5
   that run_isa_test(build_piccolo(cfg), get_isa_test(cfg.riscv, test_id))

@@ -1,11 +1,8 @@
 package com.galois.besspin.lando.ssl.ast
 
-import kotlinx.serialization.ImplicitReflectionSerializer
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.parse
+import kotlinx.serialization.*
+import kotlinx.serialization.json.*
+import kotlinx.serialization.modules.*
 
 @Serializable
 data class RawComment(
@@ -195,29 +192,27 @@ data class RawRelationships(
 
 private val sslModule = SerializersModule {
     polymorphic(RawElement::class) {
-        RawSystem::class with RawSystem.serializer()
-        RawSubsystem::class with RawSubsystem.serializer()
-        RawComponent::class with RawComponent.serializer()
-        RawEvents::class with RawEvents.serializer()
-        RawScenarios::class with RawScenarios.serializer()
-        RawRequirements::class with RawRequirements.serializer()
+        subclass(RawSystem::class)
+        subclass(RawSubsystem::class)
+        subclass(RawComponent::class)
+        subclass(RawEvents::class)
+        subclass(RawScenarios::class)
+        subclass(RawRequirements::class)
     }
 
     polymorphic(RawComponentPart::class) {
-        RawQuery::class with RawQuery.serializer()
-        RawConstraint::class with RawConstraint.serializer()
-        RawCommand::class with RawCommand.serializer()
+        subclass(RawQuery::class)
+        subclass(RawConstraint::class)
+        subclass(RawCommand::class)
     }
 }
 
-private val config = JsonConfiguration(prettyPrint = true)
-val jsonRawSSL = Json(context = sslModule, configuration = config)
+val jsonRawSSL = Json {serializersModule = sslModule; prettyPrint = true }
 
 fun RawSSL.toJSON(): String {
-    return jsonRawSSL.stringify(RawSSL.serializer(), this)
+    return jsonRawSSL.encodeToString(RawSSL.serializer(), this)
 }
 
-@ImplicitReflectionSerializer
 fun rawSSLFromJSON(text: String): RawSSL {
-    return jsonRawSSL.parse(text)
+    return jsonRawSSL.decodeFromString(text)
 }

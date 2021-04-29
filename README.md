@@ -17,3 +17,13 @@ This repository is organized as follows:
   details.
   
 - `docs` - Formal description of Lobot and the Lando SSL.
+
+### Status of un-merged branches
+
+This section gives short summaries of the branches which were still in-progress as of September 2020.
+
+- `lssl-v2` - Implements the changes to the Lando SSL discussed in [this Google Doc](https://docs.google.com/document/d/1dNa6TtV8_ON2jmsPzbp2ZXbtNIaBm_WG0y_Nea4SkQI/edit), along with a well-formedness checker for this version 2 of SSL and documents in `docs/system-spec-sublang` giving a formal presentation of its grammar and well-formedness criteria. This branch may be ready to merge once it is tested.
+
+- `lssl-well-formed` - Adds a document in `docs/system-spec-sublang` giving a formal presentation of the well-formedness criteria of the Lando SSL v1. If `lssl-v2` is merged, this branch could be merged in renaming `wf.tex` to `old_wf.tex`.
+
+- `feature/constrained-functions` - Work in progress on all three tasks in #56 (adding support for abstract functions with constraints in Lobot), but is currently missing support for functions which contain other function calls in their argument constraints. Before this can be merged some deep thought needs to be given as to whether these changes are really what we want.

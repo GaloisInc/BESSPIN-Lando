@@ -1170,7 +1170,7 @@ expressiveness to the language.
   the expression `x * x : even_pos_int` in `ex` is expanded to:
   
   ```
-  (x * x <= self) & ((x * x) mod 2 == 0)
+  (0 <= x * x) & ((x * x) mod 2 == 0)
   ```
 
 * Inequality chains: A chain of inequalities:

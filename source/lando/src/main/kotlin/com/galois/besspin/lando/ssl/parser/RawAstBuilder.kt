@@ -34,16 +34,16 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
             }
         }.unzip()
 
+        val comments = toAst(landoSourceContext.lineComments())
         val relationship = RawRelationships.fromRelationList(relationsListOfLists.flatten())
-        return RawSSL(nextUid(), elements.filterNotNull(), relationship, listOf())
+        return RawSSL(nextUid(), elements.filterNotNull(), relationship, comments)
     }
 
 //  system     : lineComments?
 //               SYSTEM
 //               sysname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
 //               paragraph
-//               (lineseps indexing)?
-//               blockend ;
+//               (indexing blockend)? ;
     private fun toAst(sysCxt: SSLParser.SystemContext): Pair<RawSystem, List<RawRelation>> {
         val name = toAst(sysCxt.sysname)
         val abbrevName = sysCxt.abbrev()?.let { toAst(it) }
@@ -65,8 +65,7 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
 //               SUBSYSTEM
 //               subsysname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
 //               paragraph
-//               (lineseps indexing)?
-//               blockend ;
+//               (indexing blockend)? ;
     private fun toAst(subsysCxt: SSLParser.SubsystemContext): Pair<RawSubsystem, List<RawRelation>> {
         val name = toAst(subsysCxt.subsysname)
         val abbrevName = subsysCxt.abbrev()?.let { toAst(it) }
@@ -93,8 +92,7 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
 //               COMPONENT
 //               compname=name abbrev? (RELKEYWORD relname=name)? comment? lineseps
 //               paragraph
-//               (lineseps componentParts)?
-//               blockend ;
+//               (componentParts blockend)? ;
     private fun toAst(cmpCxt: SSLParser.ComponentContext): Pair<RawComponent, List<RawRelation>> {
         val name = toAst(cmpCxt.compname)
         val abbrevName = cmpCxt.abbrev()?.let { toAst(it) }
@@ -256,7 +254,7 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         )
 
 
-//  relation          : lineComments? RELATION left=name (RELKEYWORD right=name)? comment? blockend ;
+//  relation          : lineComments? RELATION left=name RELKEYWORD right=name comment? blockend ;
     private fun toAst(relationCxt: SSLParser.RelationContext): List<RawRelation> =
         arrayListOf(
             createRelation(toAst(relationCxt.RELKEYWORD()), toAst(relationCxt.left), toAst(relationCxt.right))
@@ -327,7 +325,7 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
         toAst(abbrevCxt.WORD())
 
 //  wordSep    : spaces                   #wordSepSpaces
-//             | spaces? LINESEP spaces?  #wordSepLinesep ;
+//             | spaces? LINESEP          #wordSepLinesep ;
     private fun toAst(wordSepCxt: SSLParser.WordSepContext): String =
         when(wordSepCxt) {
             is SSLParser.WordSepSpacesContext -> toAst(wordSepCxt.spaces())
@@ -358,7 +356,7 @@ class RawAstBuilder(var landoSourceContext: SSLParser.LandoSourceContext) {
     private fun toAst(sentenceCxt: SSLParser.SentenceContext): String =
         toAst(sentenceCxt.sentBody()) + (sentenceCxt.sentTerm()?.let { toAst(it) } ?: "")
 
-//  paragraph  : sentence+ ;
+//  paragraph  : sentence+ parend;
     private fun toAst(paragraphCxt: SSLParser.ParagraphContext): String =
         paragraphCxt.sentence().map { toAst(it) }.joinToString(" ").trimEnd()
 
