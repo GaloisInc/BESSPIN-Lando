@@ -83,40 +83,17 @@ TestResult
             , FieldInst
                 { fieldInstName = b
                 , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 1
+                , fieldInstValue = IntLit 2
                 }
             , FieldInst
                 { fieldInstName = c
                 , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 0
-                }
-            , FieldInst
-                { fieldInstName = d
-                , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 0
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 3
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = IntRepr
                 , fieldInstValue = IntLit 1
                 }
             , FieldInst
-                { fieldInstName = c
-                , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 0
-                }
-            , FieldInst
                 { fieldInstName = d
                 , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 0
+                , fieldInstValue = IntLit 1
                 }
             ]
         ]
@@ -157,12 +134,12 @@ TestResult
             , FieldInst
                 { fieldInstName = c
                 , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 1
+                , fieldInstValue = IntLit 0
                 }
             , FieldInst
                 { fieldInstName = d
                 , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 1
+                , fieldInstValue = IntLit 0
                 }
             ]
         ]
@@ -175,7 +152,30 @@ TestResult
             , FieldInst
                 { fieldInstName = b
                 , fieldInstType = IntRepr
-                , fieldInstValue = IntLit 2
+                , fieldInstValue = IntLit 1
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
+                }
+            , FieldInst
+                { fieldInstName = d
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 0
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 3
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = IntRepr
+                , fieldInstValue = IntLit 1
                 }
             , FieldInst
                 { fieldInstName = c

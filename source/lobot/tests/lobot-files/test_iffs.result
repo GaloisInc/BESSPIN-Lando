@@ -21,17 +21,17 @@ TestResult
             [ FieldInst
                 { fieldInstName = p
                 , fieldInstType = BoolRepr
-                , fieldInstValue = BoolLit False
+                , fieldInstValue = BoolLit True
                 }
             , FieldInst
                 { fieldInstName = q
                 , fieldInstType = BoolRepr
-                , fieldInstValue = BoolLit False
+                , fieldInstValue = BoolLit True
                 }
             , FieldInst
                 { fieldInstName = r
                 , fieldInstType = BoolRepr
-                , fieldInstValue = BoolLit True
+                , fieldInstValue = BoolLit False
                 }
             ]
         ]
@@ -39,17 +39,17 @@ TestResult
             [ FieldInst
                 { fieldInstName = p
                 , fieldInstType = BoolRepr
-                , fieldInstValue = BoolLit True
+                , fieldInstValue = BoolLit False
                 }
             , FieldInst
                 { fieldInstName = q
                 , fieldInstType = BoolRepr
-                , fieldInstValue = BoolLit True
+                , fieldInstValue = BoolLit False
                 }
             , FieldInst
                 { fieldInstName = r
                 , fieldInstType = BoolRepr
-                , fieldInstValue = BoolLit False
+                , fieldInstValue = BoolLit True
                 }
             ]
         ]

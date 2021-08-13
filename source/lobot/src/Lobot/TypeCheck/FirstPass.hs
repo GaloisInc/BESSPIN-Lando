@@ -46,7 +46,7 @@ import Data.Functor.Const
 import Data.Parameterized.BoolRepr
 import Data.Parameterized.Some
 import Data.Parameterized.Pair
-import Data.Parameterized.Context hiding (null)
+import Data.Parameterized.Context hiding (null, unzip)
 import Data.Parameterized.NatRepr
 import Data.Parameterized.SymbolRepr
 
