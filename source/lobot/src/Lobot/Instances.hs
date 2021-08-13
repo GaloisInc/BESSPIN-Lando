@@ -115,7 +115,7 @@ symLiteralExprs (symLits :> symLit) = symLiteralExprs symLits :> symLiteralExpr 
 -- | Symbolic 'FunctionImpl'.
 data SymFunction t fntp where
   SymFunction :: { symFunctionType :: FunctionTypeRepr (FunType nm args ret)
-                 , symFunctionValue :: WB.ExprSymFn t (WB.Expr t) (TypesBaseTypes args) (TypeBaseType ret)
+                 , symFunctionValue :: WB.ExprSymFn t (TypesBaseTypes args) (TypeBaseType ret)
                  } -> SymFunction t (FunType nm args ret)
 
 -- | Extract the What4 expression from a symbolic field literal.
