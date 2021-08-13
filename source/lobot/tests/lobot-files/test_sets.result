@@ -40,43 +40,7 @@ TestResult
             [ FieldInst
                 { fieldInstName = a
                 , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
                 , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
                 }
             , FieldInst
                 { fieldInstName = b
@@ -86,6 +50,24 @@ TestResult
             , FieldInst
                 { fieldInstName = c
                 , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
                 , fieldInstValue = SetLit [ X , Y ] [ 0 ]
                 }
             ]
@@ -94,7 +76,7 @@ TestResult
             [ FieldInst
                 { fieldInstName = a
                 , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
                 }
             , FieldInst
                 { fieldInstName = b
@@ -135,168 +117,6 @@ TestResult
             , FieldInst
                 { fieldInstName = b
                 , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
                 , fieldInstValue = SetLit [ X , Y ] []
                 }
             , FieldInst
@@ -315,7 +135,7 @@ TestResult
             , FieldInst
                 { fieldInstName = b
                 , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
                 }
             , FieldInst
                 { fieldInstName = c
@@ -346,25 +166,7 @@ TestResult
             [ FieldInst
                 { fieldInstName = a
                 , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
-                }
-            , FieldInst
-                { fieldInstName = b
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] []
-                }
-            , FieldInst
-                { fieldInstName = c
-                , fieldInstType = SetRepr [ X , Y ]
                 , fieldInstValue = SetLit [ X , Y ] [ 1 ]
-                }
-            ]
-        ]
-      , [ StructLit
-            [ FieldInst
-                { fieldInstName = a
-                , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
                 }
             , FieldInst
                 { fieldInstName = b
@@ -387,12 +189,120 @@ TestResult
             , FieldInst
                 { fieldInstName = b
                 , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
                 , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
                 }
             , FieldInst
                 { fieldInstName = c
                 , fieldInstType = SetRepr [ X , Y ]
                 , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
                 }
             ]
         ]
@@ -418,12 +328,84 @@ TestResult
             [ FieldInst
                 { fieldInstName = a
                 , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] []
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
                 , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
                 }
             , FieldInst
                 { fieldInstName = b
                 , fieldInstType = SetRepr [ X , Y ]
                 , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
                 }
             , FieldInst
                 { fieldInstName = c
@@ -446,7 +428,7 @@ TestResult
             , FieldInst
                 { fieldInstName = c
                 , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 ]
                 }
             ]
         ]
@@ -454,7 +436,7 @@ TestResult
             [ FieldInst
                 { fieldInstName = a
                 , fieldInstType = SetRepr [ X , Y ]
-                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
                 }
             , FieldInst
                 { fieldInstName = b
@@ -465,6 +447,24 @@ TestResult
                 { fieldInstName = c
                 , fieldInstType = SetRepr [ X , Y ]
                 , fieldInstValue = SetLit [ X , Y ] [ 0 ]
+                }
+            ]
+        ]
+      , [ StructLit
+            [ FieldInst
+                { fieldInstName = a
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 0 , 1 ]
+                }
+            , FieldInst
+                { fieldInstName = b
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
+                }
+            , FieldInst
+                { fieldInstName = c
+                , fieldInstType = SetRepr [ X , Y ]
+                , fieldInstValue = SetLit [ X , Y ] [ 1 ]
                 }
             ]
         ]
