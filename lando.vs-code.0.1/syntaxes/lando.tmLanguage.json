@@ -1,0 +1,42 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Lando",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#linecomments"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.lando",
+				"match": "\\b(system|subsystem|inherit|client|contains|indexing|component|events|requirements|scenarios)\\b"
+			}]
+		},
+		"strings": {
+			"name": "string.quoted.double.lando",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.lando",
+					"match": "\\\\."
+				}
+			]
+		},
+		"linecomments": {
+			"patterns": [{
+				"name": "comment.line",
+				"begin": "//",
+				"end": "\n"
+			}]
+		}
+	},
+	"scopeName": "source.lando"
+}
