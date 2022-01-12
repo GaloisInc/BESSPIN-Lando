@@ -1,6 +1,6 @@
 \documentclass{article}
 \usepackage{fullpage}
-\input{macros}
+\input{grammar-macros-v1}
 
 \newcommand{\gnn}{\ensuremath{\mathcal{N}}}
 \newcommand{\gnl}{\ensuremath{\mathcal{L}}}
@@ -14,7 +14,7 @@
 
 \begin{document}
 
-\title{Lando System Specification Language v2 Grammar}
+\title{Lando System Specification Language Grammar}
 \maketitle
 
 \section{Notation}
@@ -44,90 +44,72 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 \begin{grammar}
   \grule{\gntn{landoSource}}{
     \glist{\gnl} 
-    \glist{\gntn{body}} \glist{\gnl} 
+    \glist{\gntn{specElement}} \glist{\gnl} 
     \glist{\gnc\gnl} \glist{\gnl} 
     \gntn{EOF}
   }{Lando source}
 
   \grule{\gntn{specElement}}{
-    \gntn{system} \gor \gntn{subsystem} \gor \gntn{subsystemImport} \gor \gntn{component}  \gor \gntn{componentImport} \gcont
+    \gntn{system} \gor \gntn{subsystem} \gor \gntn{component}   \gcont
     \gor \gntn{events} \gor \gntn{scenarios} \gor \gntn{requirements} \gor \gntn{relation}
-  }{Top-level element}
+  }{Specification Elements}
 
   \gline
 
   \grule{\gntn{system}}{
     \glist{\gnc\gnl}
-    \gtkw{system} \gntn{name} \gopt{\gntn{abbrev}} \gopt{\gnc} \glistnonempty{\gnl} \gcont
-    \gntn{explanation}  \glist{\gnc \gnl}
-    \gopt{\gntn{indexing} \gntn{blockend}} \gcont
-    \gopt{\gtkw{contains} \glist{\gnl} \gntn{body} \gtkw{end} \gopt{\gnc} \gntn{blockend}}
+    \gtkw{system} \gntn{elemName} \gopt{\gntn{abbrev}} \gopt{\gntn{relationClause}} \gopt{\gnc} \glistnonempty{\gnl} \gcont
+    \gntn{explanation}  
+    \gopt{\gntn{indexing} \gntn{blockend}}
   }{System}
-
-  \grule{\gntn{body}}{
-    \glist{\gntn{specElement}} 
-  }{Source/(Sub)system body}
 
   \grule{\gntn{subsystem}}{
     \glist{\gnc\gnl}
-    \gtkw{subsystem} \gntn{name} \gopt{\gntn{abbrev}} 
-    \glist{clientClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
-    \gntn{explanation}  \glist{\gnc \gnl}
-    \gopt{\gntn{indexing} \gntn{blockend}} \gcont
-    \gopt{\gtkw{contains} \glist{\gnl} \gntn{body} \gtkw{end} \gopt{\gnc} \gntn{blockend}}
+    \gtkw{subsystem} \gntn{elemName} \gopt{\gntn{abbrev}} \gopt{relationClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
+    \gntn{explanation}  
+    \gopt{\gntn{indexing} \gntn{blockend}}
   }{Subsystem}
-  
-  \grule{\gntn{subystemImport}}{
-    \glist{\gnc\gnl}
-    \gtkw{import} \glistnonempty{\gns} \gtkw{subsystem} \gntn{name} \gopt{\gntn{abbrev}}
-    \glist{clientClause} \gopt{\gnc} \gntn{blockend}
-  }{Subsystem import}
-  
+
+
   \grule{\gntn{explanation}}{
     \gntn{paragraph}
   }{Explanation}
 
+  
   \grule{\gntn{abbrev}}{
-    \glist{\gns} \gtkc{(} \glist{\gns} \gntn{nameWord} \glist{\gns} \gtkc{)} \glist{\gns}
+    \glist{\gns} \gtkc{(} \glist{\gns} \gntn{elemNameWord} \glist{\gns} \gtkc{)} \glist{\gns}
   }{Abbreviation}
 
-  \grule{\gntn{inheritClause}}{
-    \gtkw{inherit} \gntn{qname} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{qname} \glist{\gnl}}
-  }{Inherit clause}
+  
+  \grule{\gntn{relationClause}}{
+    \gntn{relationKind} \gntn{elemName}
+  }{Relation Clause}
 
-  \grule{\gntn{clientClause}}{
-    \gtkw{client} \gntn{qname} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{qname} \glist{\gnl}}
-  }{Client clause}
-    
+  \grule{\gntn{relationKind}}{
+    \gtkw{inherit} \gor \gtkw{client} \gor \gtkw{contains}
+  }{Relation Kind}
+
   \grule{\gntn{indexing}}{
     \gtkw{indexing} \glist{\gns} \glist{\glistnonempty{\gnl} \gntn{indexEntry}}
   }{Indexing}
 
   \grule{\gntn{indexEntry}}{
-    \gntn{indexValue} \gtkc{:} \gntn{indexValuePart} \glist{\glistnonempty{\gnl} \gntn{indexValuePart}}
+    \gntn{indexName} \gtkc{:} \gntn{indexValuePart} \glist{\glistnonempty{\gnl} \gntn{indexValuePart}}
   }{Index Entry}
 
   \grule{\gntn{indexValuePart}}{
-    \gntn{indexValue} \glist{\gnl} \gopt{\gnc}
+    \gntn{indexName} \glist{\gnl} \gopt{\gnc}
   }{Index Value Part}
 
   \gline
 
   \grule{\gntn{component}}{
     \glist{\gnc\gnl}
-    \gtkw{component} \gntn{name} \gopt{\gntn{abbrev}} 
-    \glist{inheritClause \gor clientClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
+    \gtkw{component} \gntn{elemName} \gopt{\gntn{abbrev}} \gopt{relationClause} \gopt{\gnc} \glistnonempty{\gnl} \gcont
     \gntn{explanation}  
     \glist{\gntn{componentFeature} \gntn{blockend}}
-  }{Component definition}
+  }{Component}
 
-  \grule{\gntn{componentImport}}{
-    \glist{\gnc\gnl}
-    \gtkw{import} \glistnonempty{\gns} \gtkw{component} \gntn{name} \gopt{\gntn{abbrev}}
-    \glist{clientClause} \gopt{\gnc}
-    \gntn{blockend}
-  }{Component import}
-    
   \grule{\gntn{componentFeature}}{
     \gntn{constraint} \gor \gntn{command} \gor \gntn{query}
   }{Component Feature}
@@ -150,7 +132,8 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gtkw{events}
     \gntn{name} \gopt{\gnc}
-    \glistnonempty{\gnl} \glist{\gntn{eventEntry}}
+    \glist{\glistnonempty{\gnl} \gntn{eventEntry}}
+    \gntn{blockend}
   }{Events}
 
 
@@ -158,7 +141,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gntn{name} \gopt{\gnc}
     \glistnonempty{\gnl}
-    \gntn{paragraph} 
+    \gntn{sentence} \gopt{\gnc}
   }{Event Entry}
 
 
@@ -167,7 +150,8 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gtkw{scenarios}
     \gntn{name} \gopt{\gnc}
-    \glistnonempty{\gnl} \glist{\gntn{scenarioEntry}}
+    \glist{\glistnonempty{\gnl} \gntn{scenarioEntry}}
+    \gntn{blockend}
   }{Scenarios}
 
 
@@ -175,7 +159,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gntn{name} \gopt{\gnc}
     \glistnonempty{\gnl}
-    \gntn{paragraph} 
+    \gntn{sentence} \gopt{\gnc}
   }{Scenario Entry}
 
 
@@ -183,7 +167,8 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gtkw{requirements}
     \gntn{name} \gopt{\gnc}
-    \glistnonempty{\gnl} \glist{\gntn{requirementEntry}}
+    \glist{\glistnonempty{\gnl} \gntn{requirementEntry}}
+    \gntn{blockend}
   }{Requirements}
 
 
@@ -191,14 +176,14 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
     \glist{\gnc\gnl}
     \gntn{name} \gopt{\gnc}
     \glistnonempty{\gnl}
-    \gntn{paragraph}
+    \gntn{sentence} \gopt{\gnc}
   }{Requirement Entry}
 
   \gline
 
   \grule{\gntn{relation}}{
     \glist{\gnc\gnl}
-    \gtkw{relation} \gntn{qname} \glistnonempty{\gntn{inheritClause} \gor \gntn{clientClause}}
+    \gtkw{relation} \gntn{elemName} \gopt{\gntn{relationClause}} % opt is a bug
     \gopt{\gnc}
     \gntn{blockend}
   }{Relation Declaration}
@@ -206,32 +191,31 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
   \gline
   
-  \grule{\gntn{qname}}{
-    \gntn{name} \gor \gntn{qname} \gtkc{:} \gntn{name}
-  }{Name}
-
   \grule{\gntn{name}}{
     \glist{\gns} \gntn{nameWord} \glist{\glistnonempty{\gns} \gntn{nameWord}} \glist{\gns}
-  }{Name facet}
+  }{Name}
 
   \grule{\gntn{nameWord}}{
-    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}():]*[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}():,.!?]} - \gtregex{//.*} - \gntn{nonName}
+    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}()]*[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}().!?]} - \gtregex{//.*}
   }{Name word}
 
-  \grule{\gntn{nonName}}{
-    \gtkw{client} \gor \gtkw{inherit} % \gor \ldots ??
-  }{Keywords}
+  \grule{\gntn{indexName}}{
+    \glist{\gns} \gntn{indexNameWord} \glist{\glistnonempty{\gns} \gntn{indexNameWord}} \glist{\gns} 
+  }{Index name}
+    
+  \grule{\gntn{indexNameWord}}{
+    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}:]+} - \gtregex{//.*}
+  }{Index name word}
 
-  \gline
 
-  \grule{\gntn{indexValue}}{
-    \glist{\gns} \gntn{indexValueWord} \glist{\glistnonempty{\gns} \gntn{indexValueWord}} \glist{\gns}
-  }{Index value}
+  \grule{\gntn{elemName}}{
+    \glist{\gns} \gntn{elemNameWord} \glist{\glistnonempty{\gns} \gntn{elemNameWord}} \glist{\gns}
+  }{Element name}
 
-  \grule{\gntn{indexValueWord}}{
-    \gtregex{[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}]*[\gtneg\gtesc{r}\gtesc{n} \gtesc{t}:]} - \gtregex{//.*} 
-  }{Index value word}
-
+  \grule{\gntn{elemNameWord}}{
+    \gntn{nameWord} - \gntn{relationKind}
+  }{Element name word}
+  
   \gline
 
   \grule{\gntn{paragraph}}{
@@ -239,7 +223,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   }{Paragraph}
 
   \grule{\gntn{parend}}{
-    \gopt{\gnc} (\gnb \glist{\gnl} \gor \gntn{EOF})
+    \gnb \glist{\gnl} \gor \gntn{EOF}
   }{Paragraph end}
 
   \grule{\gntn{sentence}}{
@@ -251,7 +235,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   }{Sentence Body}
 
   \grule{\gntn{wordSep}}{
-    \glistnonempty{\gns} \gor \glist{\gns} \gopt{\gnc} \gnl 
+    \glistnonempty{\gns} \gor \glist{\gns} \gnl 
   }{Word Separator}
 
   \grule{\gntn{sentWord}}{
@@ -290,22 +274,24 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
 \end{grammar}
 
+\vfill\eject
+
 \section{Context-Sensitive Considerations}
 
 The following extra-grammatical rules are applied during or after parsing the concrete grammar above.
 
 \begin{itemize}
 \item 
-  If a \gntn{system} or \gntn{subsystem} element does not have an explicit body, then it has
-  an implicit body that begins immediately after the element and extends until just
-  before the next \gtkw{system}, \gtkw{subsystem} or unmatched \gtkw{end}.
+  An implicit containment relationship is recorded from each \gntn{subsystem} into the
+  \gntn{system}, if any, most recently defined above it.
 \item
-  \gntn{subystemImport} an only appear in an (explicit or implicit) \gntn{system} or \gntn{subsystem}
-  body.  \gntn{component} and \gntn{componentImport} can only appear in an (explicit or implicit)
-  \gntn{subsystem} body.
+  An implicit containment relationship is recorded from each \gntn{component} into the
+  \gntn{subystem}, if any, most recently defined above it.
+\item 
+  Each \gntn{relationClause} is translated into an equivalent top-level \gntn{relation} declaration.
 \item
   A \gntn{sentence} that does not end with a \gtkc{.},\gtkc{!}, or \gtkc{?} symbol
-  (possibly followed by white space characters or line separators) induces a warning message.
+(possibly followed by white space characters or line separators) induces a warning message.
 \item
   Note that because of the ``greedy'' resolution of ambiguity, this warning can only occur at the end of a paragraph.
 \end{itemize}
