@@ -1,6 +1,6 @@
 \documentclass{article}
 \usepackage{fullpage}
-\input{macros1}
+\input{grammar-macros-v1}
 
 \newcommand{\gnn}{\ensuremath{\mathcal{N}}}
 \newcommand{\gnl}{\ensuremath{\mathcal{L}}}
@@ -292,7 +292,8 @@ The following extra-grammatical rules are applied during or after parsing the co
 \item
   A \gntn{sentence} that does not end with a \gtkc{.},\gtkc{!}, or \gtkc{?} symbol
 (possibly followed by white space characters or line separators) induces a warning message.
-Note that because of the ``greedy'' resolution of ambiguity, this warning can only occur at the end of a paragraph.
+\item
+  Note that because of the ``greedy'' resolution of ambiguity, this warning can only occur at the end of a paragraph.
 \end{itemize}
 
 \end{document}
