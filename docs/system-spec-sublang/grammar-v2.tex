@@ -98,7 +98,11 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gntn{clientClause}}{
     \gtkw{client} \gntn{qname} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{qname} \glist{\gnl}}
   }{Client clause}
-    
+
+  \grule{\gntn{containsClause}}{
+    \gtkw{contain} \gntn{qname} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{qname} \glist{\gnl}}
+  }{Client clause}
+
   \grule{\gntn{indexing}}{
     \gtkw{indexing} \glist{\gns} \glist{\glistnonempty{\gnl} \gntn{indexEntry}}
   }{Indexing}
@@ -198,7 +202,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
   \grule{\gntn{relation}}{
     \glist{\gnc\gnl}
-    \gtkw{relation} \gntn{qname} \glistnonempty{\gntn{inheritClause} \gor \gntn{clientClause}}
+    \gtkw{relation} \gntn{qname} \glistnonempty{\gntn{inheritClause} \gor \gntn{clientClause} \gor \gntn{containsClause}}
     \gopt{\gnc}
     \gntn{blockend}
   }{Relation Declaration}

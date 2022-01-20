@@ -167,6 +167,7 @@ data class RawRelation(
     val name: QName,
     val inherits: List<QName>,
     val clientOf: List<QName>,
+    val contains: List<QName>,
     val comments: List<RawComment>
 ): RawElement
 
@@ -197,7 +198,7 @@ private val sslModule = SerializersModule {
     }
 }
 
-val jsonRawSSL = Json {serializersModule = sslModule; prettyPrint = true }
+val jsonRawSSL = Json {serializersModule = sslModule; prettyPrint = true;}
 
 fun RawSSL.toJSON(): String {
     return jsonRawSSL.encodeToString(RawSSL.serializer(), this)

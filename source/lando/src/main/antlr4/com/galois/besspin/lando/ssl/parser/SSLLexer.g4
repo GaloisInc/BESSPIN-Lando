@@ -72,7 +72,7 @@ tokens {
     NMWORD, SWORD, IWORD, SPACE, INDEXSEP, RELSEP,
     QNAMESEP, ABBREVSTART, ABBREVEND,
     CONTAINS, END,
-    INHERIT, CLIENT,
+    INHERIT, CLIENT, REL_CONTAINS,
     COMMANDTERM, CONSTRAINTTERM, QUERYTERM
 }
 
@@ -135,7 +135,7 @@ COMPONENT    : F_COMPONENT    -> pushMode(MODE_PARAGRAPH), pushMode(MODE_NAME) ;
 IMPORT_SUBSYSTEM : F_IMPORT_SUBSYSTEM       -> pushMode(MODE_NAME);
 IMPORT_COMPONENT : F_IMPORT_COMPONENT       -> pushMode(MODE_NAME);
 
-CONTAINS   : F_CONTAINS  ;
+CONTAINS   : F_CONTAINS  -> type(CONTAINS);
 END        : F_END ;
 
 EVENTS       : F_EVENTS       -> pushMode(MODE_ENTRY), pushMode(MODE_NAME), pushMode(0), pushMode(MODE_NAME) ; //see [Note 3]
@@ -155,7 +155,7 @@ NON_KEYWORD  : F_GEN_WORD      { revert(); };
 
 //Name lexing, terminated by end of line
 mode MODE_NAME;
-
+NM_CONTAINS   : F_CONTAINS  -> type(REL_CONTAINS);
 NM_COMMENTSTART     : F_LINECOMMENT -> type(COMMENT) ;
 
 NM_LINESEP          : F_LINESEP -> type(LINESEP), popMode ;
