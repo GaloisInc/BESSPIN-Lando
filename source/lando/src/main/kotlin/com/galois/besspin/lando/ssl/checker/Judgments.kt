@@ -4,18 +4,44 @@ import com.galois.besspin.lando.ssl.ast.*
 
 typealias ElementMap = MutableMap<RawElement, Context>
 
+sealed class CheckStatus(){
+    class Ok(
+        val identifier: String,
+        val elements: List<RawElement> = listOf(),
+        val message: String = "",
+        val preconds: List<CheckStatus> = listOf()
+
+    ) : CheckStatus(
+    )
+
+    class Error(
+        val identifier: String,
+        val elements: List<RawElement> ,
+        val message: String,
+        val preconds: List<CheckStatus> = listOf()
+
+    ) : CheckStatus(
+    )
+}
+
+
 /**
  * RawAst Well-Formedness Judgments
  */
 class Judgments {
-    fun isValidTopLevel(element: RawElement) : Boolean {
-        return (element is RawSystem) || (element is RawSubsystem) || (element is RawComponent) ||
+    fun checkValidTopLevel(element: RawElement) : CheckStatus {
+        val isTopLevel = (element is RawSystem) || (element is RawSubsystem) || (element is RawComponent) ||
                 (element is RawEvents) || (element is RawScenarios) || (element is RawRequirements) ||
                 (element is RawRelation)
+        if (isTopLevel) {
+            return CheckStatus.Ok("validTopLevel")
+        } else {
+            return CheckStatus.Error("validTopLevel", listOf(element), "TODO")
+        }
     }
 
-    fun isValidContains(parent : RawElement, child : RawElement) : Boolean {
-        return when {
+    fun checkValidContains(parent : RawElement, child : RawElement) : CheckStatus {
+        val isValidContains = when {
             (parent is RawSystem) ->
                 ((child is RawSubsystem) || (child is RawSubsystemImport) || (child is RawRelation))
             (parent is RawSubsystem) ->
@@ -25,10 +51,15 @@ class Judgments {
                         (child is RawScenarios)))
             else -> false
         }
+        if (isValidContains) {
+            return CheckStatus.Ok("validSystemContains")
+        } else {
+            return CheckStatus.Error("validSystemContains", listOf(parent, child), "TODO")
+        }
     }
 
-    fun isValidClient(parent : RawElement, child : RawElement) : Boolean {
-        return when {
+    fun checkValidClient(parent : RawElement, child : RawElement) : CheckStatus {
+        val isValidClient = when {
             ((parent is RawSubsystem) || (parent is RawSubsystemImport)) ->
                 ((child is RawSubsystem) || (child is RawSubsystemImport) ||
                         (child is RawComponent) || (child is RawComponentImport))
@@ -37,9 +68,14 @@ class Judgments {
                         (child is RawComponent) || (child is RawComponentImport))
             else -> false
         }
+        if (isValidClient) {
+            return CheckStatus.Ok("validClient")
+        } else {
+            return CheckStatus.Error("validClient", listOf(parent, child), "TODO")
+        }
     }
 
-    fun introduceElements(gamma : Context, phi : ElementMap, es : List<RawElement>) {
+    fun introduceElements(gamma : Context, phi : ElementMap, es : List<RawElement>) : CheckStatus {
         for (elem in es) {
             when {
                 (elem is RawSystem) -> {
@@ -65,9 +101,12 @@ class Judgments {
                 }
             }
         }
+        return CheckStatus.Ok("validElementsList")
     }
 
-    fun checkSource(source : List<RawElement>) : Boolean {
+    fun checkSource(source : List<RawElement>) : CheckStatus {
+        var res = mutableListOf<CheckStatus>()
+
         /** precond: the source implies a valid context */
         val gamma0 = Context()
         var phi0 = mutableMapOf<RawElement, Context>()
@@ -75,7 +114,8 @@ class Judgments {
 
         /** precond: all elements referenced in the source are top level elements */
         for (elem in source) {
-            assert(isValidTopLevel(elem))
+            val cs =  checkValidTopLevel(elem)
+            res.add(cs)
         }
 
         /** precond: noCycles in the inheritance relations */
@@ -91,7 +131,7 @@ class Judgments {
             }
         }
 
-        return true
+        return CheckStatus.Ok("validSource")
     }
 
     /**
@@ -99,7 +139,7 @@ class Judgments {
      * -----------------------------------------------------------------------------------------------------------------
      * Gamma |- e_s @ System{name = n, abbrev = |na|, explanation=t, body=esb, ...} => {n |-> es, na |-> es}
      */
-    fun checkIntroduceSystem(currentContext: Context, phi : ElementMap, element: RawSystem) : Boolean {
+    fun checkIntroduceSystem(currentContext: Context, phi : ElementMap, element: RawSystem) : CheckStatus {
         /** precond: if abbrev name is defined, it must not equal the elements name */
         if (element.abbrevName != null) {
             assert(element.abbrevName == element.name)
@@ -109,14 +149,14 @@ class Judgments {
         if (element.body != null) {
             introduceElements(currentContext, phi, element.body!!)
             for (elem in element.body!!.toList()) {
-                assert(isValidContains(element, elem))
+                //assert(checkValidContains(element, elem))
             }
         }
 
-        return true
+        return CheckStatus.Ok("validSystem")
     }
 
-    fun checkIntroduceSubsystem(currentContext : Context, phi : ElementMap, element: RawSubsystem) : Boolean {
+    fun checkIntroduceSubsystem(currentContext : Context, phi : ElementMap, element: RawSubsystem) : CheckStatus {
         /** precond: if abbrev name is defined, it must not equal the elements name */
         if (element.abbrevName != null) {
             assert(element.abbrevName == element.name)
@@ -126,18 +166,18 @@ class Judgments {
         if (element.body != null) {
             introduceElements(currentContext, phi, element.body!!)
             for (elem in element.body!!.toList()) {
-                assert(isValidContains(element, elem))
+                //assert(checkValidContains(element, elem))
             }
         }
 
         /** precond: all clients referenced are of the valid type */
         for (q in element.clientOf) {
-            assert(isValidClient(element, currentContext.qLook(q)!!))
+            //assert(checkValidClient(element, currentContext.qLook(q)!!))
         }
 
         /** precond: all parents referenced are of the valid type */
         /** TODO: this field doesn't exist!? */
 
-        return true
+        return CheckStatus.Ok("validSubsystem")
     }
 }
