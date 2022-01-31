@@ -22,10 +22,16 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
     var ctx = es.toMutableList()
 
     fun addSystem(e : RawSystem) {
+        if (e.abbrevName != null) {
+            ctx.add(Pair(e.abbrevName, e))
+        }
         ctx.add(Pair(e.name, e))
     }
 
     fun addSubsystem(e : RawSubsystem) {
+        if (e.abbrevName != null) {
+            ctx.add(Pair(e.abbrevName, e))
+        }
         ctx.add(Pair(e.name, e))
     }
 

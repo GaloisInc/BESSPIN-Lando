@@ -2,6 +2,8 @@ package com.galois.besspin.lando.ssl.checker
 
 import com.galois.besspin.lando.ssl.ast.*
 
+typealias ElementMap = MutableMap<RawElement, Context>
+
 /**
  * RawAst Well-Formedness Judgments
  */
@@ -37,16 +39,39 @@ class Judgments {
         }
     }
 
-    fun checkSource(source : List<RawElement>) : Boolean {
-        /** precond: the source implies a context */
-        /** TODO: check the the context is well-formed */
-        val gamma0 = Context()
-        for (elem in source) {
+    fun introduceElements(gamma : Context, phi : ElementMap, es : List<RawElement>) {
+        for (elem in es) {
             when {
-                (elem is RawSystem) -> {checkIntroduceSystem(elem); gamma0.addSystem(elem)}
-                (elem is RawSubsystem) -> {checkIntroduceSubsystem(gamma0, elem); gamma0.addSubsystem(elem)}
+                (elem is RawSystem) -> {
+                    /** this introduction involves a new context */
+                    val gammap = Context();
+                    checkIntroduceSystem(gammap, phi, elem);
+                    gamma.addSystem(elem);
+                    phi.put(elem, gammap);
+                }
+                (elem is RawSubsystem) -> {
+                    /** this introduction involves a new context */
+                    val gammap = Context();
+                    checkIntroduceSubsystem(gammap, phi, elem);
+                    gamma.addSubsystem(elem);
+                    phi.put(elem, gammap)
+                }
+                else -> {
+                    /* TODO: this should be a valid rule, but Element has no name so it doesn't imply a
+                    * valid element by the document standards
+                    gamma.addElement(elem);
+                    phi.put(elem, gamma)
+                    */
+                }
             }
         }
+    }
+
+    fun checkSource(source : List<RawElement>) : Boolean {
+        /** precond: the source implies a valid context */
+        val gamma0 = Context()
+        var phi0 = mutableMapOf<RawElement, Context>()
+        introduceElements(gamma0, phi0, source)
 
         /** precond: all elements referenced in the source are top level elements */
         for (elem in source) {
@@ -70,47 +95,44 @@ class Judgments {
     }
 
     /**
-     * Gamma |- e => Gamma'  Gamma |- es => Gamma''
-     * --------------------------------------------
-     * Gamma |- e :: es => Gamma' DisjUnion Gamma''
-     */
-    fun checkIntroduceElement() : Boolean {
-        TODO()
-    }
-
-    /**
-     * -----------------------
-     * Gamma |- []_elem => {}
-     */
-    fun check_empty_context() : Boolean {
-        TODO()
-    }
-
-    /**
      * n != na Gamma |- t \forall e \in esb, valid-contains(es, e) \Phi_o(es) = \Gamma' \Gamma' <| Gamma |- esb => Gamma
      * -----------------------------------------------------------------------------------------------------------------
      * Gamma |- e_s @ System{name = n, abbrev = |na|, explanation=t, body=esb, ...} => {n |-> es, na |-> es}
      */
-    fun checkIntroduceSystem(element: RawSystem) : Boolean {
-        TODO()
-    }
-
-    fun checkIntroduceSubsystem(currentContext : Context, element: RawSubsystem) : Boolean {
-        /** precond: if abbrev name is defined, it must not equal the system's name */
+    fun checkIntroduceSystem(currentContext: Context, phi : ElementMap, element: RawSystem) : Boolean {
+        /** precond: if abbrev name is defined, it must not equal the elements name */
         if (element.abbrevName != null) {
             assert(element.abbrevName == element.name)
         }
 
-        /** precond: all elements in the subsystem body must be a valid contains type */
+        /** precond: all elements in the subsystem body must imply a valid context and be a valid contains type */
         if (element.body != null) {
+            introduceElements(currentContext, phi, element.body!!)
             for (elem in element.body!!.toList()) {
-                isValidContains(element, elem)
+                assert(isValidContains(element, elem))
+            }
+        }
+
+        return true
+    }
+
+    fun checkIntroduceSubsystem(currentContext : Context, phi : ElementMap, element: RawSubsystem) : Boolean {
+        /** precond: if abbrev name is defined, it must not equal the elements name */
+        if (element.abbrevName != null) {
+            assert(element.abbrevName == element.name)
+        }
+
+        /** precond: all elements in the subsystem body must imply a valid context and be a valid contains type */
+        if (element.body != null) {
+            introduceElements(currentContext, phi, element.body!!)
+            for (elem in element.body!!.toList()) {
+                assert(isValidContains(element, elem))
             }
         }
 
         /** precond: all clients referenced are of the valid type */
         for (q in element.clientOf) {
-            isValidClient(element, currentContext.qLook(q)!!)
+            assert(isValidClient(element, currentContext.qLook(q)!!))
         }
 
         /** precond: all parents referenced are of the valid type */
