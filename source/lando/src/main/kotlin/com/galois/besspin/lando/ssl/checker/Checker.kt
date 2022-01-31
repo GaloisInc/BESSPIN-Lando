@@ -40,7 +40,9 @@ class RawAstChecker {
     }
 
     fun check(ast: RawSSL) : String {
-        globalEnv = build(ast.body) // also builds globalSEnv
+        val ctx = Judgments().checkSource(ast.body) // also builds globalSEnv
+
+        /*
         check(globalEnv, ast.body) // also builds globalIRel and checks it is acyclic
         // check for multiple System elements
         var systemFound = false
@@ -53,9 +55,16 @@ class RawAstChecker {
         for (elem in ast.body)
             validToplevel(elem)
         return formatErrors()
+         */
+        return ""
     }
 
-    private fun build(ast: List<RawElement>): Env {
+    private fun buildInheritanceRelations(ast : RawSSL) : Relation {
+        TODO()
+    }
+
+    private fun buildContext(ast: RawSSL): Context {
+        /*
         val env: Env = mutableMapOf()
         for (elem in ast) {
             when (elem) {
@@ -107,9 +116,11 @@ class RawAstChecker {
             }
         }
         return env
+        */
+        return Context()
     }
 
-
+/*
     private fun check(env:Env,ast: List<RawElement>) {
         for (elem in ast) {
             when (elem) {
@@ -172,6 +183,7 @@ class RawAstChecker {
             }
         }
     }
+*/
 
     private fun validToplevel(elem:RawElement) {
         if (elem !is RawSubsystemImport && elem !is RawComponentImport) {
