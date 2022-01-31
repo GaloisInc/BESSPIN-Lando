@@ -12,16 +12,40 @@ class Judgments {
                 (element is RawRelation)
     }
 
+    fun isValidContains(parent : RawElement, child : RawElement) : Boolean {
+        return when {
+            (parent is RawSystem) ->
+                ((child is RawSubsystem) || (child is RawSubsystemImport) || (child is RawRelation))
+            (parent is RawSubsystem) ->
+                ((child is RawSubsystem) || (child is RawSubsystemImport) ||
+                        (child is RawComponent) || (child is RawComponentImport)||
+                        (child is RawRelation) || (child is RawEvents) || (child is RawRequirements ||
+                        (child is RawScenarios)))
+            else -> false
+        }
+    }
+
+    fun isValidClient(parent : RawElement, child : RawElement) : Boolean {
+        return when {
+            ((parent is RawSubsystem) || (parent is RawSubsystemImport)) ->
+                ((child is RawSubsystem) || (child is RawSubsystemImport) ||
+                        (child is RawComponent) || (child is RawComponentImport))
+            ((parent is RawComponent) || (parent is RawComponentImport)) ->
+                ((child is RawSubsystem) || (child is RawSubsystemImport) ||
+                        (child is RawComponent) || (child is RawComponentImport))
+            else -> false
+        }
+    }
+
     fun checkSource(source : List<RawElement>) : Boolean {
         /** precond: the source implies a context */
         /** TODO: check the the context is well-formed */
         val gamma0 = Context()
         for (elem in source) {
             when {
-                (elem is RawSystem) -> checkIntroduceSystem(elem)
-                (elem is RawSubsystem) -> checkIntroduceSubsystem(elem)
+                (elem is RawSystem) -> {checkIntroduceSystem(elem); gamma0.addSystem(elem)}
+                (elem is RawSubsystem) -> {checkIntroduceSubsystem(gamma0, elem); gamma0.addSubsystem(elem)}
             }
-            gamma0.addElement(elem)
         }
 
         /** precond: all elements referenced in the source are top level elements */
@@ -71,7 +95,27 @@ class Judgments {
         TODO()
     }
 
-    fun checkIntroduceSubsystem(element: RawSubsystem) : Boolean {
-        TODO()
+    fun checkIntroduceSubsystem(currentContext : Context, element: RawSubsystem) : Boolean {
+        /** precond: if abbrev name is defined, it must not equal the system's name */
+        if (element.abbrevName != null) {
+            assert(element.abbrevName == element.name)
+        }
+
+        /** precond: all elements in the subsystem body must be a valid contains type */
+        if (element.body != null) {
+            for (elem in element.body!!.toList()) {
+                isValidContains(element, elem)
+            }
+        }
+
+        /** precond: all clients referenced are of the valid type */
+        for (q in element.clientOf) {
+            isValidClient(element, currentContext.qLook(q)!!)
+        }
+
+        /** precond: all parents referenced are of the valid type */
+        /** TODO: this field doesn't exist!? */
+
+        return true
     }
 }

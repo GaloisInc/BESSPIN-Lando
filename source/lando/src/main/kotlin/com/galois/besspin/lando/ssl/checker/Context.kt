@@ -2,6 +2,9 @@ package com.galois.besspin.lando.ssl.checker
 
 import com.galois.besspin.lando.ssl.ast.RawElement
 import com.galois.besspin.lando.ssl.ast.Name
+import com.galois.besspin.lando.ssl.ast.QName
+import com.galois.besspin.lando.ssl.ast.RawSubsystem
+import com.galois.besspin.lando.ssl.ast.RawSystem
 
 /**
  * Context for Type Raw Checking
@@ -15,16 +18,32 @@ import com.galois.besspin.lando.ssl.ast.Name
  * relation is implied by the object.
  *
  */
-class Context(es: List<RawElement> = listOf()) {
+class Context(es: List<Pair<Name, RawElement>> = listOf()) {
     var ctx = es.toMutableList()
 
-    fun addElement(e : RawElement) {
-        ctx.add(e)
+    fun addSystem(e : RawSystem) {
+        ctx.add(Pair(e.name, e))
     }
 
-    /**
+    fun addSubsystem(e : RawSubsystem) {
+        ctx.add(Pair(e.name, e))
+    }
+
     fun toMap() : Map<Name, RawElement> {
         return ctx.associateBy({ it.first }, { it.second })
     }
-    */
+
+    /**
+     * qualified name resolution
+     *
+     * equivalent to Gamma(n)
+     */
+    fun qLook(qname : QName) : RawElement? {
+        val res = ctx.filter { it.first in qname }.map { it.second }
+        if (res.size != 1) {
+            return null
+        } else {
+            return res[0]
+        }
+    }
 }
