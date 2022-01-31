@@ -1,10 +1,6 @@
 package com.galois.besspin.lando.ssl.checker
 
-import com.galois.besspin.lando.ssl.ast.RawElement
-import com.galois.besspin.lando.ssl.ast.Name
-import com.galois.besspin.lando.ssl.ast.QName
-import com.galois.besspin.lando.ssl.ast.RawSubsystem
-import com.galois.besspin.lando.ssl.ast.RawSystem
+import com.galois.besspin.lando.ssl.ast.*
 
 /**
  * Context for Type Raw Checking
@@ -33,6 +29,14 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
             ctx.add(Pair(e.abbrevName, e))
         }
         ctx.add(Pair(e.name, e))
+    }
+
+    fun addSubsystemImport(e : RawSubsystemImport) {
+        TODO()
+    }
+
+    fun addComponent(e : RawComponent) {
+        TODO()
     }
 
     fun toMap() : Map<Name, RawElement> {
