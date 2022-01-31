@@ -8,10 +8,10 @@ typealias ElementMap = MutableMap<RawElement, Context>
  */
 class Judgments {
     fun getCheckStatus(identifier : String, elements: List<RawElement>, message : String, preconds : List<CheckStatus>) : CheckStatus {
-        if (preconds.map { it is CheckStatus.Error }.any()) {
-            return CheckStatus.Error(identifier = identifier, elements = elements, message = message, preconds = preconds)
+        if (preconds.all { it is CheckStatus.Ok }) {
+            return CheckStatus.Ok(identifier = identifier, preconds = preconds)
         } else {
-            return CheckStatus.Error(identifier = identifier, elements = listOf(), message = "", preconds = preconds)
+            return CheckStatus.Error(identifier = identifier, elements = elements, message = message, preconds = preconds)
         }
     }
 
@@ -69,7 +69,7 @@ class Judgments {
         }
     }
 
-    fun introduceElements(gamma : Context, phi : ElementMap, es : List<RawElement>) : CheckStatus {
+    fun checkIntroduceElements(gamma : Context, phi : ElementMap, es : List<RawElement>) : CheckStatus {
         var res = mutableListOf<CheckStatus>()
 
         for (elem in es) {
@@ -106,7 +106,7 @@ class Judgments {
         /** precond: the source implies a valid context */
         val gamma0 = Context()
         var phi0 = mutableMapOf<RawElement, Context>()
-        introduceElements(gamma0, phi0, source)
+        res.add(checkIntroduceElements(gamma0, phi0, source))
 
         /** precond: all elements referenced in the source are top level elements */
         for (elem in source) {
@@ -143,7 +143,7 @@ class Judgments {
 
         /** precond: all elements in the subsystem body must imply a valid context and be a valid contains type */
         if (element.body != null) {
-            introduceElements(currentContext, phi, element.body!!)
+            checkIntroduceElements(currentContext, phi, element.body!!)
             for (elem in element.body!!.toList()) {
                 res.add(checkValidContains(element, elem))
             }
@@ -161,7 +161,7 @@ class Judgments {
 
         /** precond: all elements in the subsystem body must imply a valid context and be a valid contains type */
         if (element.body != null) {
-            introduceElements(currentContext, phi, element.body!!)
+            checkIntroduceElements(currentContext, phi, element.body!!)
             for (elem in element.body!!.toList()) {
                 res.add(checkValidContains(element, elem))
             }
