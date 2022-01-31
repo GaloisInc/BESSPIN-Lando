@@ -7,6 +7,14 @@ typealias ElementMap = MutableMap<RawElement, Context>
  * RawAst Well-Formedness Judgments
  */
 class Judgments {
+    fun getCheckStatus(identifier : String, elements: List<RawElement>, message : String, preconds : List<CheckStatus>) : CheckStatus {
+        if (preconds.map { it is CheckStatus.Error }.any()) {
+            return CheckStatus.Error(identifier = identifier, elements = elements, message = message, preconds = preconds)
+        } else {
+            return CheckStatus.Error(identifier = identifier, elements = listOf(), message = "", preconds = preconds)
+        }
+    }
+
     fun checkNameAbbrev(name : String, abbrev : String, element: RawElement) : CheckStatus {
         if(name != abbrev) {
             return CheckStatus.Ok("validNameAbbrev")
@@ -89,7 +97,7 @@ class Judgments {
                 }
             }
         }
-        return CheckStatus.Ok("validElementsList", preconds = res)
+        return getCheckStatus("validElementsList", listOf(), "TODO", res)
     }
 
     fun checkSource(source : List<RawElement>) : CheckStatus {
@@ -117,9 +125,7 @@ class Judgments {
                 }
             }
         }
-
-        // TODO ERROR if preconditions occur
-        return CheckStatus.Ok("validSource", preconds = res)
+        return getCheckStatus("validSource", listOf(), "TODO", res)
     }
 
     /**
@@ -142,9 +148,7 @@ class Judgments {
                 res.add(checkValidContains(element, elem))
             }
         }
-
-        // TODO ERROR if preconditions occur
-        return CheckStatus.Ok("validSystem", preconds = res)
+        return getCheckStatus("validSystem", listOf(), "TODO", res)
     }
 
     fun checkIntroduceSubsystem(currentContext : Context, phi : ElementMap, element: RawSubsystem) : CheckStatus {
@@ -170,7 +174,6 @@ class Judgments {
 
         /** precond: all parents referenced are of the valid type */
         /** TODO: this field doesn't exist!? */
-        // TODO ERROR if preconditions occur
-        return CheckStatus.Ok("validSubsystem", preconds = res)
+        return getCheckStatus("validSubsystem", listOf(), "TODO", res)
     }
 }
