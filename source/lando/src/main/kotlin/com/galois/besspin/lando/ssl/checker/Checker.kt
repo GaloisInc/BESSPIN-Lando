@@ -1,6 +1,7 @@
 package com.galois.besspin.lando.ssl.checker
 
 import com.galois.besspin.lando.ssl.ast.*
+import com.galois.besspin.lando.ssl.checker.CheckStatus
 
 data class CheckingError(
     val pos: RawPos,
