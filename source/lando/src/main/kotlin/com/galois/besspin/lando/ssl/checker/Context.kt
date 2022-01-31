@@ -17,29 +17,33 @@ import com.galois.besspin.lando.ssl.ast.*
 class Context(es: List<Pair<Name, RawElement>> = listOf()) {
     var ctx = es.toMutableList()
 
-    fun addSystem(e : RawSystem) {
+    fun addSystem(e: RawSystem) {
         if (e.abbrevName != null) {
             ctx.add(Pair(e.abbrevName, e))
         }
         ctx.add(Pair(e.name, e))
+        /** TODO: introduce text as a type -- how to do that with the Raw types?*/
+        ctx.add(Pair(e.explanation, e))
     }
 
-    fun addSubsystem(e : RawSubsystem) {
+    fun addSubsystem(e: RawSubsystem) {
         if (e.abbrevName != null) {
             ctx.add(Pair(e.abbrevName, e))
         }
         ctx.add(Pair(e.name, e))
+        /** TODO: introduce text as a type -- how to do that with the Raw types?*/
+        ctx.add(Pair(e.explanation, e))
     }
 
-    fun addSubsystemImport(e : RawSubsystemImport) {
+    fun addSubsystemImport(e: RawSubsystemImport) {
         TODO()
     }
 
-    fun addComponent(e : RawComponent) {
+    fun addComponent(e: RawComponent) {
         TODO()
     }
 
-    fun toMap() : Map<Name, RawElement> {
+    fun toMap(): Map<Name, RawElement> {
         return ctx.associateBy({ it.first }, { it.second })
     }
 
@@ -47,13 +51,20 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
      * qualified name resolution
      *
      * equivalent to Gamma(n)
+     * This is wrong
      */
-    fun qLook(qname : QName) : RawElement? {
-        val res = ctx.filter { it.first in qname }.map { it.second }
-        if (res.size != 1) {
-            return null
+    fun qLook(qname: QName, phi: ElementMap): RawElement? {
+        /** if size is one qualified name exists in current context */
+        if (qname.size == 1) {
+            val res = ctx.filter { it.first in qname }.map { it.second }
+            if (res.size != 1) {
+                return null
+            } else {
+                return res[0]
+            }
         } else {
-            return res[0]
+            /** if size > 1, then the qualified name exists in another context Phi(qname[0]) */
+            return phi[qname[0]]!!.qLook(qname.slice(1 until qname.size), phi)
         }
     }
 }

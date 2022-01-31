@@ -8,16 +8,16 @@ import com.galois.besspin.lando.ssl.ast.RawElement
  * I: elem x elem is an inheritance relation between elements, where (e1, e2) in I means
  * that e1 inherits from e2. The predicate hasNoCycles(I) holds when I has no cycles.
  */
-class Relation (var rels : MutableList<Pair<RawElement, RawElement>> = mutableListOf()) {
-    fun addRelations(rs : List<Pair<RawElement, RawElement>>) {
+class Relation(var rels: MutableList<Pair<RawElement, RawElement>> = mutableListOf()) {
+    fun addRelations(rs: List<Pair<RawElement, RawElement>>) {
         rels.addAll(rs)
     }
 
-    fun addRelation(r : Pair<RawElement, RawElement>) {
+    fun addRelation(r: Pair<RawElement, RawElement>) {
         rels.add(r)
     }
 
-    fun hasNoCycles () : Boolean {
+    fun hasNoCycles(): Boolean {
         TODO()
     }
 }

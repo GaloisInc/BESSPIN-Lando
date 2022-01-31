@@ -1,4 +1,5 @@
 package com.galois.besspin.lando.ssl.checker
+
 import com.galois.besspin.lando.ssl.ast.*
 
 typealias ElementMap = MutableMap<RawElement, Context>
@@ -7,23 +8,43 @@ typealias ElementMap = MutableMap<RawElement, Context>
  * RawAst Well-Formedness Judgments
  */
 class Judgments {
-    fun getCheckStatus(identifier : String, elements: List<RawElement>, message : String, preconds : List<CheckStatus>) : CheckStatus {
+    /**
+     * For judgments with preconditions, determine if it should be Ok if all preconds are also OK
+     * No judgment with a precondition Error can be Ok
+     */
+    fun getCheckStatus(
+        identifier: String,
+        elements: List<RawElement>,
+        message: String,
+        preconds: List<CheckStatus>
+    ): CheckStatus {
         if (preconds.all { it is CheckStatus.Ok }) {
             return CheckStatus.Ok(identifier = identifier, preconds = preconds)
         } else {
-            return CheckStatus.Error(identifier = identifier, elements = elements, message = message, preconds = preconds)
+            return CheckStatus.Error(
+                identifier = identifier,
+                elements = elements,
+                message = message,
+                preconds = preconds
+            )
         }
     }
 
-    fun checkNameAbbrev(name : String, abbrev : String, element: RawElement) : CheckStatus {
-        if(name != abbrev) {
+    /**
+     * Judgment: abbreviations cannot equal the name identifier
+     */
+    fun checkNameAbbrev(name: String, abbrev: String, element: RawElement): CheckStatus {
+        if (name != abbrev) {
             return CheckStatus.Ok("validNameAbbrev")
         } else {
             return CheckStatus.Error("validNameAbbrev", listOf(element), "TODO", listOf())
         }
     }
 
-    fun checkValidTopLevel(element: RawElement) : CheckStatus {
+    /**
+     * Judgment: top level elements is a subset of types
+     */
+    fun checkValidTopLevel(element: RawElement): CheckStatus {
         val isTopLevel = (element is RawSystem) || (element is RawSubsystem) || (element is RawComponent) ||
                 (element is RawEvents) || (element is RawScenarios) || (element is RawRequirements) ||
                 (element is RawRelation)
@@ -34,13 +55,16 @@ class Judgments {
         }
     }
 
-    fun checkValidContains(parent : RawElement, child : RawElement) : CheckStatus {
+    /**
+     * Judgment: for a system or subsystem, the contains field body can only have a subset of types
+     */
+    fun checkValidContains(parent: RawElement, child: RawElement): CheckStatus {
         val isValidContains = when {
             (parent is RawSystem) ->
                 ((child is RawSubsystem) || (child is RawSubsystemImport) || (child is RawRelation))
             (parent is RawSubsystem) ->
                 ((child is RawSubsystem) || (child is RawSubsystemImport) ||
-                        (child is RawComponent) || (child is RawComponentImport)||
+                        (child is RawComponent) || (child is RawComponentImport) ||
                         (child is RawRelation) || (child is RawEvents) || (child is RawRequirements ||
                         (child is RawScenarios)))
             else -> false
@@ -52,7 +76,10 @@ class Judgments {
         }
     }
 
-    fun checkValidClient(parent : RawElement, child : RawElement) : CheckStatus {
+    /**
+     * Judgment: for a subsystem/component (import), the client field body can only have a subset of types
+     */
+    fun checkValidClient(parent: RawElement, child: RawElement): CheckStatus {
         val isValidClient = when {
             ((parent is RawSubsystem) || (parent is RawSubsystemImport)) ->
                 ((child is RawSubsystem) || (child is RawSubsystemImport) ||
@@ -69,7 +96,10 @@ class Judgments {
         }
     }
 
-    fun checkIntroduceElements(gamma : Context, phi : ElementMap, es : List<RawElement>) : CheckStatus {
+    /**
+     * Judgement: when introducing a list of elements (body), they imply a valid context
+     */
+    fun checkIntroduceElements(gamma: Context, phi: ElementMap, es: List<RawElement>): CheckStatus {
         var res = mutableListOf<CheckStatus>()
 
         for (elem in es) {
@@ -100,7 +130,10 @@ class Judgments {
         return getCheckStatus("validElementsList", listOf(), "TODO", res)
     }
 
-    fun checkSource(source : List<RawElement>) : CheckStatus {
+    /**
+     * Judgement: a source and its body are valid
+     */
+    fun checkSource(source: List<RawElement>): CheckStatus {
         var res = mutableListOf<CheckStatus>()
 
         /** precond: the source implies a valid context */
@@ -121,7 +154,11 @@ class Judgments {
         for (e1 in source) {
             for (e2 in source) {
                 if (e1 is RawSystem && e2 is RawSystem) {
-                    assert(e1 == e2)
+                    if (e1 == e2) {
+                        res.add(CheckStatus.Ok("validSystemEquiv", listOf()))
+                    } else {
+                        res.add(CheckStatus.Error("validSystemEqiv", listOf(e1, e2), "TODO", listOf()))
+                    }
                 }
             }
         }
@@ -129,11 +166,9 @@ class Judgments {
     }
 
     /**
-     * n != na Gamma |- t \forall e \in esb, valid-contains(es, e) \Phi_o(es) = \Gamma' \Gamma' <| Gamma |- esb => Gamma
-     * -----------------------------------------------------------------------------------------------------------------
-     * Gamma |- e_s @ System{name = n, abbrev = |na|, explanation=t, body=esb, ...} => {n |-> es, na |-> es}
+     * Judgment: a system is properly introduced
      */
-    fun checkIntroduceSystem(currentContext: Context, phi : ElementMap, element: RawSystem) : CheckStatus {
+    fun checkIntroduceSystem(currentContext: Context, phi: ElementMap, element: RawSystem): CheckStatus {
         var res = mutableListOf<CheckStatus>()
 
         /** precond: if abbrev name is defined, it must not equal the elements name */
@@ -151,7 +186,10 @@ class Judgments {
         return getCheckStatus("validSystem", listOf(), "TODO", res)
     }
 
-    fun checkIntroduceSubsystem(currentContext : Context, phi : ElementMap, element: RawSubsystem) : CheckStatus {
+    /**
+     * Judgment: a subsystem is properly introduced
+     */
+    fun checkIntroduceSubsystem(currentContext: Context, phi: ElementMap, element: RawSubsystem): CheckStatus {
         var res = mutableListOf<CheckStatus>()
 
         /** precond: if abbrev name is defined, it must not equal the elements name */
@@ -169,7 +207,7 @@ class Judgments {
 
         /** precond: all clients referenced are of the valid type */
         for (q in element.clientOf) {
-            res.add(checkValidClient(element, currentContext.qLook(q)!!))
+            res.add(checkValidClient(element, currentContext.qLook(q, phi)!!))
         }
 
         /** precond: all parents referenced are of the valid type */
