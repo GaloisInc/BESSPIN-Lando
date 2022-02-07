@@ -16,7 +16,7 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.lando",
-				"match": "\\b(system|subsystem|inherit|client|contains|indexing|component|events|requirements|scenarios)\\b"
+				"match": "\\b(relation|system|subsystem|inherit|client|contains|indexing|component|events|requirements|scenarios)\\b"
 			}]
 		},
 		"strings": {
