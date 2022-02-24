@@ -142,10 +142,11 @@ class JudgmentsTest : TestCase() {
         assert(ret1 is CheckStatus.Error)
 
         /* check that explanation is added as a type */
+        val ctx0 = Context()
         val expl = "this is an explanation"
         val subsys2 = generateSubsystem("My System", "Abbrev", explanation = expl)
-        val ret2 = judgments.checkIntroduceSubsystem(ctx, phi, subsys2)
-        assert("<TextType${subsys2.uid}-${subsys2.explanation}>" in ctx.toMap())
+        ctx0.addSubsystem(subsys2)
+        assert("<TextType${subsys2.uid}-${subsys2.explanation}>" in ctx0.toMap())
 
         /* check invalid contains */
         val subsys3 = generateSubsystem("My System", "Abbrev", body = listOf(TestElement(0, RawPos(1, 1))))
