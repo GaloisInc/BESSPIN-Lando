@@ -14,6 +14,14 @@ import com.galois.besspin.lando.ssl.ast.*
  * relation is implied by the object.
  *
  */
+
+class TextType(
+    override val uid: Int,
+    override val pos: RawPos,
+    val name: Name,
+): RawElement
+
+
 class Context(es: List<Pair<Name, RawElement>> = listOf()) {
     var ctx = es.toMutableList()
 
@@ -33,6 +41,20 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
         ctx.add(Pair(e.name, e))
         /** TODO: introduce text as a type -- how to do that with the Raw types?*/
         ctx.add(Pair(e.explanation, e))
+    }
+
+    /**
+     * Text Type Introduction
+     *
+     * Text gets introduced to the context as its own type
+     */
+    fun addTextType(e: String, elem: RawElement) {
+        // TODO get the right position
+        ctx.add(Pair("<TextType${elem.uid}-${e}>", TextType(
+            uid = elem.uid,
+            pos = elem.pos,
+            name = e
+        )))
     }
 
     fun addSubsystemImport(e: RawSubsystemImport) {

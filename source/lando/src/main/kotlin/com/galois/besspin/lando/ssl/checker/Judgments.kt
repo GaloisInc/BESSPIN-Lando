@@ -176,6 +176,9 @@ class Judgments {
             res.add(checkNameAbbrev(element.name, element.abbrevName, element))
         }
 
+        /** precond: introduce explanation as a text type */
+        currentContext.addTextType(element.explanation, element)
+
         /** precond: all elements in the subsystem body must imply a valid context and be a valid contains type */
         if (element.body != null) {
             checkIntroduceElements(currentContext, phi, element.body!!)
@@ -209,6 +212,9 @@ class Judgments {
         for (q in element.clientOf) {
             res.add(checkValidClient(element, currentContext.qLook(q, phi)!!))
         }
+
+        /** precond: introduce explanation as a text type */
+        currentContext.addTextType(element.explanation, element)
 
         /** precond: all parents referenced are of the valid type */
         /** TODO: this field doesn't exist!? */

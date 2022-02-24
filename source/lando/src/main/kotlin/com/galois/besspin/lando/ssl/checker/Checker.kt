@@ -42,21 +42,7 @@ class RawAstChecker {
 
     fun check(ast: RawSSL) : String {
         val ctx = Judgments().checkSource(ast.body) // also builds globalSEnv
-
-        /*
-        check(globalEnv, ast.body) // also builds globalIRel and checks it is acyclic
-        // check for multiple System elements
-        var systemFound = false
-        for (elem in ast.body)
-            if (elem is RawSystem) {
-                if (systemFound)
-                    errors += CheckingError(elem.pos, "Multiple System elements in specification")
-                systemFound = true
-            }
-        for (elem in ast.body)
-            validToplevel(elem)
-        return formatErrors()
-         */
+        // TODO: build up error string
         return ""
     }
 
