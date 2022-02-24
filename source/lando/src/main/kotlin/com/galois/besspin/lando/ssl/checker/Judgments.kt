@@ -166,6 +166,30 @@ class Judgments {
     }
 
     /**
+     * Judgement: Constraint is introduced
+     */
+    fun checkIntroduceConstraint(currentContext: Context, phi: ElementMap, element: RawConstraint): CheckStatus {
+        currentContext.addTextTypeComponentPart(element.text, element)
+        return CheckStatus.Ok("validConstraint", listOf())
+    }
+
+    /**
+     * Judgement: Query is introduced
+     */
+    fun checkIntroduceQuery(currentContext: Context, phi: ElementMap, element: RawQuery): CheckStatus {
+        currentContext.addTextTypeComponentPart(element.text, element)
+        return CheckStatus.Ok("validQuery", listOf())
+    }
+
+    /**
+     * Judgement: Command is introduced
+     */
+    fun checkIntroduceCommand(currentContext: Context, phi: ElementMap, element: RawCommand): CheckStatus {
+        currentContext.addTextTypeComponentPart(element.text, element)
+        return CheckStatus.Ok("validCommand", listOf())
+    }
+
+    /**
      * Judgment: a system is properly introduced
      */
     fun checkIntroduceSystem(currentContext: Context, phi: ElementMap, element: RawSystem): CheckStatus {

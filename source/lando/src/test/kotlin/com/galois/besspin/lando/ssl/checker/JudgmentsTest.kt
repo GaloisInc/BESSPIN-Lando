@@ -46,7 +46,7 @@ class JudgmentsTest : TestCase() {
         )
         assert(ret1 is CheckStatus.Error)
 
-        /** not errors is Ok */
+        /** no errors is Ok */
         /** error preconds is Error */
         val ret2 = judge.getCheckStatus(
             "validSubsystem",

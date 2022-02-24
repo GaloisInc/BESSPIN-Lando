@@ -57,6 +57,20 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
         )))
     }
 
+    /**
+     * Text Type Introduction for Component Part
+     *
+     * TODO: what to do with UID?
+     */
+    fun addTextTypeComponentPart(e: String, elem: RawComponentPart) {
+        // TODO get the right position
+        ctx.add(Pair("<TextType${elem.pos}-${e}>", TextType(
+            uid = 0,
+            pos = elem.pos,
+            name = e
+        )))
+    }
+
     fun addSubsystemImport(e: RawSubsystemImport) {
         TODO()
     }

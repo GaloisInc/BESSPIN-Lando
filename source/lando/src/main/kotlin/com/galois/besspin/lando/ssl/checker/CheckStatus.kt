@@ -22,6 +22,17 @@ sealed class CheckStatus {
         val elements: List<RawElement>,
         val message: String,
         val preconds: List<CheckStatus> = listOf()
+    ) : CheckStatus() {
 
-    ) : CheckStatus()
+        /** collect error string from status tree and print the locations */
+        fun getErrorString(): String {
+            val precondsStr = when {
+                (preconds.size == 0) -> ""
+                else -> "<${preconds.filterIsInstance<CheckStatus.Error>().map{it.getErrorString()}}>"
+            }
+            val locsStr = "[" + elements.map { "(Line ${it.pos.line}, Column ${it.pos.col})" }.joinToString(separator = ",") + "]"
+            return "${identifier}: '${message}'" + locsStr + precondsStr
+
+        }
+    }
 }
