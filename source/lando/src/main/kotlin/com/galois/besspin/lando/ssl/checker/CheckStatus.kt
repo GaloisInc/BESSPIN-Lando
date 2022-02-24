@@ -12,8 +12,7 @@ import com.galois.besspin.lando.ssl.ast.RawElement
 sealed class CheckStatus {
     /** the element passed checking */
     class Ok(
-        val identifier: String,
-        val preconds: List<CheckStatus> = listOf()
+        val identifier: String, val preconds: List<CheckStatus> = listOf()
     ) : CheckStatus()
 
     /** the element failed checking */
@@ -28,9 +27,10 @@ sealed class CheckStatus {
         fun getErrorString(): String {
             val precondsStr = when {
                 (preconds.size == 0) -> ""
-                else -> "<${preconds.filterIsInstance<CheckStatus.Error>().map{it.getErrorString()}}>"
+                else -> "<${preconds.filterIsInstance<CheckStatus.Error>().map { it.getErrorString() }}>"
             }
-            val locsStr = "[" + elements.map { "(Line ${it.pos.line}, Column ${it.pos.col})" }.joinToString(separator = ",") + "]"
+            val locsStr =
+                "[" + elements.map { "(Line ${it.pos.line}, Column ${it.pos.col})" }.joinToString(separator = ",") + "]"
             return "${identifier}: '${message}'" + locsStr + precondsStr
 
         }

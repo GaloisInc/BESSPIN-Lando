@@ -30,8 +30,7 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
             ctx.add(Pair(e.abbrevName, e))
         }
         ctx.add(Pair(e.name, e))
-        /** TODO: introduce text as a type -- how to do that with the Raw types?*/
-        ctx.add(Pair(e.explanation, e))
+        addTextType(e.explanation, e)
     }
 
     fun addSubsystem(e: RawSubsystem) {
@@ -39,8 +38,7 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
             ctx.add(Pair(e.abbrevName, e))
         }
         ctx.add(Pair(e.name, e))
-        /** TODO: introduce text as a type -- how to do that with the Raw types?*/
-        ctx.add(Pair(e.explanation, e))
+        addTextType(e.explanation, e)
     }
 
     /**
