@@ -2,6 +2,10 @@ package com.galois.besspin.lando.ssl.checker
 
 import com.galois.besspin.lando.ssl.ast.RawElement
 
+import org.jgrapht.graph.SimpleDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.alg.cycle.CycleDetector;
+
 /**
  * Element Relation Structure for Type Checking
  *
@@ -11,15 +15,21 @@ import com.galois.besspin.lando.ssl.ast.RawElement
  * TODO: switch to a implementation that can do cycles detection
  */
 class Relation(var rels: MutableList<Pair<RawElement, RawElement>> = mutableListOf()) {
+
+    var graph: SimpleDirectedGraph<RawElement, DefaultEdge> =
+        SimpleDirectedGraph<RawElement, DefaultEdge>(DefaultEdge::class.java);
+
     fun addRelations(rs: List<Pair<RawElement, RawElement>>) {
-        rels.addAll(rs)
+        for (r in rs) {
+            addRelation(r)
+        }
     }
 
     fun addRelation(r: Pair<RawElement, RawElement>) {
-        rels.add(r)
+        graph.addEdge(r.first, r.second)
     }
 
     fun hasNoCycles(): Boolean {
-        TODO()
+        return CycleDetector(graph).detectCycles();
     }
 }
