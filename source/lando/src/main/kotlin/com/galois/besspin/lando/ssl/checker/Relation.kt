@@ -1,8 +1,9 @@
 package com.galois.besspin.lando.ssl.checker
 
 import com.galois.besspin.lando.ssl.ast.RawElement
+import com.galois.besspin.lando.ssl.ast.Uid
 
-import org.jgrapht.graph.SimpleDirectedGraph;
+import org.jgrapht.graph.DirectedPseudograph;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.alg.cycle.CycleDetector;
 
@@ -14,10 +15,9 @@ import org.jgrapht.alg.cycle.CycleDetector;
  *
  * TODO: switch to a implementation that can do cycles detection
  */
-class Relation(var rels: MutableList<Pair<RawElement, RawElement>> = mutableListOf()) {
-
-    var graph: SimpleDirectedGraph<RawElement, DefaultEdge> =
-        SimpleDirectedGraph<RawElement, DefaultEdge>(DefaultEdge::class.java);
+class Relation(var rels: MutableList<Pair<Uid, Uid>> = mutableListOf()) {
+    var graph: DirectedPseudograph<Uid, DefaultEdge> =
+        DirectedPseudograph<Uid, DefaultEdge>(DefaultEdge::class.java);
 
     fun addRelations(rs: List<Pair<RawElement, RawElement>>) {
         for (r in rs) {
@@ -26,10 +26,12 @@ class Relation(var rels: MutableList<Pair<RawElement, RawElement>> = mutableList
     }
 
     fun addRelation(r: Pair<RawElement, RawElement>) {
-        graph.addEdge(r.first, r.second)
+        graph.addVertex(r.first.uid)
+        graph.addVertex(r.second.uid)
+        graph.addEdge(r.first.uid, r.second.uid)
     }
 
     fun hasNoCycles(): Boolean {
-        return CycleDetector(graph).detectCycles();
+        return !CycleDetector(graph).detectCycles();
     }
 }
