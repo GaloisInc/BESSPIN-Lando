@@ -99,24 +99,20 @@ class Judgments {
     /**
      * Judgement: when introducing a list of elements (body), they imply a valid context
      */
-    fun checkIntroduceElements(gamma: Context, phi: ElementMap, es: List<RawElement>): CheckStatus {
+    fun checkIntroduceElements(gamma: Context, phi: ElementMap, relation: Relation, es: List<RawElement>): CheckStatus {
         var res = mutableListOf<CheckStatus>()
 
         for (elem in es) {
             when {
                 (elem is RawSystem) -> {
                     /** this introduction involves a new context */
-                    val gammap = Context();
-                    res.add(checkIntroduceSystem(gammap, phi, elem));
+                    res.add(checkIntroduceSystem(gamma, phi, relation, elem));
                     gamma.addSystem(elem);
-                    phi.put(elem, gammap);
                 }
                 (elem is RawSubsystem) -> {
                     /** this introduction involves a new context */
-                    val gammap = Context();
-                    res.add(checkIntroduceSubsystem(gammap, phi, elem));
+                    res.add(checkIntroduceSubsystem(gamma, phi, relation, elem));
                     gamma.addSubsystem(elem);
-                    phi.put(elem, gammap)
                 }
                 else -> {
                     /* TODO: this should be a valid rule, but Element has no name so it doesn't imply a
@@ -139,7 +135,8 @@ class Judgments {
         /** precond: the source implies a valid context */
         val gamma0 = Context()
         var phi0 = mutableMapOf<RawElement, Context>()
-        res.add(checkIntroduceElements(gamma0, phi0, source))
+        var relationI = Relation()
+        res.add(checkIntroduceElements(gamma0, phi0, relationI, source))
 
         /** precond: all elements referenced in the source are top level elements */
         for (elem in source) {
@@ -147,7 +144,11 @@ class Judgments {
         }
 
         /** precond: noCycles in the inheritance relations */
-        /** TODO: implement this */
+        if(relationI.hasNoCycles()) {
+            res.add(CheckStatus.Ok("validInheritance"))
+        } else {
+            res.add(CheckStatus.Error("validInheritance", listOf(), "TODO"))
+        }
 
         /** precond: is any two elements are systems, they must be the same system -- (what is the equality here) */
         /** TODO: is this the right way of doing equality here */
@@ -192,7 +193,7 @@ class Judgments {
     /**
      * Judgment: a system is properly introduced
      */
-    fun checkIntroduceSystem(currentContext: Context, phi: ElementMap, element: RawSystem): CheckStatus {
+    fun checkIntroduceSystem(currentContext: Context, phi: ElementMap, relation: Relation, element: RawSystem): CheckStatus {
         var res = mutableListOf<CheckStatus>()
 
         /** precond: if abbrev name is defined, it must not equal the elements name */
@@ -202,18 +203,22 @@ class Judgments {
 
         /** precond: all elements in the subsystem body must imply a valid context and be a valid contains type */
         if (element.body != null) {
-            checkIntroduceElements(currentContext, phi, element.body!!)
+            checkIntroduceElements(currentContext, phi, relation, element.body!!)
             for (elem in element.body!!.toList()) {
                 res.add(checkValidContains(element, elem))
             }
         }
+
+        val gammap = Context();
+        phi.put(element, gammap)
+
         return getCheckStatus("validSystem", listOf(), "TODO", res)
     }
 
     /**
      * Judgment: a subsystem is properly introduced
      */
-    fun checkIntroduceSubsystem(currentContext: Context, phi: ElementMap, element: RawSubsystem): CheckStatus {
+    fun checkIntroduceSubsystem(currentContext: Context, phi: ElementMap, relation: Relation, element: RawSubsystem): CheckStatus {
         var res = mutableListOf<CheckStatus>()
 
         /** precond: if abbrev name is defined, it must not equal the elements name */
@@ -223,7 +228,7 @@ class Judgments {
 
         /** precond: all elements in the subsystem body must imply a valid context and be a valid contains type */
         if (element.body != null) {
-            checkIntroduceElements(currentContext, phi, element.body!!)
+            checkIntroduceElements(currentContext, phi, relation, element.body!!)
             for (elem in element.body!!.toList()) {
                 res.add(checkValidContains(element, elem))
             }
@@ -231,10 +236,17 @@ class Judgments {
 
         /** precond: all clients referenced are of the valid type */
         for (q in element.clientOf) {
+            // TODO: handle qlook null pointer exception
             res.add(checkValidClient(element, currentContext.qLook(q, phi)!!))
+            relation.addRelation(
+                Pair(currentContext.qLook(q, phi)!!, element)
+            )
         }
 
         // FIXME: where is inherits??
+        val gammap = Context();
+        phi.put(element, gammap)
+
 
         /** precond: all parents referenced are of the valid type */
         /** TODO: this field doesn't exist!? */

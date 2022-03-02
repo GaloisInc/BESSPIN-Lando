@@ -38,7 +38,9 @@ body    :  specElement* ;
 subsystem  : lineComments?
              SUBSYSTEM
              subsysname=name abbrev?
-	     clientClause* comment? lineseps
+         (inheritClause | clientClause)* comment? lineseps
+	     // ELEW: TODO: change to match well-formedness doc
+	     //clientClause* comment? lineseps
 	     paragraph lineComments?
 	     (indexing blockend)?
 	     (CONTAINS lineseps? body END comment? blockend)? ;

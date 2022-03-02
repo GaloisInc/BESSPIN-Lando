@@ -118,7 +118,8 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
         val abbrevName = cxt.abbrev()?.let { toAst(it) }
         val description = toAst(cxt.paragraph())
         val index = toAst(cxt.indexing())
-        val clients = cxt.clientClause().map { toAst(it) }.flatten()
+        /** ELEW: TODO: something is up here--lando doesn't parse correctly! */
+        val clients = cxt.inheritClause().map { toAst(it) }.flatten()
         val comments = collectComments(cxt.lineComments(), cxt.comment())
         val body = cxt.body()?.let { toAst(it) }
 

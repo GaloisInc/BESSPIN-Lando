@@ -87,16 +87,17 @@ class JudgmentsTest : TestCase() {
     fun testCheckIntroduceElements() {
         val judgments = Judgments()
         val ctx = Context()
+        val rel = Relation()
         val phi = mutableMapOf<RawElement, Context>()
 
         /* check simple case is ok */
         val body0 = listOf(generateSubsystem("My System", "Abbrev"))
-        val ret0 = judgments.checkIntroduceElements(ctx, phi, body0)
+        val ret0 = judgments.checkIntroduceElements(ctx, phi, rel, body0)
         assert(ret0 is CheckStatus.Ok)
 
         /* check with invalid element */
         val body1 = listOf(generateSubsystem("My System", "Abbrev", body = listOf(TestElement(0, RawPos(1, 1)))))
-        val ret1 = judgments.checkIntroduceElements(ctx, phi, body1)
+        val ret1 = judgments.checkIntroduceElements(ctx, phi, rel, body1)
         assert(ret1 is CheckStatus.Error)
     }
 
@@ -129,16 +130,17 @@ class JudgmentsTest : TestCase() {
     fun testCheckIntroduceSubsystem() {
         val judgments = Judgments()
         val ctx = Context()
+        val rel = Relation()
         val phi = mutableMapOf<RawElement, Context>()
 
         /* check simple case is ok */
         val subsys0 = generateSubsystem("My System", "Abbrev")
-        val ret0 = judgments.checkIntroduceSubsystem(ctx, phi, subsys0)
+        val ret0 = judgments.checkIntroduceSubsystem(ctx, phi, rel, subsys0)
         assert(ret0 is CheckStatus.Ok)
 
         /* check abbreviation collision error */
         val subsys1 = generateSubsystem("Abbrev", "Abbrev")
-        val ret1 = judgments.checkIntroduceSubsystem(ctx, phi, subsys1)
+        val ret1 = judgments.checkIntroduceSubsystem(ctx, phi, rel, subsys1)
         assert(ret1 is CheckStatus.Error)
 
         /* check that explanation is added as a type */
@@ -150,19 +152,19 @@ class JudgmentsTest : TestCase() {
 
         /* check invalid contains */
         val subsys3 = generateSubsystem("My System", "Abbrev", body = listOf(TestElement(0, RawPos(1, 1))))
-        val ret3 = judgments.checkIntroduceSubsystem(ctx, phi, subsys3)
+        val ret3 = judgments.checkIntroduceSubsystem(ctx, phi, rel, subsys3)
         assert(ret3 is CheckStatus.Error)
 
         /* check valid clientOf */
         ctx.addSubsystem(subsys3)
         val subsys4 = generateSubsystem("My System2", "Abbrev", clientOf = listOf(listOf("My System")))
-        val ret4 = judgments.checkIntroduceSubsystem(ctx, phi, subsys4)
+        val ret4 = judgments.checkIntroduceSubsystem(ctx, phi, rel, subsys4)
         assert(ret4 is CheckStatus.Ok)
 
         /* check invalid clientOf */
         ctx.addSystem(RawSystem(0, RawPos(0, 0), "My Bad", null, "", listOf(), null, listOf()))
         val subsys5 = generateSubsystem("My System2", "Abbrev", clientOf = listOf(listOf("My Bad")))
-        val ret5 = judgments.checkIntroduceSubsystem(ctx, phi, subsys5)
+        val ret5 = judgments.checkIntroduceSubsystem(ctx, phi, rel, subsys5)
         assert(ret5 is CheckStatus.Error)
     }
 }
