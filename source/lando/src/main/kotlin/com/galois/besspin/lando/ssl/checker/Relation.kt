@@ -31,6 +31,9 @@ class Relation(var rels: MutableList<Pair<Uid, Uid>> = mutableListOf()) {
         graph.addEdge(r.first.uid, r.second.uid)
     }
 
+    /**
+     * determine if a relation has cycles
+     */
     fun hasNoCycles(): Boolean {
         return !CycleDetector(graph).detectCycles();
     }

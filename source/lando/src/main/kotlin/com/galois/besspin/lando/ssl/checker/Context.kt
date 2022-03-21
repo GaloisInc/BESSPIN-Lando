@@ -41,6 +41,30 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
         addTextType(e.explanation, e)
     }
 
+    fun addConstraint(e: RawConstraint) {
+        TODO()
+    }
+
+    fun addQuery(e: RawQuery) {
+        TODO()
+    }
+
+    fun addCommand(e: RawCommand) {
+        TODO()
+    }
+
+    fun addComponentImport(e: RawComponentImport) {
+        if (e.abbrevName == null) {
+            ctx.add(Pair(e.name.last(), e))
+        } else {
+            ctx.add(Pair(e.abbrevName, e))
+        }
+    }
+
+    fun addRelation(e: RawRelation) {
+        /** do nothing... */
+    }
+
     /**
      * Text Type Introduction
      *
@@ -73,8 +97,23 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
         TODO()
     }
 
-    fun addComponent(e: RawComponent) {
+    fun addEvents(e: RawEvents) {
         TODO()
+    }
+
+    fun addScenarios(e: RawScenarios) {
+        TODO()
+    }
+
+    fun addRequirements(e: RawRequirements) {
+        TODO()
+    }
+
+    fun addComponent(e: RawComponent) {
+        ctx.add(Pair(e.name, e))
+        if (e.abbrevName != null) {
+            ctx.add(Pair(e.abbrevName, e))
+        }
     }
 
     fun toMap(): Map<Name, RawElement> {
@@ -87,18 +126,23 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
      * equivalent to Gamma(n)
      * This is wrong
      */
+    @Throws(IllegalStateException::class)
     fun qLook(qname: QName, phi: ElementMap): RawElement? {
         /** if size is one qualified name exists in current context */
         if (qname.size == 1) {
             val res = ctx.filter { it.first in qname }.map { it.second }
             if (res.size != 1) {
-                return null
+                throw IllegalStateException("${qname} resolved to more than one element ${res}")
             } else {
                 return res[0]
             }
         } else {
             /** if size > 1, then the qualified name exists in another context Phi(qname[0]) */
-            return phi[qname[0]]!!.qLook(qname.slice(1 until qname.size), phi)
+            val context = phi[qname[0]]
+            if (context == null) {
+                throw IllegalStateException("${qname[0]} could not resolve to a context")
+            }
+            return context.qLook(qname.slice(1 until qname.size), phi)
         }
     }
 }

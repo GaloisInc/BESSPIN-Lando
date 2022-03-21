@@ -156,9 +156,10 @@ class JudgmentsTest : TestCase() {
         assert(ret3 is CheckStatus.Error)
 
         /* check valid clientOf */
-        ctx.addSubsystem(subsys3)
+        val ctx1 = Context()
+        ctx1.addSubsystem(subsys3)
         val subsys4 = generateSubsystem("My System2", "Abbrev", clientOf = listOf(listOf("My System")))
-        val ret4 = judgments.checkIntroduceSubsystem(ctx, phi, rel, subsys4)
+        val ret4 = judgments.checkIntroduceSubsystem(ctx1, phi, rel, subsys4)
         assert(ret4 is CheckStatus.Ok)
 
         /* check invalid clientOf */
