@@ -34,5 +34,24 @@ sealed class CheckStatus {
             return "${identifier}: '${message}'" + locsStr + precondsStr
 
         }
+
+        /** a simplified error string builder that only prints diagnostics at max depth error */
+        fun getSimpleErrorString(depth: Int = 0): String {
+            if (preconds.size > 0) {
+                return "${identifier}Error:\n${
+                    "\t".repeat(depth+1)
+                }${
+                    preconds.filterIsInstance<CheckStatus.Error>().map { 
+                        it.getSimpleErrorString(depth + 1) 
+                    }.joinToString(separator = "\n" + "\t".repeat(
+                        depth + 1), 
+                        transform = { "${it}" })
+                }"
+            } else {
+                val locsStr =
+                    "[" + elements.map { "(Line ${it.pos.line}, Column ${it.pos.col})" }.joinToString(separator = ",") + "]"
+                return "${identifier}: '${message}'" + locsStr
+            }
+        }
     }
 }

@@ -19,7 +19,32 @@ class TextType(
     override val uid: Int,
     override val pos: RawPos,
     val name: Name,
-): RawElement
+) : RawElement
+
+
+/**
+ * Qualified Name Resolver Return
+ *
+ * Resolver is not guaranteed to return a resolved element. this data type captures
+ * those errors without requiring qlook to throw an exception.
+ */
+sealed class QNameReturn {
+    /** the element passed checking */
+    class ResolvedElement(
+        val element: RawElement
+    ) : QNameReturn()
+
+    /** could not resolve to anything */
+    class NullElement(
+        val qname: String
+    ) : QNameReturn()
+
+    /** could resolve to multiple things */
+    class MultipleElement(
+        val qname: String,
+        val elements: List<RawElement>
+    ) : QNameReturn()
+}
 
 
 class Context(es: List<Pair<Name, RawElement>> = listOf()) {
@@ -72,11 +97,15 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
      */
     fun addTextType(e: String, elem: RawElement) {
         // TODO get the right position
-        ctx.add(Pair("<TextType${elem.uid}-${e}>", TextType(
-            uid = elem.uid,
-            pos = elem.pos,
-            name = e
-        )))
+        ctx.add(
+            Pair(
+                "<TextType${elem.uid}-${e}>", TextType(
+                    uid = elem.uid,
+                    pos = elem.pos,
+                    name = e
+                )
+            )
+        )
     }
 
     /**
@@ -86,11 +115,15 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
      */
     fun addTextTypeComponentPart(e: String, elem: RawComponentPart) {
         // TODO get the right position
-        ctx.add(Pair("<TextType${elem.pos}-${e}>", TextType(
-            uid = 0,
-            pos = elem.pos,
-            name = e
-        )))
+        ctx.add(
+            Pair(
+                "<TextType${elem.pos}-${e}>", TextType(
+                    uid = 0,
+                    pos = elem.pos,
+                    name = e
+                )
+            )
+        )
     }
 
     fun addSubsystemImport(e: RawSubsystemImport) {
@@ -126,15 +159,14 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
      * equivalent to Gamma(n)
      * This is wrong
      */
-    @Throws(IllegalStateException::class)
-    fun qLook(qname: QName, phi: ElementMap): RawElement? {
+    fun qLook(qname: QName, phi: ElementMap): QNameReturn {
         /** if size is one qualified name exists in current context */
         if (qname.size == 1) {
             val res = ctx.filter { it.first in qname }.map { it.second }
-            if (res.size != 1) {
-                throw IllegalStateException("${qname} resolved to more than one element ${res}")
-            } else {
-                return res[0]
+            when (res.size) {
+                1 -> return QNameReturn.ResolvedElement(res[0])
+                0 -> return QNameReturn.NullElement(qname[0])
+                else -> return QNameReturn.MultipleElement(qname[0], res)
             }
         } else {
             /** if size > 1, then the qualified name exists in another context Phi(qname[0]) */
