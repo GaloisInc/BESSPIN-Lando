@@ -188,7 +188,7 @@ class Judgments {
                             CheckStatus.Error(
                                 "validSystemEquiv",
                                 listOf(e1, e2),
-                                "system ${e1.name} must have same name as ${e2.name}",
+                                "only one system allowed at top level",
                                 listOf()
                             )
                         )
