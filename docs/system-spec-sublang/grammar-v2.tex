@@ -98,11 +98,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
   \grule{\gntn{clientClause}}{
     \gtkw{client} \gntn{qname} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{qname} \glist{\gnl}}
   }{Client clause}
-
-  \grule{\gntn{containsClause}}{
-    \gtkw{contain} \gntn{qname} \glist{\gnl} \glist{\gtkc{,} \glist{\gnl} \gntn{qname} \glist{\gnl}}
-  }{Client clause}
-
+    
   \grule{\gntn{indexing}}{
     \gtkw{indexing} \glist{\gns} \glist{\glistnonempty{\gnl} \gntn{indexEntry}}
   }{Indexing}
@@ -202,7 +198,7 @@ The grammar for the Lando System Specification Sublanguage is written in the EBN
 
   \grule{\gntn{relation}}{
     \glist{\gnc\gnl}
-    \gtkw{relation} \gntn{qname} \glistnonempty{\gntn{inheritClause} \gor \gntn{clientClause} \gor \gntn{containsClause}}
+    \gtkw{relation} \gntn{qname} \glistnonempty{\gntn{inheritClause} \gor \gntn{clientClause}}
     \gopt{\gnc}
     \gntn{blockend}
   }{Relation Declaration}
@@ -304,7 +300,7 @@ The following extra-grammatical rules are applied during or after parsing the co
   an implicit body that begins immediately after the element and extends until just
   before the next \gtkw{system}, \gtkw{subsystem} or unmatched \gtkw{end}.
 \item
-  \gntn{subystemImport} can only appear in an (explicit or implicit) \gntn{system} or \gntn{subsystem}
+  \gntn{subystemImport} an only appear in an (explicit or implicit) \gntn{system} or \gntn{subsystem}
   body.  \gntn{component} and \gntn{componentImport} can only appear in an (explicit or implicit)
   \gntn{subsystem} body.
 \item

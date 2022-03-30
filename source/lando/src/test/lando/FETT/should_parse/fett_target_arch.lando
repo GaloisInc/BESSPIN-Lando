@@ -13,11 +13,11 @@ Researchers use to evaluate the security claims made by processor designers.
 Each subsystem denotes a single processor family -- the definition of the
 subsystem includes the applications that are exposed to security researchers.
 
-subsystem FETT P1 inherit Target Subsystem
+subsystem FETT P1 extends Target Subsystem
 The principal subsystem by which researchers evaluate security claims
 made by designers of a P1 processor.
 
-subsystem FETT P2 inherit Target Subsystem
+subsystem FETT P2 extends Target Subsystem
 The principal subsystem by which researchers evaluate security claims
 made by designers of a P2 processor.
 
