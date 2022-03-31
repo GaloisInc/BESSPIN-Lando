@@ -1,0 +1,10 @@
+// oh no -- abbreviation conflicts with the system name
+system MySystem (MySystem)
+Description.
+
+contains
+    // conflict here as well
+    subsystem MySubsystem (MySubsystem)
+    Description.
+
+end

@@ -1,0 +1,31 @@
+// let create lando that references identifiers that we can't resolve properly
+system MySystem
+Description.
+
+contains
+    subsystem MySubsys
+    undef.
+
+    subsystem MySubsys
+    undef.
+
+    // let's try to inherit from a twice defined subsystem
+    subsystem MyDeriv1 inherit MySubsys
+    undef.
+
+    // let's try to inherit from an undefined subsystem
+    subsystem MyDeriv2 inherit NoSubsys
+    undef.
+
+    subsystem MyNewSubsys
+    undef.
+
+    // let's try to inherit from a defined subsystem (no error)
+    subsystem MyDeriv3 inherit MyNewSubsys
+    undef.
+
+end
+
+// scope resolution should cause this to fail
+component TestComponent client MyNewSubsys
+undef.

@@ -1,0 +1,10 @@
+// add this so at least it will resolve
+// empty contains to end subsys scope -- this is weird
+subsystem MySubsys
+undef.
+
+contains
+
+end
+
+import subsystem MySubsys

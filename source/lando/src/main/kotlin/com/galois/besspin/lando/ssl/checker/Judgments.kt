@@ -126,15 +126,16 @@ class Judgments {
     /**
      * Judgement: when introducing a list of elements (body), they imply a valid context
      */
-    fun checkIntroduceElements(gamma: Context, phi: ElementMap, relation: Relation, es: List<RawElement>): CheckStatus {
+    fun checkIntroduceElements(gamma0: Context, gamma: Context, phi: ElementMap, relation: Relation, es: List<RawElement>): CheckStatus {
+
         var res = mutableListOf<CheckStatus>()
 
         for (elem in es) {
             when {
-                (elem is RawSystem) -> res.add(checkIntroduceSystem(gamma, phi, relation, elem))
-                (elem is RawSubsystem) -> res.add(checkIntroduceSubsystem(gamma, phi, relation, elem));
-                elem is RawSubsystemImport -> res.add(checkIntroduceSubsystemImport(gamma, phi, relation, elem))
-                elem is RawComponentImport -> res.add(checkIntroduceComponentImport(gamma, phi, relation, elem))
+                (elem is RawSystem) -> res.add(checkIntroduceSystem(gamma0, gamma, phi, relation, elem))
+                (elem is RawSubsystem) -> res.add(checkIntroduceSubsystem(gamma0, gamma, phi, relation, elem));
+                elem is RawSubsystemImport -> res.add(checkIntroduceSubsystemImport(gamma0, gamma, phi, relation, elem))
+                elem is RawComponentImport -> res.add(checkIntroduceComponentImport(gamma0, gamma, phi, relation, elem))
                 elem is RawComponent -> res.add(checkIntroduceComponent(gamma, phi, relation, elem))
                 elem is RawRelation -> res.add(checkIntroduceRelation(gamma, phi, relation, elem))
                 elem is RawScenarios -> res.add(checkIntroduceScenarios(gamma, phi, relation, elem))
@@ -160,7 +161,7 @@ class Judgments {
         var gamma0 = Context()
         var phi0 = mutableMapOf<RawElement, Context>()
         var relationI = Relation()
-        res.add(checkIntroduceElements(gamma0, phi0, relationI, source))
+        res.add(checkIntroduceElements(gamma0, gamma0, phi0, relationI, source))
 
         /** precond: all elements referenced in the source are top level elements */
         for (elem in source) {
@@ -203,6 +204,7 @@ class Judgments {
      * Judgment: a system is properly introduced
      */
     fun checkIntroduceSystem(
+        toplevelContext: Context,
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
@@ -220,7 +222,7 @@ class Judgments {
 
         /** precond: all elements in the system body must imply a valid context and be a valid contains type */
         if (element.body != null) {
-            checkIntroduceElements(currentContext, phi, relation, element.body!!)
+            //checkIntroduceElements(currentContext, phi, relation, element.body!!)
             for (elem in element.body!!.toList()) {
                 res.add(checkValidContains(element, elem))
             }
@@ -231,7 +233,7 @@ class Judgments {
         phi.put(element, gammap)
 
         /** introduce body to the local context */
-        if (element.body != null) res.add(checkIntroduceElements(gammap, phi, relation, element.body!!))
+        if (element.body != null) res.add(checkIntroduceElements(toplevelContext, gammap, phi, relation, element.body!!))
 
         /** now add it to the context */
         currentContext.addSystem(element)
@@ -243,12 +245,18 @@ class Judgments {
      * Judgment: a subsystem is properly introduced
      */
     fun checkIntroduceSubsystem(
+        toplevelContext: Context,
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
         element: RawSubsystem
     ): CheckStatus {
         var res = mutableListOf<CheckStatus>()
+
+        /** relate element to a local context */
+        val gammap = Context();
+        phi.put(element, gammap)
+
 
         /** precond: if abbrev name is defined, it must not equal the elements name */
         if (element.abbrevName != null) {
@@ -260,7 +268,7 @@ class Judgments {
 
         /** precond: all elements in the subsystem body must imply a valid context and be a valid contains type */
         if (element.body != null) {
-            checkIntroduceElements(currentContext, phi, relation, element.body!!)
+            // checkIntroduceElements(gammap, phi, relation, element.body!!)
             for (elem in element.body!!.toList()) {
                 res.add(checkValidContains(element, elem))
             }
@@ -279,12 +287,8 @@ class Judgments {
             _attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
         }
 
-        /** relate element to a local context */
-        val gammap = Context();
-        phi.put(element, gammap)
-
         /** introduce body to the local context */
-        if (element.body != null) res.add(checkIntroduceElements(gammap, phi, relation, element.body!!))
+        if (element.body != null) res.add(checkIntroduceElements(toplevelContext, gammap, phi, relation, element.body!!))
 
         /** now add it to the context */
         currentContext.addSubsystem(element)
@@ -298,11 +302,13 @@ class Judgments {
      * Judgment: a subsystem import is properly introduced
      */
     fun checkIntroduceSubsystemImport(
+        toplevelContext: Context,
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
         element: RawSubsystemImport
     ): CheckStatus {
+
         var res = mutableListOf<CheckStatus>()
 
         /** precond: all clients referenced are of the valid type */
@@ -316,7 +322,7 @@ class Judgments {
         }
 
         /** precond: import resolves to a qualified named element */
-        val resResult = currentContext.qLook(element.name, phi)
+        val resResult = toplevelContext.qLook(element.name, phi)
         res.add(
             when (resResult is QNameReturn.ResolvedElement) {
                 true -> when (resResult.element is RawSubsystem) {
@@ -454,16 +460,17 @@ class Judgments {
      * Judgment: a component import is properly introduced
      */
     fun checkIntroduceComponentImport(
+        toplevelContext: Context,
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
         element: RawComponentImport
     ): CheckStatus {
+        println("${currentContext.ctx}")
         var res = mutableListOf<CheckStatus>()
 
         /** precond: import resolves to a qualified named element */
-        // TODO: this is kind of ugly
-        val resResult = currentContext.qLook(element.name, phi)
+        val resResult = toplevelContext.qLook(element.name, phi)
         res.add(
             when (resResult is QNameReturn.ResolvedElement) {
                 true -> when (resResult.element is RawComponent) {

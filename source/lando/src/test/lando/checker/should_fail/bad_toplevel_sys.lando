@@ -1,0 +1,6 @@
+// only one top level system is permitted
+system MySys1
+undef.
+
+system MySys2
+undef.

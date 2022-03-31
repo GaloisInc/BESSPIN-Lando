@@ -1,0 +1,55 @@
+subsystem TopSubsys
+Description.
+
+contains
+
+end
+
+
+component TopComponent
+Description.
+
+
+// create a system with an abbreviation
+system MySystem (MS)
+Description.
+
+contains
+    // create a subsystem with an abbreviation
+    subsystem MySubsystem (MSS)
+    Description.
+
+    contains
+        // keep going deeper...
+        subsystem MySubsubsystem (MSSS)
+        Description.
+
+        subsystem MySSS2 inherit MSSS
+        Description.
+
+    end
+
+    // now we can try a top level import
+    import subsystem TopSubsys client MSS
+
+    // client relation
+    subsystem MySubsystem2 client MSS
+    Description.
+
+    // inherit relation
+    subsystem MySubsystem3 inherit MSS
+    Description.
+
+    // do the same thing with components
+    component MyComponent
+    Description.
+
+    component MyComponent2 client MyComponent
+    Description.
+
+    component MyComponent3 inherit MyComponent
+    Description.
+
+    // now we can try another import
+    import subsystem TopSubsys client MyComponent
+end
