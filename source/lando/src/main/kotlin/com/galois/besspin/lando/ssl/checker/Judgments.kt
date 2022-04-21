@@ -281,11 +281,6 @@ class Judgments {
 
         /** precond: all clients referenced are of the valid type */
         for (q in element.clientOf) {
-            // TODO: handle qlook null pointer exception
-            //res.add(checkValidClient(element, currentContext.qLook(q, phi)!!))
-            //relation.addRelation(
-            //    Pair(currentContext.qLook(q, phi)!!, element)
-            //)
             attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
         }
 
@@ -515,7 +510,13 @@ class Judgments {
         relation: Relation,
         element: RawEvents
     ): CheckStatus {
-        TODO()
+        /** relate element to a local context */
+        val gammap = Context()
+        phi[element] = gammap
+
+        gammap.addEvents(element)
+
+        return CheckStatus.Ok("validEvents", listOf())
     }
 
 
@@ -529,7 +530,13 @@ class Judgments {
         relation: Relation,
         element: RawScenarios
     ): CheckStatus {
-        TODO()
+        /** relate element to a local context */
+        val gammap = Context()
+        phi[element] = gammap
+
+        gammap.addScenarios(element)
+
+        return CheckStatus.Ok("validScenarios", listOf())
     }
 
     /**
@@ -542,7 +549,13 @@ class Judgments {
         relation: Relation,
         element: RawRequirements
     ): CheckStatus {
-        TODO()
+        /** relate element to a local context */
+        val gammap = Context()
+        phi[element] = gammap
+
+        gammap.addRequirements(element)
+
+        return CheckStatus.Ok("validRequirements", listOf())
     }
 
 
@@ -556,6 +569,48 @@ class Judgments {
         relation: Relation,
         element: RawRelation
     ): CheckStatus {
-        TODO()
+        val res = mutableListOf<CheckStatus>()
+
+        val resResult = currentContext.qLook(element.name, phi)
+
+        res.add(
+            when (resResult is QNameReturn.ResolvedElement) {
+                true -> when (resResult.element is RawComponent) {
+                    true -> CheckStatus.Ok("validImportedComponent", listOf())
+                    else -> CheckStatus.Error(
+                        "validImportedComponent",
+                        listOf(element),
+                        "could resolve ${element.name}, but it's not a component",
+                        listOf()
+                    )
+                }
+                else -> CheckStatus.Error(
+                    "validImportedComponent",
+                    listOf(element),
+                    "could not resolve '${element.name}' import to a component",
+                    listOf()
+                )
+            }
+        )
+
+        if (resResult is QNameReturn.ResolvedElement) {
+            val relem = resResult.element
+
+            /** precond: all clients referenced are of the valid type */
+            for (q in element.clientOf) {
+                attemptResolveCheck(res, relem, currentContext, q, phi, relation, ::checkValidClient)
+            }
+
+            /** precond: all inherits must be valid inherits */
+            for (q in element.inherits) {
+                attemptResolveCheck(res, relem, currentContext, q, phi, relation, ::checkValidInherit)
+            }
+
+            return getCheckStatus("validRelation", listOf(), "${element.name} is not a valid relation", res)
+
+        } else {
+
+            return getCheckStatus("validRelation", listOf(), "${element.name} is not a valid relation", res)
+        }
     }
 }

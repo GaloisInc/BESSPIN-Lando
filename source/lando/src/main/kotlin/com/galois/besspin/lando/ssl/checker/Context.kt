@@ -129,15 +129,15 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
     }
 
     fun addEvents(@Suppress("UNUSED_PARAMETER") e: RawEvents) {
-        TODO()
+        ctx.add(Pair(e.name, e))
     }
 
     fun addScenarios(@Suppress("UNUSED_PARAMETER") e: RawScenarios) {
-        TODO()
+        ctx.add(Pair(e.name, e))
     }
 
     fun addRequirements(@Suppress("UNUSED_PARAMETER") e: RawRequirements) {
-        TODO()
+        ctx.add(Pair(e.name, e))
     }
 
     fun addComponent(e: RawComponent) {
