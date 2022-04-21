@@ -7,7 +7,7 @@ class RawAstChecker {
         val judge = Judgments().checkSource(ast.body)
         return when {
             (judge is CheckStatus.Error) -> judge.getSimpleErrorString()
-            else -> "Success!"
+            else -> ""
         }
     }
 }

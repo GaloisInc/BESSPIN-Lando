@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package com.galois.besspin.lando.ssl.checker
 
 import com.galois.besspin.lando.ssl.ast.*
@@ -35,13 +37,10 @@ sealed class QNameReturn {
     ) : QNameReturn()
 
     /** could not resolve to anything */
-    class NullElement(
-        val qname: String
-    ) : QNameReturn()
+    object NullElement : QNameReturn()
 
     /** could resolve to multiple things */
     class MultipleElement(
-        val qname: String,
         val elements: List<RawElement>
     ) : QNameReturn()
 }
@@ -66,15 +65,15 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
         addTextType(e.explanation, e)
     }
 
-    fun addConstraint(e: RawConstraint) {
+    fun addConstraint(@Suppress("UNUSED_PARAMETER") e: RawConstraint) {
         TODO()
     }
 
-    fun addQuery(e: RawQuery) {
+    fun addQuery(@Suppress("UNUSED_PARAMETER") e: RawQuery) {
         TODO()
     }
 
-    fun addCommand(e: RawCommand) {
+    fun addCommand(@Suppress("UNUSED_PARAMETER") e: RawCommand) {
         TODO()
     }
 
@@ -86,8 +85,8 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
         }
     }
 
-    fun addRelation(e: RawRelation) {
-        /** do nothing... */
+    fun addRelation(@Suppress("UNUSED_PARAMETER") e: RawRelation) {
+        /** do nothing... (keep this way for interface consistency) */
     }
 
     /**
@@ -126,18 +125,18 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
         )
     }
 
-    fun addSubsystemImport(e: RawSubsystemImport) {
+    fun addSubsystemImport(@Suppress("UNUSED_PARAMETER") e: RawSubsystemImport) {
     }
 
-    fun addEvents(e: RawEvents) {
+    fun addEvents(@Suppress("UNUSED_PARAMETER") e: RawEvents) {
         TODO()
     }
 
-    fun addScenarios(e: RawScenarios) {
+    fun addScenarios(@Suppress("UNUSED_PARAMETER") e: RawScenarios) {
         TODO()
     }
 
-    fun addRequirements(e: RawRequirements) {
+    fun addRequirements(@Suppress("UNUSED_PARAMETER") e: RawRequirements) {
         TODO()
     }
 
@@ -160,20 +159,22 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
      */
     fun qLook(qname: QName, phi: ElementMap): QNameReturn {
         /** if size is one qualified name exists in current context */
-        if (qname.size == 1) {
+        return if (qname.size == 1) {
             val res = ctx.filter { it.first in qname }.map { it.second }
             when (res.size) {
-                1 -> return QNameReturn.ResolvedElement(res[0])
-                0 -> return QNameReturn.NullElement(qname[0])
-                else -> return QNameReturn.MultipleElement(qname[0], res)
+                1 -> QNameReturn.ResolvedElement(res[0])
+                0 -> QNameReturn.NullElement
+                else -> QNameReturn.MultipleElement(res)
             }
         } else {
             /** if size > 1, then the qualified name exists in another context Phi(qname[0]) */
-            val context = phi[qname[0]]
-            if (context == null) {
+            val ret = qLook(listOf(qname[0]), phi)
+            if (ret is QNameReturn.ResolvedElement) {
+                val context = phi[ret.element] ?: throw IllegalStateException("${qname[0]} could not resolve to a context")
+                context.qLook(qname.slice(1 until qname.size), phi)
+            } else {
                 throw IllegalStateException("${qname[0]} could not resolve to a context")
             }
-            return context.qLook(qname.slice(1 until qname.size), phi)
         }
     }
 }

@@ -18,10 +18,10 @@ class Judgments {
         message: String,
         preconds: List<CheckStatus>
     ): CheckStatus {
-        if (preconds.all { it is CheckStatus.Ok }) {
-            return CheckStatus.Ok(identifier = identifier, preconds = preconds)
+        return if (preconds.all { it is CheckStatus.Ok }) {
+            CheckStatus.Ok(identifier = identifier, preconds = preconds)
         } else {
-            return CheckStatus.Error(
+            CheckStatus.Error(
                 identifier = identifier,
                 elements = elements,
                 message = message,
@@ -34,13 +34,13 @@ class Judgments {
      * Judgment: abbreviations cannot equal the name identifier
      */
     fun checkNameAbbrev(name: String, abbrev: String, element: RawElement): CheckStatus {
-        if (name != abbrev) {
-            return CheckStatus.Ok("validNameAbbrev")
+        return if (name != abbrev) {
+            CheckStatus.Ok("validNameAbbrev")
         } else {
-            return CheckStatus.Error(
+            CheckStatus.Error(
                 "validNameAbbrev",
                 listOf(element),
-                "name ${name} conflicts with its abbreviation ${abbrev}",
+                "name $name conflicts with its abbreviation $abbrev",
                 listOf()
             )
         }
@@ -49,21 +49,21 @@ class Judgments {
     /**
      * Judgment: top level elements is a subset of types
      */
-    fun checkValidTopLevel(element: RawElement): CheckStatus {
+    private fun checkValidTopLevel(element: RawElement): CheckStatus {
         val isTopLevel = (element is RawSystem) || (element is RawSubsystem) || (element is RawComponent) ||
                 (element is RawEvents) || (element is RawScenarios) || (element is RawRequirements) ||
                 (element is RawRelation)
-        if (isTopLevel) {
-            return CheckStatus.Ok("validTopLevel")
+        return if (isTopLevel) {
+            CheckStatus.Ok("validTopLevel")
         } else {
-            return CheckStatus.Error("validTopLevel", listOf(element), "element of type ${element.javaClass.name} cannot be at the top level")
+            CheckStatus.Error("validTopLevel", listOf(element), "element of type ${element.javaClass.name} cannot be at the top level")
         }
     }
 
     /**
      * Judgment: for a system or subsystem, the contains field body can only have a subset of types
      */
-    fun checkValidContains(parent: RawElement, child: RawElement): CheckStatus {
+    private fun checkValidContains(parent: RawElement, child: RawElement): CheckStatus {
         val isValidContains = when {
             (parent is RawSystem) ->
                 ((child is RawSubsystem) || (child is RawSubsystemImport) || (child is RawRelation))
@@ -74,10 +74,10 @@ class Judgments {
                         (child is RawScenarios)))
             else -> false
         }
-        if (isValidContains) {
-            return CheckStatus.Ok("validSystemContains")
+        return if (isValidContains) {
+            CheckStatus.Ok("validSystemContains")
         } else {
-            return CheckStatus.Error(
+            CheckStatus.Error(
                 "validSystemContains",
                 listOf(parent, child),
                 "parent of type ${parent.javaClass.name} cannot contain a child of type ${child.javaClass.name}"
@@ -88,7 +88,7 @@ class Judgments {
     /**
      * Judgment: for a subsystem/component (import), the client field body can only have a subset of types
      */
-    fun checkValidClient(parent: RawElement, child: RawElement): CheckStatus {
+    private fun checkValidClient(parent: RawElement, child: RawElement): CheckStatus {
         val isValidClient = when {
             ((parent is RawSubsystem) || (parent is RawSubsystemImport)) ->
                 ((child is RawSubsystem) || (child is RawSubsystemImport) ||
@@ -98,10 +98,10 @@ class Judgments {
                         (child is RawComponent) || (child is RawComponentImport))
             else -> false
         }
-        if (isValidClient) {
-            return CheckStatus.Ok("validClient")
+        return if (isValidClient) {
+            CheckStatus.Ok("validClient")
         } else {
-            return CheckStatus.Error(
+            CheckStatus.Error(
                 "validClient",
                 listOf(parent, child),
                 "child fails necessary element type ${child.javaClass.name} for parent ${child.javaClass.name}"
@@ -112,7 +112,7 @@ class Judgments {
     /**
      * Judgment: an inherit must be two components
      */
-    fun checkValidInherit(parent: RawElement, child: RawElement): CheckStatus {
+    private fun checkValidInherit(parent: RawElement, child: RawElement): CheckStatus {
         return when (parent is RawComponent && child is RawComponent) {
             true -> CheckStatus.Ok("validInherit")
             else -> CheckStatus.Error(
@@ -128,17 +128,19 @@ class Judgments {
      */
     fun checkIntroduceElements(gamma0: Context, gamma: Context, phi: ElementMap, relation: Relation, es: List<RawElement>): CheckStatus {
 
-        var res = mutableListOf<CheckStatus>()
+        val res = mutableListOf<CheckStatus>()
 
         for (elem in es) {
             when {
                 (elem is RawSystem) -> res.add(checkIntroduceSystem(gamma0, gamma, phi, relation, elem))
-                (elem is RawSubsystem) -> res.add(checkIntroduceSubsystem(gamma0, gamma, phi, relation, elem));
+                (elem is RawSubsystem) -> res.add(checkIntroduceSubsystem(gamma0, gamma, phi, relation, elem))
                 elem is RawSubsystemImport -> res.add(checkIntroduceSubsystemImport(gamma0, gamma, phi, relation, elem))
                 elem is RawComponentImport -> res.add(checkIntroduceComponentImport(gamma0, gamma, phi, relation, elem))
                 elem is RawComponent -> res.add(checkIntroduceComponent(gamma, phi, relation, elem))
                 elem is RawRelation -> res.add(checkIntroduceRelation(gamma, phi, relation, elem))
                 elem is RawScenarios -> res.add(checkIntroduceScenarios(gamma, phi, relation, elem))
+                elem is RawRequirements -> res.add(checkIntroduceRequirements(gamma, phi, relation, elem))
+                elem is RawEvents -> res.add(checkIntroduceEvents(gamma, phi, relation, elem))
                 else -> {
                     /* TODO: this should be a valid rule, but Element has no name so it doesn't imply a
                     * valid element by the document standards
@@ -155,12 +157,12 @@ class Judgments {
      * Judgement: a source and its body are valid
      */
     fun checkSource(source: List<RawElement>): CheckStatus {
-        var res = mutableListOf<CheckStatus>()
+        val res = mutableListOf<CheckStatus>()
 
         /** precond: the source implies a valid context */
-        var gamma0 = Context()
-        var phi0 = mutableMapOf<RawElement, Context>()
-        var relationI = Relation()
+        val gamma0 = Context()
+        val phi0 = mutableMapOf<RawElement, Context>()
+        val relationI = Relation()
         res.add(checkIntroduceElements(gamma0, gamma0, phi0, relationI, source))
 
         /** precond: all elements referenced in the source are top level elements */
@@ -177,7 +179,7 @@ class Judgments {
 
         /** precond: is any two elements are systems, they must be the same system -- (what is the equality here) */
         /** TODO: is this the right way of doing equality here */
-        for (i in 0 until source.size) {
+        for (i in source.indices) {
             for (j in 0 until i) {
                 val e1 = source[i]
                 val e2 = source[j]
@@ -203,14 +205,14 @@ class Judgments {
     /**
      * Judgment: a system is properly introduced
      */
-    fun checkIntroduceSystem(
+    private fun checkIntroduceSystem(
         toplevelContext: Context,
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
         element: RawSystem
     ): CheckStatus {
-        var res = mutableListOf<CheckStatus>()
+        val res = mutableListOf<CheckStatus>()
 
         /** precond: if abbrev name is defined, it must not equal the elements name */
         if (element.abbrevName != null) {
@@ -229,8 +231,8 @@ class Judgments {
         }
 
         /** relate element to a local context */
-        val gammap = Context();
-        phi.put(element, gammap)
+        val gammap = Context()
+        phi[element] = gammap
 
         /** introduce body to the local context */
         if (element.body != null) res.add(checkIntroduceElements(toplevelContext, gammap, phi, relation, element.body!!))
@@ -251,11 +253,11 @@ class Judgments {
         relation: Relation,
         element: RawSubsystem
     ): CheckStatus {
-        var res = mutableListOf<CheckStatus>()
+        val res = mutableListOf<CheckStatus>()
 
         /** relate element to a local context */
-        val gammap = Context();
-        phi.put(element, gammap)
+        val gammap = Context()
+        phi[element] = gammap
 
 
         /** precond: if abbrev name is defined, it must not equal the elements name */
@@ -284,7 +286,7 @@ class Judgments {
             //relation.addRelation(
             //    Pair(currentContext.qLook(q, phi)!!, element)
             //)
-            _attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
+            attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
         }
 
         /** introduce body to the local context */
@@ -301,7 +303,7 @@ class Judgments {
     /**
      * Judgment: a subsystem import is properly introduced
      */
-    fun checkIntroduceSubsystemImport(
+    private fun checkIntroduceSubsystemImport(
         toplevelContext: Context,
         currentContext: Context,
         phi: ElementMap,
@@ -309,7 +311,7 @@ class Judgments {
         element: RawSubsystemImport
     ): CheckStatus {
 
-        var res = mutableListOf<CheckStatus>()
+        val res = mutableListOf<CheckStatus>()
 
         /** precond: all clients referenced are of the valid type */
         for (q in element.clientOf) {
@@ -318,7 +320,7 @@ class Judgments {
             //relation.addRelation(
             //    Pair(currentContext.qLook(q, phi)!!, element)
             //)
-            _attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
+            attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
         }
 
         /** precond: import resolves to a qualified named element */
@@ -353,13 +355,13 @@ class Judgments {
     /**
      * Judgment: a component is properly introduced
      */
-    fun checkIntroduceComponent(
+    private fun checkIntroduceComponent(
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
         element: RawComponent
     ): CheckStatus {
-        var res = mutableListOf<CheckStatus>()
+        val res = mutableListOf<CheckStatus>()
 
         /** precond: if abbrev name is defined, it must not equal the elements name */
         if (element.abbrevName != null) {
@@ -371,17 +373,17 @@ class Judgments {
 
         /** precond: all clients referenced are of the valid type */
         for (q in element.clientOf) {
-            _attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
+            attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
         }
 
         /** precond: all inherits must be valid inherits */
         for (q in element.inherits) {
-            _attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidInherit)
+            attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidInherit)
         }
 
         /** relate element to a local context */
-        val gammap = Context();
-        phi.put(element, gammap)
+        val gammap = Context()
+        phi[element] = gammap
 
         /** introduce body to the local context */
         //TODO: what is a RawComponentPart?
@@ -398,7 +400,7 @@ class Judgments {
      * this is an (ugly) private method to handle logic of attempting to resolve a list of identifiers and
      * check that the elements that they map to are valid and handl any errors along the way
      */
-    private fun _attemptResolveCheck(
+    private fun attemptResolveCheck(
         res: MutableList<CheckStatus>,
         element: RawElement,
         currentContext: Context,
@@ -419,15 +421,15 @@ class Judgments {
                 (resResult is QNameReturn.MultipleElement) -> res.add(
                     CheckStatus.Error(
                         "validClientResolve", listOf(element),
-                        "${q} resolved to multiple elements ${resResult.elements}", listOf()
+                        "$q resolved to multiple elements ${resResult.elements}", listOf()
                     )
-                );
+                )
                 (resResult is QNameReturn.NullElement) -> res.add(
                     CheckStatus.Error(
                         "validClientResolve", listOf(element),
-                        "${q} couldn't be resolved to an element", listOf()
+                        "$q couldn't be resolved to an element", listOf()
                     )
-                );
+                )
             }
         }
     }
@@ -435,7 +437,8 @@ class Judgments {
     /**
      * Judgement: Constraint is introduced
      */
-    fun checkIntroduceConstraint(currentContext: Context, phi: ElementMap, element: RawConstraint): CheckStatus {
+    @Suppress("unused")
+    fun checkIntroduceConstraint(currentContext: Context, element: RawConstraint): CheckStatus {
         currentContext.addTextTypeComponentPart(element.text, element)
         return CheckStatus.Ok("validConstraint", listOf())
     }
@@ -443,7 +446,8 @@ class Judgments {
     /**
      * Judgement: Query is introduced
      */
-    fun checkIntroduceQuery(currentContext: Context, phi: ElementMap, element: RawQuery): CheckStatus {
+    @Suppress("unused")
+    fun checkIntroduceQuery(currentContext: Context, element: RawQuery): CheckStatus {
         currentContext.addTextTypeComponentPart(element.text, element)
         return CheckStatus.Ok("validQuery", listOf())
     }
@@ -451,7 +455,8 @@ class Judgments {
     /**
      * Judgement: Command is introduced
      */
-    fun checkIntroduceCommand(currentContext: Context, phi: ElementMap, element: RawCommand): CheckStatus {
+    @Suppress("unused")
+    fun checkIntroduceCommand(currentContext: Context, element: RawCommand): CheckStatus {
         currentContext.addTextTypeComponentPart(element.text, element)
         return CheckStatus.Ok("validCommand", listOf())
     }
@@ -459,7 +464,7 @@ class Judgments {
     /**
      * Judgment: a component import is properly introduced
      */
-    fun checkIntroduceComponentImport(
+    private fun checkIntroduceComponentImport(
         toplevelContext: Context,
         currentContext: Context,
         phi: ElementMap,
@@ -467,7 +472,7 @@ class Judgments {
         element: RawComponentImport
     ): CheckStatus {
         println("${currentContext.ctx}")
-        var res = mutableListOf<CheckStatus>()
+        val res = mutableListOf<CheckStatus>()
 
         /** precond: import resolves to a qualified named element */
         val resResult = toplevelContext.qLook(element.name, phi)
@@ -493,7 +498,7 @@ class Judgments {
 
         /** precond: all clients referenced are of the valid type */
         for (q in element.clientOf) {
-            _attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
+            attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
         }
 
         return getCheckStatus("validComponentImport", listOf(), "${element.name} is not a valid component import", res)
@@ -503,6 +508,7 @@ class Judgments {
     /**
      * Judgment: an events is properly introduced
      */
+    @Suppress("UNUSED_PARAMETER")
     fun checkIntroduceEvents(
         currentContext: Context,
         phi: ElementMap,
@@ -516,7 +522,8 @@ class Judgments {
     /**
      * Judgment: a scenario is properly introduced
      */
-    fun checkIntroduceScenarios(
+    @Suppress("UNUSED_PARAMETER")
+    private fun checkIntroduceScenarios(
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
@@ -528,6 +535,7 @@ class Judgments {
     /**
      * Judgment: a requirements is properly introduced
      */
+    @Suppress("UNUSED_PARAMETER")
     fun checkIntroduceRequirements(
         currentContext: Context,
         phi: ElementMap,
@@ -541,7 +549,8 @@ class Judgments {
     /**
      * Judgment: a relation is properly introduced
      */
-    fun checkIntroduceRelation(
+    @Suppress("UNUSED_PARAMETER")
+    private fun checkIntroduceRelation(
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
