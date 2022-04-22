@@ -198,7 +198,7 @@ private val sslModule = SerializersModule {
     }
 }
 
-val jsonRawSSL = Json {serializersModule = sslModule; prettyPrint = true;}
+val jsonRawSSL = Json {serializersModule = sslModule; prettyPrint = true }
 
 fun RawSSL.toJSON(): String {
     return jsonRawSSL.encodeToString(RawSSL.serializer(), this)
