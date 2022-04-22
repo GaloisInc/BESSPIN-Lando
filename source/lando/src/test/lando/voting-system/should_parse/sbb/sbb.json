@@ -1,276 +1,448 @@
 {
-    "uid": 11,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "Smart Ballot Box",
             "abbrevName": "SBB",
+            "clientOf": [
+            ],
             "explanation": "The software, firmware, and hardware that make up the BSV smart ballot box.",
             "indexing": [
             ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 2,
-            "name": "Smart Ballot Box API",
-            "abbrevName": null,
-            "explanation": "The top-level API that is independent of the hardware and the type of the ballot box. Is this barcode valid?",
-            "parts": [
+            "body": [
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 2,
+                    "pos": {
+                        "line": 9,
+                        "col": 0
+                    },
+                    "name": "Smart Ballot Box API",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "The top-level API that is independent of the hardware and the type of the ballot box. Is this barcode valid?",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 3,
+                    "pos": {
+                        "line": 13,
+                        "col": 0
+                    },
+                    "name": "Barcode",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "How long is this barcode? Is this barcode valid? What is the maximum number of bits this barcode can encode?",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 4,
+                    "pos": {
+                        "line": 18,
+                        "col": 0
+                    },
+                    "name": "Foo",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "A sentence. <- MANDATORY Explanation A sentence two. <- Constraint? A sentence three.",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 5,
+                    "pos": {
+                        "line": 23,
+                        "col": 0
+                    },
+                    "name": "Ballot Box",
+                    "abbrevName": null,
+                    "inherits": [
+                        [
+                            "Smart Ballot Box API"
+                        ]
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "A low-level API for a specific ballot box and its hardware.",
+                    "parts": [
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 26,
+                                "col": 2
+                            },
+                            "text": "Initialize this ballot box!",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 27,
+                                "col": 2
+                            },
+                            "text": "Deposit this ballot!",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 28,
+                                "col": 2
+                            },
+                            "text": "Reject this ballot!",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 29,
+                                "col": 2
+                            },
+                            "text": "Spoil this ballot!",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 30,
+                                "col": 2
+                            },
+                            "text": "Cast this ballot!",
+                            "comments": [
+                                {
+                                    "pos": {
+                                        "line": 31,
+                                        "col": 0
+                                    },
+                                    "text": "@design dmz the following query is really asking whether, if a ballot is"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                            "pos": {
+                                "line": 32,
+                                "col": 0
+                            },
+                            "text": "Is the ballot spoiled?",
+                            "comments": [
+                                {
+                                    "pos": {
+                                        "line": 32,
+                                        "col": 0
+                                    },
+                                    "text": "in the machine, it has already been spoiled or rejected for being invalid;"
+                                },
+                                {
+                                    "pos": {
+                                        "line": 33,
+                                        "col": 0
+                                    },
+                                    "text": "we should address this (both here and in the state machine) for the"
+                                },
+                                {
+                                    "pos": {
+                                        "line": 34,
+                                        "col": 0
+                                    },
+                                    "text": "next milestone."
+                                }
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 36,
+                                "col": 2
+                            },
+                            "text": "Go to standby!",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 37,
+                                "col": 2
+                            },
+                            "text": "Reset the ballot detect timeout!",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                            "pos": {
+                                "line": 38,
+                                "col": 2
+                            },
+                            "text": "Has the ballot detect timeout expired?",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 39,
+                                "col": 2
+                            },
+                            "text": "Reset the cast or spoil timeout!",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                            "pos": {
+                                "line": 40,
+                                "col": 2
+                            },
+                            "text": "Has the cast or spoil timeout expired?",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawConstraint",
+                            "pos": {
+                                "line": 41,
+                                "col": 2
+                            },
+                            "text": "The motor can only rotate forward or backward.",
+                            "comments": [
+                            ]
+                        }
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 6,
+                    "pos": {
+                        "line": 43,
+                        "col": 0
+                    },
+                    "name": "Motor",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "Tell the motor to rotate forward! Tell the motor to rotate backward! Stop the motor!",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 7,
+                    "pos": {
+                        "line": 48,
+                        "col": 0
+                    },
+                    "name": "Buttons",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "Is the cast button pressed? Is the spoil button pressed? Is the cast button released? Is the spoil button released?",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 8,
+                    "pos": {
+                        "line": 54,
+                        "col": 0
+                    },
+                    "name": "Button Lights",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "Turn the spoil button light on! Turn the spoil button light off! Turn the cast button light on! Turn the cast button light off!",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 9,
+                    "pos": {
+                        "line": 60,
+                        "col": 0
+                    },
+                    "name": "Paper Sensors",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "Ballot detected? Ballot inserted? Does the current ballot have a barcode? What are the contents of the barcode of the currently held ballot?",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 10,
+                    "pos": {
+                        "line": 66,
+                        "col": 0
+                    },
+                    "name": "LCD",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "Display this text!",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawRelation",
+                    "uid": 11,
+                    "pos": {
+                        "line": 69,
+                        "col": 0
+                    },
+                    "name": [
+                        "Ballot Box"
+                    ],
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                        [
+                            "Barcode"
+                        ]
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawRelation",
+                    "uid": 12,
+                    "pos": {
+                        "line": 70,
+                        "col": 0
+                    },
+                    "name": [
+                        "Ballot Box"
+                    ],
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                        [
+                            "Secure System Log"
+                        ]
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawRelation",
+                    "uid": 13,
+                    "pos": {
+                        "line": 71,
+                        "col": 0
+                    },
+                    "name": [
+                        "Ballot Box"
+                    ],
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                        [
+                            "Secure Application Log"
+                        ]
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawRelation",
+                    "uid": 14,
+                    "pos": {
+                        "line": 72,
+                        "col": 0
+                    },
+                    "name": [
+                        "Ballot Box"
+                    ],
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                        [
+                            "Crypto"
+                        ]
+                    ],
+                    "comments": [
+                    ]
+                }
             ],
             "comments": [
                 {
+                    "pos": {
+                        "line": 5,
+                        "col": 0
+                    },
                     "text": "@todo kiniry This top-level system specification should either"
                 },
                 {
+                    "pos": {
+                        "line": 6,
+                        "col": 0
+                    },
                     "text": "import all of the related specifications in this directory, or"
                 },
                 {
+                    "pos": {
+                        "line": 7,
+                        "col": 0
+                    },
                     "text": "explain how they are all inter-dependent."
                 }
             ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 3,
-            "name": "Barcode",
-            "abbrevName": null,
-            "explanation": "How long is this barcode? Is this barcode valid? What is the maximum number of bits this barcode can encode?",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 4,
-            "name": "Foo",
-            "abbrevName": null,
-            "explanation": "A sentence. <- MANDATORY Explanation A sentence two. <- Constraint? A sentence three.",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 5,
-            "name": "Ballot Box",
-            "abbrevName": null,
-            "explanation": "A low-level API for a specific ballot box and its hardware.",
-            "parts": [
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Initialize this ballot box!",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Deposit this ballot!",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Reject this ballot!",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Spoil this ballot!",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Cast this ballot!",
-                    "comments": [
-                        {
-                            "text": "@design dmz the following query is really asking whether, if a ballot is"
-                        }
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
-                    "text": "Is the ballot spoiled?",
-                    "comments": [
-                        {
-                            "text": "in the machine, it has already been spoiled or rejected for being invalid;"
-                        },
-                        {
-                            "text": "we should address this (both here and in the state machine) for the"
-                        },
-                        {
-                            "text": "next milestone."
-                        }
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Go to standby!",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Reset the ballot detect timeout!",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
-                    "text": "Has the ballot detect timeout expired?",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Reset the cast or spoil timeout!",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
-                    "text": "Has the cast or spoil timeout expired?",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawConstraint",
-                    "text": "The motor can only rotate forward or backward.",
-                    "comments": [
-                    ]
-                }
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 6,
-            "name": "Motor",
-            "abbrevName": null,
-            "explanation": "Tell the motor to rotate forward! Tell the motor to rotate backward! Stop the motor!",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 7,
-            "name": "Buttons",
-            "abbrevName": null,
-            "explanation": "Is the cast button pressed? Is the spoil button pressed? Is the cast button released? Is the spoil button released?",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 8,
-            "name": "Button Lights",
-            "abbrevName": null,
-            "explanation": "Turn the spoil button light on! Turn the spoil button light off! Turn the cast button light on! Turn the cast button light off!",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 9,
-            "name": "Paper Sensors",
-            "abbrevName": null,
-            "explanation": "Ballot detected? Ballot inserted? Does the current ballot have a barcode? What are the contents of the barcode of the currently held ballot?",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 10,
-            "name": "LCD",
-            "abbrevName": null,
-            "explanation": "Display this text!",
-            "parts": [
-            ],
-            "comments": [
-            ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-            {
-                "name": "Ballot Box",
-                "base": "Smart Ballot Box API"
-            }
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-            {
-                "uid": 2,
-                "parentUid": 1
-            },
-            {
-                "uid": 3,
-                "parentUid": 1
-            },
-            {
-                "uid": 4,
-                "parentUid": 1
-            },
-            {
-                "uid": 5,
-                "parentUid": 1
-            },
-            {
-                "uid": 6,
-                "parentUid": 1
-            },
-            {
-                "uid": 7,
-                "parentUid": 1
-            },
-            {
-                "uid": 8,
-                "parentUid": 1
-            },
-            {
-                "uid": 9,
-                "parentUid": 1
-            },
-            {
-                "uid": 10,
-                "parentUid": 1
-            }
-        ],
-        "_clientRelations": [
-            {
-                "client": "Ballot Box",
-                "provider": "Barcode"
-            },
-            {
-                "client": "Ballot Box",
-                "provider": "Secure System Log"
-            },
-            {
-                "client": "Ballot Box",
-                "provider": "Secure Application Log"
-            },
-            {
-                "client": "Ballot Box",
-                "provider": "Crypto"
-            }
-        ]
-    },
     "comments": [
     ]
 }

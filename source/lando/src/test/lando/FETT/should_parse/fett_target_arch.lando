@@ -32,5 +32,5 @@ The platform on which FETT will run, consisting of TA-1 SSITH processors
 running inside of AWS F1-hosted SoCs, complete with OS and devices
 relevant to FETT.
 
-relation FPGA contains CloudGFE
+relation FPGA client CloudGFE
 relation Target Subsystem client CloudGFE

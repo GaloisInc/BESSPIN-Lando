@@ -1,14 +1,23 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "Smart Ballot Box",
             "abbrevName": "SBB",
+            "clientOf": [
+            ],
             "explanation": "The Smart Ballot Box (SBB) for the BESSPIN Voting System (BVS) 2020.",
             "indexing": [
                 {
+                    "pos": {
+                        "line": 5,
+                        "col": 2
+                    },
                     "key": "owner",
                     "values": [
                         "Joseph Kiniry <kiniry@freeandfair.us>"
@@ -17,6 +26,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 6,
+                        "col": 2
+                    },
                     "key": "contributors",
                     "values": [
                         "Michal Podhradsky <mpodhradsky@galois.com>",
@@ -31,6 +44,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 13,
+                        "col": 2
+                    },
                     "key": "design",
                     "values": [
                         "11 weeks"
@@ -39,6 +56,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 14,
+                        "col": 2
+                    },
                     "key": "implementation",
                     "values": [
                         "3 weeks"
@@ -47,6 +68,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 15,
+                        "col": 2
+                    },
                     "key": "assurance",
                     "values": [
                         "3 weeks"
@@ -55,6 +80,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 16,
+                        "col": 2
+                    },
                     "key": "complexity estimate",
                     "values": [
                         "high"
@@ -63,6 +92,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 17,
+                        "col": 2
+                    },
                     "key": "risk level",
                     "values": [
                         "medium"
@@ -71,6 +104,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 18,
+                        "col": 2
+                    },
                     "key": "mandatory dependencies",
                     "values": [
                         "crypto logging security cascasdes"
@@ -79,6 +116,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 19,
+                        "col": 2
+                    },
                     "key": "issues",
                     "values": [
                         "#152, #162-#170"
@@ -87,20 +128,12 @@
                     ]
                 }
             ],
+            "body": [
+            ],
             "comments": [
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

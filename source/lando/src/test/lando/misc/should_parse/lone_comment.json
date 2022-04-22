@@ -1,19 +1,12 @@
 {
-    "uid": 1,
-    "elements": [
+    "body": [
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
         {
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "text": "oh what a lovely comment"
         }
     ]

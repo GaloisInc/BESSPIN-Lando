@@ -4,7 +4,7 @@
 LANDO_DIR=$(dirname $0)
 SSL_DIR="${LANDO_DIR}/source/lando"
 
-cmd_prefix="java -jar ${SSL_DIR}/target/lando-1.0-SNAPSHOT-jar-with-dependencies.jar"
+cmd_prefix="java -jar ${SSL_DIR}/target/lando-*-jar-with-dependencies.jar"
 
 usage="Usage: lando.sh [-f FILE] [-o FILE] [-e] [-d] [-p] [-r] [-t] [-h]
   Parses a given lando file and converts it to JSON. Options:

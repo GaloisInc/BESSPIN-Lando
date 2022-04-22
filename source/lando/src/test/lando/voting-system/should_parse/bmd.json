@@ -1,14 +1,23 @@
 {
-    "uid": 3,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "Ballot Marking Device",
             "abbrevName": null,
+            "clientOf": [
+            ],
             "explanation": "A Voting Terminal that permits voters to cast a well-formed paper ballot via a digital interface.",
             "indexing": [
                 {
+                    "pos": {
+                        "line": 6,
+                        "col": 2
+                    },
                     "key": "owner",
                     "values": [
                         "Haneef Mubarak <haneef@galois.com>"
@@ -17,6 +26,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 7,
+                        "col": 2
+                    },
                     "key": "contributors",
                     "values": [
                         "Luke Myers <lmyers@galois.com>",
@@ -26,35 +39,31 @@
                     ]
                 }
             ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 2,
-            "name": "Ballot Encryption",
-            "abbrevName": null,
-            "explanation": "What is the encryption of this ballot and nonce? component Random Number Generator May I have a nonce? component Printer What is the barcode encoding for this ballot? Print this ballot! Print this receipt!",
-            "parts": [
+            "body": [
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 2,
+                    "pos": {
+                        "line": 10,
+                        "col": 0
+                    },
+                    "name": "Ballot Encryption",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "What is the encryption of this ballot and nonce? component Random Number Generator May I have a nonce? component Printer What is the barcode encoding for this ballot? Print this ballot! Print this receipt!",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                }
             ],
             "comments": [
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-            {
-                "uid": 2,
-                "parentUid": 1
-            }
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

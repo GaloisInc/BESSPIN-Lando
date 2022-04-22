@@ -1,106 +1,197 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawScenarios",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "SBB",
             "scenarios": [
                 {
+                    "pos": {
+                        "line": 3,
+                        "col": 0
+                    },
                     "id": "Accept_valid_ballot",
                     "text": "Startup the system, and wait for an inserted paper; a valid ballot is inserted; the ballot is scanned, the barcode is read; ask the user whether they want to accept or spoil the ballot; they choose to accept it; the ballot is accepted; then the ballot box returns to the standby state.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 3,
+                                "col": 39
+                            },
                             "text": "NORMAL"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 10,
+                        "col": 0
+                    },
                     "id": "Spoil_valid_ballot",
                     "text": "Startup the system, and wait for an inserted paper; a valid ballot is inserted; the ballot is scanned, the barcode is read; ask the user whether they want to accept or spoil the ballot; they choose to spoil it; the ballot is spoiled from the paper feeder; then the ballot box returns to the standby state.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 10,
+                                "col": 37
+                            },
                             "text": "NORMAL"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 17,
+                        "col": 0
+                    },
                     "id": "Eject_invalid_ballot",
                     "text": "Startup the system, and wait for an inserted paper; a ballot with invalid barcode is inserted; the ballot is scanned, and because the barcode is not valid, the ballot is ejected from the paper feeder; the ballot box prints Ballot invalid message; then the ballot box returns to the standby state.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 17,
+                                "col": 41
+                            },
                             "text": "NORMAL"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 24,
+                        "col": 0
+                    },
                     "id": "Eject_old_cast_ballot",
                     "text": "Startup the system, and wait for an inserted paper; a ballot with a valid barcode is inserted; the ballot is scanned, the barcode is read; ask the user whether they want to accept or spoil the ballot; they choose to cast it; the ballot is fed into the ballot box; the ballot box returns to the standby state; the user inserts a ballot with the same barcode, the ballot is scanned, the barcode is read; the ballot box ejects the ballot; then the ballot box returns to the standby state.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 24,
+                                "col": 43
+                            },
                             "text": "NORMAL"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 33,
+                        "col": 0
+                    },
                     "id": "Eject_old_spoiled_ballot",
                     "text": "Startup the system, and wait for an inserted paper; a ballot with a valid barcode is inserted; the ballot is scanned, the barcode is read; ask the user whether they want to accept or spoil the ballot; they choose to spoil it; the ballot is ejected from the paper feeder; the ballot box returns to the standby state; the user inserts the same ballot, the ballot is scanned, the barcode is read; the ballot box ejects the ballot; then the ballot box returns to the standby state.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 33,
+                                "col": 49
+                            },
                             "text": "NORMAL"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 43,
+                        "col": 0
+                    },
                     "id": "Eject_expired_ballot",
                     "text": "Startup the system, and wait for an inserted paper; a ballot with a valid but expired barcode is inserted; the ballot is scanned, the barcode is read; because the ballot has expired, the ballot is ejected from the paper feeder; the ballot box prints expired ballot message; then the ballot box returns to the standby state.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 43,
+                                "col": 41
+                            },
                             "text": "NORMAL"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 50,
+                        "col": 0
+                    },
                     "id": "Ballot_with_no_barcode",
                     "text": "Startup the system, and wait for an inserted paper; a ballot with no barcode is inserted; the ballot is scanned, and because the barcode cannot be found, the ballot is spoiled from the paper feeder; the ballot box prints a ballot spoiled message; then the ballot box returns to the standby state.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 50,
+                                "col": 45
+                            },
                             "text": "NORMAL"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 57,
+                        "col": 0
+                    },
                     "id": "User_indecision",
                     "text": "Startup the system, and wait for an inserted paper; a valid ballot is inserted; the ballot is scanned, the barcode is read; ask the user whether they want to accept or spoil the ballot; the system times out waiting for the user to decide; the ballot box ejects the ballot; then the ballot returns to the standby state.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 57,
+                                "col": 31
+                            },
                             "text": "NORMAL"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 64,
+                        "col": 0
+                    },
                     "id": "Fail to create logs",
                     "text": "Startup the system; the system does not contain existing log files and attempts to create them; the logging system fails to create log files; the ballot box aborts.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 64,
+                                "col": 24
+                            },
                             "text": "ERROR"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 69,
+                        "col": 0
+                    },
                     "id": "Fail to import logs",
                     "text": "Startup the system; the system contains existing log files; the ballot box attempts to import them; the logging system fails to import log files; the ballot box aborts.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 69,
+                                "col": 24
+                            },
                             "text": "ERROR"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 74,
+                        "col": 0
+                    },
                     "id": "Log failure",
                     "text": "Startup the system; the system attempts to log messages during execution; the logging system fails to record an event; the ballot box aborts.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 74,
+                                "col": 15
+                            },
                             "text": "ERROR"
                         }
                     ]
@@ -110,16 +201,6 @@
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

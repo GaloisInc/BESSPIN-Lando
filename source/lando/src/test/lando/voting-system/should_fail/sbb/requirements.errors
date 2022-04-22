@@ -1,2 +1,4 @@
 Parser Failed due to the following errors:
-Line: 11, Column: 46. mismatched input 'In' expecting {<EOF>, EMPTYLINE, LINESEP}
+Line: 22, Column: 60. mismatched input ':' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 25, Column: 63. mismatched input ':' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 28, Column: 62. mismatched input ':' expecting {EMPTYLINE, COMMENT, LINESEP}

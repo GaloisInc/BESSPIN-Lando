@@ -1,36 +1,59 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "database SQLite",
             "requirements": [
                 {
+                    "pos": {
+                        "line": 3,
+                        "col": 0
+                    },
                     "id": "Sqlite_installation_versions",
                     "text": "For the CVE/CWE tests purpose only, provide installation and set-up of the SQLite database version 3.22.0.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 7,
+                        "col": 0
+                    },
                     "id": "Sqlite_error_log",
                     "text": "Set up a process-wide error log.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 10,
+                        "col": 0
+                    },
                     "id": "Sqlite_db_connection",
                     "text": "Configure and provide limit for individual database connections",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 13,
+                        "col": 0
+                    },
                     "id": "Sqlite_access_and_permission",
                     "text": "Provide access to corresponding users in order to be able to execute the sqlite binary.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 17,
+                        "col": 0
+                    },
                     "id": "Sqlite_fts3_virtual_table",
                     "text": "Provide fts3 for sqite3 version < SQLite 3.25.3.",
                     "comments": [
@@ -41,16 +64,6 @@
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

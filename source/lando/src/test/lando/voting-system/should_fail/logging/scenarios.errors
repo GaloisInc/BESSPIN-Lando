@@ -1,10 +1,18 @@
 Parser Failed due to the following errors:
-Line: 11, Column: 19. token recognition error at: '.\n'
+Line: 11, Column: 39. token recognition error at: '.\n'
 Line: 12, Column: 0. mismatched input 'Create' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 12, Column: 12. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 12, Column: 23. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 12, Column: 36. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
 Line: 12, Column: 63. token recognition error at: '.\n'
-Line: 14, Column: 23. extraneous input '.' expecting {EMPTYLINE, COMMENT, LINESEP}
-Line: 18, Column: 23. token recognition error at: '.\n'
+Line: 18, Column: 47. token recognition error at: '.\n'
 Line: 19, Column: 0. mismatched input 'Create' expecting {EMPTYLINE, COMMENT, LINESEP}
-Line: 20, Column: 21. extraneous input '.' expecting {EMPTYLINE, COMMENT, LINESEP}
-Line: 22, Column: 27. token recognition error at: '.\n'
-Line: 23, Column: 0. mismatched input 'Create' expecting {<EOF>, EMPTYLINE, LINESEP}
+Line: 19, Column: 12. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 19, Column: 23. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 19, Column: 54. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 19, Column: 67. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 22, Column: 55. token recognition error at: '.\n'
+Line: 23, Column: 0. mismatched input 'Create' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 23, Column: 12. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 23, Column: 23. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 23, Column: 54. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}

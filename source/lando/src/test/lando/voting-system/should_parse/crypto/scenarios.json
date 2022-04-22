@@ -1,48 +1,83 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawScenarios",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "Crypto",
             "scenarios": [
                 {
+                    "pos": {
+                        "line": 3,
+                        "col": 0
+                    },
                     "id": "HSMStartup",
                     "text": "Initialize the HSM microarchitecture, perform a secure boot, and load the HSM AES key.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 3,
+                                "col": 0
+                            },
                             "text": "initialization"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 9,
+                        "col": 0
+                    },
                     "id": "Encrypt_fewer_than_256_bits_of_data",
                     "text": "Encrypt some data that is smaller than one block in size by padding the input and performing the encryption.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 9,
+                                "col": 0
+                            },
                             "text": "general use"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 15,
+                        "col": 0
+                    },
                     "id": "Encrypt_data",
                     "text": "Encrypt some data that is larger than one block in size by encrypting each successive block of input using AES-CBC and then, when the remaining input is smaller than one block in size, padding then encrypting the remaining data.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 21,
+                        "col": 0
+                    },
                     "id": "Decrypt_fewer_than_256_bits_of_data",
                     "text": "Decrypt some data that is smaller than one block in size by decrypting the input and the receiving entity should know how to remove padding.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 25,
+                        "col": 0
+                    },
                     "id": "Decrypt_data",
                     "text": "Decrypt some data that is larger than one block in size by decrypting and catenating each successive block of input using AES-CBC and then, when the remaining input is smaller than one block in size, decrypting then truncating the padding then appending the remaining data.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 31,
+                        "col": 0
+                    },
                     "id": "HMAC_some_data",
                     "text": "HMACing some data means HMACing all of the data using a key.",
                     "comments": [
@@ -53,16 +88,6 @@
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }
