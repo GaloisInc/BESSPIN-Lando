@@ -1,0 +1,10 @@
+validSourceError:
+	validElementsListError:
+		validSystemError:
+			validNameAbbrev: 'name MySystem conflicts with its abbreviation MySystem'[(Line 1, Column 0)]
+			validElementsListError:
+				validSubsystemError:
+					validNameAbbrev: 'name MySubsys conflicts with its abbreviation MySubsys'[(Line 5, Column 0)]
+					validElementsListError:
+						validComponentError:
+							validNameAbbrev: 'name MyComp conflicts with its abbreviation MyComp'[(Line 8, Column 0)]

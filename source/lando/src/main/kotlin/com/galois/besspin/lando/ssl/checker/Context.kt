@@ -126,6 +126,7 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
     }
 
     fun addSubsystemImport(@Suppress("UNUSED_PARAMETER") e: RawSubsystemImport) {
+        ctx.add(Pair(e.name.last(), e))
     }
 
     fun addEvents(@Suppress("UNUSED_PARAMETER") e: RawEvents) {

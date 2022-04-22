@@ -1,0 +1,2 @@
+validSourceError:
+	validInheritance: 'Inheritance map has cycles!'[]

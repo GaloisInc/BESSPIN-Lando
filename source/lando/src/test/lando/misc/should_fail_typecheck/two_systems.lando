@@ -1,0 +1,6 @@
+// two toplevel systems are not allowed
+system SysA
+descr.
+
+system Sysb
+descr.

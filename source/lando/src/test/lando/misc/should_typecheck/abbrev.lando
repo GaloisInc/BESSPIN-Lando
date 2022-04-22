@@ -1,0 +1,10 @@
+// we can have a component with an abbreviation
+component MyComponent1 (MC)
+descr.
+
+// we can have a component without can abbrevation
+component MyComponent2
+descr.
+
+// we can refer to it
+relation MC client MyComponent2

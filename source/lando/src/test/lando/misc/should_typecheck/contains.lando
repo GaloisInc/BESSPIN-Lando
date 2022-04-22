@@ -1,0 +1,35 @@
+component Comp
+descr.
+
+subsystem Subsys (SS1)
+descr.
+
+subsystem MySubsys (MSS)
+descr.
+
+contains
+
+    // define a component
+    component MyComponent1 (MC1)
+    descr.
+
+    // if we import an external subsystem...
+    import subsystem SS1
+
+    import component Comp
+
+    // ...we can use it here
+    subsystem MySubsys2 client SS1
+    descr.
+
+
+    // let's go a level deeper
+    subsystem MySubsys3
+    descr.
+
+    contains
+        import subsystem SS1
+
+    end
+
+end

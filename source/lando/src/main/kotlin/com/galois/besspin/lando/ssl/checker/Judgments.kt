@@ -150,7 +150,7 @@ class Judgments {
                 }
             }
         }
-        return getCheckStatus("validElementsList", listOf(), "TODO", res)
+        return getCheckStatus("validElementsList", listOf(), "Elements Introduction is invalid.", res)
     }
 
     /**
@@ -174,7 +174,8 @@ class Judgments {
         if (relationI.hasNoCycles()) {
             res.add(CheckStatus.Ok("validInheritance"))
         } else {
-            res.add(CheckStatus.Error("validInheritance", listOf(), "TODO"))
+            // TODO: report offending elements?
+            res.add(CheckStatus.Error("validInheritance", listOf(), "Inheritance map has cycles!"))
         }
 
         /** precond: is any two elements are systems, they must be the same system -- (what is the equality here) */
@@ -199,7 +200,7 @@ class Judgments {
                 }
             }
         }
-        return getCheckStatus("validSource", listOf(), "TODO", res)
+        return getCheckStatus("validSource", listOf(), "Source is invalid!", res)
     }
 
     /**
@@ -466,7 +467,6 @@ class Judgments {
         relation: Relation,
         element: RawComponentImport
     ): CheckStatus {
-        println("${currentContext.ctx}")
         val res = mutableListOf<CheckStatus>()
 
         /** precond: import resolves to a qualified named element */

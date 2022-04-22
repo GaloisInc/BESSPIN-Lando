@@ -1,0 +1,10 @@
+// bad client
+component MyComp client MyBadComp
+descr.
+
+// bad resolve
+relation MyComp inherit MyBadComp
+
+// bad client
+subsystem MySubsystem (MSS) client MyBadSubsys
+descr.
