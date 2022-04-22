@@ -1,3 +1,3 @@
 Parser Failed due to the following errors:
-Line: 2, Column: 65. token recognition error at: '('
-Line: 2, Column: 69. token recognition error at: ')'
+Line: 2, Column: 71. mismatched input '(' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 2, Column: 75. extraneous input ')' expecting {EMPTYLINE, COMMENT, LINESEP}

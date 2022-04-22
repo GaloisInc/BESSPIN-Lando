@@ -1,150 +1,249 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawEvents",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "SBB",
             "events": [
                 {
+                    "pos": {
+                        "line": 3,
+                        "col": 0
+                    },
                     "id": "Standby",
                     "text": "Initial state wherein the ballot box is ready and waiting for a paper to be inserted.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 7,
+                        "col": 0
+                    },
                     "id": "Abort",
                     "text": "State in which the ballot box has detected an error from which it can not recover.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 11,
+                        "col": 0
+                    },
                     "id": "MotorForward",
                     "text": "Move motor forward, to feed paper inside the ballot box.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 14,
+                        "col": 0
+                    },
                     "id": "MotorStop",
                     "text": "Stop moving the motor.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 17,
+                        "col": 0
+                    },
                     "id": "MotorBackward",
                     "text": "Move motor backward, to feed paper out of the ballot box.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 20,
+                        "col": 0
+                    },
                     "id": "PaperDetected",
                     "text": "The paper sensor does not detect any paper then a sheet of paper is inserted into the paper feeder and is detected by the paper sensor.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 24,
+                        "col": 0
+                    },
                     "id": "PaperInserted",
                     "text": "The paper sensor detects some paper.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 27,
+                        "col": 0
+                    },
                     "id": "PaperAccepted",
                     "text": "The paper sensor detects some paper, then does not, and then the paper is deposited inside the ballot box.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 31,
+                        "col": 0
+                    },
                     "id": "PaperReturned",
                     "text": "The paper sensor detects some paper, then does not, thus paper has been removed from the feeder tray.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 35,
+                        "col": 0
+                    },
                     "id": "DisplaySomeText",
                     "text": "Some text is diplayed on the LCD display.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 38,
+                        "col": 0
+                    },
                     "id": "CastButtonPressed",
                     "text": "The cast button is released then the cast button is pressed.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 41,
+                        "col": 0
+                    },
                     "id": "CastButtonReleased",
                     "text": "The cast button is pressed then the cast button is released.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 44,
+                        "col": 0
+                    },
                     "id": "SpoilButtonPressed",
                     "text": "The spoil button is released then the spoil button is pressed.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 47,
+                        "col": 0
+                    },
                     "id": "SpoilButtonReleased",
                     "text": "The spoil button is pressed the the spoil button is released.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 50,
+                        "col": 0
+                    },
                     "id": "CastLightLit",
                     "text": "The cast light is turned on.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 53,
+                        "col": 0
+                    },
                     "id": "CastLightDark",
                     "text": "The cast light is turned off.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 56,
+                        "col": 0
+                    },
                     "id": "SpoilLightLit",
                     "text": "The spoil light is turned on.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 59,
+                        "col": 0
+                    },
                     "id": "SpoilLightDark",
                     "text": "The spoil light is turned off.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 62,
+                        "col": 0
+                    },
                     "id": "BarcodeScanned",
                     "text": "A barcode is scanned.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 65,
+                        "col": 0
+                    },
                     "id": "CastSpoilTimerStart",
                     "text": "A countdown begins after asking the user to make a decision.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 68,
+                        "col": 0
+                    },
                     "id": "CastSpoilTimeout",
                     "text": "The timer expires while waiting for a user to make a decision.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 71,
+                        "col": 0
+                    },
                     "id": "LogSystemEvent",
                     "text": "The ballot box records a system event.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 74,
+                        "col": 0
+                    },
                     "id": "LogCastBallot",
                     "text": "The ballot box records a cast ballot.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 77,
+                        "col": 0
+                    },
                     "id": "LogSpoiledBallot",
                     "text": "The ballot box records a spoiled ballot.",
                     "comments": [
@@ -155,16 +254,6 @@
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

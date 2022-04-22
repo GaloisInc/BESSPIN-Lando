@@ -1,14 +1,23 @@
 {
-    "uid": 3,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "DEF CON Communications",
             "abbrevName": null,
+            "clientOf": [
+            ],
             "explanation": "Physical and digital communications artifacts produced for DEF CON.",
             "indexing": [
                 {
+                    "pos": {
+                        "line": 5,
+                        "col": 2
+                    },
                     "key": "creator",
                     "values": [
                         "Jason Graalum <jasongraalum@galois.com>"
@@ -17,6 +26,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 6,
+                        "col": 2
+                    },
                     "key": "owner",
                     "values": [
                         "Reuben Broadfoot <rbroadfoot@galois.com>"
@@ -25,6 +38,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 7,
+                        "col": 2
+                    },
                     "key": "contributors",
                     "values": [
                         "Shpat Morina <smorina@galois.com>",
@@ -37,35 +54,31 @@
                     ]
                 }
             ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 2,
-            "name": "Team Summary",
-            "abbrevName": null,
-            "explanation": "What are the slides summarizing this team’s SSITH R&D? component Issues Summary What are the git issues describing successful system attacks? What are the git issues describing failing system attacks? What are the git issues describing known system status, knowledge and/or errors? component SSITH Summary What are the slides summarizing the DARPA SSITH Program? What is the poster that summarizes the SSITH Program?",
-            "parts": [
+            "body": [
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 2,
+                    "pos": {
+                        "line": 13,
+                        "col": 0
+                    },
+                    "name": "Team Summary",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "What are the slides summarizing this team’s SSITH R&D? component Issues Summary What are the git issues describing successful system attacks? What are the git issues describing failing system attacks? What are the git issues describing known system status, knowledge and/or errors? component SSITH Summary What are the slides summarizing the DARPA SSITH Program? What is the poster that summarizes the SSITH Program?",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                }
             ],
             "comments": [
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-            {
-                "uid": 2,
-                "parentUid": 1
-            }
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

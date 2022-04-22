@@ -1,19 +1,41 @@
 Parser Failed due to the following errors:
-Line: 28, Column: 159. token recognition error at: '.\n'
+Line: 28, Column: 63. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 28, Column: 94. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 28, Column: 129. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 28, Column: 155. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 28, Column: 178. token recognition error at: '.\n'
+Line: 29, Column: 0. mismatched input 'ValidationViolation' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 29, Column: 45. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 29, Column: 67. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 29, Column: 190. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 29, Column: 206. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
 Line: 29, Column: 253. token recognition error at: '.\n'
+Line: 30, Column: 0. mismatched input 'VerificationViolation' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 30, Column: 47. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 30, Column: 69. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 30, Column: 185. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 30, Column: 201. mismatched input ',' expecting {EMPTYLINE, COMMENT, LINESEP}
 Line: 30, Column: 236. token recognition error at: '.\n'
+Line: 31, Column: 0. mismatched input 'BenchmarkLog' expecting {EMPTYLINE, COMMENT, LINESEP}
 Line: 31, Column: 96. token recognition error at: '.\n'
+Line: 32, Column: 0. mismatched input 'BenchmarkLogValidity' expecting {EMPTYLINE, COMMENT, LINESEP}
 Line: 32, Column: 95. token recognition error at: '.\n'
+Line: 33, Column: 0. mismatched input 'BenchmarkLogVerification' expecting {EMPTYLINE, COMMENT, LINESEP}
 Line: 33, Column: 101. token recognition error at: '.\n'
-Line: 39, Column: 71. token recognition error at: '.\n'
+Line: 34, Column: 0. mismatched input 'MeasureLogStorageUse' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 39, Column: 77. token recognition error at: '.\n'
+Line: 40, Column: 0. mismatched input 'SysEvents' expecting {EMPTYLINE, COMMENT, LINESEP}
 Line: 40, Column: 73. token recognition error at: '.\n'
-Line: 44, Column: 89. token recognition error at: '.\n'
+Line: 41, Column: 0. mismatched input 'EventSecurityProperties' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 46, Column: 114. mismatched input '(' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 46, Column: 154. token recognition error at: '.\n'
+Line: 46, Column: 153. mismatched input ')' expecting {EMPTYLINE, COMMENT, LINESEP}
 Line: 47, Column: 82. token recognition error at: '.\n'
-Line: 48, Column: 90. token recognition error at: '('
-Line: 48, Column: 130. token recognition error at: ')'
+Line: 48, Column: 0. mismatched input 'SecureLogImmutable' expecting {EMPTYLINE, COMMENT, LINESEP}
+Line: 48, Column: 90. mismatched input '(' expecting {EMPTYLINE, COMMENT, LINESEP}
 Line: 48, Column: 131. token recognition error at: '.\n'
+Line: 48, Column: 130. mismatched input ')' expecting {EMPTYLINE, COMMENT, LINESEP}
 Line: 49, Column: 107. token recognition error at: '. '
-Line: 49, Column: 109. token recognition error at: '('
+Line: 49, Column: 109. mismatched input '(' expecting {EMPTYLINE, COMMENT, LINESEP}
 Line: 49, Column: 147. token recognition error at: '.)'
-Line: 52, Column: 123. token recognition error at: '.\n'
-Line: 11, Column: 0. no viable alternative at input '// @design kiniry The security of the SBB is focused on the system and\n// application logs and their security properties.\n\nindexing'
+Line: 51, Column: 247. mismatched input '\n' expecting {<EOF>, EMPTYLINE}

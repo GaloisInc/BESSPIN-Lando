@@ -1,3 +1,2 @@
 Parser Failed due to the following errors:
-Line: 7, Column: 52. token recognition error at: '.\n'
-Line: 23, Column: 17. mismatched input 'The' expecting {<EOF>, EMPTYLINE, LINESEP}
+Line: 7, Column: 56. token recognition error at: '.\n'

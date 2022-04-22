@@ -38,9 +38,7 @@ body    :  specElement* ;
 subsystem  : lineComments?
              SUBSYSTEM
              subsysname=name abbrev?
-         (inheritClause | clientClause)* comment? lineseps
-	     // ELEW: TODO: change to match well-formedness doc
-	     //clientClause* comment? lineseps
+	     clientClause* comment? lineseps
 	     paragraph lineComments?
 	     (indexing blockend)?
 	     (CONTAINS lineseps? body END comment? blockend)? ;
@@ -76,8 +74,6 @@ clientClause : CLIENT qname lineseps? (RELSEP lineseps? qname lineseps?)* ;
 
 inheritClause : INHERIT qname lineseps? (RELSEP lineseps? qname lineseps?)* ;
 
-containsClause : REL_CONTAINS qname lineseps? (RELSEP lineseps? qname lineseps?)* ;
-
 events          : lineComments?
                   EVENTS
                   name comment?
@@ -100,7 +96,7 @@ requirements       : lineComments?
 
 requirementEntry   : lineComments? name nameComment=comment? lineseps paragraph ;
 
-relation          : lineComments? RELATION left=qname (inheritClause | clientClause | containsClause)+ comment? blockend ;
+relation          : lineComments? RELATION left=qname (inheritClause | clientClause)+ comment? blockend ;
 
 indexing          : INDEXING spaces? (lineseps indexEntries)? ;
 

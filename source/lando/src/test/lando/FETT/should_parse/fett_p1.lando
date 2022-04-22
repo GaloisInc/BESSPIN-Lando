@@ -39,8 +39,9 @@ The FreeRTOS configuration that includes OTA functionality.
 component P1 Target Applications
 The supported applications (FreeRTOS builds) on the P1 Target System.
 
-relation P1 Target Applications contains HTTPS Configuration
-relation P1 Target Applications contains OTA Configuration
+// ELEW: relation can't have a contains
+relation P1 Target Applications client HTTPS Configuration
+relation P1 Target Applications client OTA Configuration
 
 requirements Target System
 

@@ -1,15 +1,26 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "C Version 2.3",
             "abbrevName": null,
+            "inherits": [
+            ],
+            "clientOf": [
+            ],
             "explanation": "Explanation.",
             "parts": [
                 {
                     "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                    "pos": {
+                        "line": 4,
+                        "col": 2
+                    },
                     "text": "C Version 2.3 does something!",
                     "comments": [
                     ]
@@ -19,16 +30,6 @@
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

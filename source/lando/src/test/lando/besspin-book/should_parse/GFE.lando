@@ -26,9 +26,10 @@ The secret key held in an AES hardware module.
 //   `HSM contains AES`
 //   `HSM contains Key`
 
-relation GFE contains SoC
-relation SoC contains Bluespec-P1
-relation Bluespec-P1 contains HSM
+// ELEW relation can't have contains
+relation GFE client SoC
+relation SoC client Bluespec-P1
+relation Bluespec-P1 client HSM
 
 requirements Information Leakage
 

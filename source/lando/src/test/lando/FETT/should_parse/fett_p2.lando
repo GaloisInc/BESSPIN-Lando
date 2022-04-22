@@ -42,9 +42,10 @@ The Database CLI application.
   Create new database!
   Execute SQL statement!
 
-relation P2 Target Applications contains SSH Server
-relation P2 Target Applications contains Web Server
-relation P2 Target Applications contains DatabaseCLI
+// ELEW: relation can't have a contains
+relation P2 Target Applications client SSH Server
+relation P2 Target Applications client Web Server
+relation P2 Target Applications client DatabaseCLI
 
 // Operating System Components
 

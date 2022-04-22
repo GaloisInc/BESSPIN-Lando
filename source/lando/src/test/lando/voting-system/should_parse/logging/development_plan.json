@@ -1,14 +1,23 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "Logging",
             "abbrevName": null,
+            "clientOf": [
+            ],
             "explanation": "Persistent logs and their security properties.",
             "indexing": [
                 {
+                    "pos": {
+                        "line": 5,
+                        "col": 2
+                    },
                     "key": "owner",
                     "values": [
                         "Dragan Stosic <dragan.stosic@freeandfair.us>"
@@ -17,6 +26,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 6,
+                        "col": 2
+                    },
                     "key": "contributors",
                     "values": [
                         "Rod Chapman <rod.chapman@freeandfair.us>",
@@ -25,11 +38,19 @@
                     ],
                     "comments": [
                         {
+                            "pos": {
+                                "line": 9,
+                                "col": 2
+                            },
                             "text": "effort estimates for design, implementation, and assurance work"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 10,
+                        "col": 2
+                    },
                     "key": "design",
                     "values": [
                         "1 week"
@@ -38,6 +59,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 11,
+                        "col": 2
+                    },
                     "key": "implementation",
                     "values": [
                         "1 week"
@@ -46,28 +71,48 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 12,
+                        "col": 2
+                    },
                     "key": "assurance",
                     "values": [
                         "1 week"
                     ],
                     "comments": [
                         {
+                            "pos": {
+                                "line": 13,
+                                "col": 2
+                            },
                             "text": "complexity estimates (low, medium, high)"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 14,
+                        "col": 2
+                    },
                     "key": "complexity",
                     "values": [
                         "medium"
                     ],
                     "comments": [
                         {
+                            "pos": {
+                                "line": 15,
+                                "col": 2
+                            },
                             "text": "risk levels (low, medium, high)"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 16,
+                        "col": 2
+                    },
                     "key": "risk level",
                     "values": [
                         "medium"
@@ -76,6 +121,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 17,
+                        "col": 2
+                    },
                     "key": "mandatory dependencies",
                     "values": [
                         "crypto"
@@ -84,20 +133,12 @@
                     ]
                 }
             ],
+            "body": [
+            ],
             "comments": [
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

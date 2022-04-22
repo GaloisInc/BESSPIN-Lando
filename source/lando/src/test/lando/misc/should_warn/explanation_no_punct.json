@@ -1,13 +1,18 @@
 {
-    "uid": 3,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawSystem",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "A",
             "abbrevName": null,
             "explanation": "An explanation without punctuation",
             "indexing": [
+            ],
+            "body": [
             ],
             "comments": [
             ]
@@ -15,25 +20,21 @@
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawSystem",
             "uid": 2,
+            "pos": {
+                "line": 4,
+                "col": 0
+            },
             "name": "B",
             "abbrevName": null,
             "explanation": "An explanation with punctuation.",
             "indexing": [
             ],
+            "body": [
+            ],
             "comments": [
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }
