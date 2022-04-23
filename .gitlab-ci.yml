@@ -1,0 +1,11 @@
+image: maven:3.8.5-openjdk-11
+
+package:
+  tags:
+    - docker
+  script:
+    - mvn package -f source/lando/pom.xml
+  artifacts:
+    paths:
+      - source/lando/target/lando-*-jar-with-dependencies.jar
+    expire_in: 1 day
