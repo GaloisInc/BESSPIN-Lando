@@ -125,18 +125,19 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
         )
     }
 
-    fun addSubsystemImport(@Suppress("UNUSED_PARAMETER") e: RawSubsystemImport) {
+    fun addSubsystemImport(e: RawSubsystemImport) {
+        ctx.add(Pair(e.name.last(), e))
     }
 
-    fun addEvents(@Suppress("UNUSED_PARAMETER") e: RawEvents) {
+    fun addEvents(e: RawEvents) {
         ctx.add(Pair(e.name, e))
     }
 
-    fun addScenarios(@Suppress("UNUSED_PARAMETER") e: RawScenarios) {
+    fun addScenarios(e: RawScenarios) {
         ctx.add(Pair(e.name, e))
     }
 
-    fun addRequirements(@Suppress("UNUSED_PARAMETER") e: RawRequirements) {
+    fun addRequirements(e: RawRequirements) {
         ctx.add(Pair(e.name, e))
     }
 

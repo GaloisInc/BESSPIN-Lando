@@ -1,0 +1,16 @@
+component MyComp1
+descr.
+
+
+component MyComp2
+descr.
+
+
+component MyComp3
+descr.
+
+
+// make cyclical relationships
+relation MyComp3 inherit MyComp2
+relation MyComp2 inherit MyComp1
+relation MyComp1 inherit MyComp3

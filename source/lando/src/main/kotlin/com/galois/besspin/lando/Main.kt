@@ -91,9 +91,13 @@ class Validate : CliktCommand(
             val (ssl, warnings) = parseFile(source, debug)
             if (warnings.isNotEmpty() && !silent)
                 println(warnings)
-            val cherrors = RawAstChecker().check(ssl)
-            if (cherrors.isNotEmpty() && !silent)
-                println(cherrors)
+            val typeErrors = RawAstChecker().check(ssl)
+            if (typeErrors.isNotEmpty() && !silent) {
+                println("$source appears to have type errors:")
+                println(typeErrors)
+                exitProcess(1)
+            }
+
         } catch (ex: Exception) {
             if (!silent) {
                 println("$source appears to have syntax errors. " + ex.message)
@@ -107,7 +111,5 @@ class Validate : CliktCommand(
 
 fun main(args: Array<String>) {
     CommandLine().subcommands(Convert(), Validate()).main(args)
-//  CommandLine().subcommands(Validate()).main(args)
-
 }
 

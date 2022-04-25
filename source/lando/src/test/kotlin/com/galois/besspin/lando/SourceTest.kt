@@ -3,6 +3,7 @@ package com.galois.besspin.lando
 import com.galois.besspin.lando.ssl.ast.RawSSL
 import com.galois.besspin.lando.ssl.ast.rawSSLFromJSON
 import com.galois.besspin.lando.ssl.parser.parseFile
+import com.galois.besspin.lando.ssl.checker.RawAstChecker
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -15,12 +16,16 @@ sealed class SourceTestType {
     object ShouldFail:  SourceTestType()
     object ShouldParse: SourceTestType()
     object ShouldWarn:  SourceTestType()
+    object ShouldTypecheck: SourceTestType()
+    object ShouldFailTypecheck: SourceTestType()
 
     fun dirName(): String =
         when (this) {
             is ShouldFail  -> "should_fail"
             is ShouldParse -> "should_parse"
             is ShouldWarn  -> "should_warn"
+            is ShouldTypecheck -> "should_typecheck"
+            is ShouldFailTypecheck -> "should_fail_typecheck"
         }
 }
 
@@ -39,7 +44,9 @@ class SourceTest(
         @Parameterized.Parameters(name="{1}")
         fun tests() : Iterable<Array<Any>> {
             val testTypesToRun: List<SourceTestType> =
-                listOf(SourceTestType.ShouldFail, SourceTestType.ShouldParse, SourceTestType.ShouldWarn)
+                listOf(SourceTestType.ShouldFail, SourceTestType.ShouldParse,
+                    SourceTestType.ShouldWarn, SourceTestType.ShouldTypecheck,
+                    SourceTestType.ShouldFailTypecheck)
 
             val toTest: MutableList<Array<Any>> = mutableListOf()
             for (topDir in File("src/test/lando/").listFiles()!!) {
@@ -68,6 +75,7 @@ class SourceTest(
 
         val filename = source.nameWithoutExtension
         val errFile  = File(source.parentFile, "$filename.errors")
+        val errTypecheckFile = File(source.parentFile, "$filename.cherrors")
         val warnFile = File(source.parentFile, "$filename.warnings")
         val jsonFile = File(source.parentFile, "$filename.json")
 
@@ -90,6 +98,18 @@ class SourceTest(
                 assertNotNull(ast, "did not parse")
                 assertTrue(jsonFile.exists(), "does not exist")
                 assertEquals(rawSSLFromJSON(jsonFile.readText().trim()), ast, "does not math JSON:\n")
+            }
+            is SourceTestType.ShouldTypecheck -> {
+                assertNotNull(ast, "did not parse")
+                val checkRes = RawAstChecker().check(ast)
+                assertEquals(checkRes, "", message = "failed with $checkRes")
+            }
+            is SourceTestType.ShouldFailTypecheck -> {
+                assertNotNull(ast, "did not parse")
+                val errorTMsg = RawAstChecker().check(ast)
+                assertNotNull(errorTMsg, "did not generate any errors")
+                assertTrue(errTypecheckFile.exists(), "does not exist")
+                assertEquals(errTypecheckFile.readText().trim(), errorTMsg, "error mismatch:\n")
             }
         }
     }

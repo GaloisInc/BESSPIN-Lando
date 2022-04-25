@@ -1,0 +1,18 @@
+subsystem MySubsys1 (MSS1)
+descr.
+
+
+// subsystems don't have inherits -- weird?
+subsystem MySubsys2 (MSS2) client MSS1
+descr.
+
+
+component MyComponent1
+descr.
+
+
+component MyComponent2
+descr.
+
+
+relation MyComponent1 inherit MyComponent2
