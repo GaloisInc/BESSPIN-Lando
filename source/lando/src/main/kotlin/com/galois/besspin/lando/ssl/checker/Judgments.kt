@@ -153,6 +153,30 @@ class Judgments {
         return getCheckStatus("validElementsList", listOf(), "Elements Introduction is invalid.", res)
     }
 
+    fun checkInheritElements(gamma: Context, phi: ElementMap, relation: Relation, es: List<RawElement>): CheckStatus {
+
+        val res = mutableListOf<CheckStatus>()
+
+        for (elem in es) {
+            when (elem) {
+                is RawComponent -> {
+                    /** precond: all inherits must be valid inherits */
+                    for (q in elem.inherits) {
+                        attemptResolveCheck(res, elem, gamma, q, phi, relation, ::checkValidInherit)
+                    }
+                }
+                else -> {
+                    /* TODO: this should be a valid rule, but Element has no name so it doesn't imply a
+                            * valid element by the document standards
+                            gamma.addElement(elem);
+                            phi.put(elem, gamma)
+                            */
+                }
+            }
+        }
+        return getCheckStatus("validElementsList", listOf(), "Elements Introduction is invalid.", res)
+    }
+
     /**
      * Judgement: a source and its body are valid
      */
@@ -200,6 +224,10 @@ class Judgments {
                 }
             }
         }
+
+        /** here we should resolve `inherit` and `contain` */
+        res.add(checkInheritElements(gamma0, phi0, relationI, source))
+
         return getCheckStatus("validSource", listOf(), "Source is invalid!", res)
     }
 
@@ -373,9 +401,9 @@ class Judgments {
         }
 
         /** precond: all inherits must be valid inherits */
-        for (q in element.inherits) {
-            attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidInherit)
-        }
+        //for (q in element.inherits) {
+        //    attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidInherit)
+        //}
 
         /** relate element to a local context */
         val gammap = Context()
