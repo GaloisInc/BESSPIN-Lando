@@ -1,0 +1,3 @@
+validSourceError:
+	validElementsListError:
+		validClientResolve: '[First] couldn't be resolved to an element'[(Line 1, Column 0)]
