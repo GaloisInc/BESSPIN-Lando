@@ -1,0 +1,16 @@
+subsystem A
+TBD.
+
+subsystem B
+TBD.
+
+subsystem C
+TBD.
+
+subsystem D
+TBD.
+
+relation A client B, C
+// You can inherit only from a component?
+//relation A inherit B
+relation A contains C
