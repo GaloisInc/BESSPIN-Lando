@@ -49,11 +49,12 @@ class SourceTest(
                     SourceTestType.ShouldFailTypecheck)
 
             val toTest: MutableList<Array<Any>> = mutableListOf()
-            for (topDir in File("src/test/lando/").listFiles()!!) {
+            // Test only misc directory for now
+            for (topDir in File("src/test/lando/misc").listFiles()!!) {
                 for (testType in testTypesToRun) {
                     for (file in File(topDir, testType.dirName()).walkTopDown()) {
                         if (file.extension == "lando")
-                            toTest.add(arrayOf(file, file.path.removePrefix("src/test/lando/"), testType))
+                            toTest.add(arrayOf(file, file.path.removePrefix("src/test/lando/misc"), testType))
                     }
                 }
             }

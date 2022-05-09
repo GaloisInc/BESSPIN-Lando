@@ -167,6 +167,7 @@ data class RawRelation(
     val name: QName,
     val inherits: List<QName>,
     val clientOf: List<QName>,
+    val contains: List<QName>,
     val comments: List<RawComment>
 ): RawElement
 

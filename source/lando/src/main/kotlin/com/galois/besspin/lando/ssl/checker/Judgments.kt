@@ -131,21 +131,21 @@ class Judgments {
         val res = mutableListOf<CheckStatus>()
 
         for (elem in es) {
-            when {
-                (elem is RawSystem) -> res.add(checkIntroduceSystem(gamma0, gamma, phi, relation, elem))
-                (elem is RawSubsystem) -> res.add(checkIntroduceSubsystem(gamma0, gamma, phi, relation, elem))
-                elem is RawSubsystemImport -> res.add(checkIntroduceSubsystemImport(gamma0, gamma, phi, relation, elem))
-                elem is RawComponentImport -> res.add(checkIntroduceComponentImport(gamma0, gamma, phi, relation, elem))
-                elem is RawComponent -> res.add(checkIntroduceComponent(gamma, phi, relation, elem))
-                elem is RawRelation -> res.add(checkIntroduceRelation(gamma, phi, relation, elem))
-                elem is RawScenarios -> res.add(checkIntroduceScenarios(gamma, phi, relation, elem))
-                elem is RawRequirements -> res.add(checkIntroduceRequirements(gamma, phi, relation, elem))
-                elem is RawEvents -> res.add(checkIntroduceEvents(gamma, phi, relation, elem))
+            when (elem) {
+                is RawSystem -> res.add(checkIntroduceSystem(gamma0, gamma, phi, relation, elem))
+                is RawSubsystem -> res.add(checkIntroduceSubsystem(gamma0, gamma, phi, relation, elem))
+                is RawSubsystemImport -> res.add(checkIntroduceSubsystemImport(gamma0, gamma, phi, relation, elem))
+                is RawComponentImport -> res.add(checkIntroduceComponentImport(gamma0, gamma, phi, relation, elem))
+                is RawComponent -> res.add(checkIntroduceComponent(gamma, phi, relation, elem))
+                is RawRelation -> res.add(checkIntroduceRelation(gamma0, phi, relation, elem))
+                is RawScenarios -> res.add(checkIntroduceScenarios(gamma, phi, relation, elem))
+                is RawRequirements -> res.add(checkIntroduceRequirements(gamma, phi, relation, elem))
+                is RawEvents -> res.add(checkIntroduceEvents(gamma, phi, relation, elem))
                 else -> {
                     /* TODO: this should be a valid rule, but Element has no name so it doesn't imply a
-                    * valid element by the document standards
-                    gamma.addElement(elem);
-                    phi.put(elem, gamma)
+                        valid element by the document standards
+                        gamma.addElement(elem);
+                        phi.put(elem, gamma)
                     */
                 }
             }
@@ -153,7 +153,7 @@ class Judgments {
         return getCheckStatus("validElementsList", listOf(), "Elements Introduction is invalid.", res)
     }
 
-    fun checkInheritElements(gamma: Context, phi: ElementMap, relation: Relation, es: List<RawElement>): CheckStatus {
+    private fun checkInheritElements(gamma: Context, phi: ElementMap, relation: Relation, es: List<RawElement>): CheckStatus {
 
         val res = mutableListOf<CheckStatus>()
 
@@ -387,6 +387,17 @@ class Judgments {
     ): CheckStatus {
         val res = mutableListOf<CheckStatus>()
 
+        /** precond: check if the element is unique */
+        val resResult = currentContext.qLook(listOf(element.name), phi)
+        if (resResult is QNameReturn.ResolvedElement) {
+            res.add(
+                CheckStatus.Error(
+                    "duplicateElement", listOf(element),
+                    "${element.name} already exists at ${resResult.element.pos}", listOf()
+                )
+            )
+        }
+
         /** precond: if abbrev name is defined, it must not equal the elements name */
         if (element.abbrevName != null) {
             res.add(checkNameAbbrev(element.name, element.abbrevName, element))
@@ -590,7 +601,6 @@ class Judgments {
     /**
      * Judgment: a relation is properly introduced
      */
-    @Suppress("UNUSED_PARAMETER")
     private fun checkIntroduceRelation(
         currentContext: Context,
         phi: ElementMap,
@@ -603,19 +613,19 @@ class Judgments {
 
         res.add(
             when (resResult is QNameReturn.ResolvedElement) {
-                true -> when (resResult.element is RawComponent) {
-                    true -> CheckStatus.Ok("validImportedComponent", listOf())
+                true -> when (resResult.element is RawSubsystem) {
+                    true -> CheckStatus.Ok("validIntroducedRelation", listOf())
                     else -> CheckStatus.Error(
-                        "validImportedComponent",
+                        "validIntroducedRelation",
                         listOf(element),
-                        "could resolve ${element.name}, but it's not a component",
+                        "could resolve ${element.name}, but it's not a subsystem",
                         listOf()
                     )
                 }
                 else -> CheckStatus.Error(
-                    "validImportedComponent",
+                    "validIntroducedRelation",
                     listOf(element),
-                    "could not resolve '${element.name}' import to a component",
+                    "could not resolve '${element.name}' import to a subsystem",
                     listOf()
                 )
             }
@@ -633,6 +643,11 @@ class Judgments {
             for (q in element.inherits) {
                 attemptResolveCheck(res, relem, currentContext, q, phi, relation, ::checkValidInherit)
             }
+
+            /** precond: all contained elements must be of a valid type */
+            //for (q in element.contains) {
+            //    attemptResolveCheck(res, relem, currentContext, q, phi, relation, ::checkValidInherit)
+            //}
 
             return getCheckStatus("validRelation", listOf(), "${element.name} is not a valid relation", res)
 

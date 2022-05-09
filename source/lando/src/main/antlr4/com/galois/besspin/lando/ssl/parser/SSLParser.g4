@@ -74,6 +74,8 @@ clientClause : CLIENT qname lineseps? (RELSEP lineseps? qname lineseps?)* ;
 
 inheritClause : INHERIT qname lineseps? (RELSEP lineseps? qname lineseps?)* ;
 
+containsClause : CONTAINS qname lineseps? (RELSEP lineseps? qname lineseps?)* ;
+
 events          : lineComments?
                   EVENTS
                   name comment?
@@ -96,7 +98,7 @@ requirements       : lineComments?
 
 requirementEntry   : lineComments? name nameComment=comment? lineseps paragraph ;
 
-relation          : lineComments? RELATION left=qname (inheritClause | clientClause)+ comment? blockend ;
+relation          : lineComments? RELATION left=qname (inheritClause | clientClause | containsClause)+ comment? blockend ;
 
 indexing          : INDEXING spaces? (lineseps indexEntries)? ;
 
