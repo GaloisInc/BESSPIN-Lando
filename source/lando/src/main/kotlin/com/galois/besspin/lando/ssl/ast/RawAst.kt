@@ -53,10 +53,11 @@ data class RawQuery(
     val comments: List<RawComment>
 ) : RawComponentPart {
     override fun toMarkdown(): String {
-        var result = "* $text"
+        var result = "<!--QUERY-->\n* $text"
         for (elem in comments) {
             result += elem.toMarkdown()
         }
+        result += "<!--QUERY/-->\n"
         return result
     }
 }
@@ -68,10 +69,11 @@ data class RawConstraint(
     val comments: List<RawComment>
 ) : RawComponentPart {
     override fun toMarkdown(): String {
-        var result = "* $text"
+        var result = "<!--CONSTRAINT-->\n* $text"
         for (elem in comments) {
             result += elem.toMarkdown()
         }
+        result += "<!--CONSTRAINT/-->\n"
         return result
     }
 }
@@ -83,10 +85,11 @@ data class RawCommand(
     val comments: List<RawComment>
 ) : RawComponentPart {
     override fun toMarkdown(): String {
-        var result = "* $text"
+        var result = "<!--COMMAND-->\n* $text"
         for (elem in comments) {
             result += elem.toMarkdown()
         }
+        result += "<!--COMMAND/-->\n"
         return result
     }
 }
@@ -104,7 +107,7 @@ data class RawComponent(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result =  "### $name"
+        var result =  "<!--COMPONENT-->\n### $name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
@@ -118,6 +121,7 @@ data class RawComponent(
         for (elem in parts) {
             result += "  * part {$elem.toMarkdown()}"
         }
+        result += "<!--COMPONENT/-->\n"
         return result
     }
 }
@@ -130,10 +134,11 @@ data class RawItem(
     val comments : List<RawComment>
 ) : RawNamed {
     fun toMarkdown(): String {
-        var result = text
+        var result = "<!--ITEM-->\n### $id\n$text\n"
         for (comment in comments) {
             result += comment.toMarkdown()
         }
+        result += "<!--ITEM/-->\n"
         return result
     }
 }
@@ -148,13 +153,14 @@ data class RawEvents(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "## Event $name"
+        var result = "<!--EVENTS-->\n## $name\n"
         for (elem in events) {
             result += elem.toMarkdown()
         }
         for (comment in comments) {
             result += comment.toMarkdown()
         }
+        result += "<!--EVENTS/-->\n"
         return result
     }
 }
@@ -168,13 +174,14 @@ data class RawScenarios(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "## Scenario $name"
+        var result = "<!--SCENARIOS-->\n## $name\n"
         for (elem in scenarios) {
             result += elem.toMarkdown()
         }
         for (comment in comments) {
             result += comment.toMarkdown()
         }
+        result += "<!--SCENARIOS/-->\n"
         return result
     }
 }
@@ -187,7 +194,19 @@ data class RawRequirements(
     val name: Name,
     val requirements: List<RawItem>,
     val comments: List<RawComment>
-) : RawElement
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result = "<!--REQUIREMENTS-->\n## $name\n"
+        for (elem in requirements) {
+            result += elem.toMarkdown()
+        }
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        result += "<!--REQUIREMENTS/-->\n"
+        return result
+    }
+}
 
 @Serializable
 data class RawIndexEntry(
@@ -197,13 +216,14 @@ data class RawIndexEntry(
     val comments: List<RawComment>
 ) {
     fun toMarkdown(): String {
-        var result = "Indexing $key: "
+        var result = "<!--INDEX_ENTRY-->\nIndexing $key: "
         for (value in values) {
             result += "* $value\n"
         }
         for (comment in comments) {
             result += "* ${comment.toMarkdown()}"
         }
+        result += "<!--INDEX_ENTRY/-->\n"
         return result
     }
 }
@@ -218,7 +238,7 @@ data class RawComponentImport(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "#### import component ${name.last()}"
+        var result = "<!--COMPONENT_IMPORT-->\n#### import component ${name.last()}"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
@@ -229,6 +249,7 @@ data class RawComponentImport(
         for (comment in comments) {
             result += comment.toMarkdown()
         }
+        result += "<!--COMPONENT_IMPORT/-->\n"
         return result
     }
 }
@@ -246,11 +267,12 @@ data class RawSubsystem(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result =  "## $name"
+        var result =  "<!--SUBSYSTEM $name-->\n## $name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
         result += "\n$explanation\n"
+        result += "\n"
         for (value in clientOf) {
             result += "  * client of ${value.last()}\n"
         }
@@ -260,6 +282,7 @@ data class RawSubsystem(
         for (elem in body!!) {
             result += elem.toMarkdown()
         }
+        result += "<!--SUBSYSTEM $name/-->"
         return result
     }
 }
@@ -274,7 +297,7 @@ data class RawSubsystemImport(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "#### import subsystem ${name.last()}\n"
+        var result = "<!--SUBSYSTEM_IMPORT-->\n#### import subsystem ${name.last()}\n"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
@@ -284,6 +307,7 @@ data class RawSubsystemImport(
         for (comment in comments) {
             result += comment.toMarkdown()
         }
+        result += "<!--SUBSYSTEM_IMPORT/-->\n"
         return result
     }
 }
@@ -300,20 +324,22 @@ data class RawSystem(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result =  "# $name"
+        var result =  "<!--SYSTEM $name-->\n# $name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
+        result += "\n$explanation\n"
+        result += "\n"
         for (elem in body!!) {
             result += elem.toMarkdown()
         }
         for (elem in comments) {
             result += elem.toMarkdown()
         }
-        result += "\n$explanation\n"
         for (elem in indexing) {
             result += elem.toMarkdown();
         }
+        result += "<!--SYSTEM $name/-->"
         return result
     }
 }
@@ -329,7 +355,7 @@ data class RawRelation(
     val comments: List<RawComment>
 ): RawElement {
     override fun toMarkdown(): String {
-        var result = "#### relation ${name.last()}"
+        var result = "<!--RELATION-->\n#### relation ${name.last()}\n"
         for (value in inherits) {
             result += "* inherits ${value.last()}\n"
         }
@@ -339,7 +365,8 @@ data class RawRelation(
         for (value in contains) {
             result += "* contains ${value.last()}\n"
         }
-        return  result
+        result += "<!--RELATION/-->\n"
+        return result
     }
 }
 
@@ -353,6 +380,7 @@ data class RawSSL(
         var result = ""
         for (elem in body) {
             result += elem.toMarkdown()
+            result += "\n"
         }
         return result
     }
