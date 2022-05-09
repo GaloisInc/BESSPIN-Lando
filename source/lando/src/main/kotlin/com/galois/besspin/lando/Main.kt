@@ -25,7 +25,7 @@ class Convert : CliktCommand(
     printHelpOnEmptyArgs = true,
     help = "Read a lando SOURCE, convert it to the specified format and write to DEST"
  ) {
-     val format by option("-t", "--to").choice("json").required()
+     val format by option("-t", "--to").choice("json","markdown").required()
      val source by argument("SOURCE").file(exists = true)
      val dest   by argument("DEST").file()
      val silent by option("-s", "--silent").flag()
@@ -34,11 +34,46 @@ class Convert : CliktCommand(
      override fun run() {
          when (format) {
              "json" -> toJSON(source, dest, debug)
+             "markdown" -> toMarkdown(source, dest, debug)
              else -> println("Unable to convert to format: $format")
          }
      }
 
-    fun toJSON(source: File, dest: File, debug: Boolean) {
+    private fun toMarkdown(source: File, dest: File, debug: Boolean) {
+        try {
+            val (ssl, parseWarnings) = parseFile(source, debug)
+            if (parseWarnings.isNotEmpty()) {
+                if (!silent) {
+                    println(parseWarnings)
+                } else {
+                    val destWarns = File(dest.parent, "${dest.nameWithoutExtension}.warnings")
+                    printToFile(destWarns, parseWarnings)
+                }
+            }
+            val checkingErrors = RawAstChecker().check(ssl)
+            if (checkingErrors.isNotEmpty()) {
+                if (!silent) {
+                    println(checkingErrors)
+                } else {
+                    val destChErrs = File(dest.parent, "${dest.nameWithoutExtension}.cherrors")
+                    printToFile(destChErrs, checkingErrors)
+                }
+            }
+            val str = ssl.toMarkdown()
+            printToFile(dest, str)
+
+        } catch (ex: Exception) {
+            if (!silent) {
+                println("Unable to convert file to Markdown. " + ex.message)
+            } else {
+                val destErrors = File(dest.parent, "${dest.nameWithoutExtension}.errors")
+                printToFile(destErrors, ex.message)
+            }
+            exitProcess(1)
+        }
+    }
+
+    private fun toJSON(source: File, dest: File, debug: Boolean) {
          try {
              val (ssl, parseWarnings) = parseFile(source, debug)
              if (parseWarnings.isNotEmpty()) {

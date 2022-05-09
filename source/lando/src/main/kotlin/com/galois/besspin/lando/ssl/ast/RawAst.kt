@@ -19,7 +19,11 @@ data class RawPos(
 data class RawComment(
     val pos : RawPos,
     val text: String
-)
+) {
+    fun toMarkdown(): String {
+        return "<!-- ${this.text} -->\n"
+    }
+}
 
 interface RawNamed {
     val pos: RawPos
@@ -29,11 +33,17 @@ interface RawElement : RawNamed {
     val uid: Uid
     // val name: String
     override val pos : RawPos
+
+    fun toMarkdown(): String {
+        return "RawElement\n"
+    }
 }
+
 
 interface RawComponentPart {
     val pos : RawPos
     val text: String
+    fun toMarkdown(): String
 }
 
 @Serializable
@@ -41,21 +51,45 @@ data class RawQuery(
     override val pos: RawPos,
     override val text: String,
     val comments: List<RawComment>
-) : RawComponentPart
+) : RawComponentPart {
+    override fun toMarkdown(): String {
+        var result = "* $text"
+        for (elem in comments) {
+            result += elem.toMarkdown()
+        }
+        return result
+    }
+}
 
 @Serializable
 data class RawConstraint(
     override val pos: RawPos,
     override val text: String,
     val comments: List<RawComment>
-) : RawComponentPart
+) : RawComponentPart {
+    override fun toMarkdown(): String {
+        var result = "* $text"
+        for (elem in comments) {
+            result += elem.toMarkdown()
+        }
+        return result
+    }
+}
 
 @Serializable
 data class RawCommand(
     override val pos: RawPos,
     override val text: String,
     val comments: List<RawComment>
-) : RawComponentPart
+) : RawComponentPart {
+    override fun toMarkdown(): String {
+        var result = "* $text"
+        for (elem in comments) {
+            result += elem.toMarkdown()
+        }
+        return result
+    }
+}
 
 @Serializable
 data class RawComponent(
@@ -68,7 +102,25 @@ data class RawComponent(
     val explanation: String,
     val parts: List<RawComponentPart> = arrayListOf(),
     val comments: List<RawComment>
-) : RawElement
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result =  "### $name"
+        if (abbrevName != null) {
+            result += " ($abbrevName)"
+        }
+        result += "\n$explanation\n"
+        for (elem in inherits) {
+            result += "  * inherits $elem"
+        }
+        for (elem in clientOf) {
+            result += "  * client of $elem"
+        }
+        for (elem in parts) {
+            result += "  * part {$elem.toMarkdown()}"
+        }
+        return result
+    }
+}
 
 @Serializable
 data class RawItem(
@@ -76,7 +128,15 @@ data class RawItem(
     val id : Name,
     val text : String,
     val comments : List<RawComment>
-) : RawNamed
+) : RawNamed {
+    fun toMarkdown(): String {
+        var result = text
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        return result
+    }
+}
 
 
 @Serializable
@@ -86,7 +146,18 @@ data class RawEvents(
     val name: Name,
     val events: List<RawItem>,
     val comments: List<RawComment>
-) : RawElement
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result = "## Event $name"
+        for (elem in events) {
+            result += elem.toMarkdown()
+        }
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        return result
+    }
+}
 
 @Serializable
 data class RawScenarios(
@@ -95,7 +166,18 @@ data class RawScenarios(
     val name: Name,
     val scenarios: List<RawItem>,
     val comments: List<RawComment>
-) : RawElement
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result = "## Scenario $name"
+        for (elem in scenarios) {
+            result += elem.toMarkdown()
+        }
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        return result
+    }
+}
 
 
 @Serializable
@@ -113,7 +195,18 @@ data class RawIndexEntry(
     val key: Name,
     val values: List<String>,
     val comments: List<RawComment>
-)
+) {
+    fun toMarkdown(): String {
+        var result = "Indexing $key: "
+        for (value in values) {
+            result += "* $value\n"
+        }
+        for (comment in comments) {
+            result += "* ${comment.toMarkdown()}"
+        }
+        return result
+    }
+}
 
 @Serializable
 data class RawComponentImport(
@@ -123,7 +216,22 @@ data class RawComponentImport(
     val abbrevName: Name?,
     val clientOf: List<QName>,
     val comments: List<RawComment>
-) : RawElement
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result = "#### import component ${name.last()}"
+        if (abbrevName != null) {
+            result += " ($abbrevName)"
+        }
+        result += "\n"
+        for (value in clientOf) {
+            result += "* client of ${value.last()}\n"
+        }
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        return result
+    }
+}
 
 @Serializable
 data class RawSubsystem(
@@ -136,7 +244,25 @@ data class RawSubsystem(
     val indexing: List<RawIndexEntry>,
     var body: Body?,
     val comments: List<RawComment>
-) : RawElement
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result =  "## $name"
+        if (abbrevName != null) {
+            result += " ($abbrevName)"
+        }
+        result += "\n$explanation\n"
+        for (value in clientOf) {
+            result += "  * client of ${value.last()}\n"
+        }
+        for (elem in indexing) {
+            result += elem.toMarkdown();
+        }
+        for (elem in body!!) {
+            result += elem.toMarkdown()
+        }
+        return result
+    }
+}
 
 @Serializable
 data class RawSubsystemImport(
@@ -146,7 +272,21 @@ data class RawSubsystemImport(
     val abbrevName: Name?,
     val clientOf: List<QName>,
     val comments: List<RawComment>
-) : RawElement
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result = "#### import subsystem ${name.last()}\n"
+        if (abbrevName != null) {
+            result += " ($abbrevName)"
+        }
+        for (value in clientOf) {
+            result += "* client of $value\n"
+        }
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        return result
+    }
+}
 
 @Serializable
 data class RawSystem(
@@ -158,7 +298,25 @@ data class RawSystem(
     val indexing: List<RawIndexEntry>,
     var body: Body?,
     val comments: List<RawComment>
-) : RawElement
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result =  "# $name"
+        if (abbrevName != null) {
+            result += " ($abbrevName)"
+        }
+        for (elem in body!!) {
+            result += elem.toMarkdown()
+        }
+        for (elem in comments) {
+            result += elem.toMarkdown()
+        }
+        result += "\n$explanation\n"
+        for (elem in indexing) {
+            result += elem.toMarkdown();
+        }
+        return result
+    }
+}
 
 @Serializable
 data class RawRelation(
@@ -169,14 +327,37 @@ data class RawRelation(
     val clientOf: List<QName>,
     val contains: List<QName>,
     val comments: List<RawComment>
-): RawElement
+): RawElement {
+    override fun toMarkdown(): String {
+        var result = "#### relation ${name.last()}"
+        for (value in inherits) {
+            result += "* inherits ${value.last()}\n"
+        }
+        for (value in clientOf) {
+            result += "* client of ${value.last()}\n"
+        }
+        for (value in contains) {
+            result += "* contains ${value.last()}\n"
+        }
+        return  result
+    }
+}
 
 @Serializable
 data class RawSSL(
     // val uid: Int,
     val body : Body,
     val comments: List<RawComment>
-)
+) {
+    fun toMarkdown(): String {
+        var result = ""
+        for (elem in body) {
+            result += elem.toMarkdown()
+        }
+        return result
+    }
+}
+
 
 private val sslModule = SerializersModule {
     polymorphic(RawElement::class) {
