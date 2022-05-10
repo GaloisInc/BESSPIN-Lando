@@ -77,7 +77,7 @@ class Convert : CliktCommand(
                  val destErrors = File(dest.parent, "${dest.nameWithoutExtension}.errors")
                  printToFile(destErrors, ex.message)
              } else {
-                 println("Unable to convert file to $format\n" + ex.message)
+                 println("Unable to convert $source to $format\n" + ex.message)
              }
              exitProcess(1)
          }
