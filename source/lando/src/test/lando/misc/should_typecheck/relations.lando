@@ -1,3 +1,6 @@
+system A
+TODO.
+
 subsystem A
 TBD.
 
@@ -7,10 +10,12 @@ TBD.
 subsystem C
 TBD.
 
+component A
+TBD.
+
 subsystem D
 TBD.
 
 relation A client B, C
-// You can inherit only from a component?
-//relation A inherit B
+relation A inherit B
 relation A contains C

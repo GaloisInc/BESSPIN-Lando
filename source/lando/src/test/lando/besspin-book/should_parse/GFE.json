@@ -121,6 +121,8 @@
                                     "SoC"
                                 ]
                             ],
+                            "contains": [
+                            ],
                             "comments": [
                                 {
                                     "pos": {
@@ -176,6 +178,8 @@
                                     "Bluespec-P1"
                                 ]
                             ],
+                            "contains": [
+                            ],
                             "comments": [
                             ]
                         },
@@ -195,6 +199,8 @@
                                 [
                                     "HSM"
                                 ]
+                            ],
+                            "contains": [
                             ],
                             "comments": [
                             ]
