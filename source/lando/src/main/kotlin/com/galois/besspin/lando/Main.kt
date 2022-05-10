@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.NoRunCliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
@@ -27,81 +28,56 @@ class Convert : CliktCommand(
  ) {
      val format by option("-t", "--to").choice("json","markdown").required()
      val source by argument("SOURCE").file(exists = true)
-     val dest   by argument("DEST").file()
+     val dest: File?  by argument("DEST").file().optional()
      val silent by option("-s", "--silent").flag()
      val debug  by option("-d", "--debug").flag()
 
+    enum class ConvertFormat {
+        JSON, MARKDOWN
+    }
+
      override fun run() {
          when (format) {
-             "json" -> toJSON(source, dest, debug)
-             "markdown" -> toMarkdown(source, dest, debug)
-             else -> println("Unable to convert to format: $format")
+             "json" -> convert(ConvertFormat.JSON, source, dest, debug)
+             "markdown" -> convert(ConvertFormat.MARKDOWN, source, dest, debug)
+             else -> println("Unknown format: $format")
          }
      }
 
-    private fun toMarkdown(source: File, dest: File, debug: Boolean) {
-        try {
-            val (ssl, parseWarnings) = parseFile(source, debug)
-            if (parseWarnings.isNotEmpty()) {
-                if (!silent) {
-                    println(parseWarnings)
-                } else {
-                    val destWarns = File(dest.parent, "${dest.nameWithoutExtension}.warnings")
-                    printToFile(destWarns, parseWarnings)
-                }
-            }
-            val checkingErrors = RawAstChecker().check(ssl)
-            if (checkingErrors.isNotEmpty()) {
-                if (!silent) {
-                    println(checkingErrors)
-                } else {
-                    val destChErrs = File(dest.parent, "${dest.nameWithoutExtension}.cherrors")
-                    printToFile(destChErrs, checkingErrors)
-                }
-            }
-            val str = ssl.toMarkdown()
-            printToFile(dest, str)
-
-        } catch (ex: Exception) {
-            if (!silent) {
-                println("Unable to convert file to Markdown. " + ex.message)
-            } else {
-                val destErrors = File(dest.parent, "${dest.nameWithoutExtension}.errors")
-                printToFile(destErrors, ex.message)
-            }
-            exitProcess(1)
-        }
-    }
-
-    private fun toJSON(source: File, dest: File, debug: Boolean) {
+    fun convert(format: ConvertFormat, source: File, dest: File?, debug: Boolean) {
          try {
              val (ssl, parseWarnings) = parseFile(source, debug)
              if (parseWarnings.isNotEmpty()) {
-                 if (!silent) {
-                     println(parseWarnings)
-                 } else {
+                 if (silent && (dest != null)) {
                      val destWarns = File(dest.parent, "${dest.nameWithoutExtension}.warnings")
                      printToFile(destWarns, parseWarnings)
-                 }
-             }
-             val checkingErrors = RawAstChecker().check(ssl)
-             if (checkingErrors.isNotEmpty()) {
-                 if (!silent) {
-                     println(checkingErrors)
                  } else {
-                     val destChErrs = File(dest.parent, "${dest.nameWithoutExtension}.cherrors")
-                     printToFile(destChErrs, checkingErrors)
+                     println(parseWarnings)
                  }
              }
-             val str = ssl.toJSON()
-             printToFile(dest, str)
-
-          } catch (ex: Exception) {
-             if (!silent) {
-                 println("Unable to convert file to JSON. " + ex.message)
+             val typeErrors = RawAstChecker().check(ssl)
+             if (typeErrors.isNotEmpty()) {
+                 if (silent && (dest != null)) {
+                     val destChErrs = File(dest.parent, "${dest.nameWithoutExtension}.cherrors")
+                     printToFile(destChErrs, typeErrors)
+                 }
+                 throw Exception(typeErrors)
+             }
+             val str = when (format) {
+                 ConvertFormat.JSON -> ssl.toJSON()
+                 ConvertFormat.MARKDOWN -> ssl.toMarkdown()
+             }
+             if (dest != null) {
+                 printToFile(dest, str)
              } else {
+                 println(str)
+             }
+          } catch (ex: Exception) {
+             if (silent && (dest != null)) {
                  val destErrors = File(dest.parent, "${dest.nameWithoutExtension}.errors")
                  printToFile(destErrors, ex.message)
+             } else {
+                 println("Unable to convert file to $format\n" + ex.message)
              }
              exitProcess(1)
          }
@@ -127,19 +103,15 @@ class Validate : CliktCommand(
             if (warnings.isNotEmpty() && !silent)
                 println(warnings)
             val typeErrors = RawAstChecker().check(ssl)
-            if (typeErrors.isNotEmpty() && !silent) {
-                println("$source appears to have type errors:")
-                println(typeErrors)
-                exitProcess(1)
+            if (typeErrors.isNotEmpty()) {
+                throw Exception(typeErrors)
             }
-
         } catch (ex: Exception) {
             if (!silent) {
-                println("$source appears to have syntax errors. " + ex.message)
+                println("Unable to validate file $source\n" + ex.message)
             }
             exitProcess(1)
         }
-
         println("$source appears to be valid")
     }
 }

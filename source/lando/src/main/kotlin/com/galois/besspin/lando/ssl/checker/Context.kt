@@ -48,6 +48,7 @@ sealed class QNameReturn {
 
 class Context(es: List<Pair<Name, RawElement>> = listOf()) {
     var ctx = es.toMutableList()
+    var systems = mutableListOf<RawSystem>()
 
     fun addSystem(e: RawSystem) {
         if (e.abbrevName != null) {
@@ -55,6 +56,11 @@ class Context(es: List<Pair<Name, RawElement>> = listOf()) {
         }
         ctx.add(Pair(e.name, e))
         addTextType(e.explanation, e)
+        // Add only if the new system is unique
+        // TODO: is this the right way of doing equality here?
+        if (systems.isEmpty() || e != systems.last()) {
+            systems.add(e)
+        }
     }
 
     fun addSubsystem(e: RawSubsystem) {

@@ -20,14 +20,14 @@ sealed class CheckStatus {
         val identifier: String,
         val elements: List<RawElement>,
         val message: String,
-        val preconds: List<CheckStatus> = listOf()
+        val preconditions: List<CheckStatus> = listOf()
     ) : CheckStatus() {
 
         /** collect error string from status tree and print the locations */
         fun getErrorString(): String {
             val precondsStr = when {
-                (preconds.size == 0) -> ""
-                else -> "<${preconds.filterIsInstance<CheckStatus.Error>().map { it.getErrorString() }}>"
+                (preconditions.size == 0) -> ""
+                else -> "<${preconditions.filterIsInstance<CheckStatus.Error>().map { it.getErrorString() }}>"
             }
             val locsStr =
                 "[" + elements.map { "(Line ${it.pos.line}, Column ${it.pos.col})" }.joinToString(separator = ",") + "]"
@@ -37,11 +37,11 @@ sealed class CheckStatus {
 
         /** a simplified error string builder that only prints diagnostics at max depth error */
         fun getSimpleErrorString(depth: Int = 0): String {
-            if (preconds.size > 0) {
+            if (preconditions.size > 0) {
                 return "${identifier}Error:\n${
                     "\t".repeat(depth+1)
                 }${
-                    preconds.filterIsInstance<CheckStatus.Error>().map { 
+                    preconditions.filterIsInstance<CheckStatus.Error>().map {
                         it.getSimpleErrorString(depth + 1) 
                     }.joinToString(separator = "\n" + "\t".repeat(
                         depth + 1), 

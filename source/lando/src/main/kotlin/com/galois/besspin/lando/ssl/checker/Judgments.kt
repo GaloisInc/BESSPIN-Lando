@@ -16,18 +16,81 @@ class Judgments {
         identifier: String,
         elements: List<RawElement>,
         message: String,
-        preconds: List<CheckStatus>
+        preconditions: List<CheckStatus>
     ): CheckStatus {
-        return if (preconds.all { it is CheckStatus.Ok }) {
-            CheckStatus.Ok(identifier = identifier, preconds = preconds)
+        return if (preconditions.all { it is CheckStatus.Ok }) {
+            CheckStatus.Ok(identifier = identifier, preconds = preconditions)
         } else {
             CheckStatus.Error(
                 identifier = identifier,
                 elements = elements,
                 message = message,
-                preconds = preconds
+                preconditions = preconditions
             )
         }
+    }
+
+    /**
+     * Judgement: a source and its body are valid
+     */
+    fun checkSource(source: List<RawElement>): CheckStatus {
+        val res = mutableListOf<CheckStatus>()
+
+        /** precond: the source implies a valid context */
+        val gamma0 = Context()
+        val phi0 = mutableMapOf<RawElement, Context>()
+        val relationI = Relation()
+
+        /** First pass: don't resolve dependencies */
+        res.add(checkIntroduceElementsFirstPass(gamma0, gamma0, phi0, relationI, source))
+        when (val status = getCheckStatus("validSourceFirstPass", listOf(), "Source is invalid!", res)) {
+            is CheckStatus.Error -> return status
+            else -> {}
+        }
+
+        /** Second pass: resolve dependencies and relations */
+        res.add(checkIntroduceElementsSecondPass(gamma0, gamma0, phi0, relationI, source))
+        when (val status = getCheckStatus("validSourceSecondPass", listOf(), "Source is invalid!", res)) {
+            is CheckStatus.Error -> return status
+            else -> {}
+        }
+
+        /** precond: all elements referenced in the source are top level elements */
+        for (elem in source) {
+            res.add(checkValidTopLevel(elem))
+        }
+
+        /** precond: noCycles in the inheritance relations */
+        if (relationI.hasNoCycles()) {
+            res.add(CheckStatus.Ok("validInheritance"))
+        } else {
+            // TODO: to report offending elements we need different graph calls
+            res.add(CheckStatus.Error("validInheritance", listOf(), "Inheritance map has cycles!"))
+        }
+
+        /** precond: only one system at a time */
+        if (gamma0.systems.size > 1) {
+            // The equality check is hidden into Context
+            var names = ""
+            for (system in gamma0.systems) {
+                names += "${system.name}, "
+            }
+            res.add(
+                CheckStatus.Error(
+                    "validSystemEquiv",
+                    gamma0.systems,
+                    "only one system allowed at top level, found systems: $names",
+                    listOf()
+                )
+            )
+        } else {
+            res.add(CheckStatus.Ok("validSystemEquiv", listOf()))
+        }
+
+        /** here we should resolve `inherit` and `contain` */
+        res.add(checkInheritElements(gamma0, phi0, relationI, source))
+
+        return getCheckStatus("validSourceFinalPass", listOf(), "Source is invalid!", res)
     }
 
     /**
@@ -125,32 +188,42 @@ class Judgments {
 
     /**
      * Judgement: when introducing a list of elements (body), they imply a valid context
+     * First pass: Scoping, not resolving dependencies
      */
-    fun checkIntroduceElements(gamma0: Context, gamma: Context, phi: ElementMap, relation: Relation, es: List<RawElement>): CheckStatus {
+    fun checkIntroduceElementsFirstPass(gamma0: Context, gamma: Context, phi: ElementMap, relation: Relation, es: List<RawElement>): CheckStatus {
 
         val res = mutableListOf<CheckStatus>()
 
         for (elem in es) {
             when (elem) {
-                is RawSystem -> res.add(checkIntroduceSystem(gamma0, gamma, phi, relation, elem))
-                is RawSubsystem -> res.add(checkIntroduceSubsystem(gamma0, gamma, phi, relation, elem))
-                is RawSubsystemImport -> res.add(checkIntroduceSubsystemImport(gamma0, gamma, phi, relation, elem))
-                is RawComponentImport -> res.add(checkIntroduceComponentImport(gamma0, gamma, phi, relation, elem))
-                is RawComponent -> res.add(checkIntroduceComponent(gamma, phi, relation, elem))
-                is RawRelation -> res.add(checkIntroduceRelation(gamma0, phi, relation, elem))
+                is RawSystem -> res.add(checkIntroduceSystem(gamma0, gamma, phi, relation, elem, true))
+                is RawSubsystem -> res.add(checkIntroduceSubsystem(gamma0, gamma, phi, relation, elem, true))
+                is RawComponent -> res.add(checkIntroduceComponent(gamma, phi, relation, elem, true))
                 is RawScenarios -> res.add(checkIntroduceScenarios(gamma, phi, relation, elem))
                 is RawRequirements -> res.add(checkIntroduceRequirements(gamma, phi, relation, elem))
                 is RawEvents -> res.add(checkIntroduceEvents(gamma, phi, relation, elem))
-                else -> {
-                    /* TODO: this should be a valid rule, but Element has no name so it doesn't imply a
-                        valid element by the document standards
-                        gamma.addElement(elem);
-                        phi.put(elem, gamma)
-                    */
-                }
             }
         }
-        return getCheckStatus("validElementsList", listOf(), "Elements Introduction is invalid.", res)
+        return getCheckStatus("validElementsListFirstPass", listOf(), "Elements Introduction is invalid.", res)
+    }
+
+    /**
+     * Judgement: when introducing a list of elements (body), they imply a valid context
+     * Second pass: Resolve dependencies and relations
+     */
+    private fun checkIntroduceElementsSecondPass(gamma0: Context, gamma: Context, phi: ElementMap, relation: Relation, es: List<RawElement>): CheckStatus {
+        val res = mutableListOf<CheckStatus>()
+        for (elem in es) {
+            when (elem) {
+                is RawSystem -> res.add(checkIntroduceSystem(gamma0, gamma, phi, relation, elem, false))
+                is RawSubsystem -> res.add(checkIntroduceSubsystem(gamma0, gamma, phi, relation, elem, false))
+                is RawSubsystemImport -> res.add(checkIntroduceSubsystemImport(gamma0, gamma, phi, relation, elem))
+                is RawComponentImport -> res.add(checkIntroduceComponentImport(gamma0, gamma, phi, relation, elem))
+                is RawComponent -> res.add(checkIntroduceComponent(gamma, phi, relation, elem, false))
+                is RawRelation -> res.add(checkIntroduceRelation(gamma0, phi, relation, elem))
+            }
+        }
+        return getCheckStatus("validElementsListSecondPass", listOf(), "Elements Introduction is invalid.", res)
     }
 
     private fun checkInheritElements(gamma: Context, phi: ElementMap, relation: Relation, es: List<RawElement>): CheckStatus {
@@ -165,109 +238,64 @@ class Judgments {
                         attemptResolveCheck(res, elem, gamma, q, phi, relation, ::checkValidInherit)
                     }
                 }
-                else -> {
-                    /* TODO: this should be a valid rule, but Element has no name so it doesn't imply a
-                            * valid element by the document standards
-                            gamma.addElement(elem);
-                            phi.put(elem, gamma)
-                            */
-                }
             }
         }
         return getCheckStatus("validElementsList", listOf(), "Elements Introduction is invalid.", res)
     }
 
     /**
-     * Judgement: a source and its body are valid
-     */
-    fun checkSource(source: List<RawElement>): CheckStatus {
-        val res = mutableListOf<CheckStatus>()
-
-        /** precond: the source implies a valid context */
-        val gamma0 = Context()
-        val phi0 = mutableMapOf<RawElement, Context>()
-        val relationI = Relation()
-        res.add(checkIntroduceElements(gamma0, gamma0, phi0, relationI, source))
-
-        /** precond: all elements referenced in the source are top level elements */
-        for (elem in source) {
-            res.add(checkValidTopLevel(elem))
-        }
-
-        /** precond: noCycles in the inheritance relations */
-        if (relationI.hasNoCycles()) {
-            res.add(CheckStatus.Ok("validInheritance"))
-        } else {
-            // TODO: report offending elements?
-            res.add(CheckStatus.Error("validInheritance", listOf(), "Inheritance map has cycles!"))
-        }
-
-        /** precond: is any two elements are systems, they must be the same system -- (what is the equality here) */
-        /** TODO: is this the right way of doing equality here */
-        for (i in source.indices) {
-            for (j in 0 until i) {
-                val e1 = source[i]
-                val e2 = source[j]
-                if (e1 is RawSystem && e2 is RawSystem) {
-                    if (e1 == e2) {
-                        res.add(CheckStatus.Ok("validSystemEquiv", listOf()))
-                    } else {
-                        res.add(
-                            CheckStatus.Error(
-                                "validSystemEquiv",
-                                listOf(e1, e2),
-                                "only one system allowed at top level",
-                                listOf()
-                            )
-                        )
-                    }
-                }
-            }
-        }
-
-        /** here we should resolve `inherit` and `contain` */
-        res.add(checkInheritElements(gamma0, phi0, relationI, source))
-
-        return getCheckStatus("validSource", listOf(), "Source is invalid!", res)
-    }
-
-    /**
      * Judgment: a system is properly introduced
      */
     private fun checkIntroduceSystem(
-        toplevelContext: Context,
+        topLevelContext: Context,
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
-        element: RawSystem
+        element: RawSystem,
+        firstPass: Boolean
     ): CheckStatus {
         val res = mutableListOf<CheckStatus>()
-
-        /** precond: if abbrev name is defined, it must not equal the elements name */
-        if (element.abbrevName != null) {
-            res.add(checkNameAbbrev(element.name, element.abbrevName, element))
-        }
-
-        /** introduce explanation as a type */
-        currentContext.addTextType(element.explanation, element)
-
-        /** precond: all elements in the system body must imply a valid context and be a valid contains type */
-        if (element.body != null) {
-            //checkIntroduceElements(currentContext, phi, relation, element.body!!)
-            for (elem in element.body!!.toList()) {
-                res.add(checkValidContains(element, elem))
-            }
-        }
-
         /** relate element to a local context */
         val gammap = Context()
         phi[element] = gammap
 
-        /** introduce body to the local context */
-        if (element.body != null) res.add(checkIntroduceElements(toplevelContext, gammap, phi, relation, element.body!!))
+        if (firstPass) {
+            /** precond: check if the element is unique */
+            // TODO: doesn't seem to check against a subsystem with the same name
+            val resResult = currentContext.qLook(listOf(element.name), phi)
+            if (resResult is QNameReturn.ResolvedElement) {
+                res.add(
+                    CheckStatus.Error(
+                        "duplicateElement", listOf(element),
+                        "system ${element.name} already exists at ${resResult.element.pos}", listOf()
+                    )
+                )
+            }
 
-        /** now add it to the context */
-        currentContext.addSystem(element)
+            /** precond: if abbrev name is defined, it must not equal the elements name */
+            if (element.abbrevName != null) {
+                res.add(checkNameAbbrev(element.name, element.abbrevName, element))
+            }
+
+            /** introduce explanation as a type */
+            currentContext.addTextType(element.explanation, element)
+
+            /** precond: all elements in the system body must imply a valid context and be a valid contains type */
+            if (element.body != null) {
+                //checkIntroduceElements(currentContext, phi, relation, element.body!!)
+                for (elem in element.body!!.toList()) {
+                    res.add(checkValidContains(element, elem))
+                }
+            }
+
+            /** introduce body to the local context */
+            if (element.body != null) res.add(checkIntroduceElementsFirstPass(topLevelContext, gammap, phi, relation, element.body!!))
+
+            /** now add it to the context */
+            currentContext.addSystem(element)
+        } else {
+            if (element.body != null) res.add(checkIntroduceElementsSecondPass(topLevelContext, gammap, phi, relation, element.body!!))
+        }
 
         return getCheckStatus("validSystem", listOf(), "${element.name} is not a valid system", res)
     }
@@ -280,7 +308,8 @@ class Judgments {
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
-        element: RawSubsystem
+        element: RawSubsystem,
+        firstPass: Boolean
     ): CheckStatus {
         val res = mutableListOf<CheckStatus>()
 
@@ -288,39 +317,49 @@ class Judgments {
         val gammap = Context()
         phi[element] = gammap
 
+        if (firstPass) {
+            /** precond: check if the element is unique */
+            val resResult = currentContext.qLook(listOf(element.name), phi)
+            if (resResult is QNameReturn.ResolvedElement) {
+                res.add(
+                    CheckStatus.Error(
+                        "duplicateElement", listOf(element),
+                        "subsystem ${element.name} already exists at ${resResult.element.pos}", listOf()
+                    )
+                )
+            }
 
-        /** precond: if abbrev name is defined, it must not equal the elements name */
-        if (element.abbrevName != null) {
-            res.add(checkNameAbbrev(element.name, element.abbrevName, element))
-        }
+            /** precond: if abbrev name is defined, it must not equal the elements name */
+            if (element.abbrevName != null) {
+                res.add(checkNameAbbrev(element.name, element.abbrevName, element))
+            }
 
-        /** introduce explanation as a type */
-        currentContext.addTextType(element.explanation, element)
+            /** introduce explanation as a type */
+            currentContext.addTextType(element.explanation, element)
 
-        /** precond: all elements in the subsystem body must imply a valid context and be a valid contains type */
-        if (element.body != null) {
-            // checkIntroduceElements(gammap, phi, relation, element.body!!)
-            for (elem in element.body!!.toList()) {
-                res.add(checkValidContains(element, elem))
+            /** precond: all elements in the subsystem body must imply a valid context and be a valid contains type */
+            if (element.body != null) {
+                // checkIntroduceElements(gammap, phi, relation, element.body!!)
+                for (elem in element.body!!.toList()) {
+                    res.add(checkValidContains(element, elem))
+                }
+            }
+
+            /** introduce body to the local context */
+            if (element.body != null) res.add(checkIntroduceElementsFirstPass(toplevelContext, gammap, phi, relation, element.body!!))
+
+            // TODO: we clearly need to do a second pass, to resolve relations, but this is wrong and leads to resolve errors.
+            // if (element.body != null) res.add(checkIntroduceElementsSecondPass(toplevelContext, gammap, phi, relation, element.body!!))
+
+            /** now add it to the context */
+            currentContext.addSubsystem(element)
+        } else {
+            /** precond: all clients referenced are of the valid type */
+            for (q in element.clientOf) {
+                attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
             }
         }
 
-        /** precond: all inherits must be valid inherits */
-        // TODO: there is no inherit
-
-        /** precond: all clients referenced are of the valid type */
-        for (q in element.clientOf) {
-            attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
-        }
-
-        /** introduce body to the local context */
-        if (element.body != null) res.add(checkIntroduceElements(toplevelContext, gammap, phi, relation, element.body!!))
-
-        /** now add it to the context */
-        currentContext.addSubsystem(element)
-
-        /** precond: all parents referenced are of the valid type */
-        /** TODO: this field doesn't exist!? */
         return getCheckStatus("validSubsystem", listOf(), "${element.name} is not a valid subsystem", res)
     }
 
@@ -334,16 +373,10 @@ class Judgments {
         relation: Relation,
         element: RawSubsystemImport
     ): CheckStatus {
-
         val res = mutableListOf<CheckStatus>()
 
         /** precond: all clients referenced are of the valid type */
         for (q in element.clientOf) {
-            // TODO: handle qlook null pointer exception
-            //res.add(checkValidClient(element, currentContext.qLook(q, phi)!!))
-            //relation.addRelation(
-            //    Pair(currentContext.qLook(q, phi)!!, element)
-            //)
             attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
         }
 
@@ -383,49 +416,52 @@ class Judgments {
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
-        element: RawComponent
+        element: RawComponent,
+        firstPass: Boolean
     ): CheckStatus {
         val res = mutableListOf<CheckStatus>()
 
-        /** precond: check if the element is unique */
-        val resResult = currentContext.qLook(listOf(element.name), phi)
-        if (resResult is QNameReturn.ResolvedElement) {
-            res.add(
-                CheckStatus.Error(
-                    "duplicateElement", listOf(element),
-                    "${element.name} already exists at ${resResult.element.pos}", listOf()
+        if (firstPass) {
+            /** precond: check if the element is unique */
+            val resResult = currentContext.qLook(listOf(element.name), phi)
+            if (resResult is QNameReturn.ResolvedElement) {
+                res.add(
+                    CheckStatus.Error(
+                        "duplicateElement", listOf(element),
+                        "component ${element.name} already exists at ${resResult.element.pos}", listOf()
+                    )
                 )
-            )
+            }
+
+            /** precond: if abbrev name is defined, it must not equal the elements name */
+            if (element.abbrevName != null) {
+                res.add(checkNameAbbrev(element.name, element.abbrevName, element))
+            }
+
+            /** introduce explanation as a type */
+            currentContext.addTextType(element.explanation, element)
+
+            /** relate element to a local context */
+            val gammap = Context()
+            phi[element] = gammap
+
+            /** introduce body to the local context */
+            //TODO: what is a RawComponentPart?
+            //if (element.parts != null) res.add(checkIntroduceElements(gammap, phi, relation, element.parts))
+
+            /** now add it to the context */
+            currentContext.addComponent(element)
+        } else {
+            /** precond: all clients referenced are of the valid type */
+            for (q in element.clientOf) {
+                attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
+            }
+
+            /** precond: all inherits must be valid inherits */
+            for (q in element.inherits) {
+                attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidInherit)
+            }
         }
-
-        /** precond: if abbrev name is defined, it must not equal the elements name */
-        if (element.abbrevName != null) {
-            res.add(checkNameAbbrev(element.name, element.abbrevName, element))
-        }
-
-        /** introduce explanation as a type */
-        currentContext.addTextType(element.explanation, element)
-
-        /** precond: all clients referenced are of the valid type */
-        for (q in element.clientOf) {
-            attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidClient)
-        }
-
-        /** precond: all inherits must be valid inherits */
-        //for (q in element.inherits) {
-        //    attemptResolveCheck(res, element, currentContext, q, phi, relation, ::checkValidInherit)
-        //}
-
-        /** relate element to a local context */
-        val gammap = Context()
-        phi[element] = gammap
-
-        /** introduce body to the local context */
-        //TODO: what is a RawComponentPart?
-        //if (element.parts != null) res.add(checkIntroduceElements(gammap, phi, relation, element.parts))
-
-        /** now add it to the context */
-        currentContext.addComponent(element)
 
         /** precond: all parents referenced are of the valid type */
         return getCheckStatus("validComponent", listOf(), "${element.name} is not a valid component", res)
@@ -500,7 +536,7 @@ class Judgments {
      * Judgment: a component import is properly introduced
      */
     private fun checkIntroduceComponentImport(
-        toplevelContext: Context,
+        toPlevelContext: Context,
         currentContext: Context,
         phi: ElementMap,
         relation: Relation,
@@ -509,7 +545,7 @@ class Judgments {
         val res = mutableListOf<CheckStatus>()
 
         /** precond: import resolves to a qualified named element */
-        val resResult = toplevelContext.qLook(element.name, phi)
+        val resResult = toPlevelContext.qLook(element.name, phi)
         res.add(
             when (resResult is QNameReturn.ResolvedElement) {
                 true -> when (resResult.element is RawComponent) {
@@ -541,6 +577,7 @@ class Judgments {
 
     /**
      * Judgment: an events is properly introduced
+     * TODO: needs work
      */
     @Suppress("UNUSED_PARAMETER")
     fun checkIntroduceEvents(
@@ -561,6 +598,7 @@ class Judgments {
 
     /**
      * Judgment: a scenario is properly introduced
+     * TODO: needs work
      */
     @Suppress("UNUSED_PARAMETER")
     private fun checkIntroduceScenarios(
@@ -580,6 +618,7 @@ class Judgments {
 
     /**
      * Judgment: a requirements is properly introduced
+     * TODO: needs work
      */
     @Suppress("UNUSED_PARAMETER")
     fun checkIntroduceRequirements(
@@ -613,19 +652,13 @@ class Judgments {
 
         res.add(
             when (resResult is QNameReturn.ResolvedElement) {
-                true -> when (resResult.element is RawSubsystem) {
-                    true -> CheckStatus.Ok("validIntroducedRelation", listOf())
-                    else -> CheckStatus.Error(
-                        "validIntroducedRelation",
-                        listOf(element),
-                        "could resolve ${element.name}, but it's not a subsystem",
-                        listOf()
-                    )
-                }
+                // TODO: we should check that all parts of the relation has been introduced
+                // I.e. the inherits,clientOf and contains lists
+                true -> CheckStatus.Ok("validIntroducedRelation", listOf())
                 else -> CheckStatus.Error(
                     "validIntroducedRelation",
                     listOf(element),
-                    "could not resolve '${element.name}' import to a subsystem",
+                    "could not resolve '${element.name}'",
                     listOf()
                 )
             }
@@ -645,9 +678,9 @@ class Judgments {
             }
 
             /** precond: all contained elements must be of a valid type */
-            //for (q in element.contains) {
-            //    attemptResolveCheck(res, relem, currentContext, q, phi, relation, ::checkValidInherit)
-            //}
+            for (q in element.contains) {
+                attemptResolveCheck(res, relem, currentContext, q, phi, relation, ::checkValidContains)
+            }
 
             return getCheckStatus("validRelation", listOf(), "${element.name} is not a valid relation", res)
 
