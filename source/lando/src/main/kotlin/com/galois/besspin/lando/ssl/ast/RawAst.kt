@@ -37,6 +37,11 @@ interface RawElement : RawNamed {
     fun toMarkdown(): String {
         return "RawElement\n"
     }
+
+    fun toMarkdownReference(ref: String): String {
+        val link_name = ref.replace(" ","-").toLowerCase()
+        return "[$ref](#$link_name)"
+    }
 }
 
 
@@ -106,20 +111,22 @@ data class RawComponent(
     val parts: List<RawComponentPart> = arrayListOf(),
     val comments: List<RawComment>
 ) : RawElement {
+    // ### <a id="{self.link_name}"></a> {self.name}
     override fun toMarkdown(): String {
-        var result =  "<!--COMPONENT-->\n### $name"
+        val link_name = name.replace(" ","-").toLowerCase()
+        var result =  "<!--COMPONENT-->\n### <a id =\"$link_name\"></a>$name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
         result += "\n$explanation\n"
         for (elem in inherits) {
-            result += "  * inherits $elem"
+            result += "  * inherits ${toMarkdownReference(elem.last())}"
         }
         for (elem in clientOf) {
-            result += "  * client of $elem"
+            result += "  * client of ${(elem.last())}"
         }
         for (elem in parts) {
-            result += "  * part {$elem.toMarkdown()}"
+            result += "  * part ${elem.toMarkdown()}"
         }
         result += "<!--COMPONENT/-->\n"
         return result
@@ -243,8 +250,8 @@ data class RawComponentImport(
             result += " ($abbrevName)"
         }
         result += "\n"
-        for (value in clientOf) {
-            result += "* client of ${value.last()}\n"
+        for (elem in clientOf) {
+            result += "* client of ${toMarkdownReference(elem.last())}\n"
         }
         for (comment in comments) {
             result += comment.toMarkdown()
@@ -267,14 +274,15 @@ data class RawSubsystem(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result =  "<!--SUBSYSTEM $name-->\n## $name"
+        val link_name = name.replace(" ","-").toLowerCase()
+        var result =  "<!--SUBSYSTEM $name-->\n## <a id =\"$link_name\"></a>$name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
         result += "\n$explanation\n"
         result += "\n"
-        for (value in clientOf) {
-            result += "  * client of ${value.last()}\n"
+        for (elem in clientOf) {
+            result += "  * client of ${toMarkdownReference(elem.last())}\n"
         }
         for (elem in indexing) {
             result += elem.toMarkdown();
@@ -301,8 +309,8 @@ data class RawSubsystemImport(
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
-        for (value in clientOf) {
-            result += "* client of $value\n"
+        for (elem in clientOf) {
+            result += "* client of ${toMarkdownReference(elem.last())}\n"
         }
         for (comment in comments) {
             result += comment.toMarkdown()
@@ -324,7 +332,8 @@ data class RawSystem(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result =  "<!--SYSTEM $name-->\n# $name"
+        val link_name = name.replace(" ","-").toLowerCase()
+        var result =  "<!--SYSTEM $name-->\n# <a id =\"$link_name\"></a>$name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
@@ -356,14 +365,14 @@ data class RawRelation(
 ): RawElement {
     override fun toMarkdown(): String {
         var result = "<!--RELATION-->\n#### relation ${name.last()}\n"
-        for (value in inherits) {
-            result += "* inherits ${value.last()}\n"
+        for (elem in inherits) {
+            result += "* inherits ${toMarkdownReference(elem.last())}\n"
         }
-        for (value in clientOf) {
-            result += "* client of ${value.last()}\n"
+        for (elem in clientOf) {
+            result += "* client of ${toMarkdownReference(elem.last())}\n"
         }
-        for (value in contains) {
-            result += "* contains ${value.last()}\n"
+        for (elem in contains) {
+            result += "* contains ${toMarkdownReference(elem.last())}\n"
         }
         result += "<!--RELATION/-->\n"
         return result
