@@ -109,3 +109,8 @@ development of tools in the BESSPIN project for the SSITH program.
   contain other function calls in their argument constraints. Before
   this can be merged some deep thought needs to be given as to whether
   these changes are really what we want.
+
+The unmerged branch `rr-updates` adds some new post-SSITH features to
+the Lando tool.  In particular, it adds exporting to Markdown with
+hyperlinking, detection of duplicate elements, and removes the need
+for forward declaration of elements.
