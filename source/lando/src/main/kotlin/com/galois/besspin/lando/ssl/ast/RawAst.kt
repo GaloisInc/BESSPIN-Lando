@@ -3,6 +3,7 @@ package com.galois.besspin.lando.ssl.ast
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 import kotlinx.serialization.modules.*
+import java.util.*
 
 typealias Uid = Int
 typealias Name = String
@@ -39,7 +40,7 @@ interface RawElement : RawNamed {
     }
 
     fun toMarkdownReference(ref: String): String {
-        val link_name = ref.replace(" ","-").toLowerCase()
+        val link_name = ref.replace(" ","-").lowercase(Locale.getDefault())
         return "[$ref](#$link_name)"
     }
 }
@@ -113,7 +114,7 @@ data class RawComponent(
 ) : RawElement {
     // ### <a id="{self.link_name}"></a> {self.name}
     override fun toMarkdown(): String {
-        val link_name = name.replace(" ","-").toLowerCase()
+        val link_name = name.replace(" ","-").lowercase(Locale.getDefault())
         var result =  "<!--COMPONENT-->\n### <a id =\"$link_name\"></a>$name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
@@ -274,7 +275,7 @@ data class RawSubsystem(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        val link_name = name.replace(" ","-").toLowerCase()
+        val link_name = name.replace(" ","-").lowercase(Locale.getDefault())
         var result =  "<!--SUBSYSTEM $name-->\n## <a id =\"$link_name\"></a>$name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
@@ -332,7 +333,7 @@ data class RawSystem(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        val link_name = name.replace(" ","-").toLowerCase()
+        val link_name = name.replace(" ","-").lowercase(Locale.getDefault())
         var result =  "<!--SYSTEM $name-->\n# <a id =\"$link_name\"></a>$name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
@@ -422,6 +423,7 @@ fun RawSSL.toJSON(): String {
     return jsonRawSSL.encodeToString(RawSSL.serializer(), this)
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 fun rawSSLFromJSON(text: String): RawSSL {
     return jsonRawSSL.decodeFromString(text)
 }
