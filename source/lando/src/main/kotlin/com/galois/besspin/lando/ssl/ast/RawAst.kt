@@ -59,11 +59,11 @@ data class RawQuery(
     val comments: List<RawComment>
 ) : RawComponentPart {
     override fun toMarkdown(): String {
-        var result = "<!--QUERY-->\n* $text"
+        var result = "<!-- BEGIN QUERY -->\n* $text"
         for (elem in comments) {
             result += elem.toMarkdown()
         }
-        result += "<!--QUERY/-->\n"
+        result += "<!-- END QUERY -->\n"
         return result
     }
 }
@@ -75,11 +75,11 @@ data class RawConstraint(
     val comments: List<RawComment>
 ) : RawComponentPart {
     override fun toMarkdown(): String {
-        var result = "<!--CONSTRAINT-->\n* $text"
+        var result = "<!-- BEGIN CONSTRAINT -->\n* $text"
         for (elem in comments) {
             result += elem.toMarkdown()
         }
-        result += "<!--CONSTRAINT/-->\n"
+        result += "<!-- END CONSTRAINT -->\n"
         return result
     }
 }
@@ -91,11 +91,11 @@ data class RawCommand(
     val comments: List<RawComment>
 ) : RawComponentPart {
     override fun toMarkdown(): String {
-        var result = "<!--COMMAND-->\n* $text"
+        var result = "<!-- BEGIN COMMAND -->\n* $text"
         for (elem in comments) {
             result += elem.toMarkdown()
         }
-        result += "<!--COMMAND/-->\n"
+        result += "<!-- END COMMAND -->\n"
         return result
     }
 }
@@ -115,7 +115,7 @@ data class RawComponent(
     // ### <a id="{self.link_name}"></a> {self.name}
     override fun toMarkdown(): String {
         val link_name = name.replace(" ","-").lowercase(Locale.getDefault())
-        var result =  "<!--COMPONENT-->\n### <a id =\"$link_name\"></a>$name"
+        var result =  "<!-- BEGIN COMPONENT -->\n### <a id =\"$link_name\"></a>$name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
@@ -129,7 +129,7 @@ data class RawComponent(
         for (elem in parts) {
             result += "  * part ${elem.toMarkdown()}"
         }
-        result += "<!--COMPONENT/-->\n"
+        result += "<!-- END COMPONENT -->\n"
         return result
     }
 }
@@ -142,11 +142,11 @@ data class RawItem(
     val comments : List<RawComment>
 ) : RawNamed {
     fun toMarkdown(): String {
-        var result = "<!--ITEM-->\n### $id\n$text\n"
+        var result = "<!-- BEGIN ITEM -->\n### $id\n$text\n"
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!--ITEM/-->\n"
+        result += "<!-- END ITEM -->\n"
         return result
     }
 }
@@ -161,14 +161,14 @@ data class RawEvents(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "<!--EVENTS-->\n## $name\n"
+        var result = "<!-- BEGIN EVENTS -->\n## $name\n"
         for (elem in events) {
             result += elem.toMarkdown()
         }
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!--EVENTS/-->\n"
+        result += "<!-- END EVENTS -->\n"
         return result
     }
 }
@@ -182,14 +182,14 @@ data class RawScenarios(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "<!--SCENARIOS-->\n## $name\n"
+        var result = "<!-- BEGIN SCENARIOS -->\n## $name\n"
         for (elem in scenarios) {
             result += elem.toMarkdown()
         }
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!--SCENARIOS/-->\n"
+        result += "<!-- END SCENARIOS -->\n"
         return result
     }
 }
@@ -204,14 +204,14 @@ data class RawRequirements(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "<!--REQUIREMENTS-->\n## $name\n"
+        var result = "<!-- BEGIN REQUIREMENTS -->\n## $name\n"
         for (elem in requirements) {
             result += elem.toMarkdown()
         }
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!--REQUIREMENTS/-->\n"
+        result += "<!-- END REQUIREMENTS -->\n"
         return result
     }
 }
@@ -224,14 +224,14 @@ data class RawIndexEntry(
     val comments: List<RawComment>
 ) {
     fun toMarkdown(): String {
-        var result = "<!--INDEX_ENTRY-->\nIndexing $key: "
+        var result = "<!-- BEGIN INDEX ENTRY -->\nIndexing $key: "
         for (value in values) {
             result += "* $value\n"
         }
         for (comment in comments) {
             result += "* ${comment.toMarkdown()}"
         }
-        result += "<!--INDEX_ENTRY/-->\n"
+        result += "<!-- END INDEX ENTRY -->\n"
         return result
     }
 }
@@ -246,7 +246,7 @@ data class RawComponentImport(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "<!--COMPONENT_IMPORT-->\n#### import component ${name.last()}"
+        var result = "<!-- BEGIN COMPONENT IMPORT -->\n#### import component ${name.last()}"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
@@ -257,7 +257,7 @@ data class RawComponentImport(
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!--COMPONENT_IMPORT/-->\n"
+        result += "<!-- END COMPONENT IMPORT -->\n"
         return result
     }
 }
@@ -276,7 +276,7 @@ data class RawSubsystem(
 ) : RawElement {
     override fun toMarkdown(): String {
         val link_name = name.replace(" ","-").lowercase(Locale.getDefault())
-        var result =  "<!--SUBSYSTEM $name-->\n## <a id =\"$link_name\"></a>$name"
+        var result =  "<!-- BEGIN SUBSYSTEM $name-->\n## <a id =\"$link_name\"></a>$name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
@@ -291,7 +291,7 @@ data class RawSubsystem(
         for (elem in body!!) {
             result += elem.toMarkdown()
         }
-        result += "<!--SUBSYSTEM $name/-->"
+        result += "<!-- END SUBSYSTEM $name -->"
         return result
     }
 }
@@ -306,7 +306,7 @@ data class RawSubsystemImport(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "<!--SUBSYSTEM_IMPORT-->\n#### import subsystem ${name.last()}\n"
+        var result = "<!-- BEGIN SUBSYSTEM IMPORT -->\n#### import subsystem ${name.last()}\n"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
@@ -316,7 +316,7 @@ data class RawSubsystemImport(
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!--SUBSYSTEM_IMPORT/-->\n"
+        result += "<!-- BEGIN SUBSYSTEM IMPORT -->\n"
         return result
     }
 }
@@ -334,7 +334,7 @@ data class RawSystem(
 ) : RawElement {
     override fun toMarkdown(): String {
         val link_name = name.replace(" ","-").lowercase(Locale.getDefault())
-        var result =  "<!--SYSTEM $name-->\n# <a id =\"$link_name\"></a>$name"
+        var result =  "<!-- BEGIN SYSTEM $name -->\n# <a id =\"$link_name\"></a>$name"
         if (abbrevName != null) {
             result += " ($abbrevName)"
         }
@@ -349,7 +349,7 @@ data class RawSystem(
         for (elem in indexing) {
             result += elem.toMarkdown();
         }
-        result += "<!--SYSTEM $name/-->"
+        result += "<!-- END SYSTEM $name -->"
         return result
     }
 }
@@ -365,7 +365,7 @@ data class RawRelation(
     val comments: List<RawComment>
 ): RawElement {
     override fun toMarkdown(): String {
-        var result = "<!--RELATION-->\n#### relation ${name.last()}\n"
+        var result = "<!-- BEGIN RELATION -->\n#### relation ${name.last()}\n"
         for (elem in inherits) {
             result += "* inherits ${toMarkdownReference(elem.last())}\n"
         }
@@ -375,7 +375,7 @@ data class RawRelation(
         for (elem in contains) {
             result += "* contains ${toMarkdownReference(elem.last())}\n"
         }
-        result += "<!--RELATION/-->\n"
+        result += "<!-- END RELATION -->\n"
         return result
     }
 }
