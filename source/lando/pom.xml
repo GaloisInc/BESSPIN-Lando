@@ -5,7 +5,19 @@
 
     <groupId>com.galois.besspin.lando</groupId>
     <artifactId>lando</artifactId>
-    <version>2.0-12-Jan-2022-29a47e19</version>
+    <!--
+    NOTE that eventually we want the versioning to be automatic
+    Running `mvn release:update-versions` leads to a version increment
+    see https://maven.apache.org/maven-release/maven-release-plugin/usage/update-versions.html
+    and https://maven.apache.org/maven-ci-friendly.html
+    for details
+
+    Current solution:
+    1) change verstion to <version>3.0-${revision}</version>
+    2) set ${revision} in the CI run (e.g. a commit hash), will lead to
+    3.0-HASH versioning
+    -->
+    <version>3.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>com.galois.besspin.lando lando</name>
