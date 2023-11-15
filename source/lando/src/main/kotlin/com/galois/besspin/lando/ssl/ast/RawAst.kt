@@ -63,7 +63,7 @@ data class RawQuery(
         for (elem in comments) {
             result += elem.toMarkdown()
         }
-        result += "<!-- END QUERY -->\n"
+        result += "<!-- END QUERY -->\n\n"
         return result
     }
 }
@@ -79,7 +79,7 @@ data class RawConstraint(
         for (elem in comments) {
             result += elem.toMarkdown()
         }
-        result += "<!-- END CONSTRAINT -->\n"
+        result += "<!-- END CONSTRAINT -->\n\n"
         return result
     }
 }
@@ -95,7 +95,7 @@ data class RawCommand(
         for (elem in comments) {
             result += elem.toMarkdown()
         }
-        result += "<!-- END COMMAND -->\n"
+        result += "<!-- END COMMAND -->\n\n"
         return result
     }
 }
@@ -129,7 +129,7 @@ data class RawComponent(
         for (elem in parts) {
             result += "  * part ${elem.toMarkdown()}"
         }
-        result += "<!-- END COMPONENT -->\n"
+        result += "<!-- END COMPONENT -->\n\n"
         return result
     }
 }
@@ -146,7 +146,7 @@ data class RawItem(
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!-- END ITEM -->\n"
+        result += "<!-- END ITEM -->\n\n"
         return result
     }
 }
@@ -168,7 +168,7 @@ data class RawEvents(
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!-- END EVENTS -->\n"
+        result += "<!-- END EVENTS -->\n\n"
         return result
     }
 }
@@ -189,7 +189,7 @@ data class RawScenarios(
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!-- END SCENARIOS -->\n"
+        result += "<!-- END SCENARIOS -->\n\n"
         return result
     }
 }
@@ -211,7 +211,7 @@ data class RawRequirements(
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!-- END REQUIREMENTS -->\n"
+        result += "<!-- END REQUIREMENTS -->\n\n"
         return result
     }
 }
@@ -231,7 +231,7 @@ data class RawIndexEntry(
         for (comment in comments) {
             result += "* ${comment.toMarkdown()}"
         }
-        result += "<!-- END INDEX ENTRY -->\n"
+        result += "<!-- END INDEX ENTRY -->\n\n"
         return result
     }
 }
@@ -257,7 +257,7 @@ data class RawComponentImport(
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!-- END COMPONENT IMPORT -->\n"
+        result += "<!-- END COMPONENT IMPORT -->\n\n"
         return result
     }
 }
@@ -291,7 +291,7 @@ data class RawSubsystem(
         for (elem in body!!) {
             result += elem.toMarkdown()
         }
-        result += "<!-- END SUBSYSTEM $name -->"
+        result += "<!-- END SUBSYSTEM $name -->\n\n"
         return result
     }
 }
@@ -316,7 +316,7 @@ data class RawSubsystemImport(
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!-- BEGIN SUBSYSTEM IMPORT -->\n"
+        result += "<!-- BEGIN SUBSYSTEM IMPORT -->\n\n"
         return result
     }
 }
@@ -349,7 +349,7 @@ data class RawSystem(
         for (elem in indexing) {
             result += elem.toMarkdown();
         }
-        result += "<!-- END SYSTEM $name -->"
+        result += "<!-- END SYSTEM $name -->\n\n"
         return result
     }
 }
@@ -375,7 +375,7 @@ data class RawRelation(
         for (elem in contains) {
             result += "* contains ${toMarkdownReference(elem.last())}\n"
         }
-        result += "<!-- END RELATION -->\n"
+        result += "<!-- END RELATION -->\n\n"
         return result
     }
 }
