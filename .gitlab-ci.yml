@@ -9,7 +9,7 @@ package:
     - mvn package -f source/lando/pom.xml
   artifacts:
     paths:
-      - source/lando/target/lando-3.0-jar-with-dependencies.jar
+      - source/lando/target/lando-3.0-SNAPSHOT-jar-with-dependencies.jar
     expire_in: 1 day
 
 test:
