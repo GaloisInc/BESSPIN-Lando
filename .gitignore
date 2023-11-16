@@ -6,3 +6,4 @@ auto
 dist-newstyle/
 *.DS_Store
 *~
+*.gz
