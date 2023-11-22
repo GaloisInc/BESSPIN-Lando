@@ -137,9 +137,10 @@ and a global inheritance relation $I_0$ (all implicitly threaded everywhere) suc
 Below we provide a short description of each judgement:
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j1}}
+\item \textbf{Judgement~\ref{j1}} Global well-formedness
 \begin{itemize}
-\item $\wb{\env_0}{es}{\env_0}$: This premise checks the well-formedness of a list of elements es in the context of a top-level environment $\env_0$. It asserts that processing $es$ in $\env_0$ results in $\env_0$, which implies that the elements es are self-contained and do not modify the top-level environment.
+\item \textit{A $\lab{Source}$ top level element containing a list of elements $es$ is well formed if elements in $es$ are well formed, there are no cycles, there is only one $\lab{System}$ element, and all elements in $es$ are valid top level elements}
+\item $\wb{\env_0}{es}{\env_0}$: This premise checks the well-formedness of a list of elements $es$ in the context of a top-level environment $\env_0$. It asserts that $es$ is well formed in the context of $\env_0$
 \item $\nocycles{I}:$ This states that the global inheritance relation $I$ must not contain any cycles.
 \item The third premise ensures uniqueness of $\lab{System}$ elements within $es$. It states that if $e_1$ and $e_2$ are both $\lab{System}$ elements within $es$, they must be the same entity $(e_1 = e_2)$.
 \item $\forall e \in es, \validtop{e}$: This checks that every element $e$ in $es$ satisfies the $\texttt{valid-toplevel}$ judgment, meaning each element is valid as a top-level construct.
@@ -160,10 +161,11 @@ Below we provide a short description of each judgement:
 \end{equation}
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j2}}
+\item \textbf{Judgement~\ref{j2}} Recursive well-formedness
 \begin{itemize}
+\item \textit{A list of elements $\conslist{e}{es}$ is well-formed if both $e$ and $es$ are well formed. The resulting environment $\env$ is a union of $\env'$ and $\env''$. This means we can process the elements recursively.}
 \item $\wb{\env}{e}{\env'}$: This premise asserts that a single element $e$ is well-formed in the context of an environment $\env$, resulting in a possibly modified environment $\env'$.
-\item $\wb{\env}{es}{\env''}$: Similarly, this checks the well-formedness of a list of elements $es$ in the same initial environment $\env$, resulting in another possibly modified environment $\env''$. It's assessing the collective impact of the remaining elements in the list after $e$.
+\item $\wb{\env}{es}{\env''}$: Similarly, this checks the well-formedness of a list of elements $es$ in the same initial environment $\env$, resulting in another possibly modified environment $\env''$. I1t's assessing the collective impact of the remaining elements in the list after $e$.
 \item $\wb{\env}{\conslist{e}{es}}{\env' \uplus \env''}$: The conclusion states that if both premises are true, then the entire list formed by concatenating $e$ at the head of $es$ ($\conslist{e}{es}$) is well-formed in the initial environment $\env$. The resulting environment after processing this concatenated list is the disjoint union of $\env'$ and $\env''$ (denoted as $\env' \uplus \env''$).
 \end{itemize}
 \end{itemize}
@@ -179,7 +181,7 @@ Below we provide a short description of each judgement:
 \end{equation}
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j3}}
+\item \textbf{Judgement~\ref{j3}} Terminating condition for recursive well-formedness
 \begin{itemize}
 \item An empty list of elements is always well formed.
 \end{itemize}
@@ -196,6 +198,7 @@ Below we provide a short description of each judgement:
 \begin{itemize}
 \item \textbf{Judgement~\ref{j4}} System well-formed
 \begin{itemize}
+\item \textit{A System element is well formed if all the preconditions are valid.}
 \item $n \neq n_a$: This states that the name $n$ of the $\lab{System}$ element must not be equal to its abbreviation $n_a$. This ensures distinct identifiers for the full name and the abbreviation.
 \item $\wbx{\env}{t}$: This checks the well-formedness of the $\lab{explanation}$ text $t$ in the current environment $\env$.
 \item $\forall e \in es_b, \validcontains{e_s}{e}$: For every element $e$ in the body $es_b$ of the $\lab{System}$, this condition asserts that $e$ can be contained within the the $\lab{System}$
@@ -224,7 +227,8 @@ Below we provide a short description of each judgement:
 \begin{itemize}
 \item \textbf{Judgement~\ref{j5}} System well-formed
 \begin{itemize}
-\item The same as Judgement~\ref{j4} except for systems without the abbreviation $n_a$
+\item \textit{A System element is well formed if all the preconditions are valid.}
+\item The same as Judgement~\ref{j4} except for systems without the abbreviation $n_a$ - in this case $\lab{abbrev}$ is empty (None).
 \end{itemize}
 \end{itemize}
 
@@ -244,7 +248,7 @@ Below we provide a short description of each judgement:
 \begin{itemize}
 \item \textbf{Judgement~\ref{j6}} Subsystem well-formed
 \begin{itemize}
-\item This judgment defines the well-formedness criteria for a $\lab{Subsystem}$ element in the Lando language.
+\item \textit{A $\lab{Subsystem}$ is well formed if all the preconditions are valid.}
 \item The name and the abbreviated name must be different.
 \item $e_s$ must have only valid inherit relations $qs_i$
 \item $e_s$ must contain only valid elements $es_b$
@@ -279,7 +283,8 @@ Below we provide a short description of each judgement:
 \begin{itemize}
 \item \textbf{Judgement~\ref{j7}} Subsystem well-formed
 \begin{itemize}
-\item The same as Judgement~\ref{j6} except for subsystems without the abbreviation $n_a$
+\item \textit{A $\lab{Subsystem}$ is well formed if all the preconditions are valid.}
+\item The same as Judgement~\ref{j6} except for subsystems without the abbreviation $n_a$ (abbreviation will be empty).
 \end{itemize}
 \end{itemize}
 
@@ -307,6 +312,7 @@ Below we provide a short description of each judgement:
 \begin{itemize}
 \item \textbf{Judgement~\ref{j8}} Subsystem import
 \begin{itemize}
+\item \textit{A $\lab{SubsystemImport}$ is well formed if all the preconditions are valid.}
 \item $\qlookup{\env_0}{q} = e$: This premise asserts that the qualified name $q$ resolves to an element $e$ in the top-level environment $\env_0$.
 \item $\forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}}$: For each qualified name $q$ in the list $qs_c$ (which represents elements for which the imported subsystem is a client), the element corresponding to $q$ must have a valid client relationship with $e$ (the element resolved from $q$).
 \item  If the above premises are satisfied, then the $\lab{SubsystemImport}$ element $e_s$, defined with a reference name $q$, an optional abbreviation $n_a$, and a list of clients $qs_c$, is well-formed in the environment $\env$. The resulting environment from processing this import maps the abbreviation $n_a$ to the $\lab{SubsystemImport}$ element $e_s$.
@@ -328,7 +334,8 @@ Below we provide a short description of each judgement:
 \begin{itemize}
 \item \textbf{Judgement~\ref{j9}} Subsystem import (no $n_a$)
 \begin{itemize}
-\item Same as Judgement~\ref{j8}, except for imported subsystems without an abbreviation $n_a$. As a result, we use the last part of the qualified name as the abbreviation of the subsystem.
+\item \textit{A $\lab{SubsystemImport}$ is well formed if all the preconditions are valid.}
+\item Same as Judgement~\ref{j8}, except for imported subsystems without an abbreviation $n_a$.
 \end{itemize}
 \end{itemize}
 
@@ -346,6 +353,7 @@ Below we provide a short description of each judgement:
 \begin{itemize}
 \item \textbf{Judgement~\ref{j10}} Component well-formed
 \begin{itemize}
+\item \textit{A $\lab{Component}$ is well formed if all the preconditions are valid.}
 \item Distict name and and the abbreviated name
 \item Valid client and valid inherit relationships
 \item The explanation $t$ must be well formed
@@ -374,8 +382,8 @@ Below we provide a short description of each judgement:
 \begin{itemize}
 \item \textbf{Judgement~\ref{j11}} Component well formed (no $n_a$)
 \begin{itemize}
+\item \textit{A $\lab{Component}$ is well formed if all the preconditions are valid.}
 \item Same as Judgement~\ref{j10}, except for components without an abbreviated name.
-\item Unclear what \textit{a missing option for name} means ($\lab{abbrev}=._{name}$)
 \end{itemize}
 \end{itemize}
 
@@ -446,6 +454,7 @@ Below we provide a short description of each judgement:
 \begin{itemize}
 \item \textbf{Judgement~\ref{j15}} Component import
 \begin{itemize}
+\item \textit{A $\lab{ComponentImport}$ is well formed if all the preconditions are valid.}
 \item Qualified name $q$ resolves to an element $e$ in the top level environment
 \item $\forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}}$: For each qualified name $q$ in the list $qs_c$ (representing elements for which the imported component is a client), the element corresponding to $q$ must have a valid client relationship with $e$.
 \item If the above defined premises are satisfied, the imported component is well-formed.
@@ -466,8 +475,8 @@ Below we provide a short description of each judgement:
 \begin{itemize}
 \item \textbf{Judgement~\ref{j16}} Component import without $n_a$
 \begin{itemize}
+\item \textit{A $\lab{ComponentImport}$ is well formed if all the preconditions are valid.}
 \item Like Judgement~\ref{j15}, except covering cases where the imported component does not have an abbreviated name.
-\item \textbf{TODO: what do we do with the name?}
 \end{itemize}
 \end{itemize}
 
@@ -534,48 +543,15 @@ Below we provide a short description of each judgement:
 }
 \end{equation}
 
-
 \begin{itemize}
-\item \textbf{Judgement~\ref{j20}}
-\begin{itemize}
-\item An empty list of items is always well-formed
-\end{itemize}
-\end{itemize}
-
-\begin{equation}
-\label{j20}
-\inferrule{
-}{  \wb{\env}{\nillist{\nt{item}}}{\{\}}
-}
-\end{equation}
-
-\begin{itemize}
-\item \textbf{Judgement~\ref{j21}}
-\begin{itemize}
-\item See Judgement~\ref{j2} for detailed meaning of the premises.
-\item $\wb{\env}{\conslist{i}{is}}{\env'' \uplus \env'''}$: The conclusion states that if both premises are true, then the entire list formed by concatenating $i$ and $is$is well-formed in the initial environment $\env$. The resulting environment after processing this concatenated list is the disjoint union of $\env''$ and $\env'''$ (denoted as $\env'' \uplus \env'''$).
-\end{itemize}
-\end{itemize}
-
-\begin{equation}
-\label{j21}
-\inferrule{
-  \wb{\env}{i}{\env''} \\
-  \wb{\env}{is}{\env'''}
-}{
-  \wb{\env}{\conslist{i}{is}}{\env'' \uplus \env'''}
-}
-\end{equation}
-
-\begin{itemize}
-\item \textbf{Judgement~\ref{j22}} Item well-formed
+\item \textbf{Judgement~\ref{j20}} Item well-formed
 \begin{itemize}
 \item If the text $t$ is well-formed, then an item $i$ is well-formed.
 \end{itemize}
 \end{itemize}
 
 \begin{equation}
-\label{j22}
+\label{j20}
 \inferrule{
   \wbx{\env}{t}
 }{
@@ -584,7 +560,7 @@ Below we provide a short description of each judgement:
 \end{equation}
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j23}} Relation well-formed
+\item \textbf{Judgement~\ref{j21}} Relation well-formed
 \begin{itemize}
 \item Qualified name $q$ must be resolved to an element $e$
 \item All inherit relations are valid
@@ -594,7 +570,7 @@ Below we provide a short description of each judgement:
 \end{itemize}
 
 \begin{equation}
-\label{j23}
+\label{j21}
 \inferrule{
   \qlookup{\env}{q} = e \\
   \forall q \in qs_i, \validinh{e}{\qlookup{\env}{q}} \\
@@ -605,7 +581,7 @@ Below we provide a short description of each judgement:
 \end{equation}
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j24}} Text well-formed
+\item \textbf{Judgement~\ref{j22}} Text well-formed
 \begin{itemize}
 \item This judgment defines the well-formedness criteria for a piece of text $t$ focusing on the resolution of names within that text. It's a rule that ensures every name mentioned in the text $t$ corresponds to an existing element in the current environment.
 \item $\forall n_t \in \qnames{t}, \exists e, \env(n_t) = e$: For each name $n_t$ that appears within the text $t$ (as identified by the function $\qnames{t}$), there must exist an element $e$ such that $n_t$ resolves to $e$ in the environment $\env$. This means that every name referenced in $t$ must have a corresponding, defined element in the current environment.
@@ -614,7 +590,7 @@ Below we provide a short description of each judgement:
 \end{itemize}
 
 \begin{equation}
-\label{j24}
+\label{j22}
 \inferrule{
   \forall n_t \in \qnames{t}, \exists e, \env(n_t) = e
 }{
@@ -623,14 +599,14 @@ Below we provide a short description of each judgement:
 \end{equation}
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j25}}
+\item \textbf{Judgement~\ref{j23}} Valid top-level
 \begin{itemize}
 \item $\validtop{\lab{(System|Subsystem|...)}\{\ldots\}}$: The rule states that the described elements are always valid as top-level elements. The $\{\ldots\}$ indicates that the specific contents of these elements are not relevant to this judgment
 \end{itemize}
 \end{itemize}
 
 \begin{equation}
-\label{j25}
+\label{j23}
 \inferrule{
 }{\validtop{\lab{(System|Subsystem|Component|Events|Scenarios|Requirements|Relation)}\{\ldots\}}
 }
@@ -639,49 +615,49 @@ Below we provide a short description of each judgement:
 
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j26}}
+\item \textbf{Judgement~\ref{j24}} Valid elements of a $\lab{System}$
 \begin{itemize}
 \item This rule states that a $\lab{System}$ can contain only $\lab{Subsystems}$, imported $\lab{Subsystems}$ or $\lab{Relations}$
 \end{itemize}
 \end{itemize}
 
 \begin{equation}
-\label{j26}
+\label{j24}
 \inferrule{
 }{\validcontains{\lab{System}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Relation)}\{\ldots\}}
 }
 \end{equation}
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j27}}
+\item \textbf{Judgement~\ref{j25}} Valid elements of a $\lab{SubSystem}$
 \begin{itemize}
-\item This rule states that a $\lab{SubSystem}$ can contain only $\lab{Subsystems}$, imported $\lab{Subsystems}$, $\lab{Components}$ or imported $\lab{Components}$
+\item This rule states that a $\lab{SubSystem}$ contains only $\lab{Subsystems}$, imported $\lab{Subsystems}$, $\lab{Components}$, imported $\lab{Components}$, and elements defined in Judgement~\ref{j26}.
 \end{itemize}
 \end{itemize}
 
 \begin{equation}
-\label{j27}
+\label{j25}
 \inferrule{
 }{\validcontains{\lab{Subsystem}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Component|ComponentImport)}\{\ldots\}}
 }
 \end{equation}
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j28}}
+\item \textbf{Judgement~\ref{j26}} Valid elements of a $\lab{SubSystem}$
 \begin{itemize}
-\item This rule states that a $\lab{SubSystem}$ can contain only $\lab{Scenarios}$, $\lab{Requirements}$, $\lab{Events}$ or $\lab{Relations}$
+\item This rule states that a $\lab{SubSystem}$ contains only $\lab{Scenarios}$, $\lab{Requirements}$, $\lab{Events}$, $\lab{Relations}$, and elements defined in Judgement~\ref{j25}.
 \end{itemize}
 \end{itemize}
 
 \begin{equation}
-\label{j28}
+\label{j26}
 \inferrule{
 }{\validcontains{\lab{Subsystem}\{\ldots\}}{\lab{(Scenarios|Requirements|Events|Relation)}\{\ldots\}}
 }
 \end{equation}
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j29}}
+\item \textbf{Judgement~\ref{j27}} Well-formed inheritance
 \begin{itemize}
 \item $(e_1,e_2) \in I_0$: This premise states that there is an inheritance relationship between two elements $e_1$ and $e_2$ in the global inheritance relation $I_0$. In other words, $e_1$ inherits from $e_2$.
 \item $\validinh{e_1@\lab{Component}\{\ldots\}}{e_2@\lab{Component}\{\ldots\}}$: If the above premise is satisfied, this conclusion asserts that the inheritance relationship between $e_1$ and $e_2$ is valid, where both $e_1$ and $e_2$ are $\lab{Component}$ elements. The $\{\ldots\}$ again implies that the specific contents or attributes of the $\lab{Component}$ elements are not relevant to this judgment.
@@ -689,7 +665,7 @@ Below we provide a short description of each judgement:
 \end{itemize}
 
 \begin{equation}
-\label{j29}
+\label{j27}
 \inferrule{
   (e_1,e_2) \in I_0
 }{\validinh{e_1@\lab{Component}\{\ldots\}}{e_2@\lab{Component}\{\ldots\}}
@@ -697,30 +673,32 @@ Below we provide a short description of each judgement:
 \end{equation}
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j30}}
+\item \textbf{Judgement~\ref{j28}} Client of an (imported) subsystem
 \begin{itemize}
 \item This rule describes which elements can be a client of an (imported) subsystem.
+\item $\lab{Sbstm|SbstmImprt}$ stands for $\lab{Subsystem|SubsystemImport}$
 \end{itemize}
 \end{itemize}
 
 \begin{equation}
-\label{j30}
+\label{j28}
 \inferrule{
-}{\validclient{\lab{(Subsystem|SubsystemImport)}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Component|ComponentImport)}\{\ldots\}}
+}{\validclient{\lab{(Sbstm|SbstmImprt)}\{\ldots\}}{\lab{(Sbstm|SbstmImprt|Component|ComponentImport)}\{\ldots\}}
 }
 \end{equation}
 
 \begin{itemize}
-\item \textbf{Judgement~\ref{j31}}
+\item \textbf{Judgement~\ref{j29}} Client of an (imported) component
 \begin{itemize}
 \item This rule describes which elements can be a client of an (imported) component.
+\item $\lab{Cmpnt|CmpntImprt}$ stands for $\lab{Component|ComponentImport}$
 \end{itemize}
 \end{itemize}
 
 \begin{equation}
-\label{j31}
+\label{j29}
 \inferrule{
-}{\validclient{\lab{(Component|ComponentImport)}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Component|ComponentImport)}\{\ldots\}}
+}{\validclient{\lab{(Cmpnt|CmpntImprt)}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Cmpnt|CmpntImprt)}\{\ldots\}}
 }
 \end{equation}
 
