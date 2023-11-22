@@ -277,14 +277,15 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
         )
 
 
-    //  relation          : lineComments? RELATION left=qname (inheritClause | clientClause)+ comment? blockend ;
+    //  relation          : lineComments? RELATION left=qname (inheritClause | clientClause | containsClause )+ comment? blockend ;
     private fun toAst(cxt: SSLParser.RelationContext): RawRelation {
         val name = toAst(cxt.left)
         val inherits = cxt.inheritClause().map { toAst(it) }.flatten()
         val clients = cxt.clientClause().map { toAst(it) }.flatten()
+        val contains = cxt.containsClause().map { toAst(it) }.flatten()
         val comments = collectComments(cxt.lineComments(), cxt.comment())
 
-        return RawRelation(nextUid++,toPos(cxt),name, inherits, clients, comments)
+        return RawRelation(nextUid++,toPos(cxt),name, inherits, clients, contains, comments)
     }
 
     // clientClause : CLIENT qname lineseps? (RELSEP lineseps? qname lineseps?)* ;
@@ -294,6 +295,10 @@ class RawAstBuilder(private val landoSourceCxt: SSLParser.LandoSourceContext) {
 
     // inheritClause : INHERIT qname lineseps? (RELSEP lineseps? qname lineseps?)* ;
     private fun toAst(cxt: SSLParser.InheritClauseContext): List<QName> =
+        cxt.qname().map { toAst(it) }
+
+    // containsClause : CONTAINS qname lineseps? (RELSEP lineseps? qname lineseps?)* ;
+    private fun toAst(cxt: SSLParser.ContainsClauseContext): List<QName> =
         cxt.qname().map { toAst(it) }
 
 

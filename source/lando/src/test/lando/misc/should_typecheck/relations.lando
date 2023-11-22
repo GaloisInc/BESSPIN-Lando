@@ -1,0 +1,21 @@
+system A
+TODO.
+
+subsystem A
+TBD.
+
+subsystem B
+TBD.
+
+subsystem C
+TBD.
+
+component A
+TBD.
+
+subsystem D
+TBD.
+
+relation A client B, C
+relation A inherit B
+relation A contains C

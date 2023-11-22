@@ -1,3 +1,12 @@
+system A
+TBD.
+
+subsystem A
+TBD.
+
+// we can refer to it
+relation MC client MyComponent2
+
 // we can have a component with an abbreviation
 component MyComponent1 (MC)
 descr.
@@ -6,5 +15,3 @@ descr.
 component MyComponent2
 descr.
 
-// we can refer to it
-relation MC client MyComponent2

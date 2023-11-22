@@ -1,2 +1,2 @@
 Parser Failed due to the following errors:
-Line: 28, Column: 38. mismatched input '\n' expecting {INHERIT, CLIENT}
+Line: 60, Column: 0. mismatched input '<EOF>' expecting SWORD

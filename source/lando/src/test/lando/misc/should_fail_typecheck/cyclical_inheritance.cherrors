@@ -1,2 +1,2 @@
-validSourceError:
+validSourceFinalPassError:
 	validInheritance: 'Inheritance map has cycles!'[]
