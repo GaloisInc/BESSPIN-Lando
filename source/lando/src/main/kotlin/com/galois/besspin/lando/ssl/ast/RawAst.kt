@@ -161,14 +161,14 @@ data class RawEvents(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "<!-- BEGIN EVENTS -->\n## $name\n"
+        var result = "<!-- BEGIN EVENTS $name -->\n## Events $name\n"
         for (elem in events) {
             result += elem.toMarkdown()
         }
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!-- END EVENTS -->\n\n"
+        result += "<!-- END EVENTS $name -->\n\n"
         return result
     }
 }
@@ -182,14 +182,14 @@ data class RawScenarios(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "<!-- BEGIN SCENARIOS -->\n## $name\n"
+        var result = "<!-- BEGIN SCENARIOS $name -->\n## Scenarios $name\n"
         for (elem in scenarios) {
             result += elem.toMarkdown()
         }
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!-- END SCENARIOS -->\n\n"
+        result += "<!-- END SCENARIOS $name -->\n\n"
         return result
     }
 }
@@ -204,14 +204,14 @@ data class RawRequirements(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "<!-- BEGIN REQUIREMENTS -->\n## $name\n"
+        var result = "<!-- BEGIN REQUIREMENTS $name -->\n## Requirements $name\n"
         for (elem in requirements) {
             result += elem.toMarkdown()
         }
         for (comment in comments) {
             result += comment.toMarkdown()
         }
-        result += "<!-- END REQUIREMENTS -->\n\n"
+        result += "<!-- END REQUIREMENTS $name -->\n\n"
         return result
     }
 }
