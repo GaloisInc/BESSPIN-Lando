@@ -29,12 +29,16 @@ Isabelle/HOL, Lean, and more.
 ## Dependencies
 
 Lando is implemented in Kotlin and Lobot is implemented in Haskell.
-Lando depends upon the GF library in order to parse natural language
-specifications.
+Lando dependencies are in the [pom.xml](./source/lando/pom.xml) file, while Lobot dependencies are in [lobol.cabal](./source/lobot/lobot.cabal) file.
 
- - @todo kiniry List specific Haskell-related dependencies.
- - @todo kiniry List specific Kotlin-related dependencies.
- - @todo kiniry List GF-related dependencies.
+To get started with Lando:
+
+* You will need maven, currently tested with `maven:3.8.5-openjdk-11` (available as a docker image)
+* run `mvn package -f source/lando/pom.xml`
+* you will get a java binary `source/lando/target/lando-$LANDO)VERSION-jar-with-dependencies.jar`
+
+To get started with Lobot:
+* follow the instructions in [source/lobot/README.md](./source/lobot/README.md)
 
 ## Example of Use
 
@@ -46,7 +50,12 @@ software, firmware, and hardware.
 
 ## Requirements
 
-TBD
+1. Lando shall enable the user to rapidly develop a domain engineering model
+2. Lando shall enable the user to quickly write up requirements and scenarios relevant for the domain engineering model
+3. Lando shall implement the well-formedness rules described in the [well-formedness document](./docs/system-spec-sublang/well-formedness-v2.pdf)
+4. Lando shall export the domain engineering model, requirements and scenarios into markdown
+5. Lando shall provide simple API for adding custom backends to the parsed AST, such SysMLv2, Clafer, or AADL export
+6. Lando shall provide syntax highlighting and error reporting, for easy debugging
 
 ## Project Organization
 
@@ -110,7 +119,3 @@ development of tools in the BESSPIN project for the SSITH program.
   this can be merged some deep thought needs to be given as to whether
   these changes are really what we want.
 
-The unmerged branch `rr-updates` adds some new post-SSITH features to
-the Lando tool.  In particular, it adds exporting to Markdown with
-hyperlinking, detection of duplicate elements, and removes the need
-for forward declaration of elements.
