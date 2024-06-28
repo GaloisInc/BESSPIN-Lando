@@ -28,15 +28,19 @@ class CommandLine :
         "",
         false,
         ) {
+    val silent by option("-s", "--silent", help="silences all warnings").flag()
+    val debug  by option("-d", "--debug", help="adds debug messages").flag()
+    val format by option("-t", "--to", help="selection of output type").choice("json","markdown").required()
     override fun run() {
     }
 }
 
 class Convert : CliktCommand(
     printHelpOnEmptyArgs = true,
-    help = "Read a lando SOURCE, convert it to the specified format and write to DEST"
+    help = "Read a lando SOURCE, convert it to the specified format (json or markdown) and write to DEST."
+    +" Usage: lando [OPTIONS] convert --to [json|markdwon] SOURCE DEST"
  ) {
-     val format by option("-t", "--to").choice("json","markdown").required()
+     val format by option("-t", "--to", help="required selection of output type").choice("json","markdown").required()
      val source by argument("SOURCE").file(
          mustExist = true,
          canBeFile = true,
@@ -45,8 +49,8 @@ class Convert : CliktCommand(
          mustBeReadable = true,
          canBeSymlink = true)
      val dest: File?  by argument("DEST").file().optional()
-     val silent by option("-s", "--silent").flag()
-     val debug  by option("-d", "--debug").flag()
+     val silent by option("-s", "--silent", help="silences all warnings").flag()
+     val debug  by option("-d", "--debug", help="adds debug messages").flag()
 
     enum class ConvertFormat {
         JSON, MARKDOWN
@@ -107,7 +111,8 @@ class Convert : CliktCommand(
 
 class Validate : CliktCommand(
     printHelpOnEmptyArgs = true,
-    help = "Read a lando SOURCE and check whether it is syntactically valid and well formed"
+    help = "Read a lando SOURCE and check whether it is syntactically valid and well formed."
+    +" Usage: lando [OPTIONS] validate SOURCE"
 ) {
     val source by argument("SOURCE").file(
         mustExist = true,
@@ -116,8 +121,8 @@ class Validate : CliktCommand(
         mustBeWritable = false,
         mustBeReadable = true,
         canBeSymlink = true)
-    val silent by option("-s", "--silent").flag()
-    val debug  by option("-d", "--debug").flag()
+    val silent by option("-s", "--silent", help="silences all warnings").flag()
+    val debug  by option("-d", "--debug", help="adds debug messages").flag()
 
     override fun run() {
         try {
