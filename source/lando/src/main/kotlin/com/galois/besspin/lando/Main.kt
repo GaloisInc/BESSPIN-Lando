@@ -30,7 +30,7 @@ class CommandLine :
         ) {
     val silent by option("-s", "--silent", help="silences all warnings").flag()
     val debug  by option("-d", "--debug", help="adds debug messages").flag()
-    val format by option("-t", "--to", help="selection of output type").choice("json","markdown").required()
+    val format by option("-t", "--to", help="selection of output type").choice("json","markdown")
     override fun run() {
     }
 }
