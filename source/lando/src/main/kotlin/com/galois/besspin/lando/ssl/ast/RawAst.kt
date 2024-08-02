@@ -142,15 +142,22 @@ data class RawItem(
     val comments : List<RawComment>
 ) : RawNamed {
     fun toMarkdown(): String {
-        var result = "<!-- BEGIN ITEM -->\n### $id\n$text\n"
+        var result = "<!-- BEGIN ITEM -->\n- **$id** "
+        //add newlines before any - (*) items
+        var formattedText = text.replace("- (","\n  - (");
+        //make hover text for any referenced items
+        var textWithHovers = DictionaryTracker.addHoverToStr(formattedText)
+        result += textWithHovers;
+        result +="\n"
         for (comment in comments) {
             result += comment.toMarkdown()
         }
         result += "<!-- END ITEM -->\n\n"
+        result += "[$id]: ## \"$text\"\n"
+        DictionaryTracker.add("$id")
         return result
     }
 }
-
 
 @Serializable
 data class RawEvents(
@@ -161,7 +168,7 @@ data class RawEvents(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "<!-- BEGIN EVENTS $name -->\n## Events $name\n"
+        var result = "<!-- BEGIN EVENTS $name -->\n## $name\n"
         for (elem in events) {
             result += elem.toMarkdown()
         }
@@ -182,7 +189,7 @@ data class RawScenarios(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "<!-- BEGIN SCENARIOS $name -->\n## Scenarios $name\n"
+        var result = "<!-- BEGIN SCENARIOS $name -->\n## $name\n"
         for (elem in scenarios) {
             result += elem.toMarkdown()
         }
@@ -204,7 +211,7 @@ data class RawRequirements(
     val comments: List<RawComment>
 ) : RawElement {
     override fun toMarkdown(): String {
-        var result = "<!-- BEGIN REQUIREMENTS $name -->\n## Requirements $name\n"
+        var result = "<!-- BEGIN REQUIREMENTS $name -->\n## $name\n"
         for (elem in requirements) {
             result += elem.toMarkdown()
         }
@@ -426,4 +433,44 @@ fun RawSSL.toJSON(): String {
 @OptIn(ExperimentalSerializationApi::class)
 fun rawSSLFromJSON(text: String): RawSSL {
     return jsonRawSSL.decodeFromString(text)
+}
+
+/**
+ * This object is a static tracker of dictionary elements, that will 
+ * allow hover references.
+ * 
+ * Note: it is important that mulitple elments aren't defined with the
+ * same name.  If they are only the first will ever be displayed.
+ */
+private object DictionaryTracker {
+    var items: List<String> = emptyList<String>()
+    var problemItems: List<Pair<String,String>> = emptyList<Pair<String,String>>()
+
+    fun add(item: String) {
+        // caputre any items that overlap with othe itmes (such as ABC being selected instead of ABCD)
+        items.forEach() {
+            if (item.contains(it)) {
+                problemItems = problemItems.plus(Pair(item, it))
+            } else if (it.contains(item)) {
+                problemItems = problemItems.plus(Pair(it, item))
+            }
+        }
+        items = items.plus(item)
+    }
+
+    fun addHoverToStr(str: String) : String {
+        //break into lines
+        var retStr = ""
+        var lines = str.split("\n")
+        //check each line for replacements
+        lines.forEach() {
+            var newStr = it;
+            var problemsFound: List<String> = emptyList<String>()
+            problemItems.forEach() {if (newStr.contains(it.first)) { problemsFound = problemsFound.plus(it.second)}}
+            items.forEach() {if (! problemsFound.contains(it)) { newStr = newStr.replace(it, "["+it+"]["+it+"]")}}
+            retStr += newStr+"\n"
+        }
+        //return merged results
+        return retStr;
+    }
 }

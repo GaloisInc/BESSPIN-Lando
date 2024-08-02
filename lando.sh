@@ -6,12 +6,13 @@ SSL_DIR="${LANDO_DIR}/source/lando"
 
 cmd_prefix="java -jar ${SSL_DIR}/target/lando-*-jar-with-dependencies.jar"
 
-usage="Usage: lando.sh [-f FILE] [-o FILE] [-e] [-d] [-p] [-r] [-t] [-h]
+usage="Usage: lando.sh [-f FILE] [-o FILE] [-m] [-e] [-d] [-p] [-r] [-t] [-h]
   Parses a given lando file and converts it to JSON. Options:
   -f FILE  Set input filename. This option must be present when
            using -o, -e, -p, or -d.
   -o FILE  Set output filename. If this option is not present, this
            defaults to the input filename with extension '.json'.
+  -m       output markdown file
   -e       Redirects errors/warnings from stdout to the output
            filename with extension '.errors' or '.warnings'.
   -p 	   Parse only
@@ -28,12 +29,14 @@ fi
 
 filename=""
 filename_out=""
+filename_out_m=""
 opt_flags=""
 do_rebuild=false
 do_test=false
 parse_only=false
+markdown=false
 
-while getopts ":f:o:edprth" opt "$@"
+while getopts ":f:o:edprthm" opt "$@"
 do
   case $opt in
     f)
@@ -60,6 +63,9 @@ do
     h)
       echo "$usage"
       exit 0
+      ;;
+    m)
+      markdown=true
       ;;
     ?)
       echo "Invalid option: -$OPTARG" 1>&2;
@@ -96,12 +102,18 @@ then
   then
     filename_no_ext="${filename%.*}"
     filename_out="${filename_no_ext}.json"
+    filename_out_m="${filename_no_ext}.md"
   fi
   if [[ "$parse_only" = true ]] 
   then
       cmd2_suffix="validate ${filename}"
   else
-      cmd2_suffix="convert --to json ${filename} ${filename_out}"
+    if [[ "$markdown" = true ]] 
+    then
+        cmd2_suffix="convert --to markdown ${filename} ${filename_out_m}"
+    else
+        cmd2_suffix="convert --to json ${filename} ${filename_out}"
+    fi
   fi
   cmd2="${cmd_prefix} ${cmd2_suffix} ${opt_flags}"
 fi
