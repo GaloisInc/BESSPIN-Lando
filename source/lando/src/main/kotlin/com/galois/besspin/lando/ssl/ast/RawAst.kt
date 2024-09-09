@@ -3,189 +3,403 @@ package com.galois.besspin.lando.ssl.ast
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 import kotlinx.serialization.modules.*
+import java.util.*
+
+typealias Uid = Int
+typealias Name = String
+typealias QName = List<Name>
+typealias Body = List<RawElement>
+
+@Serializable
+data class RawPos(
+    val line: Int,
+    val col: Int
+)
 
 @Serializable
 data class RawComment(
-    var text: String
-)
-
-interface RawElement {
-    val uid: Int
-    var name: String
+    val pos : RawPos,
+    val text: String
+) {
+    fun toMarkdown(): String {
+        return "<!-- ${this.text} -->\n"
+    }
 }
 
+interface RawNamed {
+    val pos: RawPos
+}
+
+interface RawElement : RawNamed {
+    val uid: Uid
+    // val name: String
+    override val pos : RawPos
+
+    fun toMarkdown(): String {
+        return "RawElement\n"
+    }
+
+    fun toMarkdownReference(ref: String): String {
+        val link_name = ref.replace(" ","-").lowercase(Locale.getDefault())
+        return "[$ref](#$link_name)"
+    }
+}
+
+
 interface RawComponentPart {
-    var text: String
+    val pos : RawPos
+    val text: String
+    fun toMarkdown(): String
 }
 
 @Serializable
 data class RawQuery(
-    override var text: String,
-    var comments: List<RawComment>
-) : RawComponentPart
+    override val pos: RawPos,
+    override val text: String,
+    val comments: List<RawComment>
+) : RawComponentPart {
+    override fun toMarkdown(): String {
+        var result = "<!-- BEGIN QUERY -->\n* $text"
+        for (elem in comments) {
+            result += elem.toMarkdown()
+        }
+        result += "<!-- END QUERY -->\n\n"
+        return result
+    }
+}
 
 @Serializable
 data class RawConstraint(
-    override var text: String,
-    var comments: List<RawComment>
-) : RawComponentPart
+    override val pos: RawPos,
+    override val text: String,
+    val comments: List<RawComment>
+) : RawComponentPart {
+    override fun toMarkdown(): String {
+        var result = "<!-- BEGIN CONSTRAINT -->\n* $text"
+        for (elem in comments) {
+            result += elem.toMarkdown()
+        }
+        result += "<!-- END CONSTRAINT -->\n\n"
+        return result
+    }
+}
 
 @Serializable
 data class RawCommand(
-    override var text: String,
-    var comments: List<RawComment>
-) : RawComponentPart
+    override val pos: RawPos,
+    override val text: String,
+    val comments: List<RawComment>
+) : RawComponentPart {
+    override fun toMarkdown(): String {
+        var result = "<!-- BEGIN COMMAND -->\n* $text"
+        for (elem in comments) {
+            result += elem.toMarkdown()
+        }
+        result += "<!-- END COMMAND -->\n\n"
+        return result
+    }
+}
 
 @Serializable
 data class RawComponent(
     override val uid: Int,
-    override var name: String,
-    var abbrevName: String?,
-    var explanation: String,
-    var parts: List<RawComponentPart> = arrayListOf(),
-    var comments: List<RawComment>
-) : RawElement
+    override val pos: RawPos,
+    val name: Name,
+    val abbrevName: Name?,
+    val inherits: List<QName>,
+    val clientOf: List<QName>,
+    val explanation: String,
+    val parts: List<RawComponentPart> = arrayListOf(),
+    val comments: List<RawComment>
+) : RawElement {
+    // ### <a id="{self.link_name}"></a> {self.name}
+    override fun toMarkdown(): String {
+        val link_name = name.replace(" ","-").lowercase(Locale.getDefault())
+        var result =  "<!-- BEGIN COMPONENT -->\n### <a id =\"$link_name\"></a>$name"
+        if (abbrevName != null) {
+            result += " ($abbrevName)"
+        }
+        result += "\n$explanation\n"
+        for (elem in inherits) {
+            result += "  * inherits ${toMarkdownReference(elem.last())}"
+        }
+        for (elem in clientOf) {
+            result += "  * client of ${(elem.last())}"
+        }
+        for (elem in parts) {
+            result += "  * part ${elem.toMarkdown()}"
+        }
+        result += "<!-- END COMPONENT -->\n\n"
+        return result
+    }
+}
+
+@Serializable
+data class RawItem(
+    override val pos : RawPos,
+    val id : Name,
+    val text : String,
+    val comments : List<RawComment>
+) : RawNamed {
+    fun toMarkdown(): String {
+        var result = "<!-- BEGIN ITEM -->\n- **$id** "
+        //add newlines before any - (*) items
+        var formattedText = text.replace("- (","\n  - (");
+        //make hover text for any referenced items
+        var textWithHovers = DictionaryTracker.addHoverToStr(formattedText)
+        result += textWithHovers;
+        result +="\n"
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        result += "<!-- END ITEM -->\n\n"
+        result += "[$id]: ## \"$text\"\n"
+        DictionaryTracker.add("$id")
+        return result
+    }
+}
 
 @Serializable
 data class RawEvents(
     override val uid: Int,
-    override var name: String,
-    var events: List<RawEvent> = arrayListOf(),
-    var comments: List<RawComment>
-) : RawElement
-
-@Serializable
-data class RawEvent(
-    var id: String,
-    var text: String,
-    var comments: List<RawComment>
-)
+    override val pos: RawPos,
+    val name: Name,
+    val events: List<RawItem>,
+    val comments: List<RawComment>
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result = "<!-- BEGIN EVENTS $name -->\n## $name\n"
+        for (elem in events) {
+            result += elem.toMarkdown()
+        }
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        result += "<!-- END EVENTS $name -->\n\n"
+        return result
+    }
+}
 
 @Serializable
 data class RawScenarios(
     override val uid: Int,
-    override var name: String,
-    var scenarios: List<RawScenario> = arrayListOf(),
-    var comments: List<RawComment>
-) : RawElement
+    override val pos: RawPos,
+    val name: Name,
+    val scenarios: List<RawItem>,
+    val comments: List<RawComment>
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result = "<!-- BEGIN SCENARIOS $name -->\n## $name\n"
+        for (elem in scenarios) {
+            result += elem.toMarkdown()
+        }
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        result += "<!-- END SCENARIOS $name -->\n\n"
+        return result
+    }
+}
 
-@Serializable
-data class RawScenario(
-    var id: String,
-    var text: String,
-    var comments: List<RawComment>
-)
 
 @Serializable
 data class RawRequirements(
     override val uid: Int,
-    override var name: String,
-    var requirements: List<RawRequirement>,
-    var comments: List<RawComment>
-) : RawElement
-
-@Serializable
-data class RawRequirement(
-    var id: String,
-    var text: String,
-    var comments: List<RawComment>
-)
+    override val pos: RawPos,
+    val name: Name,
+    val requirements: List<RawItem>,
+    val comments: List<RawComment>
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result = "<!-- BEGIN REQUIREMENTS $name -->\n## $name\n"
+        for (elem in requirements) {
+            result += elem.toMarkdown()
+        }
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        result += "<!-- END REQUIREMENTS $name -->\n\n"
+        return result
+    }
+}
 
 @Serializable
 data class RawIndexEntry(
-    var key: String,
-    var values: List<String>,
-    var comments: List<RawComment>
-)
+    val pos: RawPos,
+    val key: Name,
+    val values: List<String>,
+    val comments: List<RawComment>
+) {
+    fun toMarkdown(): String {
+        var result = "<!-- BEGIN INDEX ENTRY -->\nIndexing $key: "
+        for (value in values) {
+            result += "* $value\n"
+        }
+        for (comment in comments) {
+            result += "* ${comment.toMarkdown()}"
+        }
+        result += "<!-- END INDEX ENTRY -->\n\n"
+        return result
+    }
+}
+
+@Serializable
+data class RawComponentImport(
+    override val uid: Int,
+    override val pos: RawPos,
+    val name: QName,
+    val abbrevName: Name?,
+    val clientOf: List<QName>,
+    val comments: List<RawComment>
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result = "<!-- BEGIN COMPONENT IMPORT -->\n#### import component ${name.last()}"
+        if (abbrevName != null) {
+            result += " ($abbrevName)"
+        }
+        result += "\n"
+        for (elem in clientOf) {
+            result += "* client of ${toMarkdownReference(elem.last())}\n"
+        }
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        result += "<!-- END COMPONENT IMPORT -->\n\n"
+        return result
+    }
+}
 
 @Serializable
 data class RawSubsystem(
     override val uid: Int,
-    override var name: String,
-    var abbrevName: String?,
-    var explanation: String,
-    var indexing: List<RawIndexEntry>,
-    var comments: List<RawComment>
-) : RawElement
+    override val pos: RawPos,
+    val name: Name,
+    val abbrevName: Name?,
+    val clientOf: List<QName>,
+    val explanation: String,
+    val indexing: List<RawIndexEntry>,
+    var body: Body?,
+    val comments: List<RawComment>
+) : RawElement {
+    override fun toMarkdown(): String {
+        val link_name = name.replace(" ","-").lowercase(Locale.getDefault())
+        var result =  "<!-- BEGIN SUBSYSTEM $name-->\n## <a id =\"$link_name\"></a>$name"
+        if (abbrevName != null) {
+            result += " ($abbrevName)"
+        }
+        result += "\n$explanation\n"
+        result += "\n"
+        for (elem in clientOf) {
+            result += "  * client of ${toMarkdownReference(elem.last())}\n"
+        }
+        for (elem in indexing) {
+            result += elem.toMarkdown();
+        }
+        for (elem in body!!) {
+            result += elem.toMarkdown()
+        }
+        result += "<!-- END SUBSYSTEM $name -->\n\n"
+        return result
+    }
+}
+
+@Serializable
+data class RawSubsystemImport(
+    override val uid: Int,
+    override val pos: RawPos,
+    val name: QName,
+    val abbrevName: Name?,
+    val clientOf: List<QName>,
+    val comments: List<RawComment>
+) : RawElement {
+    override fun toMarkdown(): String {
+        var result = "<!-- BEGIN SUBSYSTEM IMPORT -->\n#### import subsystem ${name.last()}\n"
+        if (abbrevName != null) {
+            result += " ($abbrevName)"
+        }
+        for (elem in clientOf) {
+            result += "* client of ${toMarkdownReference(elem.last())}\n"
+        }
+        for (comment in comments) {
+            result += comment.toMarkdown()
+        }
+        result += "<!-- BEGIN SUBSYSTEM IMPORT -->\n\n"
+        return result
+    }
+}
 
 @Serializable
 data class RawSystem(
     override val uid: Int,
-    override var name: String,
-    var abbrevName: String?,
-    var explanation: String,
-    var indexing: List<RawIndexEntry>,
-    var comments: List<RawComment>
-) : RawElement
+    override val pos: RawPos,
+    val name: String,
+    val abbrevName: String?,
+    val explanation: String,
+    val indexing: List<RawIndexEntry>,
+    var body: Body?,
+    val comments: List<RawComment>
+) : RawElement {
+    override fun toMarkdown(): String {
+        val link_name = name.replace(" ","-").lowercase(Locale.getDefault())
+        var result =  "<!-- BEGIN SYSTEM $name -->\n# <a id =\"$link_name\"></a>$name"
+        if (abbrevName != null) {
+            result += " ($abbrevName)"
+        }
+        result += "\n$explanation\n"
+        result += "\n"
+        for (elem in body!!) {
+            result += elem.toMarkdown()
+        }
+        for (elem in comments) {
+            result += elem.toMarkdown()
+        }
+        for (elem in indexing) {
+            result += elem.toMarkdown();
+        }
+        result += "<!-- END SYSTEM $name -->\n\n"
+        return result
+    }
+}
+
+@Serializable
+data class RawRelation(
+    override val uid: Int,
+    override val pos: RawPos,
+    val name: QName,
+    val inherits: List<QName>,
+    val clientOf: List<QName>,
+    val contains: List<QName>,
+    val comments: List<RawComment>
+): RawElement {
+    override fun toMarkdown(): String {
+        var result = "<!-- BEGIN RELATION -->\n#### relation ${name.last()}\n"
+        for (elem in inherits) {
+            result += "* inherits ${toMarkdownReference(elem.last())}\n"
+        }
+        for (elem in clientOf) {
+            result += "* client of ${toMarkdownReference(elem.last())}\n"
+        }
+        for (elem in contains) {
+            result += "* contains ${toMarkdownReference(elem.last())}\n"
+        }
+        result += "<!-- END RELATION -->\n\n"
+        return result
+    }
+}
 
 @Serializable
 data class RawSSL(
-    var uid: Int,
-    var elements: List<RawElement>,
-    var relationShips: RawRelationships,
-    var comments: List<RawComment>
-)
-
-@Serializable
-sealed class RawRelation
-
-@Serializable
-data class RawInheritRelation(
-    var name: String,
-    var base: String
-): RawRelation()
-
-@Serializable
-data class RawContainsRelation(
-    var name: String,
-    var parent: String
-): RawRelation()
-
-@Serializable
-data class RawImplicitContainsRelation(
-    var uid: Int,
-    var parentUid: Int
-): RawRelation()
-
-@Serializable
-data class RawClientRelation(
-    var client: String,
-    var provider: String
-): RawRelation()
-
-
-@Serializable
-data class RawRelationships(
-    private var _inheritRelations: MutableList<RawInheritRelation> = mutableListOf(),
-    private var _containsRelations: MutableList<RawContainsRelation> = mutableListOf(),
-    private var _implicitContainsRelations: MutableList<RawImplicitContainsRelation> = mutableListOf(),
-    private var _clientRelations: MutableList<RawClientRelation> = mutableListOf()
+    // val uid: Int,
+    val body : Body,
+    val comments: List<RawComment>
 ) {
-    val inheritRelations: List<RawInheritRelation>
-        get() = _inheritRelations
-
-    val containsRelations: List<RawContainsRelation>
-        get() = _containsRelations
-
-    val clientRelations: List<RawClientRelation>
-        get() = _clientRelations
-
-    val implicitContainsRelation: List<RawImplicitContainsRelation>
-        get() = _implicitContainsRelations
-
-    companion object {
-        fun fromRelationList(relations: List<RawRelation>): RawRelationships {
-            val result = RawRelationships()
-            for (relation in relations) {
-                when(relation) {
-                    is RawInheritRelation -> result._inheritRelations.add(relation)
-                    is RawContainsRelation -> result._containsRelations.add(relation)
-                    is RawImplicitContainsRelation -> result._implicitContainsRelations.add(relation)
-                    is RawClientRelation -> result._clientRelations.add(relation)
-                }
-            }
-            return result
+    fun toMarkdown(): String {
+        var result = ""
+        for (elem in body) {
+            result += elem.toMarkdown()
+            result += "\n"
         }
+        return result
     }
 }
 
@@ -194,10 +408,13 @@ private val sslModule = SerializersModule {
     polymorphic(RawElement::class) {
         subclass(RawSystem::class)
         subclass(RawSubsystem::class)
+        subclass(RawSubsystemImport::class)
         subclass(RawComponent::class)
+        subclass(RawComponentImport::class)
         subclass(RawEvents::class)
         subclass(RawScenarios::class)
         subclass(RawRequirements::class)
+        subclass(RawRelation::class)
     }
 
     polymorphic(RawComponentPart::class) {
@@ -213,6 +430,47 @@ fun RawSSL.toJSON(): String {
     return jsonRawSSL.encodeToString(RawSSL.serializer(), this)
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 fun rawSSLFromJSON(text: String): RawSSL {
     return jsonRawSSL.decodeFromString(text)
+}
+
+/**
+ * This object is a static tracker of dictionary elements, that will 
+ * allow hover references.
+ * 
+ * Note: it is important that mulitple elments aren't defined with the
+ * same name.  If they are only the first will ever be displayed.
+ */
+private object DictionaryTracker {
+    var items: List<String> = emptyList<String>()
+    var problemItems: List<Pair<String,String>> = emptyList<Pair<String,String>>()
+
+    fun add(item: String) {
+        // caputre any items that overlap with othe itmes (such as ABC being selected instead of ABCD)
+        items.forEach() {
+            if (item.contains(it)) {
+                problemItems = problemItems.plus(Pair(item, it))
+            } else if (it.contains(item)) {
+                problemItems = problemItems.plus(Pair(it, item))
+            }
+        }
+        items = items.plus(item)
+    }
+
+    fun addHoverToStr(str: String) : String {
+        //break into lines
+        var retStr = ""
+        var lines = str.split("\n")
+        //check each line for replacements
+        lines.forEach() {
+            var newStr = it;
+            var problemsFound: List<String> = emptyList<String>()
+            problemItems.forEach() {if (newStr.contains(it.first)) { problemsFound = problemsFound.plus(it.second)}}
+            items.forEach() {if (! problemsFound.contains(it)) { newStr = newStr.replace(it, "["+it+"]["+it+"]")}}
+            retStr += newStr+"\n"
+        }
+        //return merged results
+        return retStr;
+    }
 }

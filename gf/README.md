@@ -1,5 +1,6 @@
-
 # Parsing English-Language Leakage Specifications in Lando using GF
+
+**NOTE:** the code in this folder was developed for the purpose of [BESSPIN project](https://github.com/GaloisInc/BESSPIN), and is *no longer maintained* so your mileage might vary.
 
 The code in this directory uses the
 [Grammatical Framework](http://www.grammaticalframework.org/) to parse English

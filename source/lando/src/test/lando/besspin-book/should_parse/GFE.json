@@ -1,149 +1,383 @@
 {
-    "uid": 8,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawSystem",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "Government Furnished Equipment",
             "abbrevName": "GFE",
             "explanation": "The SSITH GFE is the hardware platform upon which SSITH TA-1 performers add security. It includes six RISC-V SoCs, three operating systems, device drivers, and more.",
             "indexing": [
             ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
-            "uid": 2,
-            "name": "RISC-V System on Chip",
-            "abbrevName": "SOC",
-            "explanation": "The SSITH SoC is one of six SoCs that contain RISC-V CPUs.",
-            "indexing": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
-            "uid": 3,
-            "name": "Piccolo CPU",
-            "abbrevName": "Bluespec-P1",
-            "explanation": "The Piccolo CPU is a RISC-V microcontroller written by Bluespec in Bluespec SystemVerilog. It is one of the six CPUs used in the GFE.",
-            "indexing": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
-            "uid": 4,
-            "name": "BESSPIN HSM",
-            "abbrevName": "HSM",
-            "explanation": "The HSM for the GFE contains sufficient crypto IP in order to accellerate GFE trusted boot.",
-            "indexing": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 5,
-            "name": "AES IP",
-            "abbrevName": "AES",
-            "explanation": "An AES hardware module.",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 6,
-            "name": "AES Secret Key",
-            "abbrevName": "Key",
-            "explanation": "The secret key held in an AES hardware module.",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
-            "uid": 7,
-            "name": "Information Leakage",
-            "requirements": [
+            "body": [
                 {
-                    "id": "only_multiply_leaks",
-                    "text": "Only the mul instruction out of all the integer_ops instructions leaks timing information.",
+                    "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+                    "uid": 2,
+                    "pos": {
+                        "line": 6,
+                        "col": 0
+                    },
+                    "name": "RISC-V System on Chip",
+                    "abbrevName": "SOC",
+                    "clientOf": [
+                    ],
+                    "explanation": "The SSITH SoC is one of six SoCs that contain RISC-V CPUs.",
+                    "indexing": [
+                    ],
+                    "body": [
+                    ],
                     "comments": [
-                        {
-                            "text": "These are not consistent with each other, you should"
-                        },
-                        {
-                            "text": "definitely comment some of these out"
-                        },
-                        {
-                            "text": "add_leaks"
-                        },
-                        {
-                            "text": "The add instruction leaks timing information."
-                        },
-                        {
-                            "text": ""
-                        },
-                        {
-                            "text": "mul_does_not_leak"
-                        },
-                        {
-                            "text": "The mul instruction does not leak timing information."
-                        },
-                        {
-                            "text": ""
-                        },
-                        {
-                            "text": "arithmetic_leaks"
-                        },
-                        {
-                            "text": "All integer instructions leak timing information."
-                        }
                     ]
                 },
                 {
-                    "id": "io_kill_signal_not_leaked",
-                    "text": "The io__kill signal of the MulDiv Verilog module of my chisel_p2 processor isn't leaked through an information-flow channel.",
+                    "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+                    "uid": 3,
+                    "pos": {
+                        "line": 9,
+                        "col": 0
+                    },
+                    "name": "Piccolo CPU",
+                    "abbrevName": "Bluespec-P1",
+                    "clientOf": [
+                    ],
+                    "explanation": "The Piccolo CPU is a RISC-V microcontroller written by Bluespec in Bluespec SystemVerilog. It is one of the six CPUs used in the GFE.",
+                    "indexing": [
+                    ],
+                    "body": [
+                    ],
                     "comments": [
-                        {
-                            "text": "no_instruction_leaks"
-                        },
-                        {
-                            "text": "No instruction leaks timing information."
-                        }
                     ]
                 },
                 {
-                    "id": "alu_input1_not_leaked",
-                    "text": "The io_in1 signal of the ALU Verilog module isn't leaked through an information-flow channel.",
-                    "comments": [
+                    "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
+                    "uid": 4,
+                    "pos": {
+                        "line": 14,
+                        "col": 0
+                    },
+                    "name": "BESSPIN HSM",
+                    "abbrevName": "HSM",
+                    "clientOf": [
+                    ],
+                    "explanation": "The HSM for the GFE contains sufficient crypto IP in order to accellerate GFE trusted boot.",
+                    "indexing": [
+                    ],
+                    "body": [
                         {
-                            "text": "alu_input1_not_leaked_ALU_module"
+                            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                            "uid": 5,
+                            "pos": {
+                                "line": 18,
+                                "col": 0
+                            },
+                            "name": "AES IP",
+                            "abbrevName": "AES",
+                            "inherits": [
+                            ],
+                            "clientOf": [
+                            ],
+                            "explanation": "An AES hardware module.",
+                            "parts": [
+                            ],
+                            "comments": [
+                            ]
                         },
                         {
-                            "text": "The io_in1 signal of the ALU Verilog module isn't leaked outside of the"
+                            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                            "uid": 6,
+                            "pos": {
+                                "line": 21,
+                                "col": 0
+                            },
+                            "name": "AES Secret Key",
+                            "abbrevName": "Key",
+                            "inherits": [
+                            ],
+                            "clientOf": [
+                            ],
+                            "explanation": "The secret key held in an AES hardware module.",
+                            "parts": [
+                            ],
+                            "comments": [
+                            ]
                         },
                         {
-                            "text": "certification boundary of my ALU module."
+                            "type": "com.galois.besspin.lando.ssl.ast.RawRelation",
+                            "uid": 7,
+                            "pos": {
+                                "line": 24,
+                                "col": 0
+                            },
+                            "name": [
+                                "GFE"
+                            ],
+                            "inherits": [
+                            ],
+                            "clientOf": [
+                                [
+                                    "SoC"
+                                ]
+                            ],
+                            "contains": [
+                            ],
+                            "comments": [
+                                {
+                                    "pos": {
+                                        "line": 24,
+                                        "col": 0
+                                    },
+                                    "text": "@note kiniry Due to the above layout of the specs, these two"
+                                },
+                                {
+                                    "pos": {
+                                        "line": 25,
+                                        "col": 0
+                                    },
+                                    "text": "containment specs are valid:"
+                                },
+                                {
+                                    "pos": {
+                                        "line": 26,
+                                        "col": 0
+                                    },
+                                    "text": "`HSM contains AES`"
+                                },
+                                {
+                                    "pos": {
+                                        "line": 27,
+                                        "col": 0
+                                    },
+                                    "text": "`HSM contains Key`"
+                                },
+                                {
+                                    "pos": {
+                                        "line": 29,
+                                        "col": 0
+                                    },
+                                    "text": "ELEW relation can't have contains"
+                                }
+                            ]
                         },
                         {
-                            "text": "alu_comparator_input2_not_leaked"
+                            "type": "com.galois.besspin.lando.ssl.ast.RawRelation",
+                            "uid": 8,
+                            "pos": {
+                                "line": 31,
+                                "col": 0
+                            },
+                            "name": [
+                                "SoC"
+                            ],
+                            "inherits": [
+                            ],
+                            "clientOf": [
+                                [
+                                    "Bluespec-P1"
+                                ]
+                            ],
+                            "contains": [
+                            ],
+                            "comments": [
+                            ]
                         },
                         {
-                            "text": "The io_in2 signal of the ALU Verilog module isn't leaked through the io_cmp_out output channel."
+                            "type": "com.galois.besspin.lando.ssl.ast.RawRelation",
+                            "uid": 9,
+                            "pos": {
+                                "line": 32,
+                                "col": 0
+                            },
+                            "name": [
+                                "Bluespec-P1"
+                            ],
+                            "inherits": [
+                            ],
+                            "clientOf": [
+                                [
+                                    "HSM"
+                                ]
+                            ],
+                            "contains": [
+                            ],
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
+                            "uid": 10,
+                            "pos": {
+                                "line": 34,
+                                "col": 0
+                            },
+                            "name": "Information Leakage",
+                            "requirements": [
+                                {
+                                    "pos": {
+                                        "line": 36,
+                                        "col": 0
+                                    },
+                                    "id": "only_multiply_leaks",
+                                    "text": "Only the mul instruction out of all the integer_ops instructions leaks timing information.",
+                                    "comments": [
+                                        {
+                                            "pos": {
+                                                "line": 36,
+                                                "col": 0
+                                            },
+                                            "text": "These are not consistent with each other, you should"
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 37,
+                                                "col": 0
+                                            },
+                                            "text": "definitely comment some of these out"
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 38,
+                                                "col": 0
+                                            },
+                                            "text": "add_leaks"
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 39,
+                                                "col": 0
+                                            },
+                                            "text": "The add instruction leaks timing information."
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 40,
+                                                "col": 0
+                                            },
+                                            "text": ""
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 41,
+                                                "col": 0
+                                            },
+                                            "text": "mul_does_not_leak"
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 42,
+                                                "col": 0
+                                            },
+                                            "text": "The mul instruction does not leak timing information."
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 43,
+                                                "col": 0
+                                            },
+                                            "text": ""
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 44,
+                                                "col": 0
+                                            },
+                                            "text": "arithmetic_leaks"
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 45,
+                                                "col": 0
+                                            },
+                                            "text": "All integer instructions leak timing information."
+                                        }
+                                    ]
+                                },
+                                {
+                                    "pos": {
+                                        "line": 50,
+                                        "col": 0
+                                    },
+                                    "id": "io_kill_signal_not_leaked",
+                                    "text": "The io__kill signal of the MulDiv Verilog module of my chisel_p2 processor isn't leaked through an information-flow channel.",
+                                    "comments": [
+                                        {
+                                            "pos": {
+                                                "line": 50,
+                                                "col": 0
+                                            },
+                                            "text": "no_instruction_leaks"
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 51,
+                                                "col": 0
+                                            },
+                                            "text": "No instruction leaks timing information."
+                                        }
+                                    ]
+                                },
+                                {
+                                    "pos": {
+                                        "line": 57,
+                                        "col": 0
+                                    },
+                                    "id": "alu_input1_not_leaked",
+                                    "text": "The io_in1 signal of the ALU Verilog module isn't leaked through an information-flow channel.",
+                                    "comments": [
+                                        {
+                                            "pos": {
+                                                "line": 57,
+                                                "col": 0
+                                            },
+                                            "text": "alu_input1_not_leaked_ALU_module"
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 58,
+                                                "col": 0
+                                            },
+                                            "text": "The io_in1 signal of the ALU Verilog module isn't leaked outside of the"
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 59,
+                                                "col": 0
+                                            },
+                                            "text": "certification boundary of my ALU module."
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 61,
+                                                "col": 0
+                                            },
+                                            "text": "alu_comparator_input2_not_leaked"
+                                        },
+                                        {
+                                            "pos": {
+                                                "line": 62,
+                                                "col": 0
+                                            },
+                                            "text": "The io_in2 signal of the ALU Verilog module isn't leaked through the io_cmp_out output channel."
+                                        }
+                                    ]
+                                },
+                                {
+                                    "pos": {
+                                        "line": 67,
+                                        "col": 0
+                                    },
+                                    "id": "alu_input2_not_leaked",
+                                    "text": "The io_in2 signal of the ALU Verilog module isn't leaked through an information-flow channel.",
+                                    "comments": [
+                                    ]
+                                }
+                            ],
+                            "comments": [
+                            ]
                         }
-                    ]
-                },
-                {
-                    "id": "alu_input2_not_leaked",
-                    "text": "The io_in2 signal of the ALU Verilog module isn't leaked through an information-flow channel.",
+                    ],
                     "comments": [
                     ]
                 }
@@ -152,52 +386,6 @@
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-            {
-                "name": "SoC",
-                "parent": "GFE"
-            },
-            {
-                "name": "Bluespec-P1",
-                "parent": "SoC"
-            },
-            {
-                "name": "HSM",
-                "parent": "Bluespec-P1"
-            }
-        ],
-        "_implicitContainsRelations": [
-            {
-                "uid": 2,
-                "parentUid": 1
-            },
-            {
-                "uid": 3,
-                "parentUid": 1
-            },
-            {
-                "uid": 4,
-                "parentUid": 1
-            },
-            {
-                "uid": 5,
-                "parentUid": 4
-            },
-            {
-                "uid": 6,
-                "parentUid": 4
-            },
-            {
-                "uid": 7,
-                "parentUid": 4
-            }
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

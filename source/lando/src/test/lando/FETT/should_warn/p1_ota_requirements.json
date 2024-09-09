@@ -1,63 +1,114 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "OTA",
             "requirements": [
                 {
+                    "pos": {
+                        "line": 3,
+                        "col": 0
+                    },
                     "id": "signature_check",
                     "text": "OTA requires a crypto library for verification of Ed25519 cryptographic signatures.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 3,
+                                "col": 0
+                            },
                             "text": "Build Requirements"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 7,
+                        "col": 0
+                    },
                     "id": "filesystem",
                     "text": "OTA requires a persistent filesystem on target where verified payloads will be stored Note: filesystem is shared with HTTP application",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 11,
+                        "col": 0
+                    },
                     "id": "tftp_service",
                     "text": "OTA will listen for clients using TFTP server protocol",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 14,
+                        "col": 0
+                    },
                     "id": "network",
                     "text": "OTA requires UDP network protocol plus all underlying protocols and drivers",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 17,
+                        "col": 0
+                    },
                     "id": "crypto_keys",
                     "text": "A predefined Ed25519 public key must be installed or built in to OTA",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 17,
+                                "col": 0
+                            },
                             "text": "Resources"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 21,
+                        "col": 0
+                    },
                     "id": "tftp_config",
                     "text": "TFTP port number",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 21,
+                                "col": 0
+                            },
                             "text": "Configuration - config items that might need to be configured or changed per instance,"
                         },
                         {
+                            "pos": {
+                                "line": 22,
+                                "col": 0
+                            },
                             "text": "and are shared with the bastion host - i.e. TFTP port number needs to be known by both"
                         },
                         {
+                            "pos": {
+                                "line": 23,
+                                "col": 0
+                            },
                             "text": "the target and the host. Additional items are TBD"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 27,
+                        "col": 0
+                    },
                     "id": "filesystem_config",
                     "text": "Name of root filesystem",
                     "comments": [
@@ -68,16 +119,6 @@
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

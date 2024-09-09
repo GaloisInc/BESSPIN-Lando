@@ -1,0 +1,9 @@
+// abbrev should not equal name!
+system MySystem (MySystem)
+descr.
+
+subsystem MySubsys (MySubsys)
+descr.
+
+component MyComp (MyComp)
+descr.

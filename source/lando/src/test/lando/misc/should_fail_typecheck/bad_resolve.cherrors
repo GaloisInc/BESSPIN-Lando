@@ -1,0 +1,8 @@
+validSourceSecondPassError:
+	validElementsListSecondPassError:
+		validComponentError:
+			validClientResolve: '[MyBadComp] couldn't be resolved to an element'[(Line 1, Column 0)]
+		validRelationError:
+			validClientResolve: '[MyBadComp] couldn't be resolved to an element'[(Line 1, Column 0)]
+		validSubsystemError:
+			validClientResolve: '[MyBadSubsys] couldn't be resolved to an element'[(Line 9, Column 0)]

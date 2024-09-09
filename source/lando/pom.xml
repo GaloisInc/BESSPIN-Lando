@@ -5,17 +5,29 @@
 
     <groupId>com.galois.besspin.lando</groupId>
     <artifactId>lando</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <!--
+    NOTE that eventually we want the versioning to be automatic
+    Running `mvn release:update-versions` leads to a version increment
+    see https://maven.apache.org/maven-release/maven-release-plugin/usage/update-versions.html
+    and https://maven.apache.org/maven-ci-friendly.html
+    for details
+
+    Current solution:
+    1) change verstion to <version>3.0-${revision}</version>
+    2) set ${revision} in the CI run (e.g. a commit hash), will lead to
+    3.0-HASH versioning
+    -->
+    <version>3.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>com.galois.besspin.lando lando</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.version>1.4.0</kotlin.version>
+        <kotlin.version>1.9.0</kotlin.version>
         <serialization.version>1.0.0-RC</serialization.version>
         <kotlin.code.style>official</kotlin.code.style>
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13</junit.version>
 	<!-- <kotlin.compiler.incremental>true</kotlin.compiler.incremental> -->
         <main.class>com.galois.besspin.lando.MainKt</main.class>
         <maven.compiler.source>11</maven.compiler.source>
@@ -29,6 +41,17 @@
             <id>bintray-kotlin-kotlinx</id>
             <name>bintray</name>
             <url>https://kotlin.bintray.com/kotlinx</url>
+        </repository>
+        <repository>
+            <id>maven-snapshots</id>
+            <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+            <layout>default</layout>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
     </repositories>
 
@@ -53,7 +76,7 @@
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
-            <version>4.7</version>
+            <version>4.10</version>
             <scope>compile</scope>
         </dependency>
 	<dependency>
@@ -64,8 +87,13 @@
         <dependency>
             <groupId>com.github.ajalt</groupId>
             <artifactId>clikt</artifactId>
-            <version>2.3.0</version>
+            <version>2.8.0</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jgrapht</groupId>
+            <artifactId>jgrapht-core</artifactId>
+            <version>1.5.0</version>
         </dependency>
     </dependencies>
 
@@ -74,9 +102,10 @@
             <plugin>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-maven-plugin</artifactId>
-                <version>4.7.2</version>
+                <version>4.10</version>
                 <executions>
                     <execution>
+                        <id>antlr</id>
                         <goals>
                             <goal>antlr4</goal>
                         </goals>
@@ -124,7 +153,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.11.0</version>
 <!--                <version>3.5.1</version> -->
                 <executions>
                     <!-- Replacing default-compile as it is treated specially by maven -->
@@ -152,7 +181,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.6</version>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <id>make-assembly</id>

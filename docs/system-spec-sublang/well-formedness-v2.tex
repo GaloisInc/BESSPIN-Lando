@@ -1,0 +1,941 @@
+\documentclass{article}
+\usepackage{fullpage}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{longtable}
+\usepackage{textcomp}
+\usepackage{array}
+\usepackage{todonotes}
+\usepackage{mathtools}
+\usepackage{xparse}
+\usepackage{mathpartir}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+%\input{macros2}
+
+\begin{document}
+
+\title{Lando SSL Version 2 Well-formedness}
+\maketitle
+
+\section{Notation}
+
+\newcommand{\nt}[1]{\ensuremath{\mathit{#1}}}
+\newcommand{\lab}[1]{\ensuremath{\texttt{#1}}}
+\newcommand{\listof}[1]{\ensuremath{[{#1}]}}
+\newcommand{\nillist}[1]{[]_{#1}}
+\newcommand{\conslist}[2]{{#1}::{#2}}
+\newcommand{\singlelist}[1]{[{#1}]}
+\newcommand{\listlast}[1]{\mathit{last}({#1})}
+\newcommand{\optof}[1]{\ensuremath{{#1}?}}
+\newcommand{\some}[1]{\lceil{#1}\rceil}
+\newcommand{\none}[1]{\cdot_{#1}}
+\newcommand{\proj}[2]{\ensuremath{{#1}.{#2}}}
+\newcommand{\emptym}{\emptyset}
+\newcommand{\shadow}{\vartriangleleft}
+
+Lists of $t$ are written $\listof{t}$; $\nillist{t}$ is an empty list of $t$'s, $\conslist{x}{xs}$ is the list with head $x$ and tail $xs$,
+and $\singlelist{x}$ is the singleton list containing $x$.
+$\listlast{l}$ returns the last element of (necessarily non-empty) list $l$.
+An optional $t$ is written $\optof{t}$; a present option value $x$ is written $\some{x}$ and a missing option value of type $t$ is written $\none{t}$.
+We write $\proj{x}{y}$ for the projection of field $y$ from a node $x$ .
+In the pattern $x@\lab{Foo}\{\ldots\}$, $x$ is bound to the entire node labeled $\lab{Foo}$.
+The pattern $\lab{(Foo|Bar)}\{\ldots\}$ matches nodes labeled either $\lab{Foo}$ or $\lab{Bar}$.
+Disjoint union of maps is written $\uplus$, and is undefined if the domains of the maps are not disjoint.
+If $m_1$ and $m_2$ are maps then $m_1 \shadow m_2$ (pronounced ``$m_1$ shadows $m_2$'' ) is
+$m_1 \cup \{(k,m_2(k)) | k \in Dom(m_2) - Dom(m_1)\}$.
+An empty map is written $\emptym$.
+A judgement applies only if all premises are fully defined.
+\section{Raw AST Grammar}
+
+This is intended to correspond precisely to the {\tt RawAST} structure built by the current parser, omitting source position tags
+and comments. The AST corresponds directly to the concrete syntax, with one exception: implicit bodies of {\tt system}s and {\tt subsystem}s are
+converted into explicit ones.
+
+\[
+\begin{array}{rcll}
+  s \in \nt{source} & \rightarrow &\lab{Source}\{\lab{elems}:\listof{\nt{elem}}\} \\
+  e \in \nt{elem} & \rightarrow & \lab{System}\{\lab{name}:\nt{name},\lab{abbrev}:\optof{\nt{name}},
+                                                \lab{explanation}:\nt{text},\lab{indexings}:\listof{\nt{indexing}},
+                                                \lab{body}:\listof{\nt{elem}}\} \\
+                  & \rightarrow & \lab{Subsystem}\{\lab{name}:\nt{name},\lab{abbrev}:\optof{\nt{name}},
+                                                \lab{inherits}:\listof{\nt{qname}},\lab{clientOf}:\listof{\nt{qname}}, \\
+                  &             & \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
+                                                \lab{explanation}:\nt{text},\lab{indexings}:\listof{\nt{indexing}},
+                                                \lab{body}:\listof{\nt{elem}}\} \\
+                  & \rightarrow & \lab{SubystemImport}\{\lab{name}:\nt{qname},\lab{abbrev}:\optof{\nt{name}},
+                                                        \lab{clientOf}:\listof{\nt{qname}}\} \\
+                  & \rightarrow &\lab{Component}\{\lab{name}:\nt{name},\lab{abbrev}:\optof{\nt{name}},
+                                                \lab{inherits}:\listof{\nt{qname}},\lab{clientOf}:\listof{\nt{qname}},\\
+                  &             & \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
+                                                \lab{explanation}:\nt{text},\lab{parts}:\listof{\nt{part}}\} \\
+                  & \rightarrow & \lab{ComponentImport}\{\lab{name}:\nt{qname},\lab{abbrev}:\optof{\nt{name}},
+                                                         \lab{clientOf}:\listof{\nt{qname}}\} \\
+                  & \rightarrow & \lab{Events}\{\lab{name}:\nt{name},\lab{events}:\listof{\nt{item}}\} \\
+                  & \rightarrow & \lab{Scenarios}\{\lab{name}:\nt{name},\lab{scenarios}:\listof{\nt{item}}\} \\
+                  & \rightarrow & \lab{Requirements}\{\lab{name}:\nt{name},\lab{requirements}:\listof{\nt{item}}\} \\
+                  & \rightarrow & \lab{Relation}\{\lab{name}:\nt{qname},\lab{inherits}:\listof{\nt{qname}},
+                                                  \lab{clientOf}:\listof{\nt{qname}}\} \\
+  x \in \nt{indexing} & \rightarrow & \lab{Indexing}\{\lab{key}:\nt{text},\lab{values}:\listof{\nt{text}}\} \\
+  p \in \nt{part} & \rightarrow & \lab{Constraint}\{\lab{text}:\nt{text} \} \\
+                  & \rightarrow & \lab{Query}\{\lab{text}:\nt{text}\} \\
+                  & \rightarrow & \lab{Command}\{\lab{text}:\nt{text}\} \\
+  i \in \nt{item} & \rightarrow & \lab{Item}\{\lab{id}:\nt{name},\lab{text}:\nt{text} \} \\
+  u \in \nt{uid} & & \text{(base type)} \\
+  t \in \nt{text}& & \text{(base type)} \\
+  n \in \nt{name}& & \text{(base type)} \\
+  q \in \nt{qname}& = & \listof{\nt{name}} \\
+  c \in \nt{comment}&  & \text{(base type)} \\
+\end{array}
+\]
+
+\vfill\eject
+
+\section{Well-formedness Judgements}
+
+\newcommand{\senv}{\Phi}
+\newcommand{\env}{\Gamma}
+\newcommand{\qlookup}[2]{\mathit{qlook}_{#1}({#2})}
+\newcommand{\qnames}[1]{\mathit{qnames}({#1})}
+\newcommand{\nocycles}[1]{\mathit{nocycles}({#1})}
+
+Although the AST does not explicitly include element labels, we assume that each node (in particular each \nt{elem})
+has a unique identity with a well-defined notion of equality.
+
+$\env : \nt{name} \rightarrow \nt{elem}$ is an environment (finite map) from names
+to their corresponding elements.
+
+$\senv : \nt{elem} \rightarrow \env$ is a finite map from (sub)systems
+to the environments they generate.
+
+The function $\qlookup{\env}{q}$ resolved a qualified name $q$ starting in environment $\env$; it is defined thus:
+\[
+\begin{array}{rcl}
+\qlookup{\env}{\singlelist{n}} &= &\env(n) \\
+\qlookup{\env}{\conslist{n}{ns}} & =& \qlookup{\senv(\env(n))}{ns}
+\end{array}
+\]
+
+$I : \nt{elem} \times \nt{elem}$ is an inheritance relation between elements, where $(e_1,e_2) \in I$ means
+$e_1$ inherits from $e_2$. The predicate $\nocycles{I}$ holds when $I$ has no cycles.
+
+We assume the existence of a function $\qnames{t}$ that returns the list of \nt{qname}s mentioned in \nt{text} $t$.
+
+
+\newcommand{\validinh}[2]{\texttt{valid-inherit}({#1},{#2})}
+\newcommand{\validclient}[2]{\texttt{valid-client}({#1},{#2})}
+\newcommand{\validcontains}[2]{\texttt{valid-contains}({#1},{#2})}
+\newcommand{\validtop}[1]{\texttt{valid-toplevel}({#1})}
+
+\newcommand{\wb}[3]{{#1} \vdash {#2} \Rightarrow {#3}}
+\newcommand{\wbx}[2]{{#1} \vdash {#2}}
+
+A specification $s$ is well-formed if it is possible to find a top-level environment $\env_0$, a global $\senv_0$,
+and a global inheritance relation $I_0$ (all implicitly threaded everywhere) such that $\wbx{}{s}$.
+
+Below we provide a short description of each judgement:
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j1}} Global well-formedness
+\begin{itemize}
+\item \textit{A $\lab{Source}$ top level element containing a list of elements $es$ is well formed if elements in $es$ are well formed, there are no cycles, there is only one $\lab{System}$ element, and all elements in $es$ are valid top level elements}
+\item $\wb{\env_0}{es}{\env_0}$: This premise checks the well-formedness of a list of elements $es$ in the context of a top-level environment $\env_0$. It asserts that $es$ is well formed in the context of $\env_0$
+\item $\nocycles{I}:$ This states that the global inheritance relation $I$ must not contain any cycles.
+\item The third premise ensures uniqueness of $\lab{System}$ elements within $es$. It states that if $e_1$ and $e_2$ are both $\lab{System}$ elements within $es$, they must be the same entity $(e_1 = e_2)$.
+\item $\forall e \in es, \validtop{e}$: This checks that every element $e$ in $es$ satisfies the $\texttt{valid-toplevel}$ judgment, meaning each element is valid as a top-level construct.
+\item $\wbx{}{\lab{Source}\{\lab{elems}=es\}}$: If all the above premises are satisfied, the conclusion states that a $\lab{Source}$ element containing a list of elements $es$ is well-formed. This $\lab{Source}$ element acts as a container or root for the structure defined by the elements in $es$.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j1}
+\inferrule{
+  \wb{\env_0}{es}{\env_0} \\
+  \nocycles{I} \\
+  \forall e_1,e_2 \in es, e_1 = \lab{System}\{\ldots\} \land e_2 = \lab{System}\{\ldots\} \implies e_1 = e_2 \\
+  \forall e \in es, \validtop{e}
+}{
+  \wbx{}{\lab{Source}\{\lab{elems}=es\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j2}} Recursive well-formedness
+\begin{itemize}
+\item \textit{A list of elements $\conslist{e}{es}$ is well-formed if both $e$ and $es$ are well formed. The resulting environment $\env$ is a union of $\env'$ and $\env''$. This means we can process the elements recursively.}
+\item $\wb{\env}{e}{\env'}$: This premise asserts that a single element $e$ is well-formed in the context of an environment $\env$, resulting in a possibly modified environment $\env'$.
+\item $\wb{\env}{es}{\env''}$: Similarly, this checks the well-formedness of a list of elements $es$ in the same initial environment $\env$, resulting in another possibly modified environment $\env''$. I1t's assessing the collective impact of the remaining elements in the list after $e$.
+\item $\wb{\env}{\conslist{e}{es}}{\env' \uplus \env''}$: The conclusion states that if both premises are true, then the entire list formed by concatenating $e$ at the head of $es$ ($\conslist{e}{es}$) is well-formed in the initial environment $\env$. The resulting environment after processing this concatenated list is the disjoint union of $\env'$ and $\env''$ (denoted as $\env' \uplus \env''$).
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j2}
+\inferrule{
+  \wb{\env}{e}{\env'} \\
+  \wb{\env}{es}{\env''}
+}{
+  \wb{\env}{\conslist{e}{es}}{\env' \uplus \env''}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j3}} Terminating condition for recursive well-formedness
+\begin{itemize}
+\item An empty list of elements is always well formed.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j3}
+\inferrule{
+}{
+  \wb{\env}{\nillist{\nt{elem}}}{\{\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j4}} System well-formed
+\begin{itemize}
+\item \textit{A System element is well formed if all the preconditions are valid.}
+\item $n \neq n_a$: This states that the name $n$ of the $\lab{System}$ element must not be equal to its abbreviation $n_a$. This ensures distinct identifiers for the full name and the abbreviation.
+\item $\wbx{\env}{t}$: This checks the well-formedness of the $\lab{explanation}$ text $t$ in the current environment $\env$.
+\item $\forall e \in es_b, \validcontains{e_s}{e}$: For every element $e$ in the body $es_b$ of the $\lab{System}$, this condition asserts that $e$ can be contained within the the $\lab{System}$
+\item $\senv_0(e_s) = \env'$: This premise specifies that the environment generated by the $\lab{System}$ element $e_s$ is $\env'$
+\item $\wb{\env' \shadow \env}{es_b}{\env'}$: This checks the well-formedness of the body $es_b$ of the $\lab{System}$ in an environment that is a combination of $\env'$ (specific to the $\lab{System}$) and $\env$ (the broader environment), with $\env'$ taking precedence in case of overlaps.
+\item If all the above premises are satisfied, then the $\lab{System}$ element $e_s$, defined with a name $n$, an optional abbreviation $n_a$, an explanation $t$, and a body $es_b$ (along with other unspecified properties represented by $\ldots$), is well-formed in the environment $\env$. Furthermore, the resulting environment from processing this $\lab{System}$ element maps both $n$ and $n_a$ to $e_s$.
+\end{itemize}
+\end{itemize}
+
+
+\begin{equation}
+\label{j4}
+\inferrule{
+  n \neq n_a \\
+  \wbx{\env}{t} \\
+  % \forall x \in xs, \wb{\env}{x} \\
+  \forall e \in es_b, \validcontains{e_s}{e} \\
+  \senv_0(e_s) = \env' \\
+  \wb{\env' \shadow \env}{es_b}{\env'} \\
+}{
+  \wb{\env}{e_s@\lab{System}\{\lab{name}=n,\lab{abbrev}=\some{n_a},\lab{explanation}=t,\lab{body}=es_b,\ldots\}}{\{n \mapsto e_s,n_a \mapsto e_s\}}
+}
+\end{equation}
+
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j5}} System well-formed
+\begin{itemize}
+\item \textit{A System element is well formed if all the preconditions are valid.}
+\item The same as Judgement~\ref{j4} except for systems without the abbreviation $n_a$ - in this case $\lab{abbrev}$ is empty (None).
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j5}
+\inferrule{
+  \wbx{\env}{t} \\
+  % \forall x \in xs, \wb{\env}{x} \\
+  \forall e \in es_b, \validcontains{e_s}{e} \\
+  \senv_0(e_s) = \env' \\
+  \wb{\env' \shadow \env}{es_b}{\env'} \\
+}{
+  \wb{\env}{e_s@\lab{System}\{\lab{name}=n,\lab{abbrev}=\none{\nt{name}},\lab{explanation}=t,\lab{body}=es_b,\ldots\}}{\{n \mapsto e_s\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j6}} Subsystem well-formed
+\begin{itemize}
+\item \textit{A $\lab{Subsystem}$ is well formed if all the preconditions are valid.}
+\item The name and the abbreviated name must be different.
+\item $e_s$ must have only valid inherit relations $qs_i$
+\item $e_s$ must contain only valid elements $es_b$
+\item $e_s$ must have only valid client relations $qs_c$
+\item $\senv_0(e_s) = \env'$: This premise specifies that the environment generated by the $\lab{Subsystem}$ element $e_s$ is $\env'$
+\item $\wb{\env' \shadow \env}{es_b}{\env'}$: The well-formedness of the body $es_b$ of the $\lab{Subsystem}$ is checked in an environment that combines $\env'$ and $\env$, with $\env'$ taking precedence.
+\item If all those conditions are met, then the subsystem is well formed.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j6}
+\inferrule{
+  n \neq n_a \\
+  \forall q \in qs_i, \validinh{e_s}{\qlookup{\env}{q}} \\
+  \forall q \in qs_c, \validclient{e_s}{\qlookup{\env}{q}} \\
+  \wbx{\env}{t} \\
+  \forall e \in es_b, \validcontains{e_s}{e} \\
+  % \forall x \in xs, \wb{\env}{x} \\
+  \senv_0(e_s) = \env' \\
+  \wb{\env' \shadow \env}{es_b}{\env'} \\
+}
+{
+  \wb{\env}{e_s@\lab{Subsystem}\left\{\begin{array}{ll}
+      \lab{name}=n,\lab{abbrev}=\some{n_a},\lab{inherits}=qs_i, \\
+      \lab{clientOf}= qs_c,\lab{explanation}=t,\lab{body}=es_b,\ldots
+      \end{array}\right\}}
+     {\{n \mapsto e_s,n_a \mapsto e_s\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j7}} Subsystem well-formed
+\begin{itemize}
+\item \textit{A $\lab{Subsystem}$ is well formed if all the preconditions are valid.}
+\item The same as Judgement~\ref{j6} except for subsystems without the abbreviation $n_a$ (abbreviation will be empty).
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j7}
+\inferrule{
+  \forall q \in qs_i, \validinh{e_s}{\qlookup{\env}{q}} \\
+  \forall q \in qs_c, \validclient{e_s}{\qlookup{\env}{q}} \\
+  \wbx{\env}{t} \\
+  \forall e \in es_b, \validcontains{e_s}{e} \\
+  % \forall x \in xs, \wb{\env}{x} \\
+  \senv_0(e_s) = \env' \\
+  \wb{\env' \shadow \env}{es_b}{\env'} \\
+}
+{
+  \wb{\env}{e_s@\lab{Subsystem}\left\{\begin{array}{ll}
+    \lab{name}=n,\lab{abbrev}=\none{\nt{name}}, \lab{inherits}=qs_i, \\
+    \lab{clientOf}= qs_c,\lab{explanation}=t,\lab{body}=es_b,\ldots
+    \end{array}\right\}}
+    {\{n \mapsto e_s\}}
+}
+\end{equation}
+
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j8}} Subsystem import
+\begin{itemize}
+\item \textit{A $\lab{SubsystemImport}$ is well formed if all the preconditions are valid.}
+\item $\qlookup{\env_0}{q} = e$: This premise asserts that the qualified name $q$ resolves to an element $e$ in the top-level environment $\env_0$.
+\item $\forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}}$: For each qualified name $q$ in the list $qs_c$ (which represents elements for which the imported subsystem is a client), the element corresponding to $q$ must have a valid client relationship with $e$ (the element resolved from $q$).
+\item  If the above premises are satisfied, then the $\lab{SubsystemImport}$ element $e_s$, defined with a reference name $q$, an optional abbreviation $n_a$, and a list of clients $qs_c$, is well-formed in the environment $\env$. The resulting environment from processing this import maps the abbreviation $n_a$ to the $\lab{SubsystemImport}$ element $e_s$.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j8}
+\inferrule{
+  \qlookup{\env_0}{q} = e \\
+  \forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}} \\
+}
+{
+  \wb{\env}{e_s@\lab{SubsystemImport}\{\lab{name}=q,\lab{abbrev}=\some{n_a},\lab{clientOf}= qs_c\}}{\{n_a \mapsto e_s\}}
+}
+\end{equation}
+
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j9}} Subsystem import (no $n_a$)
+\begin{itemize}
+\item \textit{A $\lab{SubsystemImport}$ is well formed if all the preconditions are valid.}
+\item Same as Judgement~\ref{j8}, except for imported subsystems without an abbreviation $n_a$.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j9}
+\inferrule{
+  \qlookup{\env_0}{q} = e \\
+  \forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}} \\
+}
+{
+  \wb{\env}{e_s@\lab{SubsystemImport}\{\lab{name}=q,\lab{abbrev}=\none{\nt{name}},\lab{clientOf}= qs_c\}}{\{\listlast{q}\mapsto e_s\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j10}} Component well-formed
+\begin{itemize}
+\item \textit{A $\lab{Component}$ is well formed if all the preconditions are valid.}
+\item Distict name and and the abbreviated name
+\item Valid client and valid inherit relationships
+\item The explanation $t$ must be well formed
+\item Each part $p$ must be well formed
+\item If all those premises are met, the component $e_c$ is well formed
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j10}
+\inferrule{
+  n \neq n_a \\
+  \forall q \in qs_i, \validinh{e_c}{\qlookup{\env}{q}} \\
+  \forall q \in qs_c, \validclient{e_c}{\qlookup{\env}{q}} \\
+  \wbx{\env}{t} \\
+  \forall p \in ps, \wbx{\env}{p}  \\
+}
+{
+  \wb{\env}{e_c@\lab{Component}\left\{\begin{array}{ll}
+    \lab{name}=n,\lab{abbrev}=\some{n_a},\lab{inherits}=qs_i,\\
+    \lab{clientOf}= qs_c,\lab{explanation}=t,\lab{parts}=ps
+    \end{array}\right\}}{\{n \mapsto e_c,n_a \mapsto e_c\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j11}} Component well formed (no $n_a$)
+\begin{itemize}
+\item \textit{A $\lab{Component}$ is well formed if all the preconditions are valid.}
+\item Same as Judgement~\ref{j10}, except for components without an abbreviated name.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j11}
+\inferrule{
+  \forall q \in qs_i, \validinh{e_c}{\qlookup{\env}{q}} \\
+  \forall q \in qs_c, \validclient{e_c}{\qlookup{\env}{q}} \\
+  \wbx{\env}{t} \\
+  \forall p \in ps, \wbx{\env}{p}  \\
+}
+{
+  \wb{\env}{e_c@\lab{Component}\left\{\begin{array}{ll}
+    \lab{name}=n,\lab{abbrev}=\none{\nt{name}},\lab{inherits}=qs_i,\\
+    \lab{clientOf}= qs_c,\lab{explanation}=t,\lab{parts}=ps
+    \end{array}\right\}}{\{n \mapsto e_c\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j12}} Constraint well-formed
+\begin{itemize}
+\item If the text $t$ is well-formed, a $\lab{Constraint}$ is also well-formed
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j12}
+\inferrule{
+  \wbx{\env}{t}
+}{
+  \wbx{\env}{\lab{Constraint}\{\lab{text}=t\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j13}} Query well-formed
+\begin{itemize}
+\item If the text $t$ is well-formed, a $\lab{Query}$ is also well-formed
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j13}
+\inferrule{
+  \wbx{\env}{t}
+}{
+  \wbx{\env}{\lab{Query}\{\lab{text}=t\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j14}} Command well-formed
+\begin{itemize}
+\item If the text $t$ is well-formed, a $\lab{Command}$ is also well-formed
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j14}
+\inferrule{
+  \wbx{\env}{t}
+}{
+  \wbx{\env}{\lab{Command}\{\lab{text}=t\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j15}} Component import
+\begin{itemize}
+\item \textit{A $\lab{ComponentImport}$ is well formed if all the preconditions are valid.}
+\item Qualified name $q$ resolves to an element $e$ in the top level environment
+\item $\forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}}$: For each qualified name $q$ in the list $qs_c$ (representing elements for which the imported component is a client), the element corresponding to $q$ must have a valid client relationship with $e$.
+\item If the above defined premises are satisfied, the imported component is well-formed.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j15}
+\inferrule{
+  \qlookup{\env_0}{q} = e \\
+  \forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}} \\
+}
+{
+  \wb{\env}{e_c@\lab{ComponentImport}\{\lab{name}=q,\lab{abbrev}=\some{n_a},\lab{clientOf}= qs_c\}\}}{\{n_a \mapsto e_c\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j16}} Component import without $n_a$
+\begin{itemize}
+\item \textit{A $\lab{ComponentImport}$ is well formed if all the preconditions are valid.}
+\item Like Judgement~\ref{j15}, except covering cases where the imported component does not have an abbreviated name.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j16}
+\inferrule{
+  \qlookup{\env_0}{q} = e \\
+  \forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}} \\
+}
+{
+  \wb{\env}{e_c@\lab{ComponentImport}\{\lab{name}=q,\lab{abbrev}=\none{\nt{name}},\lab{clientOf}= qs_c\}\}}{\{\listlast{q} \mapsto e_c\}}
+}
+\end{equation}
+
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j17}} Events well-formed
+\begin{itemize}
+\item If a list of events $is$ is well formed, then an element $e$ of type $Events$ is well formed
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j17}
+\inferrule{
+  \wb{\env}{is}{\env'}
+}
+{
+  \wb{\env}{e@\lab{Events}\{\lab{name}=n,\lab{events}=is\}}{\{n\mapsto e\}\uplus \env'}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j18}} Scenarios well-formed
+\begin{itemize}
+\item If a list of scenarios $is$ is well formed, then an element $e$ of type $Scenarios$ is well formed
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j18}
+\inferrule{
+  \wb{\env}{is}{\env'}
+}
+{
+  \wb{\env}{e@\lab{Scenarios}\{\lab{name}=n,\lab{scenarios}=is\}}{\{n\mapsto e\} \uplus \env'}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j19}} Requirements well-formed
+\begin{itemize}
+\item If a list of scenarios $is$ is well formed, then an element $e$ of type $Requirements$ is well formed
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j19}
+\inferrule{
+  \wb{\env}{is}{\env'}
+}
+{
+  \wb{\env}{e@\lab{Requirements}\{\lab{name}=n,\lab{requirements}=is\}}{\{n\mapsto e\} \uplus \env'}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j20}} Item well-formed
+\begin{itemize}
+\item If the text $t$ is well-formed, then an item $i$ is well-formed.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j20}
+\inferrule{
+  \wbx{\env}{t}
+}{
+  \wb{\env}{i@\lab{Item}\{\lab{id}=n,\lab{text}=t\}}{\{n\mapsto i\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j21}} Relation well-formed
+\begin{itemize}
+\item Qualified name $q$ must be resolved to an element $e$
+\item All inherit relations are valid
+\item All client relations are valid
+\item A well-formed relation does not add a new element to $\env$, it only needs to be valid within the environment
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j21}
+\inferrule{
+  \qlookup{\env}{q} = e \\
+  \forall q \in qs_i, \validinh{e}{\qlookup{\env}{q}} \\
+  \forall q \in qs_c, \validclient{e}{\qlookup{\env}{q}}
+}{
+  \wb{\env}{\lab{Relation}\{\lab{name}=q,\lab{inherits}=qs_i,\lab{clientOf}=qs_c\}}{\{\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j22}} Text well-formed
+\begin{itemize}
+\item This judgment defines the well-formedness criteria for a piece of text $t$ focusing on the resolution of names within that text. It's a rule that ensures every name mentioned in the text $t$ corresponds to an existing element in the current environment.
+\item $\forall n_t \in \qnames{t}, \exists e, \env(n_t) = e$: For each name $n_t$ that appears within the text $t$ (as identified by the function $\qnames{t}$), there must exist an element $e$ such that $n_t$ resolves to $e$ in the environment $\env$. This means that every name referenced in $t$ must have a corresponding, defined element in the current environment.
+\item $\wbx{\env}{t}$: If the above premise is satisfied, then the text $t$ is considered well-formed in the environment $\env$. This conclusion states that the text is valid within the context of the environment, assuming that all names it mentions are properly accounted for and linked to existing elements.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j22}
+\inferrule{
+  \forall n_t \in \qnames{t}, \exists e, \env(n_t) = e
+}{
+  \wbx{\env}{t}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j23}} Valid top-level
+\begin{itemize}
+\item $\validtop{\lab{(System|Subsystem|...)}\{\ldots\}}$: The rule states that the described elements are always valid as top-level elements. The $\{\ldots\}$ indicates that the specific contents of these elements are not relevant to this judgment
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j23}
+\inferrule{
+}{\validtop{\lab{(System|Subsystem|Component|Events|Scenarios|Requirements|Relation)}\{\ldots\}}
+}
+\end{equation}
+
+
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j24}} Valid elements of a $\lab{System}$
+\begin{itemize}
+\item This rule states that a $\lab{System}$ can contain only $\lab{Subsystems}$, imported $\lab{Subsystems}$ or $\lab{Relations}$
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j24}
+\inferrule{
+}{\validcontains{\lab{System}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Relation)}\{\ldots\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j25}} Valid elements of a $\lab{SubSystem}$
+\begin{itemize}
+\item This rule states that a $\lab{SubSystem}$ contains only $\lab{Subsystems}$, imported $\lab{Subsystems}$, $\lab{Components}$, imported $\lab{Components}$, and elements defined in Judgement~\ref{j26}.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j25}
+\inferrule{
+}{\validcontains{\lab{Subsystem}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Component|ComponentImport)}\{\ldots\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j26}} Valid elements of a $\lab{SubSystem}$
+\begin{itemize}
+\item This rule states that a $\lab{SubSystem}$ contains only $\lab{Scenarios}$, $\lab{Requirements}$, $\lab{Events}$, $\lab{Relations}$, and elements defined in Judgement~\ref{j25}.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j26}
+\inferrule{
+}{\validcontains{\lab{Subsystem}\{\ldots\}}{\lab{(Scenarios|Requirements|Events|Relation)}\{\ldots\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j27}} Well-formed inheritance
+\begin{itemize}
+\item $(e_1,e_2) \in I_0$: This premise states that there is an inheritance relationship between two elements $e_1$ and $e_2$ in the global inheritance relation $I_0$. In other words, $e_1$ inherits from $e_2$.
+\item $\validinh{e_1@\lab{Component}\{\ldots\}}{e_2@\lab{Component}\{\ldots\}}$: If the above premise is satisfied, this conclusion asserts that the inheritance relationship between $e_1$ and $e_2$ is valid, where both $e_1$ and $e_2$ are $\lab{Component}$ elements. The $\{\ldots\}$ again implies that the specific contents or attributes of the $\lab{Component}$ elements are not relevant to this judgment.
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j27}
+\inferrule{
+  (e_1,e_2) \in I_0
+}{\validinh{e_1@\lab{Component}\{\ldots\}}{e_2@\lab{Component}\{\ldots\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j28}} Client of an (imported) subsystem
+\begin{itemize}
+\item This rule describes which elements can be a client of an (imported) subsystem.
+\item $\lab{Sbstm|SbstmImprt}$ stands for $\lab{Subsystem|SubsystemImport}$
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j28}
+\inferrule{
+}{\validclient{\lab{(Sbstm|SbstmImprt)}\{\ldots\}}{\lab{(Sbstm|SbstmImprt|Component|ComponentImport)}\{\ldots\}}
+}
+\end{equation}
+
+\begin{itemize}
+\item \textbf{Judgement~\ref{j29}} Client of an (imported) component
+\begin{itemize}
+\item This rule describes which elements can be a client of an (imported) component.
+\item $\lab{Cmpnt|CmpntImprt}$ stands for $\lab{Component|ComponentImport}$
+\end{itemize}
+\end{itemize}
+
+\begin{equation}
+\label{j29}
+\inferrule{
+}{\validclient{\lab{(Cmpnt|CmpntImprt)}\{\ldots\}}{\lab{(Subsystem|SubsystemImport|Cmpnt|CmpntImprt)}\{\ldots\}}
+}
+\end{equation}
+
+
+\end{document}
+
+%\subsection{Implicit Container Relations}
+%
+%\newcommand{\icmap}{\Sigma}
+%
+%\newcommand{\bldicmap}[3]{{#1} \vdash {#2} \Rightarrow {#3}}
+%
+%\newcommand{\reachable}[2]{\texttt{reachable}_{#1}({#2})}
+%% Reachability should be reflexive.
+%\newcommand{\nocycles}[1]{\texttt{nocycles}({#1})}
+%\newcommand{\validic}[2]{\texttt{valid-impl-contains}({#1},{#2})}
+%
+%These judgments check that the implicit container relations clauses are well formed
+%and produce a map $\icmap: \nt{uid} \rightarrow \nt{uid}$ mapping each
+%implicitly contained element to its immediately containing element.
+%
+%\begin{mathparpagebreakable}
+%  \inferrule{
+%  }{\bldicmap{\uidmap}{\nillist{\nt{relation}}}{\emptym}
+%  }
+%
+%\inferrule{
+%  \bldicmap{\uidmap}{rs}{\icmap} \\
+%%  u_c \neq u_p \\  not needed if reachability is reflexive
+%  \validic{\uidmap(u_c)}{\uidmap(u_p)} \\
+%  u_c \not\in \reachable{\icmap}{u_p} \\
+%  \icmap' = \icmap \uplus \{ u_c \mapsto u_p \} \\
+%}{
+%  \bldicmap{\uidmap}{\conslist{\lab{ImplicitContains}\{\lab{child}=u_c,\lab{parent}=u_p\}}{rs}}{\icmap'}
+%}
+%
+%\inferrule{
+%  \bldicmap{\uidmap}{rs}{\icmap} \\
+%}{
+%  \bldicmap{\uidmap}{\conslist{\lab{Contains}\{\ldots\}}{rs}}{\icmap}
+%}
+%
+%\inferrule{
+%  \bldicmap{\uidmap}{rs}{\icmap} \\
+%}{
+%  \bldicmap{\uidmap}{\conslist{\lab{Inherit}\{\ldots\}}{rs}}{\icmap}
+%}
+%
+%\inferrule{
+%  \bldicmap{\uidmap}{rs}{\icmap} \\
+%}{
+%  \bldicmap{\uidmap}{\conslist{\lab{Client}\{\ldots\}}{rs}}{\icmap}
+%}
+%
+%
+%\inferrule{
+%}{\validic{\lab{Subsystem}\{\ldots\}}{\lab{System}\{\ldots\}}
+%}
+%
+%\inferrule{
+%}{\validic{\lab{(Subsystem|Component|Scenarios|Requirements|Events)}\{\ldots\}}{\lab{Subsystem}\{\ldots\}}
+%}
+%
+%\\
+%
+%\inferrule{
+%}{x \in \reachable{M}{x}}
+%
+%\inferrule{
+%  M(z) = x \\
+%  z \in \reachable{M}{y}
+%}{x \in \reachable{M}{y}
+%}
+%
+%
+%\end{mathparpagebreakable}
+%
+%\subsection{Binding Contexts}
+%
+%\newcommand{\con}{\Gamma}
+%\newcommand{\iccon}{\Delta}
+%
+%These judgements check that the set of names
+%defined by each implicit container has no duplicates,
+%and so uniquely defines a context $\con: \nt{name} \rightarrow \nt{uid}$.
+%The judgements
+%produce a map $\iccon: \nt{uid} \rightarrow \con$
+%from each implicit container to the context it defines.
+%
+%\newcommand{\bldcon}[2]{\vdash {#1} \Rightarrow {#2}}
+%\newcommand{\bldiccon}[3]{{#1} \vdash {#2} \Rightarrow {#3}}
+%
+%\begin{mathparpagebreakable}
+%
+%\inferrule{
+%  n_1 \neq n_2
+%}{
+%  \bldcon{\lab{(System|Subsystem|Component)}\{\lab{uid}=u,\lab{name}=n_1,\lab{abbrev}=\some{n_2},\ldots\}}{\{ n_1 \mapsto u, n_2 \mapsto u \}}
+%}
+%
+%\inferrule{
+%}{
+%  \bldcon{\lab{(System|Subsystem|Component)}\{\lab{uid}=u,\lab{name}=n,\lab{abbrev}=\none{\nt{name}},\ldots\}}{\{ n \mapsto u\}}
+%}
+%
+%\inferrule{
+%}{
+%  \bldcon{\lab{(Events|Scenarios|Requirements)}\{\lab{uid}=u,\lab{name}=n,\ldots\}}{\{ n \mapsto u\}}
+%}
+%
+%
+%\inferrule{
+%    \bldiccon{\icmap}{es}{\iccon} \\
+%    u_p = \icmap(\proj{e}{\lab{uid}}) \\
+%    \con_0 = \left\{{\begin{array}{ll}
+%                       \iccon(u_p)&\text{if}~u_p \in Dom(\iccon)\\
+%                       \emptym & \text{otherwise}
+%                   \end{array}}\right. \\\\
+%    \vdash e : \con \\
+%    \iccon' = \iccon[u_p \mapsto (\con_0 \uplus \con)] \\
+%}{\bldiccon{\icmap}{\conslist{e}{es}}{\iccon'}
+%}
+%
+%\inferrule{
+%  \bldiccon{\icmap}{es}{\iccon}
+%}{
+%  \bldiccon{\icmap}{\lab{Source}\{\lab{elems}=es,\ldots\}}{\iccon}
+%}
+%
+%
+%\end{mathparpagebreakable}
+%
+%\subsection{Explicit Relations}
+%
+%\newcommand{\inhmap}{I}
+%\newcommand{\xcmap}{K}
+%\newcommand{\clmap}{\Pi}
+%\newcommand{\bldermap}[6]{{#1},{#2} \vdash {#3} \Rightarrow ({#4},{#5},{#6})}
+%
+%\newcommand{\validinh}[2]{\texttt{valid-inherit}({#1},{#2})}
+%\newcommand{\validcontains}[2]{\texttt{valid-contains}({#1},{#2})}
+%\newcommand{\validclient}[2]{\texttt{valid-client}({#1},{#2})}
+%
+%These judgements check that the explicit relations are well-formed,
+%and build an inheritance map
+%$\inhmap: \nt{uid} \rightarrow \nt{uid}$ from sub-things to super-things,
+%an explicit containment map
+%$\xcmap: \nt{uid} \rightarrow \nt{uid}$ from children to parents,
+%and a client relation
+%$\clmap: \nt{uid} \times \nt{uid}$ between clients and providers.
+%
+%\emph{
+%  TBD:
+%  \begin{itemize}
+%  \item Unclear where we will get the contexts $\con$.
+%  \item Need to fill in the validity definitions.
+%  \item Treating $\inhmap$ as a map implies single inheritance.
+%  \item Treating $\xcmap$ as a map implies a thing is contained in at most one other thing.
+%  \item Need to consider interaction of implicit and explicit relation maps, in particular to find cycles across the combination of the two.
+%  \item Calculation of $\clmap$ doesn't check for duplicate declarations of a given relation; should it?
+%  \end{itemize}
+%}
+%
+%
+%\begin{mathparpagebreakable}
+%
+%\inferrule{
+%}{
+%  \bldermap{\uidmap}{\con}{\nillist{\nt{relation}}}{\emptym}{\emptym}{\emptym}
+%}
+%
+%\inferrule{
+%  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+%  u_{sub} = \con(n_{sub}) \\
+%  u_{super} = \con(n_{super}) \\
+%  u_{sub} \not \in \reachable{\inhmap}{u_{super}} \\
+%  \validinh{\uidmap(u_{sub})}{\uidmap(u_{super})} \\
+%  \inhmap' = \inhmap \uplus \{ u_{sub} \mapsto u_{super} \}
+%}{
+%  \bldermap{\uidmap}{\con}{\conslist{\lab{Inherit}\{\lab{sub}=n_{sub},\lab{super}=n_{super}\}}{rs}}{\inhmap'}{\xcmap}{\clmap}
+%}
+%
+%
+%\inferrule{
+%  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+%  u_c = \con(n_c) \\
+%  u_p = \con(n_p) \\
+%  u_c \not \in \reachable{\xcmap}{u_p} \\
+%  \validcontains{\uidmap(u_c)}{\uidmap(u_p)} \\
+%  \xcmap' = \xcmap \uplus \{ u_c \mapsto u_p \}
+%}{
+%  \bldermap{\uidmap}{\con}{\conslist{\lab{Contains}\{\lab{child}=n_c,\lab{parent}=n_p\}}{rs}}{\inhmap}{\xcmap'}{\clmap}
+%}
+%
+%          \\
+%
+%\inferrule{
+%  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+%  u_c = \con(n_c) \\
+%  u_p = \con(n_p) \\
+%  \validclient{\uidmap(u_c)}{\uidmap(u_p)} \\
+%  \clmap' = \clmap \cup \{ (u_c,u_p) \}
+%}{
+%  \bldermap{\uidmap}{\con}{\conslist{\lab{Client}\{\lab{client}=n_c,\lab{provider}=n_p\}}{rs}}{\inhmap}{\xcmap}{\clmap'}
+%}
+%
+%
+%\\
+%
+%\inferrule{
+%  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\
+%}{
+%  \bldermap{\uidmap}{\con}{\conslist{\lab{ImplicitContains}\{\ldots\}}{rs}}{\inhmap}{\xcmap}{\clmap}
+%}
+%
+%\end{mathparpagebreakable}
+%
+%\subsection{Overall Well-Formedness}
+%
+%\emph{
+%  TBD:
+%  \begin{itemize}
+%  \item Use of $\con = \iccon(u)$ is bogus; need to fix once we understand desired scoping rules better.
+%  \item Need to describe interaction of $\icmap$ and $\xcmap$ and perhaps build their union.
+%  \end{itemize}
+%}
+%
+%\begin{mathparpagebreakable}
+%
+%\inferrule{
+%  \blduidmap{s}{\uidmap} \\
+%  \bldicmap{\uidmap}{rs}{\icmap} \\
+%  \bldiccon{\icmap}{s}{\iccon} \\
+%  \con = \iccon(u) \\
+%  \bldermap{\uidmap}{\con}{rs}{\inhmap}{\xcmap}{\clmap} \\\\
+%  \text{$\exists$ at most one $e \in es$ s.t. $e = \lab{System}\{\ldots\}$} \\
+%}{
+%  \vdash s@\lab{Source}\{\lab{uid}=u,\lab{elems}=es,\lab{relations}=rs\} \Rightarrow (\uidmap,\icmap,\iccon,\inhmap,\xcmap,\clmap)
+%}
+%\end{mathparpagebreakable}

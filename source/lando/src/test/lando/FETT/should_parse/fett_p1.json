@@ -1,178 +1,364 @@
 {
-    "uid": 9,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "FETT P1",
             "abbrevName": null,
+            "clientOf": [
+            ],
             "explanation": "The P1 Target System Software.",
             "indexing": [
             ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 2,
-            "name": "P1 Target CVEs",
-            "abbrevName": null,
-            "explanation": "The CVEs exposed by the FETT P1 system.",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 3,
-            "name": "P1 Target Forensics",
-            "abbrevName": null,
-            "explanation": "Target state that can be inspected by the FETT Runner. In this case, this is be any in-memory logs, processor state, etc. The Researcher should not have access to any of this state.",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 4,
-            "name": "FreeRTOS Kernel",
-            "abbrevName": null,
-            "explanation": "The (abstract) kernel that will be booted on the P1 processor.",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 5,
-            "name": "HTTPS Configuration extends Base FreeRTOS Kernel",
-            "abbrevName": null,
-            "explanation": "The FreeRTOS configuration that includes HTTPS functionality.",
-            "parts": [
+            "body": [
                 {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Start the HTTPS service!",
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 2,
+                    "pos": {
+                        "line": 4,
+                        "col": 0
+                    },
+                    "name": "P1 Target CVEs",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "The CVEs exposed by the FETT P1 system.",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 3,
+                    "pos": {
+                        "line": 7,
+                        "col": 0
+                    },
+                    "name": "P1 Target Forensics",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "Target state that can be inspected by the FETT Runner. In this case, this is be any in-memory logs, processor state, etc. The Researcher should not have access to any of this state.",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 4,
+                    "pos": {
+                        "line": 12,
+                        "col": 0
+                    },
+                    "name": "FreeRTOS Kernel",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "The (abstract) kernel that will be booted on the P1 processor.",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 5,
+                    "pos": {
+                        "line": 15,
+                        "col": 0
+                    },
+                    "name": "HTTPS Configuration extends Base FreeRTOS Kernel",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "The FreeRTOS configuration that includes HTTPS functionality.",
+                    "parts": [
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 18,
+                                "col": 2
+                            },
+                            "text": "Start the HTTPS service!",
+                            "comments": [
+                                {
+                                    "pos": {
+                                        "line": 18,
+                                        "col": 32
+                                    },
+                                    "text": "Can be boot"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 19,
+                                "col": 2
+                            },
+                            "text": "Stop the HTTPS service!",
+                            "comments": [
+                                {
+                                    "pos": {
+                                        "line": 19,
+                                        "col": 27
+                                    },
+                                    "text": "Can be HALT"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                            "pos": {
+                                "line": 20,
+                                "col": 2
+                            },
+                            "text": "What is the IP Address of the HTTPS service?",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                            "pos": {
+                                "line": 21,
+                                "col": 2
+                            },
+                            "text": "On what ports is the HTTPS service listening?",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 22,
+                                "col": 2
+                            },
+                            "text": "Execute HTTPS Method!",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                            "pos": {
+                                "line": 23,
+                                "col": 2
+                            },
+                            "text": "HTTPS Query?",
+                            "comments": [
+                            ]
+                        }
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 6,
+                    "pos": {
+                        "line": 25,
+                        "col": 0
+                    },
+                    "name": "OTA Configuration extends Base FreeRTOS Kernel",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "The FreeRTOS configuration that includes OTA functionality.",
+                    "parts": [
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
+                            "pos": {
+                                "line": 34,
+                                "col": 2
+                            },
+                            "text": "What is the IP Address of the OTA service?",
+                            "comments": [
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 35,
+                                "col": 2
+                            },
+                            "text": "Start the OTA service!",
+                            "comments": [
+                                {
+                                    "pos": {
+                                        "line": 35,
+                                        "col": 25
+                                    },
+                                    "text": "Can be boot"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 36,
+                                "col": 2
+                            },
+                            "text": "Stop the OTA service!",
+                            "comments": [
+                                {
+                                    "pos": {
+                                        "line": 36,
+                                        "col": 25
+                                    },
+                                    "text": "Can be HALT"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
+                            "pos": {
+                                "line": 37,
+                                "col": 2
+                            },
+                            "text": "Accept update data!",
+                            "comments": [
+                            ]
+                        }
+                    ],
                     "comments": [
                         {
-                            "text": "Can be boot"
+                            "pos": {
+                                "line": 25,
+                                "col": 0
+                            },
+                            "text": "@note abakst"
+                        },
+                        {
+                            "pos": {
+                                "line": 26,
+                                "col": 0
+                            },
+                            "text": "The following may need to be refined with additional details"
+                        },
+                        {
+                            "pos": {
+                                "line": 27,
+                                "col": 0
+                            },
+                            "text": "e.g. MQTT/AWS information once we know precisely how this"
+                        },
+                        {
+                            "pos": {
+                                "line": 28,
+                                "col": 0
+                            },
+                            "text": "will be implemented. From the point of view of the Target"
+                        },
+                        {
+                            "pos": {
+                                "line": 29,
+                                "col": 0
+                            },
+                            "text": "system, however, abstracting these details is probably OK."
                         }
                     ]
                 },
                 {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Stop the HTTPS service!",
+                    "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
+                    "uid": 7,
+                    "pos": {
+                        "line": 39,
+                        "col": 0
+                    },
+                    "name": "P1 Target Applications",
+                    "abbrevName": null,
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                    ],
+                    "explanation": "The supported applications (FreeRTOS builds) on the P1 Target System.",
+                    "parts": [
+                    ],
+                    "comments": [
+                    ]
+                },
+                {
+                    "type": "com.galois.besspin.lando.ssl.ast.RawRelation",
+                    "uid": 8,
+                    "pos": {
+                        "line": 42,
+                        "col": 0
+                    },
+                    "name": [
+                        "P1 Target Applications"
+                    ],
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                        [
+                            "HTTPS Configuration"
+                        ]
+                    ],
                     "comments": [
                         {
-                            "text": "Can be HALT"
+                            "pos": {
+                                "line": 42,
+                                "col": 0
+                            },
+                            "text": "ELEW: relation can't have a contains"
                         }
                     ]
                 },
                 {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
-                    "text": "What is the IP Address of the HTTPS service?",
+                    "type": "com.galois.besspin.lando.ssl.ast.RawRelation",
+                    "uid": 9,
+                    "pos": {
+                        "line": 44,
+                        "col": 0
+                    },
+                    "name": [
+                        "P1 Target Applications"
+                    ],
+                    "inherits": [
+                    ],
+                    "clientOf": [
+                        [
+                            "OTA Configuration"
+                        ]
+                    ],
                     "comments": [
                     ]
                 },
                 {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
-                    "text": "On what ports is the HTTPS service listening?",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Execute HTTPS Method!",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
-                    "text": "HTTPS Query?",
-                    "comments": [
-                    ]
-                }
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 6,
-            "name": "OTA Configuration extends Base FreeRTOS Kernel",
-            "abbrevName": null,
-            "explanation": "The FreeRTOS configuration that includes OTA functionality.",
-            "parts": [
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawQuery",
-                    "text": "What is the IP Address of the OTA service?",
-                    "comments": [
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Start the OTA service!",
-                    "comments": [
+                    "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
+                    "uid": 10,
+                    "pos": {
+                        "line": 46,
+                        "col": 0
+                    },
+                    "name": "Target System",
+                    "requirements": [
                         {
-                            "text": "Can be boot"
+                            "pos": {
+                                "line": 48,
+                                "col": 0
+                            },
+                            "id": "Base CVEs Exposed",
+                            "text": "For each CVE in the P1 Target CVE list, there is a member of P1 Target Applications that is configured according to the publicly available CVE details to contain the vulnerability.",
+                            "comments": [
+                            ]
                         }
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Stop the OTA service!",
-                    "comments": [
-                        {
-                            "text": "Can be HALT"
-                        }
-                    ]
-                },
-                {
-                    "type": "com.galois.besspin.lando.ssl.ast.RawCommand",
-                    "text": "Accept update data!",
-                    "comments": [
-                    ]
-                }
-            ],
-            "comments": [
-                {
-                    "text": "@note abakst"
-                },
-                {
-                    "text": "The following may need to be refined with additional details"
-                },
-                {
-                    "text": "e.g. MQTT/AWS information once we know precisely how this"
-                },
-                {
-                    "text": "will be implemented. From the point of view of the Target"
-                },
-                {
-                    "text": "system, however, abstracting these details is probably OK."
-                }
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawComponent",
-            "uid": 7,
-            "name": "P1 Target Applications",
-            "abbrevName": null,
-            "explanation": "The supported applications (FreeRTOS builds) on the P1 Target System.",
-            "parts": [
-            ],
-            "comments": [
-            ]
-        },
-        {
-            "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
-            "uid": 8,
-            "name": "Target System",
-            "requirements": [
-                {
-                    "id": "Base CVEs Exposed",
-                    "text": "For each CVE in the P1 Target CVE list, there is a member of P1 Target Applications that is configured according to the publicly available CVE details to contain the vulnerability.",
+                    ],
                     "comments": [
                     ]
                 }
@@ -181,52 +367,6 @@
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-            {
-                "name": "HTTPS Configuration",
-                "parent": "P1 Target Applications"
-            },
-            {
-                "name": "OTA Configuration",
-                "parent": "P1 Target Applications"
-            }
-        ],
-        "_implicitContainsRelations": [
-            {
-                "uid": 2,
-                "parentUid": 1
-            },
-            {
-                "uid": 3,
-                "parentUid": 1
-            },
-            {
-                "uid": 4,
-                "parentUid": 1
-            },
-            {
-                "uid": 5,
-                "parentUid": 1
-            },
-            {
-                "uid": 6,
-                "parentUid": 1
-            },
-            {
-                "uid": 7,
-                "parentUid": 1
-            },
-            {
-                "uid": 8,
-                "parentUid": 1
-            }
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

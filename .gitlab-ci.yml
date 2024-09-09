@@ -1,0 +1,21 @@
+image: maven:3.8.5-openjdk-11
+
+stages:
+  - package
+  - test
+
+package:
+  script:
+    - mvn package -f source/lando/pom.xml
+  artifacts:
+    paths:
+      - source/lando/target/lando-3.0-SNAPSHOT-jar-with-dependencies.jar
+    expire_in: 1 day
+
+test:
+  needs:
+    - job: package
+      artifacts: true
+  script:
+    - java -jar source/lando/target/lando-3.0-SNAPSHOT-jar-with-dependencies.jar -h
+    - java -jar source/lando/target/lando-3.0-SNAPSHOT-jar-with-dependencies.jar validate source/lando/src/test/lando/misc/should_typecheck/abbrev.lando

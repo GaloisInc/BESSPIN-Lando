@@ -1,14 +1,23 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "Crypto",
             "abbrevName": null,
+            "clientOf": [
+            ],
             "explanation": "The cryptographic algorithms and protocol for the DEF CON 2019 Voting System.",
             "indexing": [
                 {
+                    "pos": {
+                        "line": 5,
+                        "col": 2
+                    },
                     "key": "owner",
                     "values": [
                         "Rod Chapman <rod.chapman@freeandfair.us>"
@@ -17,6 +26,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 6,
+                        "col": 2
+                    },
                     "key": "contributors",
                     "values": [
                         "Luke Myers <lmyers@galois.com>",
@@ -29,6 +42,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 11,
+                        "col": 2
+                    },
                     "key": "design_effort_estimate",
                     "values": [
                         "1 week"
@@ -37,6 +54,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 12,
+                        "col": 2
+                    },
                     "key": "implementation_effort_estimate",
                     "values": [
                         "1 week"
@@ -45,6 +66,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 13,
+                        "col": 2
+                    },
                     "key": "assurance_effort_estimate",
                     "values": [
                         "1 week"
@@ -53,6 +78,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 14,
+                        "col": 2
+                    },
                     "key": "complexity",
                     "values": [
                         "medium"
@@ -61,6 +90,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 15,
+                        "col": 2
+                    },
                     "key": "risk level",
                     "values": [
                         "medium"
@@ -69,6 +102,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 16,
+                        "col": 2
+                    },
                     "key": "dependencies",
                     "values": [
                         "crypto hardware"
@@ -77,20 +114,12 @@
                     ]
                 }
             ],
+            "body": [
+            ],
             "comments": [
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

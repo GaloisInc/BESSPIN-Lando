@@ -1,36 +1,59 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawEvents",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "Crypto",
             "events": [
                 {
+                    "pos": {
+                        "line": 3,
+                        "col": 0
+                    },
                     "id": "Load key",
                     "text": "Load key K into the HSM.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 6,
+                        "col": 0
+                    },
                     "id": "Encrypt",
                     "text": "Encrypt data D.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 9,
+                        "col": 0
+                    },
                     "id": "Decrypt",
                     "text": "Decrypt data D.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 12,
+                        "col": 0
+                    },
                     "id": "Hash",
                     "text": "Hash data D.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 15,
+                        "col": 0
+                    },
                     "id": "HMAC",
                     "text": "HMAC data D using key K.",
                     "comments": [
@@ -41,16 +64,6 @@
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

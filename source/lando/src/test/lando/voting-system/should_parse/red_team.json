@@ -1,14 +1,23 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawSubsystem",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "Red Team",
             "abbrevName": null,
+            "clientOf": [
+            ],
             "explanation": "The group of individuals that have contributed to internal red teaming of the BVS.",
             "indexing": [
                 {
+                    "pos": {
+                        "line": 6,
+                        "col": 2
+                    },
                     "key": "owner",
                     "values": [
                         "John Sebes <jsebes@osetfoundation.org>"
@@ -17,6 +26,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 7,
+                        "col": 2
+                    },
                     "key": "contributors",
                     "values": [
                         "Joe Kiniry <kiniry@freeandfair.us>",
@@ -30,6 +43,10 @@
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 13,
+                        "col": 2
+                    },
                     "key": "possible future contributors",
                     "values": [
                         "Joe Fitzgerald",
@@ -41,20 +58,12 @@
                     ]
                 }
             ],
+            "body": [
+            ],
             "comments": [
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

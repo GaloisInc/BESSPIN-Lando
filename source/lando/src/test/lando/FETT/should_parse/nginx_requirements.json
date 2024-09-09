@@ -1,57 +1,100 @@
 {
-    "uid": 2,
-    "elements": [
+    "body": [
         {
             "type": "com.galois.besspin.lando.ssl.ast.RawRequirements",
             "uid": 1,
+            "pos": {
+                "line": 1,
+                "col": 0
+            },
             "name": "Nginx webserver",
             "requirements": [
                 {
+                    "pos": {
+                        "line": 3,
+                        "col": 0
+                    },
                     "id": "ssl support",
                     "text": "Nginx must be compiled with ssl support.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 3,
+                                "col": 0
+                            },
                             "text": "Build Requirements"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 7,
+                        "col": 0
+                    },
                     "id": "http2 support",
                     "text": "Nginx must be compiled with http2 support.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 10,
+                        "col": 0
+                    },
                     "id": "ssl certificate",
                     "text": "The Nginx installation and configuration must include a valid SSL certificate.",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 10,
+                                "col": 0
+                            },
                             "text": "Resources"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 14,
+                        "col": 0
+                    },
                     "id": "hidden resources",
                     "text": "The Nginx app should include some resources that are intended to be 'private'; ie protected by some nginx security mechanism.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 18,
+                        "col": 0
+                    },
                     "id": "http2 configuration",
                     "text": "Nginx must be configured to listen for http2 requests (listen http2).",
                     "comments": [
                         {
+                            "pos": {
+                                "line": 18,
+                                "col": 0
+                            },
                             "text": "Configuration"
                         }
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 22,
+                        "col": 0
+                    },
                     "id": "error_page redirect",
                     "text": "CVE-2019-20372 requires a server configuration with an error_page redirect.",
                     "comments": [
                     ]
                 },
                 {
+                    "pos": {
+                        "line": 25,
+                        "col": 0
+                    },
                     "id": "hidden resources configuration",
                     "text": "Nginx must be configured to run a separate 'server' (in its config file) that protects a named resource; this can serve as a target for error_page smuggling.",
                     "comments": [
@@ -62,16 +105,6 @@
             ]
         }
     ],
-    "relationShips": {
-        "_inheritRelations": [
-        ],
-        "_containsRelations": [
-        ],
-        "_implicitContainsRelations": [
-        ],
-        "_clientRelations": [
-        ]
-    },
     "comments": [
     ]
 }

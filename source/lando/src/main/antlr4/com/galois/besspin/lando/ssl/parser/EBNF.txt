@@ -1,0 +1,109 @@
+(* The EBNF specification of the Lando system specification language *)
+(* Joe Kiniry, 9 Nov 2023 *)
+(* Assisted by GPT-4 *)
+
+(* =================== *)
+(* Lexical Foundations *)
+(* =================== *)
+
+(* Basic Elements *)
+letter = "a" | "b" | ... | "z" | "A" | "B" | ... | "Z";
+digit = "0" | "1" | ... | "9";
+underscore_dot = "_" | '.' ;
+character = letter | digit | underscore | symbol | whitespace;
+whitespace = " " | "\t" | "\n" | "\r";
+
+(* Words and Identifiers *)
+word = letter { letter | digit | underscore_dot };
+identifier = word { word };
+
+(* Keyword Categories *)
+system_keywords = "system" | "subsystem" | "component";
+behavioral_keywords = "events" | "scenarios" | "requirements";
+relational_keywords = "relation" | "inherit" | "client" | "contains";
+miscellaneous_keywords = "indexing" | "end";
+import_keywords = "import component" | "import subsystem";
+
+(* Operators and Separators *)
+operators = command_term | constraint_term | query_term;
+separators = index_sep | rel_sep | qname_sep;
+punctuation = abbrev_start | abbrev_end;
+
+(* Symbols *)
+index_sep = ":";
+rel_sep = ",";
+qname_sep = ":";
+abbrev_start = "(";
+abbrev_end = ")";
+command_term = "!";
+constraint_term = ".";
+query_term = "?";
+
+(* Comments *)
+line_comment = "//" { character };
+
+(* =============================== *)
+(* Lando Language Characterization *)
+(* =============================== *)
+
+(* Entry Point *)
+landoSource = body, [lineComments], EOF;
+
+(* Specification Elements *)
+specElement = system | subsystem | subsystemImport | component | componentImport | events | scenarios | requirements | relation;
+body = { specElement };
+
+(* System, Subsystem, and Component Definitions *)
+system = [lineComments], "system", identifier, [abbrev], [comment], paragraph, [(indexing, blockend)], [("contains", body, "end", [comment], blockend)];
+subsystem = [lineComments], "subsystem", identifier, [abbrev], {clientClause}, [comment], paragraph, [(indexing, blockend)], [("contains", body, "end", [comment], blockend)];
+component = [lineComments], "component", identifier, [abbrev], {(inheritClause | clientClause)}, [comment], paragraph, [(componentParts, blockend)];
+componentParts = componentPart, {componentPart};
+
+(* Component Part Types *)
+componentPart = command | constraint | query;
+command = [lineComments], sentBody, "!", [wordSep], [comment];
+query = [lineComments], sentBody, "?", [wordSep], [comment];
+constraint = [lineComments], sentBody, ".", [wordSep], [comment];
+
+(* Import Statements *)
+subsystemImport = [lineComments], "import subsystem", identifier, [abbrev], {clientClause}, [comment], blockend;
+componentImport = [lineComments], "import component", identifier, [abbrev], {clientClause}, [comment], blockend;
+
+(* Clauses *)
+clientClause = "client", identifier, {",", identifier};
+inheritClause = "inherit", identifier, {",", identifier};
+containsClause = "contains", identifier, {",", identifier};
+
+(* Events, Scenarios, Requirements *)
+events = [lineComments], "events", identifier, [comment], {eventEntry};
+scenarios = [lineComments], "scenarios", identifier, [comment], {scenarioEntry};
+requirements = [lineComments], "requirements", identifier, [comment], {requirementEntry};
+
+(* Entries *)
+eventEntry = [lineComments], identifier, [comment], paragraph;
+scenarioEntry = [lineComments], identifier, [comment], paragraph;
+requirementEntry = [lineComments], identifier, [comment], paragraph;
+
+(* Relation and Indexing *)
+relation = [lineComments], "relation", identifier, { (inheritClause | clientClause | containsClause) }, [comment], blockend;
+indexing = "indexing", {indexEntry};
+indexEntries = indexEntry, {indexEntry};
+
+(* Index Values *)
+indexEntry = indexValue, ":", indexValueList;
+indexValueList = indexValuePart, {indexValuePart};
+indexValuePart = indexValue, [comment];
+
+(* Helpers and Misc *)
+comment = COMMENT;
+lineComments = comments;
+comments = comment, {comment};
+identifier = word, {word};
+abbrev = ["(", word, ")"];
+indexValue = word, {word};
+wordSep = [comment], [LINESEP];
+sentBody = word, {wordSep, word}, [wordSep];
+sentence = sentBody, [sentTerm], [wordSep];
+paragraph = {sentence}, parend;
+parend = [comment], (EMPTYLINE | EOF);
+blockend = EMPTYLINE | EOF;

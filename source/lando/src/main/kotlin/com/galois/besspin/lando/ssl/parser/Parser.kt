@@ -36,15 +36,14 @@ private class CollectingErrorListener : BaseErrorListener() {
             errors.add(SyntaxError(offendingSymbol, line, charPositionInLine, msg ?: ""))
     }
 
-    fun formatErrors(): String = errors.map { e -> e.formatError() }.joinToString(separator = "\n")
+    fun formatErrors(): String = errors.joinToString(separator = "\n") { e -> e.formatError() }
 
-    fun formatWarnings() : String {
+    fun formatWarnings() : String =
         if (warnings.size != 0)
-            return "Generated ${warnings.size} warning(s):\n" +
-                    warnings.map { e -> e.formatError() }.joinToString(separator="\n")
+            "Generated ${warnings.size} warning(s):\n" +
+                    warnings.joinToString(separator = "\n") { e -> e.formatError() }
         else
-            return ""
-    }
+            ""
 
 
 }
